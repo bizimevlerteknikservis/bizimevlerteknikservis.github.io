@@ -177,10 +177,10 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 <body>
 <header class="hero"><div class="hero-in">
   <div class="hero-top">
-    <div class="logo"><i><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg></i>Teknik Servis</div>
+    <div class="logo"><i><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg></i><span id="ustYazi">Bizimevler 1 Sitesi</span></div>
     <span id="modeTag" class="chip sample" hidden>Demo</span>
   </div>
-  <h1 id="siteName">Bizimevler 1 Teknik Servis</h1>
+  <h1 id="siteName">Teknik Servis</h1>
   <p id="heroSub">Arızanı bildir, uygun saati seç. Teknisyen kapına gelsin.</p>
 </div></header>
 <div class="wrap">
@@ -200,7 +200,9 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
    AYARLAR — yalnızca bu bölümü düzenlemeniz yeterli
    ========================================================= */
 const AYAR = {
-  siteAdi: "Bizimevler 1 Teknik Servis",
+  siteAdi: "Bizimevler 1 Teknik Servis",   // sekme başlığı ve mesajlarda
+  ustYazi: "Bizimevler 1 Sitesi",          // başlığın üstündeki küçük yazı
+  baslik: "Teknik Servis",                 // büyük başlık
   bloklar: ["A1","A2","A3","A4","A5","A6","A7",
             "B2","B3","B4","B5","B6",
             "C1","C2","C3","C4",
@@ -405,7 +407,8 @@ const S = {
 };
 let unMine = null, unAll = null;
 
-$("#siteName").textContent = AYAR.siteAdi;
+$("#siteName").textContent = AYAR.baslik || AYAR.siteAdi;
+$("#ustYazi").textContent = AYAR.ustYazi || "Teknik Servis";
 document.title = AYAR.siteAdi;
 if (store.mode === "demo"){ $("#demoBand").hidden = false; $("#modeTag").hidden = false; $("#pinShow").textContent = AYAR.demoPin; }
 
