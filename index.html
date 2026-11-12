@@ -96,6 +96,13 @@ label.f.note-l{display:block;margin-top:4px}
 .t-when.muted{color:var(--wait);font-size:17px}
 a.act{text-decoration:none;color:inherit;display:inline-flex;align-items:center;gap:4px}
 .act.wa{background:#1fa855;border-color:#1fa855;color:#fff}
+.acil{display:flex;gap:12px;align-items:flex-start;background:#fff4f2;border:1.5px solid #f6c9c2;border-radius:16px;padding:12px 14px;margin-bottom:14px;color:#7a2318;text-decoration:none;box-shadow:var(--shadow)}
+.acil i{flex:0 0 36px;height:36px;border-radius:12px;background:#e0473a;display:grid;place-items:center}
+.acil svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.acil span{font-size:14px;line-height:1.4}
+.acil strong{display:block;margin-top:4px;font:800 20px/1.1 var(--display);color:#c0392b;letter-spacing:.01em;font-variant-numeric:tabular-nums}
+.kvkk{font-size:12.5px;color:var(--muted);margin:12px 4px 0;line-height:1.45}
+
 
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 label.f{display:grid;gap:6px;font-size:14px;font-weight:700;min-width:0;color:var(--ink)}
@@ -195,6 +202,7 @@ const AYAR = {
   // Panelde randevu verirken seçilecek saatler
   saatler: ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"],
   kapaliGunler: [0],            // 0 = Pazar, 6 = Cumartesi
+  acilTelefon: "0545 943 95 33",   // acil durumda aranacak numara
   demoPin: "1234",              // demo modunda teknisyen paneli PIN'i
   teknisyenEpostalari: ["teknisyenzeynel91@gmail.com"],  // Firebase'de teknisyen hesabı
   // Firebase'den kopyaladığınız firebaseConfig nesnesini null yerine yapıştırın:
@@ -413,6 +421,7 @@ function vRandevu(){
   }
   const f = S.form, hazir = formHazir();
   return `
+  ${acilKutu()}
   <section class="step"><h2><span>1</span>Arıza türü</h2>
     <div class="cats">${KATEGORI.map(k => `<button class="cat" data-act="cat" data-v="${k.id}" aria-pressed="${f.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
   </section>
@@ -437,9 +446,18 @@ function vRandevu(){
   </section>
   ${S.err ? `<p class="err">${esc(S.err)}</p>` : ""}
   <button class="cta" data-act="gonder" ${hazir && !S.sending ? "" : "disabled"}>${S.sending ? "Gönderiliyor…" : "Arızayı bildir"}</button>
-  ${!hazir ? `<p class="hint" style="margin-top:8px">Göndermek için arıza, daire no ve telefon gerekli.</p>` : ""}`;
+  ${!hazir ? `<p class="hint" style="margin-top:8px">Göndermek için arıza, daire no ve telefon gerekli.</p>` : ""}
+  <p class="kvkk">Ad, telefon ve daire bilgileriniz yalnızca arıza takibi için teknisyenle paylaşılır, başka amaçla kullanılmaz.</p>`;
 }
 
+function acilKutu(){
+  if (!AYAR.acilTelefon) return "";
+  const tel = AYAR.acilTelefon.replace(/[^\d+]/g,"");
+  return `<a class="acil" href="tel:${tel}">
+    <i><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></i>
+    <span><b>Acil durum mu?</b> Su baskını, elektrik kaçağı gibi durumlarda formu beklemeden arayın. Gaz kokusunda önce <b>187</b>'yi arayın.<strong>${esc(AYAR.acilTelefon)}</strong></span>
+  </a>`;
+}
 function planAlani(a){
   const p = S.plan[a.id] || {date: a.date || "", time: a.time || ""};
   const saatler = AYAR.saatler.includes(p.time) || !p.time ? AYAR.saatler : [p.time, ...AYAR.saatler];
