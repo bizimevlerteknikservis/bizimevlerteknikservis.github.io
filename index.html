@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Bizimevler 1 Teknik Servis</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#17588f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: açık ve ferah tek sütun — üstte mavi karşılama bandı, içerik beyaz kartlarda, altta yüzen sekme çubuğu */
+:root{
+  color-scheme:light;
+  --bg:#eef4fa; --surface:#ffffff; --sunk:#f1f6fb; --ink:#14283b; --muted:#5f7387; --line:#dfe8f1;
+  --accent:#1f72b8; --accent-2:#3b9be0; --accent-ink:#ffffff; --tag:#ffd2a6; --tag-ink:#5a3410;
+  --hero-1:#17588f; --hero-2:#2b8ed6;
+  --wait:#c26a0a; --ok:#5b45c2; --done:#2c8a45; --cancel:#c0392b;
+  --shadow:0 1px 2px rgba(20,60,100,.05), 0 8px 24px rgba(20,60,100,.08);
+  --shadow-lg:0 12px 32px rgba(23,88,143,.22);
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "Cascadia Mono", Menlo, monospace;
+  --r:18px;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);-webkit-tap-highlight-color:transparent}
+button,input,textarea,select{font:inherit;color:inherit}
+button{-webkit-appearance:none;appearance:none}
+
+/* Karşılama bandı */
+.hero{position:relative;overflow:hidden;background:linear-gradient(140deg,var(--hero-1),var(--hero-2));color:#fff;border-radius:0 0 32px 32px;
+  padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));padding-block:26px 64px}
+.hero::before,.hero::after{content:"";position:absolute;border-radius:50%;pointer-events:none}
+.hero::before{width:260px;height:260px;right:-70px;top:-90px;background:rgba(255,255,255,.10)}
+.hero::after{width:160px;height:160px;right:70px;bottom:-80px;border:2px solid rgba(255,255,255,.16)}
+.hero-in{position:relative;max-width:560px;margin:0 auto;display:grid;gap:10px}
+.hero-top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;font:600 13px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;opacity:.92}
+.logo i{width:34px;height:34px;border-radius:11px;background:rgba(255,255,255,.18);display:grid;place-items:center}
+.logo svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hero h1{margin:6px 0 0;font:800 30px/1.08 var(--display);letter-spacing:-.015em;text-wrap:balance}
+.hero p{margin:0;font-size:16px;color:rgba(255,255,255,.86);max-width:30ch}
+#modeTag{background:rgba(255,255,255,.18);color:#fff;border:0;padding:6px 12px}
+
+.wrap{position:relative;max-width:560px;margin:-40px auto 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 128px}
+.pill-btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:9px 15px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;box-shadow:0 1px 2px rgba(20,60,100,.05)}
+.pill-btn[aria-current="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.demo-band{display:flex;gap:10px;align-items:flex-start;background:#fff7ee;color:var(--tag-ink);border:1px solid #f5dcc0;border-radius:14px;padding:10px 12px;font-size:14px;margin-bottom:14px;box-shadow:var(--shadow)}
+.demo-band b{font-family:var(--mono);font-weight:500;font-size:11px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;background:var(--tag);border-radius:6px;padding:3px 6px}
+
+/* Adım kartları */
+section.step{display:grid;gap:12px;margin-bottom:14px;background:var(--surface);border-radius:var(--r);padding:18px 16px;box-shadow:var(--shadow)}
+.step h2{margin:0;font:700 18px/1.2 var(--display);display:flex;align-items:center;gap:10px}
+.step h2 span{flex:0 0 28px;height:28px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(140deg,var(--accent),var(--accent-2));color:#fff;font:700 14px/1 var(--body)}
+.cats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.cat{--c:#64748b;border:1.5px solid var(--line);background:var(--surface);border-radius:16px;padding:14px 6px 12px;display:grid;justify-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:700;text-align:center;min-height:100px}
+.cat[data-v="elektrik"]{--c:#d98a00} .cat[data-v="su"]{--c:#1f80d0} .cat[data-v="kombi"]{--c:#e0573a}
+.cat[data-v="kapi"]{--c:#7a55d6} .cat[data-v="asansor"]{--c:#13958a} .cat[data-v="diger"]{--c:#64748b}
+.cat svg{width:46px;height:46px;padding:11px;border-radius:15px;background:color-mix(in srgb,var(--c) 13%,#fff);stroke:var(--c);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.cat[aria-pressed="true"]{border-color:transparent;background:linear-gradient(140deg,var(--accent),var(--accent-2));color:#fff;box-shadow:var(--shadow-lg)}
+.cat[aria-pressed="true"] svg{background:rgba(255,255,255,.2);stroke:#fff}
+textarea,input[type=text],input[type=tel],input[type=email],input[type=password],select{width:100%;border:1.5px solid var(--line);background:var(--sunk);border-radius:12px;padding:12px 14px;min-height:50px}
+textarea{min-height:92px;resize:vertical}
+textarea:focus,input:focus,select:focus{background:#fff}
+textarea:focus,input:focus,select:focus,button:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 30%,transparent);outline-offset:1px;border-color:var(--accent)}
+.days{display:flex;gap:8px;overflow-x:auto;padding:2px 4px 16px;margin-bottom:-8px;scroll-snap-type:x mandatory;margin-inline:-4px;scrollbar-width:none}
+.days::-webkit-scrollbar{display:none}
+.day{flex:0 0 66px;scroll-snap-align:start;border:1.5px solid var(--line);background:var(--surface);border-radius:16px;padding:10px 0;display:grid;justify-items:center;gap:1px;cursor:pointer}
+.day small{font:700 11px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.day strong{font:800 24px/1.2 var(--display)}
+.day em{font-style:normal;font-size:12px;color:var(--muted)}
+.day[aria-pressed="true"]{background:linear-gradient(160deg,var(--accent),var(--accent-2));border-color:transparent;color:#fff;box-shadow:var(--shadow-lg)}
+.day[aria-pressed="true"] small,.day[aria-pressed="true"] em{color:inherit;opacity:.85}
+.slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.slot{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:11px 0;font:500 15px/1 var(--mono);cursor:pointer;font-variant-numeric:tabular-nums}
+.slot[aria-pressed="true"]{background:linear-gradient(140deg,var(--accent),var(--accent-2));border-color:transparent;color:#fff;box-shadow:0 6px 16px rgba(31,114,184,.28)}
+.slot:disabled{cursor:not-allowed;background:var(--sunk);color:#9aabbb;text-decoration:line-through;border-style:dashed}
+.hint{font-size:14px;color:var(--muted);margin:0}
+.issues{--c:var(--accent);display:flex;flex-wrap:wrap;gap:8px}
+.issues[data-c="elektrik"]{--c:#d98a00} .issues[data-c="su"]{--c:#1f80d0} .issues[data-c="kombi"]{--c:#e0573a}
+.issues[data-c="kapi"]{--c:#7a55d6} .issues[data-c="asansor"]{--c:#13958a} .issues[data-c="diger"]{--c:#64748b}
+.iss{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:10px 14px;font-size:14px;font-weight:700;cursor:pointer;text-align:left;line-height:1.2}
+.iss::before{content:"";flex:0 0 16px;height:16px;border-radius:50%;border:1.5px solid #b9c8d6}
+.iss[aria-pressed="true"]{border-color:var(--c);background:color-mix(in srgb,var(--c) 12%,#fff);color:color-mix(in srgb,var(--c) 70%,#14283b)}
+.iss[aria-pressed="true"]::before{border-color:var(--c);background:var(--c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/11px no-repeat}
+.note-l{display:block;margin-top:4px}
+.note-l span{font-weight:400;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label.f{display:grid;gap:6px;font-size:14px;font-weight:700;min-width:0;color:var(--ink)}
+.cta{width:100%;border:0;border-radius:16px;background:linear-gradient(140deg,var(--accent),var(--accent-2));color:#fff;font:700 18px/1 var(--body);padding:19px;cursor:pointer;box-shadow:var(--shadow-lg)}
+.cta:disabled{background:#c9d8e6;box-shadow:none;cursor:not-allowed}
+.cta.ghost{background:var(--surface);color:var(--accent);border:1.5px solid var(--line);box-shadow:none}
+.err{color:var(--cancel);font-weight:700;font-size:14px;margin:0 0 10px}
+
+/* servis fişi */
+.ticket{position:relative;background:var(--surface);border-radius:var(--r);padding:16px 16px 16px 28px;display:grid;gap:8px;box-shadow:var(--shadow)}
+.ticket::before{content:"";position:absolute;inset:0 auto 0 0;width:12px;border-radius:var(--r) 0 0 var(--r);background:linear-gradient(180deg,var(--tag),#ffb98a);
+  -webkit-mask:radial-gradient(circle at 6px 24px,transparent 3.5px,#000 4px);mask:radial-gradient(circle at 6px 24px,transparent 3.5px,#000 4px)}
+.ticket[data-s="onaylandi"]::before{background:linear-gradient(180deg,#a99cf0,#7d6ae0)}
+.ticket[data-s="tamamlandi"]::before{background:linear-gradient(180deg,#8fdca3,#4fb36c)}
+.ticket[data-s="iptal"]{opacity:.62}
+.ticket[data-s="iptal"]::before{background:var(--line)}
+.t-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.t-no{font:500 12px/1 var(--mono);letter-spacing:.06em;color:var(--muted)}
+.t-when{font:700 20px/1.15 var(--display);font-variant-numeric:tabular-nums}
+.t-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:14px;color:var(--muted)}
+.t-meta b{color:var(--ink)}
+.t-desc{margin:0;overflow-wrap:anywhere}
+.t-note{margin:0;font-size:14px;background:#f3f0ff;color:#3b2f80;border-radius:10px;padding:9px 11px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 11px;font-size:13px;font-weight:700;background:color-mix(in srgb,currentColor 11%,#fff)}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.chip[data-s="bekliyor"]{color:var(--wait)} .chip[data-s="onaylandi"]{color:var(--ok)} .chip[data-s="tamamlandi"]{color:var(--done)} .chip[data-s="iptal"]{color:var(--cancel)}
+.chip.sample{color:var(--muted);background:transparent;border:1.5px dashed currentColor}
+.chip.sample::before{display:none}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.act{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 14px;font-weight:700;font-size:14px;cursor:pointer}
+.act.primary{background:linear-gradient(140deg,var(--accent),var(--accent-2));color:#fff;border-color:transparent}
+.act.danger{color:var(--cancel)}
+.act.armed{background:var(--cancel);color:#fff;border-color:var(--cancel)}
+.list{display:grid;gap:12px}
+.group-h{font:700 12px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:18px 4px 2px}
+.empty{background:var(--surface);border-radius:var(--r);padding:28px 18px;text-align:center;color:var(--muted);box-shadow:var(--shadow)}
+.empty strong{display:block;color:var(--ink);font:700 19px/1.3 var(--display);margin-bottom:4px}
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.sum{background:var(--surface);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow)}
+.sum strong{display:block;font:800 30px/1 var(--display);font-variant-numeric:tabular-nums}
+.sum span{font-size:13px;color:var(--muted)}
+.filters{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;margin-bottom:4px;scrollbar-width:none}
+.success{background:var(--surface);border-radius:24px;padding:26px 20px;display:grid;gap:14px;text-align:center;box-shadow:var(--shadow)}
+.success::before{content:"";justify-self:center;width:64px;height:64px;border-radius:50%;background:#e4f6ea url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c8a45' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/32px no-repeat}
+.success .big{font:800 28px/1.1 var(--display);text-wrap:balance}
+.success .code{font:500 22px/1 var(--mono);letter-spacing:.08em;background:var(--tag);color:var(--tag-ink);border-radius:10px;padding:11px 14px;justify-self:center}
+.card{background:var(--surface);border-radius:var(--r);padding:20px 18px;display:grid;gap:14px;box-shadow:var(--shadow)}
+.card h2{margin:0;font:700 22px/1.2 var(--display)}
+a.tel{color:var(--accent);font-weight:700;text-decoration:none}
+
+/* yüzen sekme çubuğu */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;pointer-events:none;
+  padding:0 max(14px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
+nav.tabs .in{pointer-events:auto;max-width:520px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:6px;border-radius:22px;
+  background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(20,60,100,.16);border:1px solid rgba(255,255,255,.7)}
+nav.tabs a{display:grid;justify-items:center;gap:2px;padding:8px 0;border-radius:16px;text-decoration:none;color:var(--muted);font-size:12px;font-weight:700}
+nav.tabs a svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var(--accent),var(--accent-2))}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(100px + env(safe-area-inset-bottom,0px));background:var(--ink);color:#fff;padding:11px 18px;border-radius:999px;font-weight:700;font-size:14px;z-index:9;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(20,40,60,.25)}
+@media (max-width:360px){.cats{grid-template-columns:repeat(2,minmax(0,1fr))}.slots{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (prefers-reduced-motion:no-preference){.cat,.day,.slot,.act,.cta,nav.tabs a{transition:background .18s,border-color .18s,color .18s,box-shadow .18s,transform .12s}
+  .cat:active,.day:active,.slot:active,.cta:active{transform:scale(.97)}}
+</style>
+</head>
+<body>
+<header class="hero"><div class="hero-in">
+  <div class="hero-top">
+    <div class="logo"><i><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg></i>Teknik Servis</div>
+    <span id="modeTag" class="chip sample" hidden>Demo</span>
+  </div>
+  <h1 id="siteName">Bizimevler 1 Teknik Servis</h1>
+  <p id="heroSub">Arızanı bildir, uygun saati seç. Teknisyen kapına gelsin.</p>
+</div></header>
+<div class="wrap">
+  <div id="demoBand" class="demo-band" hidden><b>Demo</b><span>Kayıtlar yalnızca bu telefonda tutulur. Gerçek kullanım için Firebase ayarını ekleyin. Teknisyen paneli PIN: <strong id="pinShow"></strong></span></div>
+  <main id="view" aria-live="polite"></main>
+</div>
+
+<nav class="tabs" aria-label="Bölümler"><div class="in">
+  <a href="#randevu" data-tab="randevu"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg>Randevu al</a>
+  <a href="#randevularim" data-tab="randevularim"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg>Randevularım</a>
+  <a href="#panel" data-tab="panel"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>Teknisyen</a>
+</div></nav>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+/* =========================================================
+   AYARLAR — yalnızca bu bölümü düzenlemeniz yeterli
+   ========================================================= */
+const AYAR = {
+  siteAdi: "Bizimevler 1 Teknik Servis",
+  bloklar: ["A1","A2","A3","A4","A5","A6","A7",
+            "B2","B3","B4","B5","B6",
+            "C1","C2","C3","C4",
+            "D1","D2","D3","D4",
+            "F1","F2"],
+  saatler: ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"],
+  kapaliGunler: [0],            // 0 = Pazar, 6 = Cumartesi
+  gunSayisi: 14,                // kaç günlük takvim gösterilsin
+  demoPin: "1234",              // demo modunda teknisyen paneli PIN'i
+  teknisyenEpostalari: ["teknisyenzeynel91@gmail.com"],  // Firebase'de teknisyen hesabı
+  // Firebase'den kopyaladığınız firebaseConfig nesnesini null yerine yapıştırın:
+  firebase: {
+    apiKey: "AIzaSyAAtGK76Oanri1T9nCK4bm6dDJCLVzWp5c",
+    authDomain: "bizimevler-teknik-servis.firebaseapp.com",
+    projectId: "bizimevler-teknik-servis",
+    storageBucket: "bizimevler-teknik-servis.firebasestorage.app",
+    messagingSenderId: "947168663247",
+    appId: "1:947168663247:web:de355a52058ff2ce4109ba"
+  }
+};
+/* ========================================================= */
+
+const KATEGORI = [
+  {id:"elektrik", ad:"Elektrik", ic:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>'},
+  {id:"su", ad:"Su tesisatı", ic:'<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/>'},
+  {id:"kombi", ad:"Kombi / ısıtma", ic:'<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M9 17h6"/>'},
+  {id:"kapi", ad:"Kapı / kilit", ic:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'},
+  {id:"asansor", ad:"Asansör", ic:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="m9 9 3-3 3 3M9 15l3 3 3-3"/>'},
+  {id:"diger", ad:"Diğer", ic:'<circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/>'}
+];
+/* Her arıza türü için olası arızalar — istediğiniz gibi ekleyip çıkarabilirsiniz */
+const ARIZALAR = {
+  elektrik: ["Sigorta / şalter atıyor","Priz çalışmıyor","Lamba / avize yanmıyor","Dairede elektrik yok","Prizde kıvılcım, yanık kokusu","Zil / diyafon çalışmıyor","Düğme (anahtar) bozuk","Diğer"],
+  su:       ["Musluk damlatıyor","Lavabo / gider tıkalı","Tuvalet / rezervuar arızası","Su sızıntısı, kaçak","Su basıncı düşük","Sıcak su gelmiyor","Duş / banyo bataryası","Diğer"],
+  kombi:    ["Kombi çalışmıyor","Petekler ısınmıyor","Sıcak su gelmiyor","Basınç düşüyor","Hata kodu veriyor","Kombi ses yapıyor","Petek / vana sızdırıyor","Diğer"],
+  kapi:     ["Kilit dönmüyor / bozuk","Anahtar içeride kaldı","Kapı kapanmıyor, sürtüyor","Kapı kolu kırık","Bina giriş kapısı","Diyafonla kapı açılmıyor","Diğer"],
+  asansor:  ["Asansör çalışmıyor","Kapısı açılmıyor / kapanmıyor","Katta düzgün durmuyor","Ses veya sarsıntı yapıyor","Işık / buton arızası","Diğer"],
+  diger:    ["Cam / pencere","Dolap / mobilya tamiri","Boya / badana","Ortak alan arızası","Çatı / balkon akıntısı","Diğer"]
+};
+const DURUM = {bekliyor:"Bekliyor", onaylandi:"Onaylandı", tamamlandi:"Tamamlandı", iptal:"İptal"};
+const GUN = ["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"];
+const AY = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
+
+/* ---------- yardımcılar ---------- */
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,"0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseYmd = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const catOf = id => KATEGORI.find(k => k.id === id) || KATEGORI[KATEGORI.length-1];
+const fisNo = a => "TS-" + (a.createdAt || 0).toString(36).slice(-5).toUpperCase();
+const slotKey = (d,t) => d + "_" + t.replace(":","");
+function gunEtiketi(s){
+  const d = parseYmd(s), bugun = ymd(new Date()), yarin = ymd(new Date(Date.now()+864e5));
+  const ek = s === bugun ? "Bugün" : s === yarin ? "Yarın" : GUN[d.getDay()];
+  return `${d.getDate()} ${AY[d.getMonth()]} · ${ek}`;
+}
+function takvim(){
+  const out = [], n = new Date();
+  for (let i = 0; out.length < AYAR.gunSayisi && i < 60; i++){
+    const d = new Date(n.getFullYear(), n.getMonth(), n.getDate()+i);
+    if (!AYAR.kapaliGunler.includes(d.getDay())) out.push(d);
+  }
+  return out;
+}
+function gecmisSaat(date, t){
+  if (date !== ymd(new Date())) return false;
+  const [h,m] = t.split(":").map(Number), now = new Date();
+  return h*60+m <= now.getHours()*60+now.getMinutes()+30;
+}
+function yerel(k, v){ try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch(e){ return null; } }
+let toastT;
+function toast(m){ const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
+
+/* =========================================================
+   VERİ KATMANI — Demo (telefonda) veya Firebase (gerçek)
+   ========================================================= */
+function DemoStore(){
+  const KEY = "site-servis-demo-v1";
+  let mem = yerel(KEY);
+  if (!mem){
+    const g = takvim(), t = Date.now();
+    mem = { uid: "demo-" + Math.random().toString(36).slice(2,9), appts: [
+      {id:"o1", uid:"ornek", sample:true, cat:"kombi", desc:"Kombi basınç düşürüyor, sabahları sıcak su gelmiyor.", date:ymd(g[0]), time:AYAR.saatler[AYAR.saatler.length-2], name:"Örnek Sakin", block:AYAR.bloklar[0], flat:"12", phone:"0555 000 00 00", status:"onaylandi", note:"Yedek parça getirilecek.", createdAt:t-9e6},
+      {id:"o2", uid:"ornek", sample:true, cat:"su", desc:"Mutfak lavabosunun altından su sızıyor.", date:ymd(g[1]), time:AYAR.saatler[1], name:"Örnek Sakin 2", block:AYAR.bloklar[1] || AYAR.bloklar[0], flat:"4", phone:"0555 000 00 01", status:"bekliyor", note:"", createdAt:t-5e6},
+      {id:"o3", uid:"ornek", sample:true, cat:"elektrik", desc:"Koridor lambası sürekli atıyor.", date:ymd(g[2]), time:AYAR.saatler[3] || AYAR.saatler[0], name:"Örnek Sakin 3", block:AYAR.bloklar[2] || AYAR.bloklar[0], flat:"7", phone:"0555 000 00 02", status:"bekliyor", note:"", createdAt:t-2e6}
+    ]};
+  }
+  let tech = false;
+  const subs = new Set();
+  const save = () => { yerel(KEY, mem); subs.forEach(f => f()); };
+  const sub = f => { subs.add(f); f(); return () => subs.delete(f); };
+  const busy = d => new Set(mem.appts.filter(a => a.date === d && a.status !== "iptal").map(a => a.time));
+  return {
+    mode: "demo",
+    ready: Promise.resolve(),
+    isTech: () => tech,
+    onAuth(f){ sub(f); },
+    listenMine: cb => sub(() => cb(mem.appts.filter(a => a.uid === mem.uid))),
+    listenAll: cb => sub(() => cb(mem.appts.slice())),
+    listenBusy: (d, cb) => sub(() => cb(busy(d))),
+    async create(a){
+      if (busy(a.date).has(a.time)) throw {code:"dolu"};
+      const rec = {...a, id: "d" + Date.now().toString(36), uid: mem.uid, status: "bekliyor", note: "", createdAt: Date.now()};
+      mem.appts.push(rec); save(); return rec;
+    },
+    async cancelMine(a){ const r = mem.appts.find(x => x.id === a.id); if (r){ r.status = "iptal"; save(); } },
+    async setStatus(a, status, note){ const r = mem.appts.find(x => x.id === a.id); if (r){ r.status = status; if (note !== undefined) r.note = note; save(); } },
+    async login(_, pin){ if (pin !== AYAR.demoPin) throw {code:"giris"}; tech = true; save(); },
+    async logout(){ tech = false; save(); }
+  };
+}
+
+function FirebaseStore(cfg){
+  const V = "10.12.2", B = `https://www.gstatic.com/firebasejs/${V}/`;
+  let fs, au, db, auth, user = null, tech = false;
+  const authSubs = new Set();
+  const ready = (async () => {
+    const [app, f, a] = await Promise.all([import(B+"firebase-app.js"), import(B+"firebase-firestore.js"), import(B+"firebase-auth.js")]);
+    fs = f; au = a;
+    const ap = app.initializeApp(cfg);
+    db = f.getFirestore(ap); auth = a.getAuth(ap);
+    await new Promise(res => {
+      a.onAuthStateChanged(auth, async u => {
+        if (!u){ try { await a.signInAnonymously(auth); } catch(e){ console.error(e); res(); } return; }
+        user = u;
+        tech = !u.isAnonymous && AYAR.teknisyenEpostalari.map(x => x.toLowerCase()).includes((u.email||"").toLowerCase());
+        authSubs.forEach(fn => fn()); res();
+      });
+    });
+  })();
+  const toObj = s => ({id: s.id, ...s.data()});
+  return {
+    mode: "firebase",
+    ready,
+    isTech: () => tech,
+    onAuth(fn){ authSubs.add(fn); fn(); },
+    listenMine(cb){
+      const q = fs.query(fs.collection(db,"appointments"), fs.where("uid","==",user.uid));
+      return fs.onSnapshot(q, s => cb(s.docs.map(toObj)), e => { console.error(e); cb([]); });
+    },
+    listenAll(cb){
+      const from = ymd(new Date(Date.now() - 30*864e5));
+      const q = fs.query(fs.collection(db,"appointments"), fs.where("date",">=",from));
+      return fs.onSnapshot(q, s => cb(s.docs.map(toObj)), e => { console.error(e); toast("Kayıtlar okunamadı: " + e.code); });
+    },
+    listenBusy(d, cb){
+      const q = fs.query(fs.collection(db,"slots"), fs.where("date","==",d));
+      return fs.onSnapshot(q, s => cb(new Set(s.docs.map(x => x.data().time))), () => cb(new Set()));
+    },
+    async create(a){
+      const ref = fs.doc(fs.collection(db,"appointments"));
+      const rec = {...a, uid: user.uid, status: "bekliyor", note: "", createdAt: Date.now()};
+      const b = fs.writeBatch(db);
+      b.set(ref, rec);
+      b.set(fs.doc(db,"slots",slotKey(a.date,a.time)), {date:a.date, time:a.time, uid:user.uid});
+      try { await b.commit(); } catch(e){ throw {code: e.code === "permission-denied" ? "dolu" : e.code}; }
+      return {...rec, id: ref.id};
+    },
+    async cancelMine(a){
+      const b = fs.writeBatch(db);
+      b.update(fs.doc(db,"appointments",a.id), {status:"iptal"});
+      b.delete(fs.doc(db,"slots",slotKey(a.date,a.time)));
+      await b.commit();
+    },
+    async setStatus(a, status, note){
+      const patch = {status}; if (note !== undefined) patch.note = note;
+      await fs.updateDoc(fs.doc(db,"appointments",a.id), patch);
+      const kilit = fs.doc(db,"slots",slotKey(a.date,a.time));
+      if (status === "iptal") await fs.deleteDoc(kilit).catch(()=>{});
+      else if (a.status === "iptal") await fs.setDoc(kilit, {date:a.date, time:a.time, uid:a.uid}).catch(()=>{});
+    },
+    async login(email, pass){
+      try { await au.signInWithEmailAndPassword(auth, email, pass); } catch(e){ throw {code:"giris"}; }
+      if (!tech) { await au.signOut(auth); throw {code:"yetki"}; }
+    },
+    async logout(){ await au.signOut(auth); }
+  };
+}
+
+/* =========================================================
+   UYGULAMA
+   ========================================================= */
+const store = AYAR.firebase ? FirebaseStore(AYAR.firebase) : DemoStore();
+const kayitli = yerel("site-servis-iletisim") || {};
+const S = {
+  view: "randevu",
+  form: {cat:null, issues:[], desc:"", date:null, time:null, name:kayitli.name||"", block:kayitli.block||AYAR.bloklar[0], flat:kayitli.flat||"", phone:kayitli.phone||""},
+  busy: new Set(), mine: [], all: [], sent: null, err: "", sending: false,
+  filter: "yakin", armed: null, notes: {}
+};
+let unBusy = null, unMine = null, unAll = null;
+
+$("#siteName").textContent = AYAR.siteAdi;
+document.title = AYAR.siteAdi;
+if (store.mode === "demo"){ $("#demoBand").hidden = false; $("#modeTag").hidden = false; $("#pinShow").textContent = AYAR.demoPin; }
+
+function watchBusy(){
+  if (unBusy) unBusy();
+  unBusy = S.form.date ? store.listenBusy(S.form.date, b => {
+    S.busy = b;
+    if (S.form.time && b.has(S.form.time)) S.form.time = null;
+    if (S.view === "randevu") render();
+  }) : null;
+}
+
+/* ---------- görünümler ---------- */
+function formHazir(){
+  const f = S.form;
+  const ariza = f.issues.length && (!(f.issues.length === 1 && f.issues[0] === "Diğer") || f.desc.trim());
+  return !!(f.cat && ariza && f.date && f.time && f.name.trim() && f.flat.trim() && f.phone.replace(/\D/g,"").length >= 10);
+}
+function vRandevu(){
+  if (S.sent){
+    const a = S.sent;
+    return `<div class="success">
+      <div class="hint">Randevu talebiniz alındı</div>
+      <div class="big">${esc(gunEtiketi(a.date))}<br>saat ${esc(a.time)}</div>
+      <div class="code">${fisNo(a)}</div>
+      <p class="hint">Teknisyen onayladığında durum <b>Randevularım</b> sekmesinde görünür. Fiş numaranızı not edin.</p>
+      <button class="cta" data-act="yeni">Yeni randevu al</button>
+      <a class="cta ghost" href="#randevularim" style="text-decoration:none;display:block">Randevularıma git</a>
+    </div>`;
+  }
+  const f = S.form, gunler = takvim();
+  const hazir = formHazir();
+  return `
+  <section class="step"><h2><span>1</span>Arıza türü</h2>
+    <div class="cats">${KATEGORI.map(k => `<button class="cat" data-act="cat" data-v="${k.id}" aria-pressed="${f.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
+  </section>
+  <section class="step"><h2><span>2</span>Arıza nedir?</h2>
+    ${f.cat ? `<p class="hint">${esc(catOf(f.cat).ad)} için olası arızalar. Birden fazla seçebilirsiniz.</p>
+    <div class="issues" data-c="${f.cat}">${(ARIZALAR[f.cat]||["Diğer"]).map(x => `<button class="iss" data-act="iss" data-v="${esc(x)}" aria-pressed="${f.issues.includes(x)}">${esc(x)}</button>`).join("")}</div>
+    <label class="f note-l" for="desc">${f.issues.length===1 && f.issues[0]==="Diğer" ? "Arızayı kısaca yazın" : "Eklemek istedikleriniz <span>(isteğe bağlı)</span>"}</label>
+    <textarea id="desc" maxlength="500" placeholder="Örn. Mutfaktaki priz, dün akşamdan beri.">${esc(f.desc)}</textarea>`
+    : `<p class="hint">Önce yukarıdan arıza türünü seçin.</p>`}
+  </section>
+  <section class="step"><h2><span>3</span>Gün seçin</h2>
+    <div class="days">${gunler.map(d => { const s = ymd(d); return `<button class="day" data-act="date" data-v="${s}" aria-pressed="${f.date===s}"><small>${GUN[d.getDay()]}</small><strong>${d.getDate()}</strong><em>${AY[d.getMonth()]}</em></button>`; }).join("")}</div>
+  </section>
+  <section class="step"><h2><span>4</span>Saat seçin</h2>
+    ${f.date ? `<div class="slots">${AYAR.saatler.map(t => { const kapali = S.busy.has(t) || gecmisSaat(f.date,t); return `<button class="slot" data-act="time" data-v="${t}" aria-pressed="${f.time===t}" ${kapali?"disabled":""} aria-label="${t}${kapali?" dolu":""}">${t}</button>`; }).join("")}</div>
+    <p class="hint">Üstü çizili saatler dolu.</p>` : `<p class="hint">Önce bir gün seçin.</p>`}
+  </section>
+  <section class="step"><h2><span>5</span>İletişim bilgileri</h2>
+    <label class="f">Ad soyad<input type="text" id="name" autocomplete="name" value="${esc(f.name)}"></label>
+    <div class="grid2">
+      <label class="f">Blok<select id="block">${AYAR.bloklar.map(b => `<option ${f.block===b?"selected":""}>${esc(b)}</option>`).join("")}</select></label>
+      <label class="f">Daire no<input type="text" id="flat" inputmode="numeric" value="${esc(f.flat)}"></label>
+    </div>
+    <label class="f">Telefon<input type="tel" id="phone" autocomplete="tel" placeholder="05xx xxx xx xx" value="${esc(f.phone)}"></label>
+  </section>
+  ${S.err ? `<p class="err">${esc(S.err)}</p>` : ""}
+  <button class="cta" data-act="gonder" ${hazir && !S.sending ? "" : "disabled"}>${S.sending ? "Gönderiliyor…" : "Randevu talebini gönder"}</button>
+  ${!hazir ? `<p class="hint" style="margin-top:8px">Göndermek için arıza, gün, saat, daire no ve telefon gerekli.</p>` : ""}`;
+}
+
+function fis(a, panel){
+  const k = catOf(a.cat);
+  const iptalEdilebilir = !panel && (a.status==="bekliyor"||a.status==="onaylandi") && a.date >= ymd(new Date());
+  const armed = S.armed === a.id;
+  return `<article class="ticket" data-s="${a.status}">
+    <div class="t-head"><span class="t-no">${fisNo(a)} · ${esc(k.ad)}</span>
+      <span style="display:flex;gap:6px">${a.sample?'<span class="chip sample">Örnek</span>':""}<span class="chip" data-s="${a.status}">${DURUM[a.status]||a.status}</span></span></div>
+    <div class="t-when">${esc(gunEtiketi(a.date))} · ${esc(a.time)}</div>
+    <div class="t-meta"><span>Blok <b>${esc(a.block)}</b></span><span>Daire <b>${esc(a.flat)}</b></span>${panel?`<span><b>${esc(a.name)}</b></span>`:""}</div>
+    ${panel?`<div class="t-meta"><a class="tel" href="tel:${esc(String(a.phone).replace(/[^\d+]/g,""))}">Ara</a><span style="user-select:all">${esc(a.phone)}</span></div>`:""}
+    ${a.desc?`<p class="t-desc">${esc(a.desc)}</p>`:""}
+    ${!panel && a.note?`<p class="t-note"><b>Teknisyen notu:</b> ${esc(a.note)}</p>`:""}
+    ${panel?`
+      <label class="f" style="font-weight:400">Teknisyen notu<input type="text" id="note-${a.id}" data-note="${a.id}" value="${esc(S.notes[a.id] ?? a.note ?? "")}" placeholder="Sakinin göreceği not"></label>
+      <div class="actions">
+        ${a.status==="bekliyor"?`<button class="act primary" data-act="durum" data-id="${a.id}" data-v="onaylandi">Onayla</button>`:""}
+        ${a.status==="onaylandi"?`<button class="act primary" data-act="durum" data-id="${a.id}" data-v="tamamlandi">Tamamlandı</button>`:""}
+        <button class="act" data-act="not" data-id="${a.id}">Notu kaydet</button>
+        ${a.status!=="iptal"&&a.status!=="tamamlandi"?`<button class="act ${armed?"armed":"danger"}" data-act="iptal" data-id="${a.id}">${armed?"Eminim, iptal et":"İptal et"}</button>`:""}
+        ${a.status==="iptal"||a.status==="tamamlandi"?`<button class="act" data-act="durum" data-id="${a.id}" data-v="bekliyor">Yeniden aç</button>`:""}
+      </div>`:
+      iptalEdilebilir?`<div class="actions"><button class="act ${armed?"armed":"danger"}" data-act="iptalBenim" data-id="${a.id}">${armed?"Eminim, iptal et":"Randevuyu iptal et"}</button></div>`:""}
+  </article>`;
+}
+
+const sirala = arr => arr.slice().sort((x,y) => (x.date+x.time).localeCompare(y.date+y.time));
+
+function vRandevularim(){
+  const bugun = ymd(new Date());
+  const gelecek = sirala(S.mine.filter(a => a.date >= bugun && a.status !== "iptal" && a.status !== "tamamlandi"));
+  const gecmis = sirala(S.mine.filter(a => !gelecek.includes(a))).reverse();
+  if (!S.mine.length) return `<div class="empty"><strong>Henüz randevunuz yok</strong>Bu telefondan aldığınız randevular burada listelenir.<br><br><a class="tel" href="#randevu">Randevu al</a></div>`;
+  return `${gelecek.length?`<div class="group-h">Yaklaşan</div><div class="list">${gelecek.map(a=>fis(a,false)).join("")}</div>`:""}
+          ${gecmis.length?`<div class="group-h">Geçmiş ve iptal</div><div class="list">${gecmis.map(a=>fis(a,false)).join("")}</div>`:""}`;
+}
+
+function vPanel(){
+  if (!store.isTech()){
+    return `<div class="card"><h2>Teknisyen girişi</h2>
+      ${store.mode==="demo"
+        ? `<label class="f">PIN<input type="password" id="pin" inputmode="numeric" autocomplete="off"></label>`
+        : `<label class="f">E-posta<input type="email" id="email" autocomplete="username"></label><label class="f">Şifre<input type="password" id="pass" autocomplete="current-password"></label>`}
+      ${S.err?`<p class="err">${esc(S.err)}</p>`:""}
+      <button class="cta" data-act="giris">Giriş yap</button></div>`;
+  }
+  const bugun = ymd(new Date()), yarin = ymd(new Date(Date.now()+864e5)), hafta = ymd(new Date(Date.now()+7*864e5));
+  const all = S.all;
+  const say = s => all.filter(a => a.status===s && a.date>=bugun).length;
+  const F = {
+    yakin: a => a.date>=bugun && (a.status==="bekliyor"||a.status==="onaylandi"),
+    bugun: a => a.date===bugun, yarin: a => a.date===yarin,
+    hafta: a => a.date>=bugun && a.date<=hafta,
+    bekleyen: a => a.status==="bekliyor",
+    tumu: () => true
+  };
+  const ad = {yakin:"Açık işler", bugun:"Bugün", yarin:"Yarın", hafta:"7 gün", bekleyen:"Onay bekleyen", tumu:"Tümü"};
+  let list = sirala(all.filter(F[S.filter]));
+  if (S.filter==="tumu") list = list.reverse();
+  const gruplar = {};
+  list.forEach(a => (gruplar[a.date] ||= []).push(a));
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="margin:0;font:600 22px/1.2 var(--display)">İş paneli</h2><button class="pill-btn" data-act="cikis">Çıkış</button></div>
+    <div class="summary">
+      <div class="sum"><strong style="color:var(--wait)">${say("bekliyor")}</strong><span>Onay bekliyor</span></div>
+      <div class="sum"><strong style="color:var(--ok)">${say("onaylandi")}</strong><span>Planlandı</span></div>
+      <div class="sum"><strong>${all.filter(a=>a.date===bugun&&a.status!=="iptal").length}</strong><span>Bugünkü iş</span></div>
+    </div>
+    <div class="filters">${Object.keys(ad).map(k=>`<button class="pill-btn" data-act="filtre" data-v="${k}" aria-current="${S.filter===k}">${ad[k]}</button>`).join("")}</div>
+    ${list.length ? Object.keys(gruplar).map(d=>`<div class="group-h">${esc(gunEtiketi(d))}</div><div class="list">${gruplar[d].map(a=>fis(a,true)).join("")}</div>`).join("")
+      : `<div class="empty"><strong>Bu filtrede iş yok</strong>Sakinler randevu aldıkça burada görünür.</div>`}`;
+}
+
+function render(){
+  // form alanlarını yeniden çizmeden önce oku
+  syncForm();
+  const keep = document.activeElement && document.activeElement.id;
+  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : vRandevu();
+  $("#heroSub").textContent = S.view==="randevularim" ? "Randevularının durumunu ve teknisyen notlarını buradan takip et."
+    : S.view==="panel" ? "Gelen talepleri onayla, işleri planla."
+    : "Arızanı bildir, uygun saati seç. Teknisyen kapına gelsin.";
+  document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.tab===S.view ? "page" : "false"));
+  if (keep && document.getElementById(keep)) { const el = document.getElementById(keep); el.focus(); if (el.setSelectionRange && el.value) try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){} }
+}
+function syncForm(){
+  const f = S.form;
+  [["desc","desc"],["name","name"],["block","block"],["flat","flat"],["phone","phone"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; });
+  document.querySelectorAll("[data-note]").forEach(el => S.notes[el.dataset.note] = el.value);
+}
+
+/* ---------- olaylar ---------- */
+document.addEventListener("input", e => {
+  if (S.view !== "randevu" || !e.target.id) return;
+  syncForm();
+  const btn = document.querySelector('[data-act="gonder"]');
+  const hazir = formHazir();
+  if (btn) btn.disabled = !hazir || S.sending;
+});
+
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const act = b.dataset.act, v = b.dataset.v, id = b.dataset.id;
+  const find = arr => arr.find(a => a.id === id);
+  if (act !== "iptal" && act !== "iptalBenim") S.armed = null;
+  S.err = "";
+  try {
+    if (act==="cat"){ syncForm(); if (S.form.cat !== v) S.form.issues = []; S.form.cat = v; render(); }
+    else if (act==="iss"){ syncForm(); const L = S.form.issues; const i = L.indexOf(v); i < 0 ? L.push(v) : L.splice(i,1); render(); }
+    else if (act==="date"){ syncForm(); S.form.date = v; S.form.time = null; S.busy = new Set(); render(); watchBusy(); }
+    else if (act==="time"){ syncForm(); S.form.time = v; render(); }
+    else if (act==="yeni"){ S.sent = null; S.form.cat = null; S.form.issues = []; S.form.desc = ""; S.form.time = null; render(); scrollTo(0,0); }
+    else if (act==="gonder"){
+      syncForm(); const f = S.form;
+      S.sending = true; render();
+      yerel("site-servis-iletisim", {name:f.name, block:f.block, flat:f.flat, phone:f.phone});
+      try {
+        const arizalar = f.issues.filter(x => x !== "Diğer");
+        const aciklama = [arizalar.join(", "), f.desc.trim()].filter(Boolean).join(" — ");
+        S.sent = await store.create({cat:f.cat, issues:f.issues.slice(), desc:aciklama, date:f.date, time:f.time, name:f.name.trim(), block:f.block, flat:f.flat.trim(), phone:f.phone.trim()});
+        scrollTo(0,0);
+      } catch(err){
+        S.err = err.code==="dolu" ? "Bu saat az önce doldu. Lütfen başka bir saat seçin." : "Gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.";
+        if (err.code==="dolu") S.form.time = null;
+      }
+      S.sending = false; render();
+    }
+    else if (act==="iptalBenim"){
+      if (S.armed !== id){ S.armed = id; render(); return; }
+      S.armed = null; await store.cancelMine(find(S.mine)); toast("Randevu iptal edildi"); render();
+    }
+    else if (act==="giris"){
+      const pin = $("#pin"), em = $("#email"), pw = $("#pass");
+      try { await store.login(em?em.value.trim():"", pin?pin.value:pw.value); startPanel(); toast("Giriş yapıldı"); }
+      catch(err){ S.err = err.code==="yetki" ? "Bu hesap teknisyen olarak tanımlı değil." : store.mode==="demo" ? "PIN hatalı." : "E-posta veya şifre hatalı."; render(); }
+    }
+    else if (act==="cikis"){ if (unAll) unAll(); unAll = null; S.all = []; await store.logout(); render(); }
+    else if (act==="filtre"){ syncForm(); S.filter = v; render(); }
+    else if (act==="durum"){ syncForm(); const a = find(S.all); await store.setStatus(a, v, S.notes[id]); toast(DURUM[v] + " olarak işaretlendi"); }
+    else if (act==="not"){ syncForm(); const a = find(S.all); await store.setStatus(a, a.status, S.notes[id] ?? ""); toast("Not kaydedildi"); }
+    else if (act==="iptal"){
+      syncForm();
+      if (S.armed !== id){ S.armed = id; render(); return; }
+      S.armed = null; await store.setStatus(find(S.all), "iptal", S.notes[id]); toast("Randevu iptal edildi");
+    }
+  } catch(err){ console.error(err); toast("İşlem yapılamadı, tekrar deneyin"); }
+});
+
+function startPanel(){
+  if (unAll) unAll();
+  unAll = store.isTech() ? store.listenAll(list => { S.all = list; if (S.view==="panel") render(); }) : null;
+  render();
+}
+
+function route(){
+  const h = location.hash.slice(1);
+  S.view = ["randevu","randevularim","panel"].includes(h) ? h : "randevu";
+  S.err = ""; S.armed = null;
+  render();
+}
+window.addEventListener("hashchange", route);
+
+$("#view").innerHTML = `<div class="empty"><strong>Yükleniyor…</strong></div>`;
+store.ready.then(() => {
+  unMine = store.listenMine(list => { S.mine = list; if (S.view==="randevularim") render(); });
+  if (store.isTech()) startPanel();
+  route();
+}).catch(err => {
+  console.error(err);
+  $("#view").innerHTML = `<div class="empty"><strong>Bağlantı kurulamadı</strong>Firebase ayarlarını kontrol edin ve sayfayı yenileyin.</div>`;
+});
+</script>
+
+</body>
+</html>
