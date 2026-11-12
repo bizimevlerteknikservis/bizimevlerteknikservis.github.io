@@ -86,8 +86,17 @@ textarea:focus,input:focus,select:focus,button:focus-visible{outline:3px solid c
 .iss::before{content:"";flex:0 0 16px;height:16px;border-radius:50%;border:1.5px solid #b9c8d6}
 .iss[aria-pressed="true"]{border-color:var(--c);background:color-mix(in srgb,var(--c) 12%,#fff);color:color-mix(in srgb,var(--c) 70%,#14283b)}
 .iss[aria-pressed="true"]::before{border-color:var(--c);background:var(--c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/11px no-repeat}
-.note-l{display:block;margin-top:4px}
+label.f.note-l{display:block;margin-top:4px}
 .note-l span{font-weight:400;color:var(--muted)}
+.prefs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pref{border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:12px 10px;font-weight:700;font-size:14px;cursor:pointer;line-height:1.25}
+.pref[aria-pressed="true"]{background:linear-gradient(140deg,var(--accent),var(--accent-2));border-color:transparent;color:#fff;box-shadow:0 6px 16px rgba(31,114,184,.28)}
+.plan{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.plan input,.plan select{min-height:46px;padding:10px}
+.t-when.muted{color:var(--wait);font-size:17px}
+a.act{text-decoration:none;color:inherit;display:inline-flex;align-items:center;gap:4px}
+.act.wa{background:#1fa855;border-color:#1fa855;color:#fff}
+
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 label.f{display:grid;gap:6px;font-size:14px;font-weight:700;min-width:0;color:var(--ink)}
 .cta{width:100%;border:0;border-radius:16px;background:linear-gradient(140deg,var(--accent),var(--accent-2));color:#fff;font:700 18px/1 var(--body);padding:19px;cursor:pointer;box-shadow:var(--shadow-lg)}
@@ -166,7 +175,7 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 </div>
 
 <nav class="tabs" aria-label="Bölümler"><div class="in">
-  <a href="#randevu" data-tab="randevu"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg>Randevu al</a>
+  <a href="#randevu" data-tab="randevu"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg>Arıza bildir</a>
   <a href="#randevularim" data-tab="randevularim"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg>Randevularım</a>
   <a href="#panel" data-tab="panel"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>Teknisyen</a>
 </div></nav>
@@ -183,9 +192,9 @@ const AYAR = {
             "C1","C2","C3","C4",
             "D1","D2","D3","D4",
             "F1","F2"],
+  // Panelde randevu verirken seçilecek saatler
   saatler: ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"],
   kapaliGunler: [0],            // 0 = Pazar, 6 = Cumartesi
-  gunSayisi: 14,                // kaç günlük takvim gösterilsin
   demoPin: "1234",              // demo modunda teknisyen paneli PIN'i
   teknisyenEpostalari: ["teknisyenzeynel91@gmail.com"],  // Firebase'de teknisyen hesabı
   // Firebase'den kopyaladığınız firebaseConfig nesnesini null yerine yapıştırın:
@@ -219,7 +228,8 @@ const ARIZALAR = {
   asansor:  ["Asansör çalışmıyor","Kapısı açılmıyor / kapanmıyor","Katta düzgün durmuyor","Ses veya sarsıntı yapıyor","Işık / buton arızası","Diğer"],
   diger:    ["Cam / pencere","Dolap / mobilya tamiri","Boya / badana","Ortak alan arızası","Çatı / balkon akıntısı","Diğer"]
 };
-const DURUM = {bekliyor:"Bekliyor", onaylandi:"Onaylandı", tamamlandi:"Tamamlandı", iptal:"İptal"};
+const DURUM = {bekliyor:"Talep alındı", onaylandi:"Randevu verildi", tamamlandi:"Tamamlandı", iptal:"İptal"};
+const ZAMAN = {sabah:"Sabah (09–12)", ogle:"Öğleden sonra (13–17)", aksam:"Akşamüstü (17–19)", farketmez:"Fark etmez"};
 const GUN = ["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"];
 const AY = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
 
@@ -231,39 +241,53 @@ const parseYmd = s => { const [y,m,d] = s.split("-").map(Number); return new Dat
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const catOf = id => KATEGORI.find(k => k.id === id) || KATEGORI[KATEGORI.length-1];
 const fisNo = a => "TS-" + (a.createdAt || 0).toString(36).slice(-5).toUpperCase();
-const slotKey = (d,t) => d + "_" + t.replace(":","");
-function telegramBildir(a){
-  const tg = AYAR.telegram;
-  if (!tg || !tg.token || !tg.chatId) return;
-  const text = [
-    "🔧 Yeni randevu talebi " + fisNo(a),
-    "📅 " + gunEtiketi(a.date) + " · " + a.time,
-    "🏠 " + a.block + " Blok, Daire " + a.flat,
-    "👤 " + a.name + " · " + a.phone,
-    "⚠️ " + catOf(a.cat).ad + (a.desc ? ": " + a.desc : ""),
-    "",
-    "Onaylamak için: " + location.origin + location.pathname + "#panel"
-  ].join("\n");
-  const body = new URLSearchParams({chat_id: String(tg.chatId), text, disable_web_page_preview: "true"});
-  try { fetch("https://api.telegram.org/bot" + tg.token + "/sendMessage", {method:"POST", body, mode:"no-cors", keepalive:true}).catch(()=>{}); } catch(e){}
-}
+const zamanAd = a => ZAMAN[a.pref] || ZAMAN.farketmez;
 function gunEtiketi(s){
   const d = parseYmd(s), bugun = ymd(new Date()), yarin = ymd(new Date(Date.now()+864e5));
   const ek = s === bugun ? "Bugün" : s === yarin ? "Yarın" : GUN[d.getDay()];
   return `${d.getDate()} ${AY[d.getMonth()]} · ${ek}`;
 }
-function takvim(){
-  const out = [], n = new Date();
-  for (let i = 0; out.length < AYAR.gunSayisi && i < 60; i++){
-    const d = new Date(n.getFullYear(), n.getMonth(), n.getDate()+i);
+function gonderimZamani(ts){
+  const d = new Date(ts || 0), s = ymd(d);
+  return `${gunEtiketi(s)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function takvim(n){
+  const out = [], now = new Date();
+  for (let i = 0; out.length < n && i < 60; i++){
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate()+i);
     if (!AYAR.kapaliGunler.includes(d.getDay())) out.push(d);
   }
   return out;
 }
-function gecmisSaat(date, t){
-  if (date !== ymd(new Date())) return false;
-  const [h,m] = t.split(":").map(Number), now = new Date();
-  return h*60+m <= now.getHours()*60+now.getMinutes()+30;
+/* Randevu hâlâ açık mı? (saat bekleyen ya da tarihi gelmemiş) */
+const acik = a => a.status==="bekliyor" || (a.status==="onaylandi" && (!a.date || a.date >= ymd(new Date())));
+function waNumara(p){
+  let d = String(p||"").replace(/\D/g,"");
+  if (d.startsWith("0")) d = "90" + d.slice(1);
+  else if (d.length === 10 && d.startsWith("5")) d = "90" + d;
+  return d;
+}
+function waLink(a){
+  const ad = (a.name || "").trim().split(/\s+/)[0] || "";
+  const metin = a.status==="onaylandi" && a.date
+    ? `Merhaba ${ad}, ${AYAR.siteAdi}'ten yazıyorum. ${gunEtiketi(a.date)} saat ${a.time} için randevunuz oluşturuldu. ${a.block} Blok, Daire ${a.flat}'e geleceğim.`
+    : `Merhaba ${ad}, ${AYAR.siteAdi}'ten yazıyorum. ${catOf(a.cat).ad} arıza bildiriminizi aldım (${fisNo(a)}).`;
+  return "https://wa.me/" + waNumara(a.phone) + "?text=" + encodeURIComponent(metin);
+}
+function telegramBildir(a){
+  const tg = AYAR.telegram;
+  if (!tg || !tg.token || !tg.chatId) return;
+  const text = [
+    "🔧 Yeni arıza bildirimi " + fisNo(a),
+    "⚠️ " + catOf(a.cat).ad + (a.desc ? ": " + a.desc : ""),
+    "🏠 " + a.block + " Blok, Daire " + a.flat,
+    "👤 " + a.name + " · " + a.phone,
+    "🕒 Uygun zaman: " + zamanAd(a),
+    "",
+    "Randevu vermek için: " + location.origin + location.pathname + "#panel"
+  ].join("\n");
+  const body = new URLSearchParams({chat_id: String(tg.chatId), text, disable_web_page_preview: "true"});
+  try { fetch("https://api.telegram.org/bot" + tg.token + "/sendMessage", {method:"POST", body, mode:"no-cors", keepalive:true}).catch(()=>{}); } catch(e){}
 }
 function yerel(k, v){ try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch(e){ return null; } }
 let toastT;
@@ -273,36 +297,33 @@ function toast(m){ const t = $("#toast"); t.textContent = m; t.hidden = false; c
    VERİ KATMANI — Demo (telefonda) veya Firebase (gerçek)
    ========================================================= */
 function DemoStore(){
-  const KEY = "site-servis-demo-v1";
+  const KEY = "site-servis-demo-v2";
   let mem = yerel(KEY);
   if (!mem){
-    const g = takvim(), t = Date.now();
+    const g = takvim(3), t = Date.now(), b = i => AYAR.bloklar[i] || AYAR.bloklar[0];
     mem = { uid: "demo-" + Math.random().toString(36).slice(2,9), appts: [
-      {id:"o1", uid:"ornek", sample:true, cat:"kombi", desc:"Kombi basınç düşürüyor, sabahları sıcak su gelmiyor.", date:ymd(g[0]), time:AYAR.saatler[AYAR.saatler.length-2], name:"Örnek Sakin", block:AYAR.bloklar[0], flat:"12", phone:"0555 000 00 00", status:"onaylandi", note:"Yedek parça getirilecek.", createdAt:t-9e6},
-      {id:"o2", uid:"ornek", sample:true, cat:"su", desc:"Mutfak lavabosunun altından su sızıyor.", date:ymd(g[1]), time:AYAR.saatler[1], name:"Örnek Sakin 2", block:AYAR.bloklar[1] || AYAR.bloklar[0], flat:"4", phone:"0555 000 00 01", status:"bekliyor", note:"", createdAt:t-5e6},
-      {id:"o3", uid:"ornek", sample:true, cat:"elektrik", desc:"Koridor lambası sürekli atıyor.", date:ymd(g[2]), time:AYAR.saatler[3] || AYAR.saatler[0], name:"Örnek Sakin 3", block:AYAR.bloklar[2] || AYAR.bloklar[0], flat:"7", phone:"0555 000 00 02", status:"bekliyor", note:"", createdAt:t-2e6}
+      {id:"o1", uid:"ornek", sample:true, cat:"kombi", desc:"Basınç düşüyor — sabahları sıcak su gelmiyor.", pref:"sabah", date:ymd(g[0]), time:AYAR.saatler[AYAR.saatler.length-2], name:"Örnek Sakin", block:b(0), flat:"12", phone:"0555 000 00 00", status:"onaylandi", note:"Yedek parça getirilecek.", createdAt:t-9e6},
+      {id:"o2", uid:"ornek", sample:true, cat:"su", desc:"Su sızıntısı, kaçak — mutfak lavabosunun altı.", pref:"ogle", date:null, time:null, name:"Örnek Sakin 2", block:b(1), flat:"4", phone:"0555 000 00 01", status:"bekliyor", note:"", createdAt:t-5e6},
+      {id:"o3", uid:"ornek", sample:true, cat:"elektrik", desc:"Lamba / avize yanmıyor — koridor.", pref:"farketmez", date:null, time:null, name:"Örnek Sakin 3", block:b(2), flat:"7", phone:"0555 000 00 02", status:"bekliyor", note:"", createdAt:t-2e6}
     ]};
   }
   let tech = false;
   const subs = new Set();
   const save = () => { yerel(KEY, mem); subs.forEach(f => f()); };
   const sub = f => { subs.add(f); f(); return () => subs.delete(f); };
-  const busy = d => new Set(mem.appts.filter(a => a.date === d && a.status !== "iptal").map(a => a.time));
+  const bul = a => mem.appts.find(x => x.id === a.id);
   return {
     mode: "demo",
     ready: Promise.resolve(),
     isTech: () => tech,
-    onAuth(f){ sub(f); },
     listenMine: cb => sub(() => cb(mem.appts.filter(a => a.uid === mem.uid))),
     listenAll: cb => sub(() => cb(mem.appts.slice())),
-    listenBusy: (d, cb) => sub(() => cb(busy(d))),
     async create(a){
-      if (busy(a.date).has(a.time)) throw {code:"dolu"};
-      const rec = {...a, id: "d" + Date.now().toString(36), uid: mem.uid, status: "bekliyor", note: "", createdAt: Date.now()};
+      const rec = {...a, id: "d" + Date.now().toString(36), uid: mem.uid, status: "bekliyor", note: "", date: null, time: null, createdAt: Date.now()};
       mem.appts.push(rec); save(); return rec;
     },
-    async cancelMine(a){ const r = mem.appts.find(x => x.id === a.id); if (r){ r.status = "iptal"; save(); } },
-    async setStatus(a, status, note){ const r = mem.appts.find(x => x.id === a.id); if (r){ r.status = status; if (note !== undefined) r.note = note; save(); } },
+    async cancelMine(a){ const r = bul(a); if (r){ r.status = "iptal"; save(); } },
+    async update(a, patch){ const r = bul(a); if (r){ Object.assign(r, patch); save(); } },
     async login(_, pin){ if (pin !== AYAR.demoPin) throw {code:"giris"}; tech = true; save(); },
     async logout(){ tech = false; save(); }
   };
@@ -311,7 +332,6 @@ function DemoStore(){
 function FirebaseStore(cfg){
   const V = "10.12.2", B = `https://www.gstatic.com/firebasejs/${V}/`;
   let fs, au, db, auth, user = null, tech = false;
-  const authSubs = new Set();
   const ready = (async () => {
     const [app, f, a] = await Promise.all([import(B+"firebase-app.js"), import(B+"firebase-firestore.js"), import(B+"firebase-auth.js")]);
     fs = f; au = a;
@@ -322,7 +342,7 @@ function FirebaseStore(cfg){
         if (!u){ try { await a.signInAnonymously(auth); } catch(e){ console.error(e); res(); } return; }
         user = u;
         tech = !u.isAnonymous && AYAR.teknisyenEpostalari.map(x => x.toLowerCase()).includes((u.email||"").toLowerCase());
-        authSubs.forEach(fn => fn()); res();
+        res();
       });
     });
   })();
@@ -331,47 +351,29 @@ function FirebaseStore(cfg){
     mode: "firebase",
     ready,
     isTech: () => tech,
-    onAuth(fn){ authSubs.add(fn); fn(); },
     listenMine(cb){
       const q = fs.query(fs.collection(db,"appointments"), fs.where("uid","==",user.uid));
       return fs.onSnapshot(q, s => cb(s.docs.map(toObj)), e => { console.error(e); cb([]); });
     },
     listenAll(cb){
-      const from = ymd(new Date(Date.now() - 30*864e5));
-      const q = fs.query(fs.collection(db,"appointments"), fs.where("date",">=",from));
+      const from = Date.now() - 60*864e5;
+      const q = fs.query(fs.collection(db,"appointments"), fs.where("createdAt",">=",from));
       return fs.onSnapshot(q, s => cb(s.docs.map(toObj)), e => { console.error(e); toast("Kayıtlar okunamadı: " + e.code); });
-    },
-    listenBusy(d, cb){
-      const q = fs.query(fs.collection(db,"slots"), fs.where("date","==",d));
-      return fs.onSnapshot(q, s => cb(new Set(s.docs.map(x => x.data().time))), () => cb(new Set()));
     },
     async create(a){
       const ref = fs.doc(fs.collection(db,"appointments"));
-      const rec = {...a, uid: user.uid, status: "bekliyor", note: "", createdAt: Date.now()};
-      const b = fs.writeBatch(db);
-      b.set(ref, rec);
-      b.set(fs.doc(db,"slots",slotKey(a.date,a.time)), {date:a.date, time:a.time, uid:user.uid});
-      try { await b.commit(); } catch(e){ throw {code: e.code === "permission-denied" ? "dolu" : e.code}; }
+      const rec = {...a, uid: user.uid, status: "bekliyor", note: "", date: null, time: null, createdAt: Date.now()};
+      await fs.setDoc(ref, rec);
       return {...rec, id: ref.id};
     },
-    async cancelMine(a){
-      const b = fs.writeBatch(db);
-      b.update(fs.doc(db,"appointments",a.id), {status:"iptal"});
-      b.delete(fs.doc(db,"slots",slotKey(a.date,a.time)));
-      await b.commit();
-    },
-    async setStatus(a, status, note){
-      const patch = {status}; if (note !== undefined) patch.note = note;
-      await fs.updateDoc(fs.doc(db,"appointments",a.id), patch);
-      const kilit = fs.doc(db,"slots",slotKey(a.date,a.time));
-      if (status === "iptal") await fs.deleteDoc(kilit).catch(()=>{});
-      else if (a.status === "iptal") await fs.setDoc(kilit, {date:a.date, time:a.time, uid:a.uid}).catch(()=>{});
-    },
+    async cancelMine(a){ await fs.updateDoc(fs.doc(db,"appointments",a.id), {status:"iptal"}); },
+    async update(a, patch){ await fs.updateDoc(fs.doc(db,"appointments",a.id), patch); },
     async login(email, pass){
       try { await au.signInWithEmailAndPassword(auth, email, pass); } catch(e){ throw {code:"giris"}; }
+      tech = AYAR.teknisyenEpostalari.map(x => x.toLowerCase()).includes((auth.currentUser?.email||"").toLowerCase());
       if (!tech) { await au.signOut(auth); throw {code:"yetki"}; }
     },
-    async logout(){ await au.signOut(auth); }
+    async logout(){ await au.signOut(auth); tech = false; }
   };
 }
 
@@ -382,45 +384,34 @@ const store = AYAR.firebase ? FirebaseStore(AYAR.firebase) : DemoStore();
 const kayitli = yerel("site-servis-iletisim") || {};
 const S = {
   view: "randevu",
-  form: {cat:null, issues:[], desc:"", date:null, time:null, name:kayitli.name||"", block:kayitli.block||AYAR.bloklar[0], flat:kayitli.flat||"", phone:kayitli.phone||""},
-  busy: new Set(), mine: [], all: [], sent: null, err: "", sending: false,
-  filter: "yakin", armed: null, notes: {}
+  form: {cat:null, issues:[], desc:"", pref:"farketmez", name:kayitli.name||"", block:kayitli.block||AYAR.bloklar[0], flat:kayitli.flat||"", phone:kayitli.phone||""},
+  mine: [], all: [], sent: null, err: "", sending: false,
+  filter: "acik", armed: null, notes: {}, plan: {}
 };
-let unBusy = null, unMine = null, unAll = null;
+let unMine = null, unAll = null;
 
 $("#siteName").textContent = AYAR.siteAdi;
 document.title = AYAR.siteAdi;
 if (store.mode === "demo"){ $("#demoBand").hidden = false; $("#modeTag").hidden = false; $("#pinShow").textContent = AYAR.demoPin; }
 
-function watchBusy(){
-  if (unBusy) unBusy();
-  unBusy = S.form.date ? store.listenBusy(S.form.date, b => {
-    S.busy = b;
-    if (S.form.time && b.has(S.form.time)) S.form.time = null;
-    if (S.view === "randevu") render();
-  }) : null;
-}
-
 /* ---------- görünümler ---------- */
 function formHazir(){
   const f = S.form;
   const ariza = f.issues.length && (!(f.issues.length === 1 && f.issues[0] === "Diğer") || f.desc.trim());
-  return !!(f.cat && ariza && f.date && f.time && f.name.trim() && f.flat.trim() && f.phone.replace(/\D/g,"").length >= 10);
+  return !!(f.cat && ariza && f.name.trim() && f.flat.trim() && f.phone.replace(/\D/g,"").length >= 10);
 }
 function vRandevu(){
   if (S.sent){
     const a = S.sent;
     return `<div class="success">
-      <div class="hint">Randevu talebiniz alındı</div>
-      <div class="big">${esc(gunEtiketi(a.date))}<br>saat ${esc(a.time)}</div>
+      <div class="big">Arıza bildiriminiz alındı</div>
       <div class="code">${fisNo(a)}</div>
-      <p class="hint">Teknisyen onayladığında durum <b>Randevularım</b> sekmesinde görünür. Fiş numaranızı not edin.</p>
-      <button class="cta" data-act="yeni">Yeni randevu al</button>
-      <a class="cta ghost" href="#randevularim" style="text-decoration:none;display:block">Randevularıma git</a>
+      <p class="hint">Teknisyen size uygun bir gün ve saat verdiğinde <b>Randevularım</b> bölümünde görünecek. Gerekirse sizi arayacak ya da WhatsApp'tan yazacak.</p>
+      <a class="cta" href="#randevularim" style="text-decoration:none;display:block">Randevularıma git</a>
+      <button class="cta ghost" data-act="yeni">Yeni arıza bildir</button>
     </div>`;
   }
-  const f = S.form, gunler = takvim();
-  const hazir = formHazir();
+  const f = S.form, hazir = formHazir();
   return `
   <section class="step"><h2><span>1</span>Arıza türü</h2>
     <div class="cats">${KATEGORI.map(k => `<button class="cat" data-act="cat" data-v="${k.id}" aria-pressed="${f.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
@@ -432,14 +423,11 @@ function vRandevu(){
     <textarea id="desc" maxlength="500" placeholder="Örn. Mutfaktaki priz, dün akşamdan beri.">${esc(f.desc)}</textarea>`
     : `<p class="hint">Önce yukarıdan arıza türünü seçin.</p>`}
   </section>
-  <section class="step"><h2><span>3</span>Gün seçin</h2>
-    <div class="days">${gunler.map(d => { const s = ymd(d); return `<button class="day" data-act="date" data-v="${s}" aria-pressed="${f.date===s}"><small>${GUN[d.getDay()]}</small><strong>${d.getDate()}</strong><em>${AY[d.getMonth()]}</em></button>`; }).join("")}</div>
+  <section class="step"><h2><span>3</span>Ne zaman uygunsunuz?</h2>
+    <div class="prefs">${Object.entries(ZAMAN).map(([k,v]) => `<button class="pref" data-act="pref" data-v="${k}" aria-pressed="${f.pref===k}">${v}</button>`).join("")}</div>
+    <p class="hint">Kesin gün ve saati teknisyen size bildirecek.</p>
   </section>
-  <section class="step"><h2><span>4</span>Saat seçin</h2>
-    ${f.date ? `<div class="slots">${AYAR.saatler.map(t => { const kapali = S.busy.has(t) || gecmisSaat(f.date,t); return `<button class="slot" data-act="time" data-v="${t}" aria-pressed="${f.time===t}" ${kapali?"disabled":""} aria-label="${t}${kapali?" dolu":""}">${t}</button>`; }).join("")}</div>
-    <p class="hint">Üstü çizili saatler dolu.</p>` : `<p class="hint">Önce bir gün seçin.</p>`}
-  </section>
-  <section class="step"><h2><span>5</span>İletişim bilgileri</h2>
+  <section class="step"><h2><span>4</span>İletişim bilgileri</h2>
     <label class="f">Ad soyad<input type="text" id="name" autocomplete="name" value="${esc(f.name)}"></label>
     <div class="grid2">
       <label class="f">Blok<select id="block">${AYAR.bloklar.map(b => `<option ${f.block===b?"selected":""}>${esc(b)}</option>`).join("")}</select></label>
@@ -448,43 +436,65 @@ function vRandevu(){
     <label class="f">Telefon<input type="tel" id="phone" autocomplete="tel" placeholder="05xx xxx xx xx" value="${esc(f.phone)}"></label>
   </section>
   ${S.err ? `<p class="err">${esc(S.err)}</p>` : ""}
-  <button class="cta" data-act="gonder" ${hazir && !S.sending ? "" : "disabled"}>${S.sending ? "Gönderiliyor…" : "Randevu talebini gönder"}</button>
-  ${!hazir ? `<p class="hint" style="margin-top:8px">Göndermek için arıza, gün, saat, daire no ve telefon gerekli.</p>` : ""}`;
+  <button class="cta" data-act="gonder" ${hazir && !S.sending ? "" : "disabled"}>${S.sending ? "Gönderiliyor…" : "Arızayı bildir"}</button>
+  ${!hazir ? `<p class="hint" style="margin-top:8px">Göndermek için arıza, daire no ve telefon gerekli.</p>` : ""}`;
+}
+
+function planAlani(a){
+  const p = S.plan[a.id] || {date: a.date || "", time: a.time || ""};
+  const saatler = AYAR.saatler.includes(p.time) || !p.time ? AYAR.saatler : [p.time, ...AYAR.saatler];
+  return `<div class="plan">
+      <label class="f">Gün<input type="date" id="pd-${a.id}" data-plan="${a.id}" data-k="date" min="${ymd(new Date())}" value="${esc(p.date)}"></label>
+      <label class="f">Saat<select id="pt-${a.id}" data-plan="${a.id}" data-k="time"><option value="">Seçin</option>${saatler.map(t => `<option ${p.time===t?"selected":""}>${t}</option>`).join("")}</select></label>
+    </div>`;
 }
 
 function fis(a, panel){
   const k = catOf(a.cat);
-  const iptalEdilebilir = !panel && (a.status==="bekliyor"||a.status==="onaylandi") && a.date >= ymd(new Date());
   const armed = S.armed === a.id;
+  const saatVar = a.status==="onaylandi" && a.date;
+  const ust = saatVar ? `${esc(gunEtiketi(a.date))} · ${esc(a.time)}`
+    : a.status==="bekliyor" ? (panel ? "Saat verilmedi" : "Teknisyen saat verecek")
+    : (a.date ? `${esc(gunEtiketi(a.date))} · ${esc(a.time)}` : "Saatsiz");
+  const iptalEdilebilir = !panel && acik(a);
   return `<article class="ticket" data-s="${a.status}">
     <div class="t-head"><span class="t-no">${fisNo(a)} · ${esc(k.ad)}</span>
-      <span style="display:flex;gap:6px">${a.sample?'<span class="chip sample">Örnek</span>':""}<span class="chip" data-s="${a.status}">${DURUM[a.status]||a.status}</span></span></div>
-    <div class="t-when">${esc(gunEtiketi(a.date))} · ${esc(a.time)}</div>
+      <span style="display:flex;gap:6px">${a.sample?'<span class="chip sample">Örnek</span>':""}<span class="chip" data-s="${a.status}">${panel && a.status==="bekliyor" ? "Yeni" : (DURUM[a.status]||a.status)}</span></span></div>
+    <div class="t-when${saatVar?"":" muted"}">${ust}</div>
     <div class="t-meta"><span>Blok <b>${esc(a.block)}</b></span><span>Daire <b>${esc(a.flat)}</b></span>${panel?`<span><b>${esc(a.name)}</b></span>`:""}</div>
-    ${panel?`<div class="t-meta"><a class="tel" href="tel:${esc(String(a.phone).replace(/[^\d+]/g,""))}">Ara</a><span style="user-select:all">${esc(a.phone)}</span></div>`:""}
     ${a.desc?`<p class="t-desc">${esc(a.desc)}</p>`:""}
+    <div class="t-meta"><span>Uygun zaman: <b>${esc(zamanAd(a))}</b></span>${panel?`<span>Bildirim: ${esc(gonderimZamani(a.createdAt))}</span>`:""}</div>
+    ${panel?`<div class="actions">
+        <a class="act" href="tel:${esc(String(a.phone).replace(/[^\d+]/g,""))}">Ara · <span style="font-weight:400">${esc(a.phone)}</span></a>
+        <a class="act wa" href="${esc(waLink(a))}" target="_blank" rel="noopener">WhatsApp</a>
+      </div>`:""}
     ${!panel && a.note?`<p class="t-note"><b>Teknisyen notu:</b> ${esc(a.note)}</p>`:""}
     ${panel?`
+      ${acik(a) ? planAlani(a) : ""}
       <label class="f" style="font-weight:400">Teknisyen notu<input type="text" id="note-${a.id}" data-note="${a.id}" value="${esc(S.notes[a.id] ?? a.note ?? "")}" placeholder="Sakinin göreceği not"></label>
       <div class="actions">
-        ${a.status==="bekliyor"?`<button class="act primary" data-act="durum" data-id="${a.id}" data-v="onaylandi">Onayla</button>`:""}
-        ${a.status==="onaylandi"?`<button class="act primary" data-act="durum" data-id="${a.id}" data-v="tamamlandi">Tamamlandı</button>`:""}
+        ${acik(a)?`<button class="act primary" data-act="saatver" data-id="${a.id}">${a.status==="onaylandi"?"Saati güncelle":"Randevu ver"}</button>`:""}
+        ${a.status==="onaylandi"?`<button class="act" data-act="durum" data-id="${a.id}" data-v="tamamlandi">Tamamlandı</button>`:""}
         <button class="act" data-act="not" data-id="${a.id}">Notu kaydet</button>
         ${a.status!=="iptal"&&a.status!=="tamamlandi"?`<button class="act ${armed?"armed":"danger"}" data-act="iptal" data-id="${a.id}">${armed?"Eminim, iptal et":"İptal et"}</button>`:""}
-        ${a.status==="iptal"||a.status==="tamamlandi"?`<button class="act" data-act="durum" data-id="${a.id}" data-v="bekliyor">Yeniden aç</button>`:""}
+        ${a.status==="iptal"||a.status==="tamamlandi"?`<button class="act" data-act="durum" data-id="${a.id}" data-v="${a.date?"onaylandi":"bekliyor"}">Yeniden aç</button>`:""}
       </div>`:
-      iptalEdilebilir?`<div class="actions"><button class="act ${armed?"armed":"danger"}" data-act="iptalBenim" data-id="${a.id}">${armed?"Eminim, iptal et":"Randevuyu iptal et"}</button></div>`:""}
+      iptalEdilebilir?`<div class="actions"><button class="act ${armed?"armed":"danger"}" data-act="iptalBenim" data-id="${a.id}">${armed?"Eminim, iptal et":"Talebi iptal et"}</button></div>`:""}
   </article>`;
 }
 
-const sirala = arr => arr.slice().sort((x,y) => (x.date+x.time).localeCompare(y.date+y.time));
+/* Saat verilmişler tarihe göre, bekleyenler geliş sırasına göre */
+const sirala = arr => arr.slice().sort((x,y) => {
+  const kx = x.date ? "1" + x.date + x.time : "0" + String(x.createdAt).padStart(15,"0");
+  const ky = y.date ? "1" + y.date + y.time : "0" + String(y.createdAt).padStart(15,"0");
+  return kx.localeCompare(ky);
+});
 
 function vRandevularim(){
-  const bugun = ymd(new Date());
-  const gelecek = sirala(S.mine.filter(a => a.date >= bugun && a.status !== "iptal" && a.status !== "tamamlandi"));
-  const gecmis = sirala(S.mine.filter(a => !gelecek.includes(a))).reverse();
-  if (!S.mine.length) return `<div class="empty"><strong>Henüz randevunuz yok</strong>Bu telefondan aldığınız randevular burada listelenir.<br><br><a class="tel" href="#randevu">Randevu al</a></div>`;
-  return `${gelecek.length?`<div class="group-h">Yaklaşan</div><div class="list">${gelecek.map(a=>fis(a,false)).join("")}</div>`:""}
+  if (!S.mine.length) return `<div class="empty"><strong>Henüz arıza bildiriminiz yok</strong>Bu telefondan bildirdiğiniz arızalar burada listelenir.<br><br><a class="tel" href="#randevu">Arıza bildir</a></div>`;
+  const aktif = sirala(S.mine.filter(acik));
+  const gecmis = S.mine.filter(a => !acik(a)).sort((x,y) => (y.createdAt||0) - (x.createdAt||0));
+  return `${aktif.length?`<div class="group-h">Açık talepler</div><div class="list">${aktif.map(a=>fis(a,false)).join("")}</div>`:""}
           ${gecmis.length?`<div class="group-h">Geçmiş ve iptal</div><div class="list">${gecmis.map(a=>fis(a,false)).join("")}</div>`:""}`;
 }
 
@@ -497,47 +507,47 @@ function vPanel(){
       ${S.err?`<p class="err">${esc(S.err)}</p>`:""}
       <button class="cta" data-act="giris">Giriş yap</button></div>`;
   }
-  const bugun = ymd(new Date()), yarin = ymd(new Date(Date.now()+864e5)), hafta = ymd(new Date(Date.now()+7*864e5));
+  const bugun = ymd(new Date()), yarin = ymd(new Date(Date.now()+864e5));
   const all = S.all;
-  const say = s => all.filter(a => a.status===s && a.date>=bugun).length;
   const F = {
-    yakin: a => a.date>=bugun && (a.status==="bekliyor"||a.status==="onaylandi"),
-    bugun: a => a.date===bugun, yarin: a => a.date===yarin,
-    hafta: a => a.date>=bugun && a.date<=hafta,
-    bekleyen: a => a.status==="bekliyor",
+    acik: acik,
+    yeni: a => a.status==="bekliyor",
+    bugun: a => a.date===bugun && a.status!=="iptal",
+    yarin: a => a.date===yarin && a.status!=="iptal",
     tumu: () => true
   };
-  const ad = {yakin:"Açık işler", bugun:"Bugün", yarin:"Yarın", hafta:"7 gün", bekleyen:"Onay bekleyen", tumu:"Tümü"};
+  const ad = {acik:"Açık işler", yeni:"Yeni talepler", bugun:"Bugün", yarin:"Yarın", tumu:"Tümü"};
   let list = sirala(all.filter(F[S.filter]));
-  if (S.filter==="tumu") list = list.reverse();
-  const gruplar = {};
-  list.forEach(a => (gruplar[a.date] ||= []).push(a));
+  if (S.filter==="tumu") list = all.slice().sort((x,y) => (y.createdAt||0) - (x.createdAt||0));
+  const gruplar = [];
+  const ekle = (baslik, a) => { let g = gruplar.find(x => x.b === baslik); if (!g){ g = {b: baslik, l: []}; gruplar.push(g); } g.l.push(a); };
+  list.forEach(a => ekle(S.filter==="tumu" ? "Son bildirimler" : a.status==="bekliyor" ? "Saat bekleyen talepler" : a.date ? gunEtiketi(a.date) : "Saatsiz", a));
   return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="margin:0;font:600 22px/1.2 var(--display)">İş paneli</h2><button class="pill-btn" data-act="cikis">Çıkış</button></div>
     <div class="summary">
-      <div class="sum"><strong style="color:var(--wait)">${say("bekliyor")}</strong><span>Onay bekliyor</span></div>
-      <div class="sum"><strong style="color:var(--ok)">${say("onaylandi")}</strong><span>Planlandı</span></div>
-      <div class="sum"><strong>${all.filter(a=>a.date===bugun&&a.status!=="iptal").length}</strong><span>Bugünkü iş</span></div>
+      <div class="sum"><strong style="color:var(--wait)">${all.filter(a=>a.status==="bekliyor").length}</strong><span>Yeni talep</span></div>
+      <div class="sum"><strong style="color:var(--ok)">${all.filter(a=>a.status==="onaylandi"&&a.date>=bugun).length}</strong><span>Planlı iş</span></div>
+      <div class="sum"><strong>${all.filter(a=>a.date===bugun&&a.status==="onaylandi").length}</strong><span>Bugünkü iş</span></div>
     </div>
     <div class="filters">${Object.keys(ad).map(k=>`<button class="pill-btn" data-act="filtre" data-v="${k}" aria-current="${S.filter===k}">${ad[k]}</button>`).join("")}</div>
-    ${list.length ? Object.keys(gruplar).map(d=>`<div class="group-h">${esc(gunEtiketi(d))}</div><div class="list">${gruplar[d].map(a=>fis(a,true)).join("")}</div>`).join("")
-      : `<div class="empty"><strong>Bu filtrede iş yok</strong>Sakinler randevu aldıkça burada görünür.</div>`}`;
+    ${list.length ? gruplar.map(g=>`<div class="group-h">${esc(g.b)}</div><div class="list">${g.l.map(a=>fis(a,true)).join("")}</div>`).join("")
+      : `<div class="empty"><strong>Bu filtrede iş yok</strong>Sakinler arıza bildirdikçe burada görünür.</div>`}`;
 }
 
 function render(){
-  // form alanlarını yeniden çizmeden önce oku
   syncForm();
   const keep = document.activeElement && document.activeElement.id;
   $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : vRandevu();
-  $("#heroSub").textContent = S.view==="randevularim" ? "Randevularının durumunu ve teknisyen notlarını buradan takip et."
-    : S.view==="panel" ? "Gelen talepleri onayla, işleri planla."
-    : "Arızanı bildir, uygun saati seç. Teknisyen kapına gelsin.";
+  $("#heroSub").textContent = S.view==="randevularim" ? "Taleplerinin durumunu, randevu saatini ve teknisyen notlarını buradan takip et."
+    : S.view==="panel" ? "Gelen arızaları gör, randevu saatini ver."
+    : "Arızanı bildir, teknisyen sana uygun saati versin.";
   document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.tab===S.view ? "page" : "false"));
-  if (keep && document.getElementById(keep)) { const el = document.getElementById(keep); el.focus(); if (el.setSelectionRange && el.value) try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){} }
+  if (keep && document.getElementById(keep)) { const el = document.getElementById(keep); el.focus(); if (el.setSelectionRange && el.value && el.type !== "date") try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){} }
 }
 function syncForm(){
   const f = S.form;
   [["desc","desc"],["name","name"],["block","block"],["flat","flat"],["phone","phone"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; });
   document.querySelectorAll("[data-note]").forEach(el => S.notes[el.dataset.note] = el.value);
+  document.querySelectorAll("[data-plan]").forEach(el => { const id = el.dataset.plan; (S.plan[id] ||= {date:"", time:""})[el.dataset.k] = el.value; });
 }
 
 /* ---------- olaylar ---------- */
@@ -545,9 +555,9 @@ document.addEventListener("input", e => {
   if (S.view !== "randevu" || !e.target.id) return;
   syncForm();
   const btn = document.querySelector('[data-act="gonder"]');
-  const hazir = formHazir();
-  if (btn) btn.disabled = !hazir || S.sending;
+  if (btn) btn.disabled = !formHazir() || S.sending;
 });
+document.addEventListener("change", e => { if (e.target.dataset && e.target.dataset.plan) syncForm(); });
 
 document.addEventListener("click", async e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
@@ -558,28 +568,28 @@ document.addEventListener("click", async e => {
   try {
     if (act==="cat"){ syncForm(); if (S.form.cat !== v) S.form.issues = []; S.form.cat = v; render(); }
     else if (act==="iss"){ syncForm(); const L = S.form.issues; const i = L.indexOf(v); i < 0 ? L.push(v) : L.splice(i,1); render(); }
-    else if (act==="date"){ syncForm(); S.form.date = v; S.form.time = null; S.busy = new Set(); render(); watchBusy(); }
-    else if (act==="time"){ syncForm(); S.form.time = v; render(); }
-    else if (act==="yeni"){ S.sent = null; S.form.cat = null; S.form.issues = []; S.form.desc = ""; S.form.time = null; render(); scrollTo(0,0); }
+    else if (act==="pref"){ syncForm(); S.form.pref = v; render(); }
+    else if (act==="yeni"){ S.sent = null; S.form.cat = null; S.form.issues = []; S.form.desc = ""; S.form.pref = "farketmez"; render(); scrollTo(0,0); }
     else if (act==="gonder"){
       syncForm(); const f = S.form;
+      if (!formHazir()) return;
       S.sending = true; render();
       yerel("site-servis-iletisim", {name:f.name, block:f.block, flat:f.flat, phone:f.phone});
       try {
         const arizalar = f.issues.filter(x => x !== "Diğer");
         const aciklama = [arizalar.join(", "), f.desc.trim()].filter(Boolean).join(" — ");
-        S.sent = await store.create({cat:f.cat, issues:f.issues.slice(), desc:aciklama, date:f.date, time:f.time, name:f.name.trim(), block:f.block, flat:f.flat.trim(), phone:f.phone.trim()});
+        S.sent = await store.create({cat:f.cat, issues:f.issues.slice(), desc:aciklama, pref:f.pref, name:f.name.trim(), block:f.block, flat:f.flat.trim(), phone:f.phone.trim()});
         telegramBildir(S.sent);
         scrollTo(0,0);
       } catch(err){
-        S.err = err.code==="dolu" ? "Bu saat az önce doldu. Lütfen başka bir saat seçin." : "Gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.";
-        if (err.code==="dolu") S.form.time = null;
+        console.error(err);
+        S.err = "Gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.";
       }
       S.sending = false; render();
     }
     else if (act==="iptalBenim"){
       if (S.armed !== id){ S.armed = id; render(); return; }
-      S.armed = null; await store.cancelMine(find(S.mine)); toast("Randevu iptal edildi"); render();
+      S.armed = null; await store.cancelMine(find(S.mine)); toast("Talep iptal edildi"); render();
     }
     else if (act==="giris"){
       const pin = $("#pin"), em = $("#email"), pw = $("#pass");
@@ -588,12 +598,21 @@ document.addEventListener("click", async e => {
     }
     else if (act==="cikis"){ if (unAll) unAll(); unAll = null; S.all = []; await store.logout(); render(); }
     else if (act==="filtre"){ syncForm(); S.filter = v; render(); }
-    else if (act==="durum"){ syncForm(); const a = find(S.all); await store.setStatus(a, v, S.notes[id]); toast(DURUM[v] + " olarak işaretlendi"); }
-    else if (act==="not"){ syncForm(); const a = find(S.all); await store.setStatus(a, a.status, S.notes[id] ?? ""); toast("Not kaydedildi"); }
+    else if (act==="saatver"){
+      syncForm(); const a = find(S.all), p = S.plan[id] || {};
+      if (!p.date || !p.time){ toast("Önce gün ve saati seçin"); return; }
+      const patch = {date: p.date, time: p.time, status: "onaylandi"};
+      if (S.notes[id] !== undefined) patch.note = S.notes[id];
+      await store.update(a, patch);
+      toast(`Randevu verildi: ${gunEtiketi(p.date)} ${p.time}`);
+    }
+    else if (act==="durum"){ syncForm(); const a = find(S.all); const patch = {status: v}; if (S.notes[id] !== undefined) patch.note = S.notes[id]; await store.update(a, patch); toast(DURUM[v] + " olarak işaretlendi"); }
+    else if (act==="not"){ syncForm(); const a = find(S.all); await store.update(a, {note: S.notes[id] ?? ""}); toast("Not kaydedildi"); }
     else if (act==="iptal"){
       syncForm();
       if (S.armed !== id){ S.armed = id; render(); return; }
-      S.armed = null; await store.setStatus(find(S.all), "iptal", S.notes[id]); toast("Randevu iptal edildi");
+      S.armed = null; const patch = {status: "iptal"}; if (S.notes[id] !== undefined) patch.note = S.notes[id];
+      await store.update(find(S.all), patch); toast("Talep iptal edildi");
     }
   } catch(err){ console.error(err); toast("İşlem yapılamadı, tekrar deneyin"); }
 });
@@ -619,7 +638,7 @@ store.ready.then(() => {
   route();
 }).catch(err => {
   console.error(err);
-  $("#view").innerHTML = `<div class="empty"><strong>Bağlantı kurulamadı</strong>Firebase ayarlarını kontrol edin ve sayfayı yenileyin.</div>`;
+  $("#view").innerHTML = `<div class="empty"><strong>Bağlantı kurulamadı</strong>Sayfayı yenileyin. Sorun sürerse teknisyene haber verin.</div>`;
 });
 </script>
 
