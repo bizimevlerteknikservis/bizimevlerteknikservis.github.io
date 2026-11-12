@@ -189,6 +189,8 @@ const AYAR = {
   demoPin: "1234",              // demo modunda teknisyen paneli PIN'i
   teknisyenEpostalari: ["teknisyenzeynel91@gmail.com"],  // Firebase'de teknisyen hesabı
   // Firebase'den kopyaladığınız firebaseConfig nesnesini null yerine yapıştırın:
+  // Yeni randevu bildirimi (Telegram)
+  telegram: { token: "9094259666:AAGAotiIBjehLjHdHz70koqkNWRD-UR28Ag", chatId: "" },
   firebase: {
     apiKey: "AIzaSyAAtGK76Oanri1T9nCK4bm6dDJCLVzWp5c",
     authDomain: "bizimevler-teknik-servis.firebaseapp.com",
@@ -230,6 +232,21 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 const catOf = id => KATEGORI.find(k => k.id === id) || KATEGORI[KATEGORI.length-1];
 const fisNo = a => "TS-" + (a.createdAt || 0).toString(36).slice(-5).toUpperCase();
 const slotKey = (d,t) => d + "_" + t.replace(":","");
+function telegramBildir(a){
+  const tg = AYAR.telegram;
+  if (!tg || !tg.token || !tg.chatId) return;
+  const text = [
+    "🔧 Yeni randevu talebi " + fisNo(a),
+    "📅 " + gunEtiketi(a.date) + " · " + a.time,
+    "🏠 " + a.block + " Blok, Daire " + a.flat,
+    "👤 " + a.name + " · " + a.phone,
+    "⚠️ " + catOf(a.cat).ad + (a.desc ? ": " + a.desc : ""),
+    "",
+    "Onaylamak için: " + location.origin + location.pathname + "#panel"
+  ].join("\n");
+  const body = new URLSearchParams({chat_id: String(tg.chatId), text, disable_web_page_preview: "true"});
+  try { fetch("https://api.telegram.org/bot" + tg.token + "/sendMessage", {method:"POST", body, mode:"no-cors", keepalive:true}).catch(()=>{}); } catch(e){}
+}
 function gunEtiketi(s){
   const d = parseYmd(s), bugun = ymd(new Date()), yarin = ymd(new Date(Date.now()+864e5));
   const ek = s === bugun ? "Bugün" : s === yarin ? "Yarın" : GUN[d.getDay()];
@@ -552,6 +569,7 @@ document.addEventListener("click", async e => {
         const arizalar = f.issues.filter(x => x !== "Diğer");
         const aciklama = [arizalar.join(", "), f.desc.trim()].filter(Boolean).join(" — ");
         S.sent = await store.create({cat:f.cat, issues:f.issues.slice(), desc:aciklama, date:f.date, time:f.time, name:f.name.trim(), block:f.block, flat:f.flat.trim(), phone:f.phone.trim()});
+        telegramBildir(S.sent);
         scrollTo(0,0);
       } catch(err){
         S.err = err.code==="dolu" ? "Bu saat az önce doldu. Lütfen başka bir saat seçin." : "Gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.";
