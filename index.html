@@ -462,7 +462,7 @@ function vRandevu(){
 
 function acilKutu(){
   const wa = AYAR.acilTelefon ? waNumara(AYAR.acilTelefon) : "";
-  const waUrl = "https://wa.me/" + wa + "?text=" + encodeURIComponent("Merhaba, acil bir arıza var. Blok/Daire: ");
+  const waUrl = "https://wa.me/" + wa + "?text=" + encodeURIComponent("Merhaba Zeynel Bey, acil desteğinize ihtiyacım var 🚨\n\n🏠 Blok / Daire: \n🔧 Arıza: \n\nEn kısa sürede dönüş yaparsanız sevinirim, teşekkürler 🙏");
   return `<section class="acil">
     <h3><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Acil durumlar</h3>
     <p>Gaz kokusu, gaz kaçağı gibi acil durumlarda lütfen formu beklemeden hemen <b>187 Doğalgaz Acil</b> hattını arayın.</p>
