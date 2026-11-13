@@ -449,7 +449,9 @@ function FirebaseStore(cfg){
     const [app, f, a] = await Promise.all([import(B+"firebase-app.js"), import(B+"firebase-firestore.js"), import(B+"firebase-auth.js")]);
     fs = f; au = a;
     const ap = app.initializeApp(cfg);
-    db = f.getFirestore(ap); auth = a.getAuth(ap);
+    try { db = f.initializeFirestore(ap, {localCache: f.persistentLocalCache({tabManager: f.persistentMultipleTabManager()})}); }
+    catch(e){ db = f.getFirestore(ap); }   // telefonda saklama: internet yokken yazılanlar kaybolmaz
+    auth = a.getAuth(ap);
     await new Promise(res => {
       a.onAuthStateChanged(auth, async u => {
         if (!u){ try { await a.signInAnonymously(auth); } catch(e){ console.error(e); res(); } return; }
@@ -481,7 +483,12 @@ function FirebaseStore(cfg){
     },
     async cancelMine(a){ await fs.updateDoc(fs.doc(db,"appointments",a.id), {status:"iptal"}); },
     async update(a, patch){ await fs.updateDoc(fs.doc(db,"appointments",a.id), patch); },
-    async addDevriye(r){ await fs.addDoc(fs.collection(db,"devriye"), {...r, uid: user.uid}); },
+    async addDevriye(r){
+      if (!user) throw {code:"oturum-yok"};
+      const yaz = fs.addDoc(fs.collection(db,"devriye"), {...r, uid: user.uid}).then(() => "ok");
+      // İnternet yoksa Firebase kaydı telefonda tutar ve bağlantı gelince kendisi gönderir; beklemeden devam et
+      return Promise.race([yaz, new Promise(ok => setTimeout(() => ok("bekliyor"), navigator.onLine ? 6000 : 800))]);
+    },
     async login(email, pass){
       try { await au.signInWithEmailAndPassword(auth, email, pass); } catch(e){ throw {code:"giris"}; }
       tech = AYAR.teknisyenEpostalari.map(x => x.toLowerCase()).includes((auth.currentUser?.email||"").toLowerCase());
@@ -681,7 +688,7 @@ function vDevriye(){
   <section class="step who"><div><small>${esc(d.kim.vardiya)}</small><b>${esc(d.kim.ad)}</b></div><button class="pill-btn" data-act="dKimAc">Değiştir</button></section>
   ${son ? `<section class="okundu">
       <div class="ok-ic">✓</div>
-      <div><b>${son.no}. ${esc(son.ad)}</b><small>${saatStr(son.ts)} · ${son.kuyrukta?"gönderilemedi, tekrar denenecek":"merkeze iletildi ✓"}</small></div>
+      <div><b>${son.no}. ${esc(son.ad)}</b><small>${saatStr(son.ts)} · ${son.kuyrukta==="telefon"?"internet yok · telefona kaydedildi, internet gelince otomatik gönderilecek":son.kuyrukta?"gönderilemedi, tekrar denenecek":"merkeze iletildi ✓"}</small></div>
     </section>
     ${d.sorunAc ? `<section class="step sorun"><h2><span>⚠️</span>Ne sorun var?</h2>
         <div class="issues">${SORUN_HAZIR.map(x=>`<button class="iss" data-act="dSorunHazir" data-v="${esc(x)}" aria-pressed="${d.sorunNot===x}">${esc(x)}</button>`).join("")}</div>
@@ -691,6 +698,7 @@ function vDevriye(){
     : `<button class="cta ghost sorun-btn" data-act="dSorunAc">⚠️ Bu noktada sorun var</button>`}` : ""}
   <button class="scan-btn" data-act="dTara"><svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>QR Okut</button>
   <p class="hint" style="text-align:center;margin:8px 0 14px">Telefonun kendi kamerasıyla okutursanız da kaydedilir.</p>
+  ${!navigator.onLine ? `<p class="kuyruk">📵 İnternet yok. Okutmaya devam edin, hepsi telefonda saklanıyor ve internet gelince kendiliğinden gönderilecek.</p>` : ""}
   ${kuyruk ? `<p class="kuyruk">📶 ${kuyruk} okutma henüz gönderilmedi, otomatik tekrar denenecek.${S.d.hata?`<br><b>${esc(S.d.hata)}</b>`:""}</p>` : ""}
   <section class="step"><h2><span>🔁</span>Bu tur <em class="turnum">${Object.keys(tur).length}/21</em></h2>
     <p class="hint">Son 2 saatte okuttuğunuz noktalar yeşil.</p>
@@ -715,7 +723,7 @@ function konumAl(){
   });
 }
 async function devKaydet(rec){
-  try { await store.addDevriye(rec); return true; }
+  try { const d = await store.addDevriye(rec); return d === "bekliyor" ? "bekliyor" : true; }
   catch(e){ console.error(e); devHata(e); const q = devKuyruk(); q.push(rec); yerel("bz1-devriye-kuyruk", q); return false; }
 }
 async function kuyrukGonder(){
@@ -739,7 +747,19 @@ async function noktaOkut(n){
   S.view = "devriye"; render(); scrollTo(0,0);
   const konum = await konumAl();
   const ok = await devKaydet({tip:"okutma", nokta:n.id, ad:n.ad, gorevli:d.kim.ad, vardiya:d.kim.vardiya, ts, not:"", ...(konum?{konum}:{})});
-  if (!ok){ d.son.kuyrukta = true; render(); }
+  if (ok !== true){ d.son.kuyrukta = ok === "bekliyor" ? "telefon" : true; render(); }
+}
+/* Telegram mesajı: internet yoksa telefonda bekler, gelince gönderilir */
+function tgGonder(text){
+  const tg = AYAR.telegram; if (!tg || !tg.token || !tg.chatId) return;
+  const kuyruk = yerel("bz1-tg-kuyruk") || [];
+  if (!navigator.onLine){ kuyruk.push(text); yerel("bz1-tg-kuyruk", kuyruk.slice(-30)); return; }
+  fetch("https://api.telegram.org/bot"+tg.token+"/sendMessage",{method:"POST",body:new URLSearchParams({chat_id:String(tg.chatId),text}),mode:"no-cors",keepalive:true})
+    .catch(() => { const q = yerel("bz1-tg-kuyruk") || []; q.push(text); yerel("bz1-tg-kuyruk", q.slice(-30)); });
+}
+function tgKuyrukGonder(){
+  const q = yerel("bz1-tg-kuyruk") || []; if (!q.length || !navigator.onLine) return;
+  yerel("bz1-tg-kuyruk", []); q.forEach(t => tgGonder(t + "\n(internet yokken bildirildi)"));
 }
 async function sorunGonder(){
   const d = S.d, n = d.son; if (!n) return;
@@ -749,10 +769,10 @@ async function sorunGonder(){
   const tg = AYAR.telegram;
   if (tg && tg.token && tg.chatId){
     const text = ["⚠️ Devriye sorunu", `📍 ${n.no}. ${n.ad}`, `📝 ${not}`, `🛡️ ${d.kim.ad} · ${d.kim.vardiya}`, `🕒 ${saatStr(ts)}`].join("\n");
-    try { fetch("https://api.telegram.org/bot"+tg.token+"/sendMessage",{method:"POST",body:new URLSearchParams({chat_id:String(tg.chatId),text}),mode:"no-cors",keepalive:true}).catch(()=>{}); } catch(e){}
+    tgGonder(text);
   }
   d.sorunAc = false; d.sorunNot = "";
-  toast(ok ? "Sorun bildirildi" : "Sorun kaydedildi, internet gelince gönderilecek"); render();
+  toast(ok === true ? "Sorun bildirildi" : "Sorun telefona kaydedildi, internet gelince gönderilecek"); render();
 }
 /* Kamera ile okutma: Android Chrome'da yerleşik okuyucu, yoksa jsQR */
 const TARA = {stream:null, raf:0, det:null, fener:false};
@@ -992,13 +1012,16 @@ function route(){
   render();
 }
 window.addEventListener("hashchange", route);
+window.addEventListener("online", () => { tgKuyrukGonder(); if (S.view==="devriye") render(); });
+window.addEventListener("offline", () => { if (S.view==="devriye") render(); });
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 
 $("#view").innerHTML = `<div class="empty"><strong>Yükleniyor…</strong></div>`;
 store.ready.then(() => {
   unMine = store.listenMine(list => { S.mine = list; if (S.view==="randevularim" || S.view==="personel") render(); });
   if (store.isTech()) startPanel();
   route();
-  kuyrukGonder(); setInterval(kuyrukGonder, 30000); window.addEventListener("online", kuyrukGonder);
+  kuyrukGonder(); tgKuyrukGonder(); setInterval(()=>{ kuyrukGonder(); tgKuyrukGonder(); }, 30000); window.addEventListener("online", kuyrukGonder);
 }).catch(err => {
   console.error(err);
   $("#view").innerHTML = `<div class="empty"><strong>Bağlantı kurulamadı</strong>Sayfayı yenileyin. Sorun sürerse teknisyene haber verin.</div>`;
