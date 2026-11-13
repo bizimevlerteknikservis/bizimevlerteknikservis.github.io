@@ -99,6 +99,9 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .nkt.yanip .cp-core{animation:yanip 1s ease-in-out infinite;stroke:#eafff1;stroke-width:2.5}
 .nkt.yanip .pulse{animation:yanipHalo 1s ease-out infinite;opacity:.6}
 @keyframes yanip{0%,100%{fill:var(--ok);transform:scale(1)}50%{fill:#7dffb0;transform:scale(1.28);filter:drop-shadow(0 0 8px var(--ok))}}
+.nkt.atlandi .cp-core{animation:atla .8s ease-in-out infinite;stroke:#fff;stroke-width:2.5}
+.nkt.atlandi .pulse{animation:yanipHalo .8s ease-out infinite;opacity:.7}
+@keyframes atla{0%,100%{fill:var(--bad);transform:scale(1)}50%{fill:#ff8a8a;transform:scale(1.3)}}
 @keyframes yanipHalo{0%{transform:scale(.8);opacity:.75}100%{transform:scale(2.3);opacity:0}}
 .ov{pointer-events:none}
 .duzenle .ov{display:none}
@@ -586,6 +589,47 @@ function canliGorevli(yeniler){
   // süresi geçenleri kaldır
   Object.keys(CG).forEach(ad=>{ if (!aktif.find(k=>k.gorevli===ad)){ CG[ad].node.remove(); CG[ad].trail.remove(); delete CG[ad]; } });
 }
+/* Atlanan nokta: aynı görevli sırayla giderken arada kalan noktayı okutmadıysa */
+const ATLA_ARA_DK = 45;   // iki okutma arası bundan uzunsa yeni tur sayılır, atlama aranmaz
+function atlamalar(kayit){
+  const ok = kayit.filter(k=>k.tip!=="sorun" && N[k.nokta]).sort((a,b)=>a.ts-b.ts);
+  const kisi = {}; ok.forEach(k=>(kisi[k.gorevli] ||= []).push(k));
+  const out = [];
+  Object.values(kisi).forEach(liste=>{
+    for (let i=1;i<liste.length;i++){
+      const a = liste[i-1], b = liste[i];
+      if (b.ts - a.ts > ATLA_ARA_DK*6e4) continue;
+      const j = N[a.nokta].no, k = N[b.nokta].no, ileri = (k-j+21)%21, geri = (j-k+21)%21;
+      if (ileri<=1 || geri<=1) continue;
+      const yon = ileri <= geri ? 1 : -1, adim = Math.min(ileri, geri);
+      if (adim > 10) continue;
+      const atlanan = [];
+      for (let s=1;s<adim;s++){
+        const no = ((j-1 + yon*s + 21) % 21) + 1, id = "n" + String(no).padStart(2,"0");
+        // başka biri (ya da kendisi) yakın zamanda okuttuysa atlama sayılmaz
+        const yakin = ok.some(x=>x.nokta===id && x.ts >= b.ts - ATLA_ARA_DK*6e4 && x.ts <= b.ts);
+        if (!yakin) atlanan.push(id);
+      }
+      if (atlanan.length) out.push({ts:b.ts, gorevli:b.gorevli, vardiya:b.vardiya, onceki:a.nokta, simdiki:b.nokta, atlanan,
+        sonra:id=>ok.some(x=>x.nokta===id && x.ts > b.ts)});
+    }
+  });
+  return out;
+}
+let ATLA = {}, atlaGorulen = null;   // nokta -> son atlama olayı (henüz okutulmadıysa)
+function atlaGuncelle(){
+  if (!LIVE.on) return;
+  const simdi = Date.now(), yeni = {};
+  atlamalar(DEV.kayit).filter(o=>simdi - o.ts < 6*36e5).forEach(o=>o.atlanan.forEach(id=>{ if (!o.sonra(id)) yeni[id] = o; }));
+  if (atlaGorulen) Object.entries(yeni).forEach(([id,o])=>{ if (!atlaGorulen.has(id+o.ts)){
+    const n = N[id], a = N[o.onceki], b = N[o.simdiki];
+    ticker(`⛔ ${n.no}. nokta atlandı · ${kisaAd(o.gorevli)} ${a.no}→${b.no} gitti`);
+    feed("bad", `${n.no}. ${n.ad} atlandı`, `${o.gorevli} · ${a.no}. noktadan ${b.no}. noktaya geçti`);
+    if (MODE==="gece") for (let i=0;i<3;i++) setTimeout(()=>ripple(n.x,n.y,cssv("--bad")), i*350);
+  }});
+  atlaGorulen = new Set(Object.entries(yeni).map(([id,o])=>id+o.ts));
+  ATLA = yeni;
+}
 function okut(g, n){
   n.son = Date.now(); g.son = {n:n.ad,t:new Date()};
   if (MODE==="gece") ripple(n.x,n.y,cssv("--ok")); devriyeRenk();
@@ -603,8 +647,10 @@ function devriyeRenk(){
     const kalan = n.son ? YANIP_SN*1000 - (Date.now() - n.son) : -1;
     const yanip = kalan > 0;
     n.g.classList.toggle("yanip", yanip);
+    const atl = !!ATLA[n.id]; n.g.classList.toggle("atlandi", atl);
+    if (atl){ n.dot.style.fill = cssv("--bad"); n.halo.style.fill = cssv("--bad"); }
     if (yanip){ n.halo.style.fill = cssv("--ok"); enYakin = Math.min(enYakin, kalan); }
-    n.halo.style.display = yanip || (n.son && dkOnce(n.son)>=90) ? "" : "none";
+    n.halo.style.display = yanip || atl || (n.son && dkOnce(n.son)>=90) ? "" : "none";
   });
   clearTimeout(yanipT); if (enYakin < Infinity) yanipT = setTimeout(()=>{ if (MODE==="gece") devriyeRenk(); }, enYakin + 50);
 }
@@ -623,8 +669,10 @@ function devriyePanel(){
     const liste = Object.values(kisiler).sort((a,b)=>b.son.ts-a.son.ts);
     gorev = liste.length ? liste.map(g=>`<div class="row"><div><b>${esc(g.ad)}</b><small style="display:block;color:var(--muted);font-size:12.5px">Son: ${esc(N[g.son.nokta]?.no+". "+(N[g.son.nokta]?.ad||""))} · ${g.n} okutma</small></div><em>${saat(new Date(g.son.ts))}</em></div>`).join("")
       : `<div class="row"><b>Son 3 saatte okutma yok</b><em>—</em></div>`;
+    const atl = Object.entries(ATLA).sort((x,y)=>y[1].ts-x[1].ts);
+    if (atl.length) ek += `<div class="card"><h2>⛔ Atlanan noktalar</h2><div class="rows">${atl.map(([id,o])=>`<div class="row"><div><b>${N[id].no}. ${esc(N[id].ad)}</b><small style="display:block;color:var(--muted);font-size:12.5px">${esc(o.gorevli)} · ${N[o.onceki].no} → ${N[o.simdiki].no} gitti</small></div><em>${saat(new Date(o.ts))}</em></div>`).join("")}</div><p class="note">Nokta okutulunca listeden kalkar.</p></div>`;
     const sorunlar = DEV.sorun.slice(0,5);
-    if (sorunlar.length) ek = `<div class="card"><h2>Bildirilen sorunlar</h2><div class="rows">${sorunlar.map(k=>`<div class="row"><div><b>${esc((N[k.nokta]?.no||"")+". "+(N[k.nokta]?.ad||"Nokta"))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${esc(k.not||"Sorun bildirildi")} · ${esc(k.gorevli)}</small></div><em>${saat(new Date(k.ts))}</em></div>`).join("")}</div></div>`;
+    if (sorunlar.length) ek += `<div class="card"><h2>Bildirilen sorunlar</h2><div class="rows">${sorunlar.map(k=>`<div class="row"><div><b>${esc((N[k.nokta]?.no||"")+". "+(N[k.nokta]?.ad||"Nokta"))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${esc(k.not||"Sorun bildirildi")} · ${esc(k.gorevli)}</small></div><em>${saat(new Date(k.ts))}</em></div>`).join("")}</div></div>`;
   } else {
     kpi1 = `<div class="kpi"><strong>${DEV.tur}/${DEV.turHedef}</strong><span>Tamamlanan tur</span></div>`;
     gorev = DEV.gorevli.map(g=>`<div class="row"><div><b>${g.ad}</b><small style="display:block;color:var(--muted);font-size:12.5px">${g.son?`Son: ${esc(g.son.n)}`:"Tura başladı"}</small></div><em>${g.son?saat(g.son.t):"--:--"}</em></div>`).join("");
@@ -720,6 +768,7 @@ const sureStr = ms => { const dk = Math.round(ms/6e4); return dk>=60 ? `${Math.f
 function raporTablolar(kayit, a, b, baslik){
   kayit = kayit.filter(k=>k.ts>=a && k.ts<b).sort((x,y)=>x.ts-y.ts);
   const ok = kayit.filter(k=>k.tip!=="sorun"), sr = kayit.filter(k=>k.tip==="sorun");
+  const atl = atlamalar(kayit);
   const son = Math.min(b, Date.now());
   // Noktalar
   const noktalar = NOKTA.map(n=>{
@@ -746,6 +795,7 @@ function raporTablolar(kayit, a, b, baslik){
     ["Toplam QR okutma", ok.length], ["Bildirilen sorun", sr.length],
     ["Tam tur (21 noktanın hepsi)", Math.min(...NOKTA.map(n=>tumSay[n.id]||0))],
     ["Görevli sayısı", Object.keys(gk).length],
+    ["Atlanan nokta (sırayla giderken)", atl.reduce((t,o)=>t+o.atlanan.length,0)],
     ["Hiç okutulmayan nokta", NOKTA.filter(n=>!tumSay[n.id]).map(n=>n.no).join(", ") || "Yok"], [],
     ["Vardiya", "Okutma"], ...Object.entries(vk).sort()
   ];
@@ -757,6 +807,7 @@ function raporTablolar(kayit, a, b, baslik){
       ["Noktalar", [["No","Kontrol noktası","Okutma","Sorun","En uzun boşluk","Son okutma"], ...noktalar], [5,36,10,8,15,18]],
       ["Günlük", [["Tarih","Okutma","Sorun","Tam tur","Okutulmayan nokta","Görevli"], ...gunler], [12,10,8,10,18,10]],
       ["Sorunlar", [["Tarih","Saat","No","Nokta","Görevli","Not"], ...sr.map(k=>[tarihStr(k.ts), saat(new Date(k.ts)), N[k.nokta]?.no||"", N[k.nokta]?.ad||"", k.gorevli||"", k.not||""])], [12,7,5,36,22,40]],
+      ["Atlanan noktalar", [["Tarih","Saat","Görevli","Vardiya","Geçiş","Atlanan nokta(lar)","Sonradan okutuldu mu"], ...atl.map(o=>[tarihStr(o.ts), saat(new Date(o.ts)), o.gorevli||"", o.vardiya||"", `${N[o.onceki].no} → ${N[o.simdiki].no}`, o.atlanan.map(id=>`${N[id].no}. ${N[id].ad}`).join(", "), o.atlanan.every(id=>o.sonra(id)) ? "Evet" : "Hayır"])], [12,7,22,12,9,48,20]],
       ["Tüm kayıtlar", [["Tarih","Saat","Tür","No","Nokta","Görevli","Vardiya","Not","Konum"], ...kayitlar], [12,7,9,5,36,22,12,30,40]]
     ]};
 }
@@ -793,6 +844,7 @@ function devriyeVeri(docs, yeniler){
     else { if (MODE==="gece") ripple(n.x,n.y,cssv("--ok"));
       ticker(`✅ ${n.no}. ${n.ad} · ${k.gorevli}`); feed("ok", `${n.no}. ${n.ad}`, `QR okutuldu · ${k.gorevli}`); }
   });
+  atlaGuncelle();
   if (MODE==="gece"){ devriyeRenk(); devriyePanel(); canliGorevli(yeniler); }
 }
 
