@@ -700,7 +700,7 @@ function vRandevu(){
     </div>`;
   }
   const f = S.form, hazir = formHazir();
-  return `
+  return `${kurBanner("B1 Arıza")}
   <section class="step"><h2><span>1</span>Arıza türü</h2>
     <div class="cats">${KATEGORI.map(k => `<button class="cat" data-act="cat" data-v="${k.id}" aria-pressed="${f.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
   </section>
@@ -786,12 +786,13 @@ function personelHazir(){
 }
 /* Tek dokunuşla "uygulamayı yükle" (Android Chrome) */
 let KUR = null;
-window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); KUR = e; if (S.view==="personel" || S.view==="devriye") render(); });
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); KUR = e; if (["personel","devriye","randevu"].includes(S.view)) render(); });
 window.addEventListener("appinstalled", () => { KUR = null; toast("Uygulama telefona yüklendi ✓"); render(); });
 const uygulamaModu = () => window.matchMedia && matchMedia("(display-mode: standalone)").matches;
 function kurBanner(ad){
   if (uygulamaModu() || !KUR) return "";
-  return `<button class="kur-btn" data-act="kur">📲 <b>${ad}</b> uygulamasını telefona yükle<small>Bir kez dokunun, ana ekranda simgesi çıkar</small></button>`;
+  const renk = ad==="B1 Arıza" ? "linear-gradient(140deg,#17588f,#2f8ad6)" : ad==="B1 Devriye" ? "linear-gradient(140deg,#0e203a,#214a80)" : "";
+  return `<button class="kur-btn" data-act="kur" ${renk?`style="background:${renk}"`:""}>📲 <b>${ad}</b> uygulamasını telefona yükle<small>Bir kez dokunun, ana ekranda simgesi çıkar · arıza bildirmek tek dokunuş</small></button>`;
 }
 function vPersonel(){
   const p = S.p;
