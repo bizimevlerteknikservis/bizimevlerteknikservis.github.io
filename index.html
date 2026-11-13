@@ -143,6 +143,17 @@ a.act{text-decoration:none;color:inherit;display:inline-flex;align-items:center;
 
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 label.f{display:grid;gap:6px;font-size:14px;font-weight:700;min-width:0;color:var(--ink)}
+.foto-alan{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.foto-k{position:relative;width:96px;height:96px;border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.foto-k img{width:100%;height:100%;object-fit:cover;display:block}
+.foto-k button{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(15,30,45,.75);color:#fff;font-weight:700;cursor:pointer}
+.foto-ekle{flex:1;min-width:150px;min-height:96px;border:2px dashed var(--line,#cfdbe6);border-radius:14px;display:grid;place-items:center;align-content:center;gap:4px;padding:10px;cursor:pointer;color:var(--accent);text-align:center;background:var(--surface)}
+.foto-ekle svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.foto-ekle span{font-weight:700;font-size:15px}.foto-ekle small{color:var(--muted);font-size:12px}
+.foto-gor{position:fixed;inset:0;background:rgba(8,16,26,.92);z-index:20;display:flex;flex-direction:column;gap:12px;padding:16px;overflow:auto;align-items:center}
+.foto-gor img{max-width:100%;max-height:80vh;border-radius:12px}
+.foto-gor button{position:sticky;top:0;z-index:1;align-self:flex-end;border:0;border-radius:999px;padding:10px 18px;font-weight:700;background:#fff;color:#123;cursor:pointer}
+.act.foto{background:#eef6ff;color:var(--accent);font-weight:700}
 .cta{width:100%;border:0;border-radius:16px;background:linear-gradient(140deg,var(--accent),var(--accent-2));color:#fff;font:700 18px/1 var(--body);padding:19px;cursor:pointer;box-shadow:var(--shadow-lg)}
 .cta:disabled{background:#c9d8e6;box-shadow:none;cursor:not-allowed}
 .cta.ghost{background:var(--surface);color:var(--accent);border:1.5px solid var(--line);box-shadow:none}
@@ -402,6 +413,41 @@ function telegramBildir(a){
   const body = new URLSearchParams({chat_id: String(tg.chatId), text, disable_web_page_preview: "true"});
   try { fetch("https://api.telegram.org/bot" + tg.token + "/sendMessage", {method:"POST", body, mode:"no-cors", keepalive:true}).catch(()=>{}); } catch(e){}
 }
+/* Fotoğraf: telefonda küçültülür (~150 KB), Firebase'e ve Telegram'a gider */
+function fotoKucult(file){
+  return new Promise((ok, no) => {
+    const img = new Image(), u = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(u);
+      let w = img.naturalWidth, h = img.naturalHeight; const m = 1280 / Math.max(w, h); if (m < 1){ w = Math.round(w*m); h = Math.round(h*m); }
+      const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(img, 0, 0, w, h);
+      let q = .72, d = c.toDataURL("image/jpeg", q);
+      while (d.length > 260000 && q > .35){ q -= .08; d = c.toDataURL("image/jpeg", q); }
+      if (d.length > 380000){ const c2 = document.createElement("canvas"); c2.width = Math.round(w*.7); c2.height = Math.round(h*.7); c2.getContext("2d").drawImage(c, 0, 0, c2.width, c2.height); d = c2.toDataURL("image/jpeg", .6); }
+      ok(d);
+    };
+    img.onerror = () => { URL.revokeObjectURL(u); no(new Error("foto")); };
+    img.src = u;
+  });
+}
+function telegramFoto(dataUrl, caption){
+  const tg = AYAR.telegram; if (!tg || !tg.token || !tg.chatId) return;
+  try {
+    const b = atob(dataUrl.split(",")[1]), arr = new Uint8Array(b.length); for (let i=0;i<b.length;i++) arr[i] = b.charCodeAt(i);
+    const fd = new FormData(); fd.append("chat_id", String(tg.chatId)); fd.append("caption", caption); fd.append("photo", new Blob([arr], {type:"image/jpeg"}), "foto.jpg");
+    fetch("https://api.telegram.org/bot" + tg.token + "/sendPhoto", {method:"POST", body:fd, mode:"no-cors"}).catch(()=>{});
+  } catch(e){ console.error(e); }
+}
+async function fotoGoster(id){
+  const kutu = document.createElement("div"); kutu.className = "foto-gor"; kutu.innerHTML = `<button type="button">Kapat ✕</button><p style="color:#fff">Yükleniyor…</p>`;
+  kutu.querySelector("button").onclick = () => kutu.remove(); document.body.appendChild(kutu);
+  try {
+    const f = await store.getFoto(id);
+    kutu.querySelector("p").remove();
+    if (!f.length) kutu.insertAdjacentHTML("beforeend", `<p style="color:#fff">Fotoğraf bulunamadı.</p>`);
+    f.forEach(d => { const im = new Image(); im.src = d; im.alt = "Arıza fotoğrafı"; kutu.appendChild(im); });
+  } catch(e){ console.error(e); kutu.querySelector("p").textContent = "Fotoğraf açılamadı: " + (e.code || e.message); }
+}
 function yerel(k, v){ try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch(e){ return null; } }
 let toastT;
 function toast(m){ const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
@@ -439,6 +485,8 @@ function DemoStore(){
     async update(a, patch){ const r = bul(a); if (r){ Object.assign(r, patch); save(); } },
     async login(_, pin){ if (pin !== AYAR.demoPin) throw {code:"giris"}; tech = true; save(); },
     async addDevriye(r){ (mem.devriye ||= []).push({...r, uid: mem.uid}); save(); },
+    async addFoto(aid, i, data){ (mem.foto ||= {})[aid] ||= []; mem.foto[aid][i] = data; try { save(); } catch(e){} },
+    async getFoto(aid){ return ((mem.foto || {})[aid] || []).filter(Boolean); },
     async logout(){ tech = false; save(); }
   };
 }
@@ -484,6 +532,13 @@ function FirebaseStore(cfg){
     },
     async cancelMine(a){ await fs.updateDoc(fs.doc(db,"appointments",a.id), {status:"iptal"}); },
     async update(a, patch){ await fs.updateDoc(fs.doc(db,"appointments",a.id), patch); },
+    async addFoto(aid, i, data){
+      await fs.setDoc(fs.doc(db, "foto", aid + "_" + i), {aid, i, data, uid: user.uid, ts: Date.now()});
+    },
+    async getFoto(aid){
+      const s = await fs.getDocs(fs.query(fs.collection(db, "foto"), fs.where("aid", "==", aid)));
+      return s.docs.map(d => d.data()).sort((a,b) => a.i - b.i).map(x => x.data);
+    },
     async addDevriye(r){
       if (!user) throw {code:"oturum-yok"};
       const yaz = fs.addDoc(fs.collection(db,"devriye"), {...r, uid: user.uid}).then(() => "ok");
@@ -506,7 +561,7 @@ const store = AYAR.firebase ? FirebaseStore(AYAR.firebase) : DemoStore();
 const kayitli = yerel("site-servis-iletisim") || {};
 const pKayit = yerel("site-servis-personel") || {};
 const S = {
-  p: {rol:pKayit.rol||"", name:pKayit.name||"", kayitli:!!pKayit.name, kimlikAc:false, cat:null, issues:[], yerTip:"blok", block:"", kat:"", alan:"", desc:""},
+  p: {rol:pKayit.rol||"", name:pKayit.name||"", kayitli:!!pKayit.name, kimlikAc:false, cat:null, issues:[], yerTip:"blok", block:"", kat:"", alan:"", desc:"", foto:[]},
   pSent: null,
   d: {kim: yerel("bz1-gorevli") || null, son: null, sorunAc: false, sorunNot: "", bekleyen: null, kimAc: false},
   view: "randevu",
@@ -592,6 +647,8 @@ function fis(a, panel){
       ? `<div class="t-meta"><span>📍 <b>${esc(yerAd(a))}</b></span></div>${panel?`<div class="t-meta"><span class="staff">👷 ${esc(a.rol||"Personel")} · <b>${esc(a.name)}</b></span></div>`:""}`
       : `<div class="t-meta"><span>Blok <b>${esc(a.block)}</b></span><span>Daire <b>${esc(a.flat)}</b></span>${panel?`<span><b>${esc(a.name)}</b></span>`:""}</div>`}
     ${a.desc?`<p class="t-desc">${esc(a.desc)}</p>`:""}
+    ${panel && a.fotoSayi ? `<div class="actions"><button class="act foto" data-act="foto" data-id="${a.id}">📷 Fotoğrafı gör${a.fotoSayi>1?` (${a.fotoSayi})`:""}</button></div>` : ""}
+    ${!panel && a.fotoSayi ? `<div class="t-meta"><span>📷 ${a.fotoSayi} fotoğraf eklendi</span></div>` : ""}
     <div class="t-meta"><span>Bildirim: ${esc(gonderimZamani(a.createdAt))}</span></div>
     ${panel && a.phone?`<div class="actions">
         <a class="act" href="tel:${esc(String(a.phone).replace(/[^\d+]/g,""))}">Ara · <span style="font-weight:400">${esc(a.phone)}</span></a>
@@ -656,6 +713,12 @@ function vPersonel(){
     : `<label class="f">Alan<select id="p_alan"><option value="">Seçin</option>${ALANLAR.map(x => `<option ${p.alan===x?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`}
     <label class="f note-l" for="p_desc">Kısa not <span>${p.issues.length===1&&/^Diğer/.test(p.issues[0])?"(gerekli)":"(isteğe bağlı)"}</span></label>
     <textarea id="p_desc" maxlength="300" placeholder="${p.cat==="p_malzeme" ? "Örn. 2 rulo büyük boy çöp poşeti, 1 adet çöp kovası" : "Örn. Merdiven tarafındaki lamba, iki gündür yanmıyor."}">${esc(p.desc)}</textarea>
+    <div class="foto-alan">
+      ${p.foto.map((f,i)=>`<div class="foto-k"><img src="${f}" alt="Fotoğraf ${i+1}"><button type="button" data-act="pFotoSil" data-v="${i}" aria-label="Fotoğrafı kaldır">✕</button></div>`).join("")}
+      ${p.foto.length < 3 ? `<label class="foto-ekle"><input type="file" accept="image/*" id="p_foto" hidden>
+        <svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+        <span>${p.foto.length ? "Bir fotoğraf daha" : "Fotoğraf çek / ekle"}</span><small>${S.fotoIsleniyor ? "Hazırlanıyor…" : "isteğe bağlı · en fazla 3"}</small></label>` : ""}
+    </div>
   </section>
   ${S.err ? `<p class="err">${esc(S.err)}</p>` : ""}
   <button class="cta" data-act="pGonder" ${personelHazir() && !S.sending ? "" : "disabled"}>${S.sending ? "Gönderiliyor…" : p.cat==="p_malzeme" ? "Malzeme talebini gönder" : "Teknik servise bildir"}</button>
@@ -912,6 +975,13 @@ document.addEventListener("input", e => {
   if (btn) btn.disabled = !formHazir() || S.sending;
 });
 
+document.addEventListener("change", async e => {
+  if (e.target.id === "p_foto" && e.target.files && e.target.files[0]){
+    syncForm(); S.fotoIsleniyor = true; render();
+    try { S.p.foto.push(await fotoKucult(e.target.files[0])); } catch(err){ toast("Fotoğraf okunamadı, tekrar deneyin"); }
+    S.fotoIsleniyor = false; render(); return;
+  }
+});
 document.addEventListener("change", e => { if (S.view === "personel"){ syncForm(); const pb = document.querySelector('[data-act="pGonder"]'); if (pb) pb.disabled = !personelHazir() || S.sending; } });
 document.addEventListener("click", async e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
@@ -933,7 +1003,9 @@ document.addEventListener("click", async e => {
     else if (act==="pCat"){ syncForm(); if (S.p.cat !== v) S.p.issues = []; S.p.cat = v; render(); }
     else if (act==="pIss"){ syncForm(); const L = S.p.issues; const i = L.indexOf(v); i < 0 ? L.push(v) : L.splice(i,1); render(); }
     else if (act==="pYer"){ syncForm(); S.p.yerTip = v; render(); }
-    else if (act==="pYeni"){ S.pSent = null; Object.assign(S.p, {cat:null, issues:[], desc:""}); render(); scrollTo(0,0); }
+    else if (act==="pYeni"){ S.pSent = null; Object.assign(S.p, {cat:null, issues:[], desc:"", foto:[]}); render(); scrollTo(0,0); }
+    else if (act==="pFotoSil"){ syncForm(); S.p.foto.splice(+v, 1); render(); }
+    else if (act==="foto"){ fotoGoster(id); }
     else if (act==="pGonder"){
       syncForm(); const p = S.p;
       if (!personelHazir()) return;
@@ -943,9 +1015,15 @@ document.addEventListener("click", async e => {
         const ar = p.issues.filter(x => x !== "Diğer");
         const aciklama = [ar.join(", "), p.desc.trim()].filter(Boolean).join(" — ");
         const blokIci = p.yerTip==="blok";
+        const fotolar = p.foto.slice();
         S.pSent = await store.create({src:"personel", rol:p.rol, cat:p.cat, issues:p.issues.slice(), desc:aciklama, name:p.name.trim(), phone:"",
-          block: blokIci ? p.block : "", kat: blokIci ? p.kat : "", alan: blokIci ? "" : p.alan, flat:""});
+          block: blokIci ? p.block : "", kat: blokIci ? p.kat : "", alan: blokIci ? "" : p.alan, flat:"", fotoSayi: fotolar.length});
         telegramBildir(S.pSent);
+        for (let i = 0; i < fotolar.length; i++){
+          try { await store.addFoto(S.pSent.id, i, fotolar[i]); } catch(e){ console.error(e); toast("Fotoğraf gönderilemedi"); }
+          telegramFoto(fotolar[i], `📷 ${fisNo(S.pSent)} · ${catOf(S.pSent.cat).ad} · ${yerAd(S.pSent)}`);
+        }
+        p.foto = [];
         p.kayitli = true; p.kimlikAc = false;
         scrollTo(0,0);
       } catch(err){ console.error(err); S.err = "Gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin."; }
