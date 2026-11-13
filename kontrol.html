@@ -257,7 +257,7 @@ window.FB_TEKNISYEN = ["teknisyenzeynel91@gmail.com"];</script>
 <div class="login" id="login" hidden>
   <form class="login-card" id="loginForm">
     <h2>Kontrol Merkezi girişi</h2>
-    <p>Ekranı açmak için teknisyen hesabınızla giriş yapın. Bir kez giriş yeterli, cihaz hatırlar.</p>
+    <p>Ekranı açmak için teknisyen ya da yönetim hesabınızla giriş yapın. Bir kez giriş yeterli, cihaz hatırlar.</p>
     <label for="lEmail">E-posta</label><input id="lEmail" type="email" autocomplete="username" required>
     <label for="lPass">Şifre</label><input id="lPass" type="password" autocomplete="current-password" required>
     <p class="err" id="loginErr"></p>
@@ -1158,7 +1158,7 @@ const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı /
 async function canliBaslat(){
   const cfg = window.FB_CONFIG; if (!cfg) return;
   LIVE.on = true; ARZ.list = []; ARZ.gelen = 0; ARZ.cozulen = 0; ARZ.sureler = [];
-  document.querySelector(".demo").textContent = "Canlı veri · s13";
+  document.querySelector(".demo").textContent = "Canlı veri · s14";
   const V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
   const [app, fs, au] = await Promise.all([import(U+"firebase-app.js"), import(U+"firebase-firestore.js"), import(U+"firebase-auth.js")]);
   const ap = app.initializeApp(cfg), db = fs.getFirestore(ap), auth = au.getAuth(ap);
@@ -1174,12 +1174,15 @@ async function canliBaslat(){
     if (unsub){ unsub(); unsub = null; } if (unsubD){ unsubD(); unsubD = null; }
     if (!u || u.isAnonymous){ giris.hidden = false; return; }
     // Rol: teknisyen (tam yetki) ya da yönetim (sadece izleme; daire arızalarını görmez)
-    let rol = izinli(u.email) ? "teknisyen" : null;
+    let rol = izinli(u.email) ? "teknisyen" : null, neden = "Bu e-posta yönetim listesinde yok. Teknisyen panelindeki “Yönetim erişimi”ne ekleyip Kaydet’e basın.";
     if (!rol){
       try { const r = await fs.getDoc(fs.doc(db,"ayar","roller")); const L = (r.exists() && r.data().yonetim) || [];
-        if (L.map(x=>String(x).toLowerCase().trim()).includes((u.email||"").toLowerCase())) rol = "yonetim"; } catch(e){ console.error(e); }
+        if (L.map(x=>String(x).toLowerCase().trim()).includes((u.email||"").toLowerCase())) rol = "yonetim"; }
+      catch(e){ console.error(e); neden = e.code === "permission-denied"
+        ? "Yetki yok: ya bu e-posta “Yönetim erişimi” listesinde değil ya da yeni Firebase kuralı (isYonetim) yayınlanmadı."
+        : "Bağlantı hatası: " + (e.code || e.message); }
     }
-    if (!rol){ giris.hidden = false; $("#loginErr").textContent = "Bu hesap kontrol merkezine yetkili değil."; au.signOut(auth); return; }
+    if (!rol){ giris.hidden = false; $("#loginErr").textContent = neden; au.signOut(auth); return; }
     window.ROL = rol;
     giris.hidden = true;
     if (rol === "yonetim"){ $("#edit").hidden = true; document.querySelector(".demo").textContent = "Canlı veri · Yönetim"; }
