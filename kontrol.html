@@ -572,11 +572,10 @@ function tesisVeri(list){
   if (MODE==="gece") devriyePanel(); else if (MODE==="gunduz") arizaPanel(); else if (MODE==="tesis"){ tesisCiz(); tesisPanel(); }
 }
 /* ============ TESİS modu: asansörler, jeneratörler, elektrik ============ */
-const JEN_YER = { J1:[470,600], J2:[560,612], J3:[330,40], J4:[420,30] };   // tahmini; "Yerleri düzenle" ile taşınır
+const JEN_BINA = [287,340];   // jeneratör binası (tenis kortunun altındaki kırmızı çatılı yapı); "Yerleri düzenle" ile taşınabilir
 const JEN_BOLGE = { J1:"Aşağı bölge", J2:"Aşağı bölge", J3:"Yukarı bölge", J4:"Yukarı bölge" };
 const JEN_KAP = 900;
 let jenSuruk = null;
-function jenXY(id){ return KONUM[id] || JEN_YER[id]; }
 function tesisDemoVeri(){
   const t = Date.now(), K = [];
   K.push({id:"db", tur:"bakim", ekipmanlar: Object.keys(VARSAYILAN).flatMap(b=>[b+"-1",b+"-2"]).filter(x=>!["C2-1","F1-2"].includes(x)), firma:"Omak", ts:t-12*864e5});
@@ -611,7 +610,8 @@ function tesisCiz(){
   document.documentElement.classList.toggle("kesik", kesik);
   L.over.innerHTML = "";
   // elektrik kesikken jeneratör bölgeleri aydınlık
-  if (kesik) ["J1","J2","J3","J4"].forEach(j=>{ const [x,y] = jenXY(j); el("circle",{cx:x,cy:y,r:210,fill:"url(#jenIsik)",class:"jen-isik"},L.over); });
+  const [jx, jy] = KONUM.JEN || JEN_BINA;
+  if (kesik) el("circle",{cx:jx,cy:jy,r:300,fill:"url(#jenIsik)",class:"jen-isik"},L.over);
   BLOK.forEach(b=>{
     const cx = b.x + b.w/2, y = b.y + b.h + 4;
     [1,2].forEach((n,i)=>{
@@ -624,25 +624,29 @@ function tesisCiz(){
       const u = el("text",{x:cx, y:b.y-6, "text-anchor":"middle", "font-size":13, "font-weight":800, fill:cssv("--bad"), class:"blink"},L.over); u.textContent = "🚨 MAHSUR";
     }
   });
-  // jeneratörler
+  // jeneratör binası: 4 jeneratörün yakıtı tek kutuda
   L.jen.innerHTML = "";
-  ["J1","J2","J3","J4"].forEach(j=>{
-    const [x,y] = jenXY(j), y0 = D.yakit[j], sv = y0 ? y0.seviye : null;
+  const g = el("g",{class:"jenk"+(kesik?" calisiyor":""), transform:`translate(${jx} ${jy})`},L.jen);
+  const bx = -150, by = 40, bw = 150, bh = 108;
+  el("path",{d:`M0 0 L${bx+bw-20} ${by}`, stroke:"#f5b301","stroke-width":2.5,"stroke-dasharray":"4 4"},g);
+  el("circle",{r:9,fill:"#f5b301",stroke:"#fff","stroke-width":2.5,class:"pulse"},g);
+  el("rect",{x:bx, y:by, width:bw, height:bh, rx:12, fill:"var(--panel)", stroke:"#f5b301","stroke-width":2.5, opacity:.96},g);
+  const bas = el("text",{x:bx+bw/2, y:by+17, "text-anchor":"middle", "font-size":12.5, "font-weight":800, fill:"var(--ink)"},g); bas.textContent = kesik ? "⚡ JENERATÖRLER DEVREDE" : "⚡ JENERATÖR BİNASI";
+  ["J1","J2","J3","J4"].forEach((j,i)=>{
+    const y0 = D.yakit[j], sv = y0 ? y0.seviye : null, yy = by + 34 + i*19;
     const renk = sv===null ? cssv("--muted") : sv < 30 ? cssv("--bad") : sv < 50 ? cssv("--warn") : cssv("--ok");
-    const g = el("g",{class:"jenk"+(kesik?" calisiyor":""), transform:`translate(${x} ${y})`},L.jen);
-    el("rect",{x:-34, y:-20, width:68, height:46, rx:10, fill:"var(--panel)", stroke:"#f5b301","stroke-width":2.5, opacity:.95},g);
-    const t1 = el("text",{x:0, y:-4, "text-anchor":"middle", "font-size":12, "font-weight":800, fill:"var(--ink)"},g); t1.textContent = `⚡ ${j}`;
-    el("rect",{x:-26, y:4, width:52, height:7, rx:3.5, fill:"var(--line)"},g);
-    el("rect",{x:-26, y:4, width:52*(sv??0)/100, height:7, rx:3.5, fill:renk},g);
-    const t2 = el("text",{x:0, y:22, "text-anchor":"middle", "font-size":10.5, "font-weight":700, fill:renk},g); t2.textContent = sv===null ? "ölçüm yok" : `%${sv} · ${Math.round(JEN_KAP*sv/100)} L`;
-    g.addEventListener("pointerdown", e=>{ if (!DUZENLE) return; e.preventDefault(); e.stopPropagation(); jenSuruk = {j, g}; try { svg.setPointerCapture(e.pointerId); } catch(_){} });
+    const t = el("text",{x:bx+10, y:yy+4, "font-size":11, "font-weight":800, fill:"var(--ink)"},g); t.textContent = j;
+    el("rect",{x:bx+30, y:yy-5, width:70, height:9, rx:4.5, fill:"var(--line)"},g);
+    el("rect",{x:bx+30, y:yy-5, width:70*(sv??0)/100, height:9, rx:4.5, fill:renk},g);
+    const t2 = el("text",{x:bx+bw-8, y:yy+4, "text-anchor":"end", "font-size":11, "font-weight":800, fill:renk},g); t2.textContent = sv===null ? "—" : `%${sv}`;
   });
+  g.addEventListener("pointerdown", e=>{ if (!DUZENLE) return; e.preventDefault(); e.stopPropagation(); jenSuruk = {j:"JEN", g}; try { svg.setPointerCapture(e.pointerId); } catch(_){} });
 }
 svg.addEventListener("pointermove", e=>{ if (!jenSuruk) return; const p = svgNokta(e); jenSuruk.g.setAttribute("transform",`translate(${p.x} ${p.y})`); jenSuruk.p = [Math.round(p.x), Math.round(p.y)]; });
 svg.addEventListener("pointerup", ()=>{
   if (!jenSuruk) return; const {j, p} = jenSuruk; jenSuruk = null; if (!p) return;
   KONUM[j] = p; try { localStorage.setItem("bz1-konum2", JSON.stringify(KONUM)); } catch(e){}
-  if (BULUT) BULUT(KONUM); ticker(`📍 Jeneratör ${j} yeni yerine taşındı${BULUT?" · kaydedildi":""}`); tesisCiz();
+  if (BULUT) BULUT(KONUM); ticker(`📍 Jeneratör binası yeni yerine taşındı${BULUT?" · kaydedildi":""}`); tesisCiz();
 });
 function tesisPanel(){
   if (MODE!=="tesis") return;
@@ -1141,7 +1145,7 @@ const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı /
 async function canliBaslat(){
   const cfg = window.FB_CONFIG; if (!cfg) return;
   LIVE.on = true; ARZ.list = []; ARZ.gelen = 0; ARZ.cozulen = 0; ARZ.sureler = [];
-  document.querySelector(".demo").textContent = "Canlı veri · s8";
+  document.querySelector(".demo").textContent = "Canlı veri · s9";
   const V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
   const [app, fs, au] = await Promise.all([import(U+"firebase-app.js"), import(U+"firebase-firestore.js"), import(U+"firebase-auth.js")]);
   const ap = app.initializeApp(cfg), db = fs.getFirestore(ap), auth = au.getAuth(ap);
