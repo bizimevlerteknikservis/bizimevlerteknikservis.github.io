@@ -3,7 +3,7 @@
  "name": "Bizimevler Kontrol Merkezi",
  "short_name": "B1 Kontrol",
  "start_url": "./kontrol.html",
- "scope": "./",
+ "scope": "./kontrol.html",
  "display": "standalone",
  "background_color": "#ffffff",
  "theme_color": "#0a1828",

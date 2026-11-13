@@ -1,8 +1,8 @@
 /* Bizimevler 1 · çevrimdışı destek
    Sayfa internet yokken de açılsın diye site dosyaları telefonda saklanır.
    Sayfanın kendisi önce internetten alınır (güncel kalsın), internet yoksa saklanan sürüm açılır. */
-const SURUM = "bz1-v1";
-const ONCEDEN = ["./", "./index.html"];
+const SURUM = "bz1-v2";
+const ONCEDEN = ["./", "./index.html", "./personel.html", "./devriye.html", "./teknik.html"];
 const DIS = ["https://www.gstatic.com/firebasejs/", "https://cdn.jsdelivr.net/npm/jsqr@"];
 
 self.addEventListener("install", e => {

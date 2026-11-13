@@ -8,10 +8,14 @@
 <meta name="theme-color" content="#17588f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<script>/* Uygulama kimliği: açılan bölüme göre (personel, devriye, sakin, teknik) ayrı simge ve ad */
-(function(){ var h = location.hash.slice(1),
-  k = /^personel/.test(h) ? "personel" : /^(devriye|d-)/.test(h) ? "devriye" : /^(panel|tesis|tasinma)/.test(h) ? "teknik" : "sakin",
-  ad = {personel:"B1 Personel", devriye:"B1 Devriye", teknik:"B1 Teknik", sakin:"B1 Arıza"}[k];
+<script>/* Uygulama kimliği: her uygulamanın kendi dosyası var (personel.html, devriye.html, teknik.html), böylece telefona ayrı ayrı kurulabilir */
+(function(){
+  var ham = location.pathname.split("/").pop(), f = ham || "index.html",
+      k = {"personel.html":"personel","devriye.html":"devriye","teknik.html":"teknik"}[f] || "sakin",
+      ac = {personel:"#personel", devriye:"#devriye", teknik:"#panel"}[k];
+  if (!ham) history.replaceState(null, "", "index.html" + location.hash);   // ana adres → index.html (uygulama kapsamı)
+  if (ac && !location.hash) history.replaceState(null, "", f + ac);
+  var ad = {personel:"B1 Personel", devriye:"B1 Devriye", teknik:"B1 Teknik", sakin:"B1 Arıza"}[k];
   document.write('<link rel="manifest" href="manifest-'+k+'.json"><link rel="apple-touch-icon" href="icons/'+k+'-192.png"><link rel="icon" href="icons/'+k+'-192.png"><meta name="apple-mobile-web-app-title" content="'+ad+'">');
 })();</script>
 <meta name="color-scheme" content="only light">
