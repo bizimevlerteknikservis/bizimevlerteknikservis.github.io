@@ -16,7 +16,7 @@
   if (!ham) history.replaceState(null, "", "index.html" + location.hash);   // ana adres → index.html (uygulama kapsamı)
   if (ac && !location.hash) history.replaceState(null, "", f + ac);
   var ad = {personel:"B1 Personel", devriye:"B1 Devriye", teknik:"B1 Teknik", sakin:"B1 Arıza"}[k];
-  document.write('<link rel="manifest" href="manifest-'+k+'.json"><link rel="apple-touch-icon" href="icons/'+k+'-192.png"><link rel="icon" href="icons/'+k+'-192.png"><meta name="apple-mobile-web-app-title" content="'+ad+'">');
+  document.write('<link rel="manifest" href="manifest-'+k+'.json?v=3"><link rel="apple-touch-icon" href="icons/'+k+'-192.png"><link rel="icon" href="icons/'+k+'-192.png"><meta name="apple-mobile-web-app-title" content="'+ad+'">');
 })();</script>
 <meta name="color-scheme" content="only light">
 <link rel="preconnect" href="https://fonts.googleapis.com">
