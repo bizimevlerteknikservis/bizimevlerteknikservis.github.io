@@ -89,6 +89,9 @@ textarea:focus,input:focus,select:focus,button:focus-visible{outline:3px solid c
 .iss[aria-pressed="true"]::before{border-color:var(--c);background:var(--c) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/11px no-repeat}
 label.f.note-l{display:block;margin-top:4px}
 .note-l span{font-weight:400;color:var(--muted)}
+.who{grid-template-columns:1fr auto;align-items:center}
+.who small{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.staff{background:#eef4ff;color:#244a8f;border-radius:8px;padding:3px 8px}
 .prefs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pref{border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:12px 10px;font-weight:700;font-size:14px;cursor:pointer;line-height:1.25}
 .pref[aria-pressed="true"]{background:linear-gradient(140deg,var(--accent),var(--accent-2));border-color:transparent;color:#fff;box-shadow:0 6px 16px rgba(31,114,184,.28)}
@@ -244,6 +247,30 @@ const ARIZALAR = {
   asansor:  ["Asansör çalışmıyor","Kapısı açılmıyor / kapanmıyor","Katta düzgün durmuyor","Ses veya sarsıntı yapıyor","Işık / buton arızası","Diğer"],
   diger:    ["Cam / pencere","Dolap / mobilya tamiri","Boya / badana","Ortak alan arızası","Çatı / balkon akıntısı","Diğer"]
 };
+/* Personel (temizlik, bahçe, güvenlik) için ortak alan arıza türleri */
+const ROLLER = ["Temizlik","Bahçe","Güvenlik","Diğer"];
+const PKAT = [
+  {id:"p_isik", ad:"Aydınlatma", ic:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>'},
+  {id:"p_kapi", ad:"Kapı / kilit", ic:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'},
+  {id:"p_asansor", ad:"Asansör", ic:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="m9 9 3-3 3 3M9 15l3 3 3-3"/>'},
+  {id:"p_su", ad:"Su / tesisat", ic:'<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/>'},
+  {id:"p_hasar", ad:"Kırık / hasar", ic:'<path d="M4 4h16v16H4z"/><path d="m4 4 7 8-3 3 6 5"/>'},
+  {id:"p_bahce", ad:"Bahçe / çevre", ic:'<path d="M12 22V12"/><path d="M12 12c-4 0-7-3-7-7 4 0 7 3 7 7zM12 12c4 0 7-3 7-7-4 0-7 3-7 7z"/>'},
+  {id:"p_temiz", ad:"Temizlik / koku", ic:'<path d="M3 21h18"/><path d="M7 21V10h10v11"/><path d="M12 10V3"/><path d="M9 6h6"/>'},
+  {id:"p_diger", ad:"Diğer", ic:'<circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/>'}
+];
+const PARIZA = {
+  p_isik:   ["Kat lambası yanmıyor","Merdiven otomatiği çalışmıyor","Giriş / dış aydınlatma yanmıyor","Otopark lambası yanmıyor","Acil çıkış lambası arızalı","Pano / priz arızası","Diğer"],
+  p_kapi:   ["Kapı kolu kopmuş","Bina giriş kapısı kapanmıyor","Kapı hidroliği bozuk","Yangın kapısı arızalı","Kilit / kart okuyucu bozuk","Otopark kapısı / bariyer arızalı","Diğer"],
+  p_asansor:["Asansör çalışmıyor","Asansör kapısı arızalı","Katta düzgün durmuyor","Asansör ışığı / butonu bozuk","Asansörde ses / sarsıntı","Diğer"],
+  p_su:     ["Su kaçağı / sızıntı","Gider / rögar tıkalı","Musluk / hortum bozuk","Hidrofor / su basıncı sorunu","Yağmur suyu birikiyor","Diğer"],
+  p_hasar:  ["Kırık cam","Korkuluk / tırabzan gevşek","Zemin / karo kırık","Duvar / tavan hasarı","Tabela / levha düşmüş","Diğer"],
+  p_bahce:  ["Sulama sistemi arızalı","Ağaç / dal tehlikeli","Oyun parkı hasarlı","Bank / çöp kutusu kırık","Çit / tel örgü hasarlı","Diğer"],
+  p_temiz:  ["Çöp odası / konteyner sorunu","Kötü koku","Haşere / fare görüldü","Rutubet / küf","Diğer"],
+  p_diger:  ["Diğer"]
+};
+const ALANLAR = ["Otopark","Bahçe / peyzaj","Çocuk parkı","Yüzme havuzu","Spor sahası / kort","Sosyal tesis","Site girişi / güvenlik","Teknik bina / kazan","Çöp alanı","Yürüyüş yolları","Diğer"];
+const KATLAR = ["Bodrum -2","Bodrum -1","Zemin kat", ...Array.from({length:30},(_,i)=>`${i+1}. kat`), "Çatı"];
 const DURUM = {bekliyor:"Alındı", onaylandi:"İlgileniliyor", tamamlandi:"Tamamlandı", iptal:"İptal"};
 const GUN = ["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"];
 const AY = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
@@ -254,7 +281,8 @@ const pad = n => String(n).padStart(2,"0");
 const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const parseYmd = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const catOf = id => KATEGORI.find(k => k.id === id) || KATEGORI[KATEGORI.length-1];
+const catOf = id => KATEGORI.find(k => k.id === id) || PKAT.find(k => k.id === id) || KATEGORI[KATEGORI.length-1];
+const yerAd = a => a.src==="personel" ? (a.alan ? a.alan : `${a.block} Blok · ${a.kat||""}`) : `${a.block} Blok, Daire ${a.flat}`;
 const fisNo = a => "TS-" + (a.createdAt || 0).toString(36).slice(-5).toUpperCase();
 function gunEtiketi(s){
   const d = parseYmd(s), bugun = ymd(new Date()), yarin = ymd(new Date(Date.now()+864e5));
@@ -292,10 +320,10 @@ function telegramBildir(a){
   const tg = AYAR.telegram;
   if (!tg || !tg.token || !tg.chatId) return;
   const text = [
-    "🔧 Yeni arıza bildirimi " + fisNo(a),
+    (a.src==="personel" ? "🧹 Personel bildirimi " : "🔧 Yeni arıza bildirimi ") + fisNo(a),
     "⚠️ " + catOf(a.cat).ad + (a.desc ? ": " + a.desc : ""),
-    "🏠 " + a.block + " Blok, Daire " + a.flat,
-    "👤 " + a.name + " · " + a.phone,
+    "📍 " + yerAd(a),
+    a.src==="personel" ? "👷 Personel · " + (a.rol||"") + " · " + a.name + (a.phone ? " · " + a.phone : "") : "👤 " + a.name + " · " + a.phone,
     "",
     "Panel: " + location.origin + location.pathname + "#panel"
   ].join("\n");
@@ -395,7 +423,10 @@ function FirebaseStore(cfg){
    ========================================================= */
 const store = AYAR.firebase ? FirebaseStore(AYAR.firebase) : DemoStore();
 const kayitli = yerel("site-servis-iletisim") || {};
+const pKayit = yerel("site-servis-personel") || {};
 const S = {
+  p: {rol:pKayit.rol||"", name:pKayit.name||"", phone:pKayit.phone||"", kayitli:!!pKayit.name, kimlikAc:false, cat:null, issues:[], yerTip:"blok", block:"", kat:"", alan:"", desc:""},
+  pSent: null,
   view: "randevu",
   form: {cat:null, issues:[], desc:"", name:kayitli.name||"", block:kayitli.block||AYAR.bloklar[0], flat:kayitli.flat||"", phone:kayitli.phone||""},
   mine: [], all: [], sent: null, err: "", sending: false,
@@ -475,10 +506,12 @@ function fis(a, panel){
     <div class="t-head"><span class="t-no">${fisNo(a)} · ${esc(k.ad)}</span>
       <span style="display:flex;gap:6px">${a.sample?'<span class="chip sample">Örnek</span>':""}<span class="chip" data-s="${a.status}">${panel && a.status==="bekliyor" ? "Yeni" : (DURUM[a.status]||a.status)}</span></span></div>
     <div class="t-when${a.status==="bekliyor"?" muted":""}">${ust}</div>
-    <div class="t-meta"><span>Blok <b>${esc(a.block)}</b></span><span>Daire <b>${esc(a.flat)}</b></span>${panel?`<span><b>${esc(a.name)}</b></span>`:""}</div>
+    ${a.src==="personel"
+      ? `<div class="t-meta"><span>📍 <b>${esc(yerAd(a))}</b></span></div>${panel?`<div class="t-meta"><span class="staff">👷 ${esc(a.rol||"Personel")} · <b>${esc(a.name)}</b></span></div>`:""}`
+      : `<div class="t-meta"><span>Blok <b>${esc(a.block)}</b></span><span>Daire <b>${esc(a.flat)}</b></span>${panel?`<span><b>${esc(a.name)}</b></span>`:""}</div>`}
     ${a.desc?`<p class="t-desc">${esc(a.desc)}</p>`:""}
     <div class="t-meta"><span>Bildirim: ${esc(gonderimZamani(a.createdAt))}</span></div>
-    ${panel?`<div class="actions">
+    ${panel && a.phone?`<div class="actions">
         <a class="act" href="tel:${esc(String(a.phone).replace(/[^\d+]/g,""))}">Ara · <span style="font-weight:400">${esc(a.phone)}</span></a>
         <a class="act wa" href="${esc(waLink(a))}" target="_blank" rel="noopener">WhatsApp</a>
       </div>`:""}
@@ -500,10 +533,63 @@ function fis(a, panel){
 const eskidenYeniye = arr => arr.slice().sort((x,y) => (x.createdAt||0) - (y.createdAt||0));
 const yenidenEskiye = arr => arr.slice().sort((x,y) => (y.createdAt||0) - (x.createdAt||0));
 
+function personelHazir(){
+  const p = S.p;
+  const ariza = p.issues.length && (!(p.issues.length===1 && p.issues[0]==="Diğer") || p.desc.trim());
+  const yer = p.yerTip==="blok" ? (p.block && p.kat) : !!p.alan;
+  return !!(p.name.trim() && p.rol && p.cat && ariza && yer);
+}
+function vPersonel(){
+  const p = S.p;
+  if (S.pSent){
+    const a = S.pSent;
+    return `<div class="success">
+      <div class="big">Bildirim teknik servise iletildi</div>
+      <div class="code">${fisNo(a)}</div>
+      <p class="hint"><b>${esc(catOf(a.cat).ad)}</b> · ${esc(yerAd(a))}<br>Teşekkürler ${esc(a.name.split(" ")[0])}, teknisyen en kısa sürede ilgilenecek.</p>
+      <button class="cta" data-act="pYeni">Yeni bildirim yap</button>
+    </div>${personelListe()}`;
+  }
+  const kimlik = p.kayitli && p.name && p.rol && !p.kimlikAc
+    ? `<section class="step who"><div><small>Bildiren</small><b>${esc(p.name)}</b> · ${esc(p.rol)}</div><button class="pill-btn" data-act="pKimlik">Değiştir</button></section>`
+    : `<section class="step"><h2><span>👷</span>Siz kimsiniz?</h2>
+        <div class="prefs">${ROLLER.map(r=>`<button class="pref" data-act="pRol" data-v="${r}" aria-pressed="${p.rol===r}">${r}</button>`).join("")}</div>
+        <label class="f">Ad soyad<input type="text" id="p_name" autocomplete="name" value="${esc(p.name)}"></label>
+        <label class="f">Telefon <span style="font-weight:400;color:var(--muted)">(isteğe bağlı)</span><input type="tel" id="p_phone" autocomplete="tel" placeholder="05xx xxx xx xx" value="${esc(p.phone)}"></label>
+        <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
+      </section>`;
+  return `${kimlik}
+  <section class="step"><h2><span>1</span>Ne oldu?</h2>
+    <div class="cats">${PKAT.map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
+    ${p.cat ? `<div class="issues" style="margin-top:6px">${PARIZA[p.cat].map(x => `<button class="iss" data-act="pIss" data-v="${esc(x)}" aria-pressed="${p.issues.includes(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
+  </section>
+  <section class="step"><h2><span>2</span>Nerede?</h2>
+    <div class="prefs">
+      <button class="pref" data-act="pYer" data-v="blok" aria-pressed="${p.yerTip==="blok"}">Blok içinde</button>
+      <button class="pref" data-act="pYer" data-v="alan" aria-pressed="${p.yerTip==="alan"}">Ortak alanda</button>
+    </div>
+    ${p.yerTip==="blok" ? `<div class="grid2">
+        <label class="f">Blok<select id="p_block"><option value="">Seçin</option>${AYAR.bloklar.map(b => `<option ${p.block===b?"selected":""}>${esc(b)}</option>`).join("")}</select></label>
+        <label class="f">Kat<select id="p_kat"><option value="">Seçin</option>${KATLAR.map(k => `<option ${p.kat===k?"selected":""}>${k}</option>`).join("")}</select></label>
+      </div>`
+    : `<label class="f">Alan<select id="p_alan"><option value="">Seçin</option>${ALANLAR.map(x => `<option ${p.alan===x?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`}
+    <label class="f note-l" for="p_desc">Kısa not <span>${p.issues.length===1&&p.issues[0]==="Diğer"?"(gerekli)":"(isteğe bağlı)"}</span></label>
+    <textarea id="p_desc" maxlength="300" placeholder="Örn. Merdiven tarafındaki lamba, iki gündür yanmıyor.">${esc(p.desc)}</textarea>
+  </section>
+  ${S.err ? `<p class="err">${esc(S.err)}</p>` : ""}
+  <button class="cta" data-act="pGonder" ${personelHazir() && !S.sending ? "" : "disabled"}>${S.sending ? "Gönderiliyor…" : "Teknik servise bildir"}</button>
+  ${personelListe()}`;
+}
+function personelListe(){
+  const l = S.mine.filter(a => a.src==="personel").sort((x,y)=>(y.createdAt||0)-(x.createdAt||0)).slice(0,10);
+  return l.length ? `<div class="group-h">Son bildirdikleriniz</div><div class="list">${l.map(a=>fis(a,false)).join("")}</div>` : "";
+}
+
 function vRandevularim(){
-  if (!S.mine.length) return `<div class="empty"><strong>Henüz arıza bildiriminiz yok</strong>Bu telefondan bildirdiğiniz arızalar burada listelenir.<br><br><a class="tel" href="#randevu">Arıza bildir</a></div>`;
-  const aktif = yenidenEskiye(S.mine.filter(acik));
-  const gecmis = yenidenEskiye(S.mine.filter(a => !acik(a)));
+  const benim = S.mine.filter(a => a.src!=="personel");
+  if (!benim.length) return `<div class="empty"><strong>Henüz arıza bildiriminiz yok</strong>Bu telefondan bildirdiğiniz arızalar burada listelenir.<br><br><a class="tel" href="#randevu">Arıza bildir</a></div>`;
+  const aktif = yenidenEskiye(benim.filter(acik));
+  const gecmis = yenidenEskiye(benim.filter(a => !acik(a)));
   return `${aktif.length?`<div class="group-h">Açık bildirimler</div><div class="list">${aktif.map(a=>fis(a,false)).join("")}</div>`:""}
           ${gecmis.length?`<div class="group-h">Geçmiş</div><div class="list">${gecmis.map(a=>fis(a,false)).join("")}</div>`:""}`;
 }
@@ -523,10 +609,11 @@ function vPanel(){
     acik: acik,
     yeni: a => a.status==="bekliyor",
     isleniyor: a => a.status==="onaylandi",
+    personel: a => a.src==="personel" && acik(a),
     tamam: a => a.status==="tamamlandi",
     tumu: () => true
   };
-  const ad = {acik:"Açık işler", yeni:"Yeni", isleniyor:"İlgilenilen", tamam:"Tamamlanan", tumu:"Tümü"};
+  const ad = {acik:"Açık işler", yeni:"Yeni", isleniyor:"İlgilenilen", personel:"Personelden", tamam:"Tamamlanan", tumu:"Tümü"};
   const list = acik === F[S.filter] ? eskidenYeniye(all.filter(acik)) : yenidenEskiye(all.filter(F[S.filter]));
   const gruplar = [];
   const ekle = (baslik, a) => { let g = gruplar.find(x => x.b === baslik); if (!g){ g = {b: baslik, l: []}; gruplar.push(g); } g.l.push(a); };
@@ -549,9 +636,12 @@ function vPanel(){
 function render(){
   syncForm();
   const keep = document.activeElement && document.activeElement.id;
-  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : vRandevu();
+  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="personel" ? vPersonel() : vRandevu();
+  document.querySelector("nav.tabs").hidden = S.view==="personel";
+  $("#ustYazi").textContent = S.view==="personel" ? "Bizimevler 1 · Personel" : (AYAR.ustYazi || "Teknik Servis");
   $("#heroSub").textContent = S.view==="randevularim" ? "Bildirimlerinin durumunu ve teknisyen notlarını buradan takip et."
     : S.view==="panel" ? "Gelen arızaları gör, durumlarını güncelle."
+    : S.view==="personel" ? "Sahada gördüğün arızayı 15 saniyede teknik servise bildir."
     : "Arızanı bildir, teknisyen en kısa sürede ilgilensin.";
   document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.tab===S.view ? "page" : "false"));
   /* Teknisyen sekmesi sakinlere görünmez; sadece #panel adresinden açılır */
@@ -564,16 +654,19 @@ function syncForm(){
   const f = S.form;
   [["desc","desc"],["name","name"],["block","block"],["flat","flat"],["phone","phone"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; });
   document.querySelectorAll("[data-note]").forEach(el => S.notes[el.dataset.note] = el.value);
+  [["p_name","name"],["p_phone","phone"],["p_block","block"],["p_kat","kat"],["p_alan","alan"],["p_desc","desc"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) S.p[k] = el.value; });
 }
 
 /* ---------- olaylar ---------- */
 document.addEventListener("input", e => {
+  if (S.view === "personel"){ syncForm(); const pb = document.querySelector('[data-act="pGonder"]'); if (pb) pb.disabled = !personelHazir() || S.sending; return; }
   if (S.view !== "randevu" || !e.target.id) return;
   syncForm();
   const btn = document.querySelector('[data-act="gonder"]');
   if (btn) btn.disabled = !formHazir() || S.sending;
 });
 
+document.addEventListener("change", e => { if (S.view === "personel"){ syncForm(); const pb = document.querySelector('[data-act="pGonder"]'); if (pb) pb.disabled = !personelHazir() || S.sending; } });
 document.addEventListener("click", async e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const act = b.dataset.act, v = b.dataset.v, id = b.dataset.id;
@@ -581,7 +674,30 @@ document.addEventListener("click", async e => {
   if (act !== "iptal" && act !== "iptalBenim") S.armed = null;
   S.err = "";
   try {
-    if (act==="cat"){ syncForm(); if (S.form.cat !== v) S.form.issues = []; S.form.cat = v; render(); }
+    if (act==="pRol"){ syncForm(); S.p.rol = v; render(); }
+    else if (act==="pKimlik"){ syncForm(); S.p.kimlikAc = true; render(); }
+    else if (act==="pCat"){ syncForm(); if (S.p.cat !== v) S.p.issues = []; S.p.cat = v; render(); }
+    else if (act==="pIss"){ syncForm(); const L = S.p.issues; const i = L.indexOf(v); i < 0 ? L.push(v) : L.splice(i,1); render(); }
+    else if (act==="pYer"){ syncForm(); S.p.yerTip = v; render(); }
+    else if (act==="pYeni"){ S.pSent = null; Object.assign(S.p, {cat:null, issues:[], desc:""}); render(); scrollTo(0,0); }
+    else if (act==="pGonder"){
+      syncForm(); const p = S.p;
+      if (!personelHazir()) return;
+      S.sending = true; render();
+      yerel("site-servis-personel", {rol:p.rol, name:p.name.trim(), phone:p.phone.trim()});
+      try {
+        const ar = p.issues.filter(x => x !== "Diğer");
+        const aciklama = [ar.join(", "), p.desc.trim()].filter(Boolean).join(" — ");
+        const blokIci = p.yerTip==="blok";
+        S.pSent = await store.create({src:"personel", rol:p.rol, cat:p.cat, issues:p.issues.slice(), desc:aciklama, name:p.name.trim(), phone:p.phone.trim(),
+          block: blokIci ? p.block : "", kat: blokIci ? p.kat : "", alan: blokIci ? "" : p.alan, flat:""});
+        telegramBildir(S.pSent);
+        p.kayitli = true; p.kimlikAc = false;
+        scrollTo(0,0);
+      } catch(err){ console.error(err); S.err = "Gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin."; }
+      S.sending = false; render();
+    }
+    else if (act==="cat"){ syncForm(); if (S.form.cat !== v) S.form.issues = []; S.form.cat = v; render(); }
     else if (act==="iss"){ syncForm(); const L = S.form.issues; const i = L.indexOf(v); i < 0 ? L.push(v) : L.splice(i,1); render(); }
     else if (act==="yeni"){ S.sent = null; S.form.cat = null; S.form.issues = []; S.form.desc = ""; render(); scrollTo(0,0); }
     else if (act==="gonder"){
@@ -631,7 +747,7 @@ function startPanel(){
 
 function route(){
   const h = location.hash.slice(1);
-  S.view = ["randevu","randevularim","panel"].includes(h) ? h : "randevu";
+  S.view = ["randevu","randevularim","panel","personel"].includes(h) ? h : "randevu";
   S.err = ""; S.armed = null;
   render();
 }
@@ -639,7 +755,7 @@ window.addEventListener("hashchange", route);
 
 $("#view").innerHTML = `<div class="empty"><strong>Yükleniyor…</strong></div>`;
 store.ready.then(() => {
-  unMine = store.listenMine(list => { S.mine = list; if (S.view==="randevularim") render(); });
+  unMine = store.listenMine(list => { S.mine = list; if (S.view==="randevularim" || S.view==="personel") render(); });
   if (store.isTech()) startPanel();
   route();
 }).catch(err => {
