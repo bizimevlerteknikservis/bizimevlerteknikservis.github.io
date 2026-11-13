@@ -425,7 +425,7 @@ const store = AYAR.firebase ? FirebaseStore(AYAR.firebase) : DemoStore();
 const kayitli = yerel("site-servis-iletisim") || {};
 const pKayit = yerel("site-servis-personel") || {};
 const S = {
-  p: {rol:pKayit.rol||"", name:pKayit.name||"", phone:pKayit.phone||"", kayitli:!!pKayit.name, kimlikAc:false, cat:null, issues:[], yerTip:"blok", block:"", kat:"", alan:"", desc:""},
+  p: {rol:pKayit.rol||"", name:pKayit.name||"", kayitli:!!pKayit.name, kimlikAc:false, cat:null, issues:[], yerTip:"blok", block:"", kat:"", alan:"", desc:""},
   pSent: null,
   view: "randevu",
   form: {cat:null, issues:[], desc:"", name:kayitli.name||"", block:kayitli.block||AYAR.bloklar[0], flat:kayitli.flat||"", phone:kayitli.phone||""},
@@ -555,7 +555,6 @@ function vPersonel(){
     : `<section class="step"><h2><span>👷</span>Siz kimsiniz?</h2>
         <div class="prefs">${ROLLER.map(r=>`<button class="pref" data-act="pRol" data-v="${r}" aria-pressed="${p.rol===r}">${r}</button>`).join("")}</div>
         <label class="f">Ad soyad<input type="text" id="p_name" autocomplete="name" value="${esc(p.name)}"></label>
-        <label class="f">Telefon <span style="font-weight:400;color:var(--muted)">(isteğe bağlı)</span><input type="tel" id="p_phone" autocomplete="tel" placeholder="05xx xxx xx xx" value="${esc(p.phone)}"></label>
         <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
       </section>`;
   return `${kimlik}
@@ -654,7 +653,7 @@ function syncForm(){
   const f = S.form;
   [["desc","desc"],["name","name"],["block","block"],["flat","flat"],["phone","phone"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; });
   document.querySelectorAll("[data-note]").forEach(el => S.notes[el.dataset.note] = el.value);
-  [["p_name","name"],["p_phone","phone"],["p_block","block"],["p_kat","kat"],["p_alan","alan"],["p_desc","desc"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) S.p[k] = el.value; });
+  [["p_name","name"],["p_block","block"],["p_kat","kat"],["p_alan","alan"],["p_desc","desc"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) S.p[k] = el.value; });
 }
 
 /* ---------- olaylar ---------- */
@@ -684,12 +683,12 @@ document.addEventListener("click", async e => {
       syncForm(); const p = S.p;
       if (!personelHazir()) return;
       S.sending = true; render();
-      yerel("site-servis-personel", {rol:p.rol, name:p.name.trim(), phone:p.phone.trim()});
+      yerel("site-servis-personel", {rol:p.rol, name:p.name.trim()});
       try {
         const ar = p.issues.filter(x => x !== "Diğer");
         const aciklama = [ar.join(", "), p.desc.trim()].filter(Boolean).join(" — ");
         const blokIci = p.yerTip==="blok";
-        S.pSent = await store.create({src:"personel", rol:p.rol, cat:p.cat, issues:p.issues.slice(), desc:aciklama, name:p.name.trim(), phone:p.phone.trim(),
+        S.pSent = await store.create({src:"personel", rol:p.rol, cat:p.cat, issues:p.issues.slice(), desc:aciklama, name:p.name.trim(), phone:"",
           block: blokIci ? p.block : "", kat: blokIci ? p.kat : "", alan: blokIci ? "" : p.alan, flat:""});
         telegramBildir(S.pSent);
         p.kayitli = true; p.kimlikAc = false;
