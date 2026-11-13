@@ -193,6 +193,11 @@ label.f{display:grid;gap:6px;font-size:14px;font-weight:700;min-width:0;color:va
 .grid3{display:grid;grid-template-columns:1.2fr 1fr .8fr;gap:8px}
 .t-ayar summary{cursor:pointer;padding:4px 0}
 .kesinti-k{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kod-input{display:block;width:100%;text-align:center;font:700 34px var(--mono,monospace);letter-spacing:10px;padding:14px;border-radius:16px;border:2px solid var(--line);background:var(--sunk);margin:8px 0 12px}
+.kod-satir{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;padding:10px 0;border-bottom:1px solid #e6ecf1}
+.kod-satir small{display:block;color:var(--muted);font-size:12.5px}.kod-satir code{font:700 17px var(--mono,monospace);letter-spacing:2px}
+.kod-satir .kod-btn{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}.kod-satir .kod-btn a{text-decoration:none;color:var(--ink)}
+.kod-satir.pasif{opacity:.55}.kod-liste{margin-top:12px}
 .kur-btn{width:100%;display:grid;gap:2px;text-align:left;border:0;border-radius:16px;padding:14px 16px;margin-bottom:14px;background:linear-gradient(140deg,#16805c,#2daa6e);color:#fff;font:600 16px var(--body);box-shadow:var(--shadow);cursor:pointer}
 .kur-btn small{font-weight:400;opacity:.9;font-size:13px}
 .foto-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
@@ -538,6 +543,10 @@ function DemoStore(){
     async update(a, patch){ const r = bul(a); if (r){ Object.assign(r, patch); save(); } },
     async login(_, pin){ if (pin !== AYAR.demoPin) throw {code:"giris"}; tech = true; save(); },
     async addDevriye(r){ (mem.devriye ||= []).push({...r, uid: mem.uid}); save(); },
+    async kodOku(kod){ const K = (mem.kodlar ||= {"123456":{ad:"Demo Personel",rol:"Temizlik",tip:"personel",aktif:true},"654321":{ad:"Demo Güvenlik",tip:"guvenlik",vardiya:"1. Vardiya",aktif:true}}); return K[kod] ? {id:kod, ...K[kod]} : null; },
+    listenKod: cb => sub(() => cb(Object.entries(mem.kodlar ||= {"123456":{ad:"Demo Personel",rol:"Temizlik",tip:"personel",aktif:true},"654321":{ad:"Demo Güvenlik",tip:"guvenlik",vardiya:"1. Vardiya",aktif:true}}).map(([id,v])=>({id,...v})))),
+    async setKod(id, v){ (mem.kodlar ||= {})[id] = v; save(); },
+    async updateKod(id, p){ Object.assign((mem.kodlar ||= {})[id] || {}, p); save(); },
     async addFoto(aid, i, data){ (mem.foto ||= {})[aid] ||= []; mem.foto[aid][i] = data; try { save(); } catch(e){} },
     async getFoto(aid){ return ((mem.foto || {})[aid] || []).filter(Boolean); },
     listenTesis: cb => sub(() => cb((mem.tesis || []).slice())),
@@ -616,16 +625,20 @@ function FirebaseStore(cfg){
     },
     async updateTesis(id, p){ await fs.updateDoc(fs.doc(db,"tesis",id), p); },
     async setTesisAyar(p){ await fs.setDoc(fs.doc(db,"ayar","tesis"), p, {merge:true}); },
-    async addFoto(aid, i, data){
-      await fs.setDoc(fs.doc(db, "foto", aid + "_" + i), {aid, i, data, uid: user.uid, ts: Date.now()});
+    async addFoto(aid, i, data, kod){
+      await fs.setDoc(fs.doc(db, "foto", aid + "_" + i), {aid, i, data, uid: user.uid, ts: Date.now(), ...(kod ? {kod} : {})});
     },
+    async kodOku(kod){ if (!/^\d{6}$/.test(kod)) return null; const r = await fs.getDoc(fs.doc(db,"kod",kod)); return r.exists() ? {id:r.id, ...r.data()} : null; },
+    listenKod(cb){ return fs.onSnapshot(fs.collection(db,"kod"), s => cb(s.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.error(e); cb([]); }); },
+    async setKod(id, v){ await fs.setDoc(fs.doc(db,"kod",id), v); },
+    async updateKod(id, p){ await fs.updateDoc(fs.doc(db,"kod",id), p); },
     async getFoto(aid){
       const s = await fs.getDocs(fs.query(fs.collection(db, "foto"), fs.where("aid", "==", aid)));
       return s.docs.map(d => d.data()).sort((a,b) => a.i - b.i).map(x => x.data);
     },
     async addDevriye(r){
       if (!user) throw {code:"oturum-yok"};
-      const yaz = fs.addDoc(fs.collection(db,"devriye"), {...r, uid: user.uid}).then(() => "ok");
+      const yaz = fs.addDoc(fs.collection(db,"devriye"), {...r, kod: (S.d.kim && S.d.kim.kod) || "", uid: user.uid}).then(() => "ok");
       // İnternet yoksa Firebase kaydı telefonda tutar ve bağlantı gelince kendisi gönderir; beklemeden devam et
       return Promise.race([yaz, new Promise(ok => setTimeout(() => ok("bekliyor"), navigator.onLine ? 6000 : 800))]);
     },
@@ -665,11 +678,13 @@ function FirebaseStore(cfg){
 const store = AYAR.firebase ? FirebaseStore(AYAR.firebase) : DemoStore();
 const kayitli = yerel("site-servis-iletisim") || {};
 const pKayit = yerel("site-servis-personel") || {};
+const pKod = yerel("bz1-kod-personel");
+if (pKod){ pKayit.rol = pKod.rol; pKayit.name = pKod.ad; }
 if (pKayit.rol === "Bahçe") pKayit.rol = "Bahçıvan / Peyzaj";
 const S = {
-  p: {rol:pKayit.rol||"", name:pKayit.name||"", kayitli:!!pKayit.name, kimlikAc:false, cat:pKayit.rol===BAHCIVAN?"p_bahce":null, issues:[], yerTip:pKayit.rol===BAHCIVAN?"alan":"blok", block:"", kat:"", alan:"", desc:"", foto:[]},
+  p: {kod: pKod ? pKod.kod : null, rol:pKayit.rol||"", name:pKayit.name||"", kayitli:!!pKayit.name, kimlikAc:false, cat:pKayit.rol===BAHCIVAN?"p_bahce":null, issues:[], yerTip:pKayit.rol===BAHCIVAN?"alan":"blok", block:"", kat:"", alan:"", desc:"", foto:[]},
   pSent: null,
-  d: {kim: yerel("bz1-gorevli") || null, son: null, sorunAc: false, sorunNot: "", bekleyen: null, kimAc: false},
+  d: {kim: yerel("bz1-kod-guvenlik") || null, son: null, sorunAc: false, sorunNot: "", bekleyen: null, kimAc: false},
   view: "randevu",
   form: {cat:null, issues:[], desc:"", name:kayitli.name||"", block:kayitli.block||AYAR.bloklar[0], flat:kayitli.flat||"", phone:kayitli.phone||""},
   mine: [], all: [], sent: null, err: "", sending: false,
@@ -805,13 +820,8 @@ function vPersonel(){
       <button class="cta" data-act="pYeni">Yeni bildirim yap</button>
     </div>${personelListe()}`;
   }
-  const kimlik = p.kayitli && p.name && p.rol && !p.kimlikAc
-    ? `<section class="step who"><div><small>Bildiren</small><b>${esc(p.name)}</b> · ${esc(p.rol)}</div><button class="pill-btn" data-act="pKimlik">Değiştir</button></section>`
-    : `<section class="step"><h2><span>👷</span>Siz kimsiniz?</h2>
-        <div class="prefs">${ROLLER.map(r=>`<button class="pref" data-act="pRol" data-v="${r}" aria-pressed="${p.rol===r}">${r}</button>`).join("")}</div>
-        <label class="f">Ad soyad<input type="text" id="p_name" autocomplete="name" value="${esc(p.name)}"></label>
-        <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
-      </section>`;
+  if (!p.kod) return `${kurBanner("B1 Personel")}${kodGirisEkrani("personel")}`;
+  const kimlik = `<section class="step who"><div><small>Bildiren</small><b>${esc(p.name)}</b> · ${esc(p.rol)}</div><button class="pill-btn" data-act="kodCikis" data-v="personel">Kodu değiştir</button></section>`;
   return `${kurBanner("B1 Personel")}${kimlik}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.filter(k => rolKat(p.rol, k)).map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
@@ -858,19 +868,15 @@ function devHata(e){
 function devKuyruk(){ return yerel("bz1-devriye-kuyruk") || []; }
 function vDevriye(){
   const d = S.d;
-  if (!d.kim || d.kimAc){
-    return `${kurBanner("B1 Devriye")}<section class="step"><h2><span>🛡️</span>Adınızı seçin</h2>
-      <p class="hint">Bir kez seçmeniz yeterli, telefon hatırlar.</p>
-      ${VARDIYA.map(v=>`<div class="group-h" style="margin-top:6px">${v.ad}</div>
-        <div class="prefs">${v.kisiler.map(([ad,amir])=>`<button class="pref" data-act="dKim" data-v="${esc(ad)}" data-vr="${esc(v.ad)}" aria-pressed="${d.kim&&d.kim.ad===ad}">${esc(ad)}${amir?' <small class="amir">Amir</small>':""}</button>`).join("")}</div>`).join("")}
-    </section>`;
+  if (!d.kim || !d.kim.kod){
+    return `${kurBanner("B1 Devriye")}${kodGirisEkrani("guvenlik")}`;
   }
   const gec = devGecmis();
   const tur = {}; gec.filter(k => k.ts > Date.now() - 2*36e5).forEach(k => { if (!tur[k.nokta] || k.ts > tur[k.nokta]) tur[k.nokta] = k.ts; });
   const kuyruk = devKuyruk().length;
   const son = d.son && Date.now() - d.son.ts < 3*6e4 ? d.son : null;
   return `
-  <section class="step who"><div><small>${esc(d.kim.vardiya)}</small><b>${esc(d.kim.ad)}</b></div><button class="pill-btn" data-act="dKimAc">Değiştir</button></section>
+  <section class="step who"><div><small>${esc(d.kim.vardiya)}</small><b>${esc(d.kim.ad)}</b></div><button class="pill-btn" data-act="kodCikis" data-v="guvenlik">Kodu değiştir</button></section>
   ${son ? `<section class="okundu">
       <div class="ok-ic">✓</div>
       <div><b>${son.no}. ${esc(son.ad)}</b><small>${saatStr(son.ts)} · ${son.kuyrukta==="telefon"?"internet yok · telefona kaydedildi, internet gelince otomatik gönderilecek":son.kuyrukta?"gönderilemedi, tekrar denenecek":"merkeze iletildi ✓"}</small></div>
@@ -1081,7 +1087,8 @@ function vPanel(){
       <p class="hint" style="margin-top:12px"><b>🏢 Tesis takibe de girebilenler</b> · Bu e-postalar ayrıca <b>Tesis takip</b> sayfasına girip asansör, jeneratör, hidrofor ve kesinti kaydı yapabilir. (Daire arızalarını yine göremezler.)</p>
       <textarea id="rolTesis" rows="2" placeholder="ali@ornek.com">${esc(S.rolTesisTaslak ?? (S.rolTesis||[]).join("\n"))}</textarea>
       <button class="cta ghost" data-act="rolKaydet" style="margin-top:8px">Kaydet</button>
-      <p class="hint">Sonra Firebase → Authentication → <b>Add user</b> ile bu e-postalara birer şifre tanımlayın.</p></details>`;
+      <p class="hint">Sonra Firebase → Authentication → <b>Add user</b> ile bu e-postalara birer şifre tanımlayın.</p></details>
+    ${kodPanel()}`;
 }
 
 /* Küçük XLSX yazıcı (dış kütüphane gerektirmez) */
@@ -1426,7 +1433,7 @@ async function tKaydet(){
 }
 async function kesintiBasladi(by){
   try {
-    await store.addTesis({tur:"kesinti", olay:"basladi", by: by||"Teknisyen", ts: Date.now()});
+    await store.addTesis({tur:"kesinti", olay:"basladi", by: by||"Teknisyen", ts: Date.now(), ...(S.d.kim && S.d.kim.kod && !store.isTech() ? {kod:S.d.kim.kod} : {})});
     tgGonder(`⚡ ELEKTRİK KESİLDİ\n🕒 ${saatStr(Date.now())}${by?`\n👤 Bildiren: ${by}`:""}`);
     toast("Kesinti kaydedildi");
   } catch(e){ console.error(e); toast("Kaydedilemedi, tekrar deneyin"); }
@@ -1524,7 +1531,7 @@ document.addEventListener("click", async e => {
     if (b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = v==="basladi" ? "Emin misiniz? Tekrar basın" : "Emin misiniz? Tekrar basın"; setTimeout(()=>{ if (b.isConnected){ b.dataset.onay = ""; b.textContent = v==="basladi" ? "⚡ Elektrik kesildi" : "💡 Elektrik geldi"; } }, 4000); return; }
     if (v==="basladi"){ await kesintiBasladi(kim); S.d.kesinti = Date.now(); }
     else {
-      try { await store.addTesis({tur:"kesinti", olay:"bitti", jen:"", by:kim, ts:Date.now()}); tgGonder(`💡 Elektrik geldi\n🕒 ${saatStr(Date.now())}\n👤 Bildiren: ${kim}`); toast("Kaydedildi"); }
+      try { await store.addTesis({tur:"kesinti", olay:"bitti", jen:"", by:kim, ts:Date.now(), kod:(S.d.kim && S.d.kim.kod) || ""}); tgGonder(`💡 Elektrik geldi\n🕒 ${saatStr(Date.now())}\n👤 Bildiren: ${kim}`); toast("Kaydedildi"); }
       catch(err){ console.error(err); toast("Kaydedilemedi, tekrar deneyin"); }
       S.d.kesinti = null;
     }
@@ -1672,6 +1679,93 @@ document.addEventListener("click", async e => {
   }
 });
 
+/* =================== PERSONEL / GÜVENLİK KODLARI =================== */
+/* Her personelin 6 haneli kişisel kodu var. Kod Firebase'de kontrol edilir; pasif yapılınca gönderim durur. */
+const KOD = { liste:[], un:null, form:{tip:"personel", ad:"", rol:"Temizlik", vardiya:"1. Vardiya"}, yeni:null };
+const kodSakla = (tip, v) => yerel("bz1-kod-" + tip, v);
+const kodAl = tip => yerel("bz1-kod-" + tip);
+function kodGirisEkrani(tip){
+  const g = tip === "guvenlik";
+  return `<section class="step kod-giris">
+    <h2><span>${g ? "🛡️" : "👷"}</span>${g ? "Güvenlik kodunuz" : "Personel kodunuz"}</h2>
+    <p class="hint">Teknisyenin size verdiği <b>6 haneli kodu</b> girin. Bir kez girmeniz yeterli, telefon hatırlar.</p>
+    <input id="kodGir" class="kod-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="••••••" value="${esc(S.kodTaslak||"")}">
+    ${S.kodHata ? `<p class="err">${esc(S.kodHata)}</p>` : ""}
+    <button class="cta" data-act="kodGir" data-v="${tip}">${S.kodBakiyor ? "Kontrol ediliyor…" : "Devam"}</button>
+    <p class="hint" style="margin-top:10px">Kodunuz yoksa ya da çalışmıyorsa teknisyene başvurun.</p>
+    ${store.mode==="demo" ? `<p class="hint">Demo kodları: <b>123456</b> (personel) · <b>654321</b> (güvenlik)</p>` : ""}
+  </section>`;
+}
+async function kodDogrula(tip, kod){
+  const k = await store.kodOku(kod);
+  if (!k || k.aktif === false) return null;
+  if (tip === "guvenlik" && k.tip !== "guvenlik") return null;
+  if (tip === "personel" && k.tip !== "personel") return null;
+  return k;
+}
+function kodUygula(tip, kod, k){
+  if (tip === "personel"){
+    kodSakla("personel", {kod, ad:k.ad, rol:k.rol});
+    Object.assign(S.p, {kod, name:k.ad, rol:k.rol, kayitli:true, kimlikAc:false});
+    if (k.rol === BAHCIVAN){ S.p.cat = "p_bahce"; S.p.yerTip = "alan"; }
+    yerel("site-servis-personel", {rol:k.rol, name:k.ad});
+  } else {
+    const kim = {ad:k.ad, vardiya:k.vardiya || "", kod};
+    kodSakla("guvenlik", kim); yerel("bz1-gorevli", kim); S.d.kim = kim; S.d.kimAc = false;
+  }
+}
+/* Açılışta kod hâlâ geçerli mi? (pasif yapıldıysa telefondan silinir) */
+async function kodYokla(){
+  for (const tip of ["personel","guvenlik"]){
+    const s = kodAl(tip); if (!s || !s.kod || !navigator.onLine) continue;
+    try {
+      const k = await kodDogrula(tip, s.kod);
+      if (!k){ kodSakla(tip, null); if (tip==="personel"){ S.p.kod = null; } else { S.d.kim = null; yerel("bz1-gorevli", null); }
+        toast(tip==="personel" ? "Personel kodunuz artık geçerli değil" : "Güvenlik kodunuz artık geçerli değil"); render(); }
+      else kodUygula(tip, s.kod, k);
+    } catch(e){ /* çevrimdışı ya da kural henüz yok: dokunma */ }
+  }
+}
+/* ---------- Teknisyen paneli: kod yönetimi ---------- */
+function kodPanel(){
+  const L = KOD.liste.slice().sort((a,b)=>(a.tip+a.ad).localeCompare(b.tip+b.ad,"tr"));
+  const f = KOD.form, link = location.origin + location.pathname.replace(/[^/]*$/, "");
+  const guvYok = !L.some(k=>k.tip==="guvenlik");
+  const satir = k => `<div class="kod-satir${k.aktif===false?" pasif":""}">
+      <div><b>${esc(k.ad)}</b><small>${k.tip==="guvenlik" ? "🛡️ " + esc(k.vardiya||"Güvenlik") : "👷 " + esc(k.rol||"")}${k.aktif===false?" · <b>PASİF</b>":""}</small></div>
+      <code>${esc(k.id)}</code>
+      <div class="kod-btn">
+        ${k.aktif===false ? `<button class="pill-btn" data-act="kodAktif" data-id="${k.id}" data-v="1">Aktif yap</button>`
+          : `<a class="pill-btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Bizimevler 1 ${k.tip==="guvenlik"?"güvenlik":"personel"} kodunuz: ${k.id}\n\nUygulama: ${link}${k.tip==="guvenlik"?"devriye.html":"personel.html"}\nİlk açılışta bu kodu girin.`)}">WhatsApp</a>
+             <button class="pill-btn cikis-btn" data-act="kodAktif" data-id="${k.id}" data-v="0">Pasif yap</button>`}
+      </div></div>`;
+  return `<details class="card t-ayar" style="margin-top:14px" id="kodKart" ${S.kodAcik?"open":""}><summary><b>🔑 Personel ve güvenlik kodları</b> · ${L.filter(k=>k.aktif!==false).length} aktif</summary>
+    <p class="hint">Personel ve güvenlik uygulamaları sadece geçerli kodla çalışır. İşten ayrılan kişiyi <b>Pasif yap</b>: telefonundaki uygulama anında durur.</p>
+    ${KOD.yeni ? `<div class="t-uyari yesil">✓ <b>${esc(KOD.yeni.ad)}</b> için kod: <b style="font-size:20px;letter-spacing:2px">${esc(KOD.yeni.id)}</b></div>` : ""}
+    <div class="prefs"><button class="pref" data-act="kodTip" data-v="personel" aria-pressed="${f.tip==="personel"}">👷 Personel</button><button class="pref" data-act="kodTip" data-v="guvenlik" aria-pressed="${f.tip==="guvenlik"}">🛡️ Güvenlik</button></div>
+    <div class="grid2" style="margin-top:8px">
+      <label class="f">Ad soyad<input id="kodAd" maxlength="60" value="${esc(f.ad)}"></label>
+      ${f.tip==="personel"
+        ? `<label class="f">Görev<select id="kodRol">${ROLLER.map(r=>`<option ${f.rol===r?"selected":""}>${r}</option>`).join("")}</select></label>`
+        : `<label class="f">Vardiya<select id="kodVardiya">${["1. Vardiya","2. Vardiya","3. Vardiya","Joker"].map(r=>`<option ${f.vardiya===r?"selected":""}>${r}</option>`).join("")}</select></label>`}
+    </div>
+    <button class="cta" data-act="kodEkle">Kod oluştur</button>
+    ${guvYok ? `<button class="cta ghost" data-act="kodGuvToplu" style="margin-top:8px">🛡️ Güvenlik listesindeki ${VARDIYA.reduce((s,v)=>s+v.kisiler.length,0)} kişiye kod oluştur</button>` : ""}
+    <div class="kod-liste">${L.length ? L.map(satir).join("") : `<p class="hint">Henüz kod yok.</p>`}</div>
+  </details>`;
+}
+async function yeniKod(){
+  for (let i = 0; i < 20; i++){
+    const k = String(100000 + Math.floor(Math.random()*900000));
+    if (!KOD.liste.some(x=>x.id===k)) return k;
+  }
+  throw new Error("kod");
+}
+function kodBaslat(){
+  if (KOD.un || !store.isTech() || !store.listenKod) return;
+  KOD.un = store.listenKod(L => { KOD.liste = L; if (S.view==="panel") setTimeout(render,0); });
+}
+
 function render(){
   syncForm();
   const keep = document.activeElement && document.activeElement.id;
@@ -1695,6 +1789,9 @@ function render(){
 }
 function syncForm(){
   const rk = document.getElementById("rolKart"); if (rk) S.rolAcik = rk.open;
+  const kk = document.getElementById("kodKart"); if (kk) S.kodAcik = kk.open;
+  const kg = document.getElementById("kodGir"); if (kg) S.kodTaslak = kg.value;
+  [["kodAd","ad"],["kodRol","rol"],["kodVardiya","vardiya"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) KOD.form[k] = el.value; });
   const rl = document.getElementById("rolListe"); if (rl) S.rolTaslak = rl.value;
   const rt = document.getElementById("rolTesis"); if (rt) S.rolTesisTaslak = rt.value;
   const f = S.form;
@@ -1746,6 +1843,41 @@ document.addEventListener("click", async e => {
     else if (act==="pYer"){ syncForm(); S.p.yerTip = v; render(); }
     else if (act==="pYeni"){ S.pSent = null; Object.assign(S.p, {cat:S.p.rol===BAHCIVAN?"p_bahce":null, issues:[], desc:"", foto:[]}); render(); scrollTo(0,0); }
     else if (act==="kur"){ if (KUR){ KUR.prompt(); const r = await KUR.userChoice; KUR = null; render(); } }
+    else if (act==="kodGir"){
+      syncForm(); const kod = String(S.kodTaslak||"").replace(/\D/g,"");
+      if (kod.length !== 6){ S.kodHata = "Kod 6 haneli olmalı"; render(); return; }
+      S.kodBakiyor = true; S.kodHata = ""; render();
+      try {
+        const k = await kodDogrula(v, kod);
+        if (!k) S.kodHata = "Kod geçersiz ya da pasif. Teknisyene başvurun.";
+        else { kodUygula(v, kod, k); S.kodTaslak = ""; toast(`Hoş geldiniz ${k.ad.split(" ")[0]}`);
+          if (v==="guvenlik" && S.d.bekleyen){ const n = S.d.bekleyen; S.d.bekleyen = null; S.kodBakiyor = false; render(); noktaOkut(n); return; } }
+      } catch(err){ console.error(err); S.kodHata = "Kontrol edilemedi. İnternet bağlantınızı kontrol edin."; }
+      S.kodBakiyor = false; render();
+    }
+    else if (act==="kodCikis"){
+      kodSakla(v, null);
+      if (v==="personel") S.p.kod = null; else { S.d.kim = null; yerel("bz1-gorevli", null); }
+      render(); scrollTo(0,0);
+    }
+    else if (act==="kodTip"){ syncForm(); KOD.form.tip = v; render(); }
+    else if (act==="kodEkle"){
+      syncForm(); const f = KOD.form, ad = f.ad.trim();
+      if (ad.length < 3){ toast("Ad soyad yazın"); return; }
+      const id = await yeniKod();
+      const v2 = f.tip==="guvenlik" ? {ad, tip:"guvenlik", vardiya:f.vardiya, aktif:true, ts:Date.now()} : {ad, tip:"personel", rol:f.rol, aktif:true, ts:Date.now()};
+      await store.setKod(id, v2); KOD.yeni = {id, ad}; KOD.form.ad = ""; const ka = $("#kodAd"); if (ka) ka.value = ""; S.kodAcik = true; toast("Kod oluşturuldu: " + id); render();
+    }
+    else if (act==="kodAktif"){
+      if (v==="0" && b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = "Emin misiniz?"; return; }
+      await store.updateKod(id, {aktif: v==="1"}); toast(v==="1" ? "Aktif yapıldı" : "Pasif yapıldı · uygulaması durdu");
+    }
+    else if (act==="kodGuvToplu"){
+      if (b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = "Emin misiniz? Tekrar basın"; return; }
+      let n = 0;
+      for (const v3 of VARDIYA) for (const [ad] of v3.kisiler){ const id = await yeniKod(); await store.setKod(id, {ad, tip:"guvenlik", vardiya:v3.ad, aktif:true, ts:Date.now()}); KOD.liste.push({id, ad, tip:"guvenlik", vardiya:v3.ad, aktif:true}); n++; }
+      S.kodAcik = true; toast(`${n} güvenlik kodu oluşturuldu`); render();
+    }
     else if (act==="pFotoSil"){ syncForm(); S.p.foto.splice(+v, 1); render(); }
     else if (act==="foto"){ fotoGoster(id); }
     else if (act==="pGonder"){
@@ -1758,17 +1890,17 @@ document.addEventListener("click", async e => {
         const aciklama = [ar.join(", "), p.desc.trim()].filter(Boolean).join(" — ");
         const blokIci = p.yerTip==="blok";
         const fotolar = p.foto.slice();
-        S.pSent = await store.create({src:"personel", rol:p.rol, cat:p.cat, issues:p.issues.slice(), desc:aciklama, name:p.name.trim(), phone:"",
+        S.pSent = await store.create({src:"personel", kod:p.kod, rol:p.rol, cat:p.cat, issues:p.issues.slice(), desc:aciklama, name:p.name.trim(), phone:"",
           block: blokIci ? p.block : "", kat: blokIci ? p.kat : "", alan: blokIci ? "" : p.alan, flat:"", fotoSayi: fotolar.length});
         telegramBildir(S.pSent);
         for (let i = 0; i < fotolar.length; i++){
-          try { await store.addFoto(S.pSent.id, i, fotolar[i]); } catch(e){ console.error(e); toast("Fotoğraf gönderilemedi"); }
+          try { await store.addFoto(S.pSent.id, i, fotolar[i], p.kod); } catch(e){ console.error(e); toast("Fotoğraf gönderilemedi"); }
           telegramFoto(fotolar[i], `📷 ${fisNo(S.pSent)} · ${catOf(S.pSent.cat).ad} · ${yerAd(S.pSent)}`);
         }
         p.foto = [];
         p.kayitli = true; p.kimlikAc = false;
         scrollTo(0,0);
-      } catch(err){ console.error(err); S.err = "Gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin."; }
+      } catch(err){ console.error(err); S.err = (err && err.code === "permission-denied") ? "Gönderilemedi: personel kodunuz geçersiz ya da pasif. Teknisyene başvurun." : "Gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin."; if (err && err.code === "permission-denied") kodYokla(); }
       S.sending = false; render();
     }
     else if (act==="cat"){ syncForm(); if (S.form.cat !== v) S.form.issues = []; S.form.cat = v; render(); }
@@ -1820,6 +1952,7 @@ document.addEventListener("click", async e => {
 
 function startPanel(){
   if (unAll) unAll();
+  kodBaslat();
   if (store.isTech() && store.getRoller) store.getRoller().then(r => { S.roller = r.yonetim || []; S.rolTesis = r.tesis || []; if (S.view==="panel") render(); }).catch(()=>{});
   unAll = store.isTech() ? store.listenAll(list => { S.all = list; if (S.view==="panel") render(); }) : null;
   render();
@@ -1836,6 +1969,7 @@ function route(){
   }
   S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma"].includes(h) ? h : "randevu";
   if (S.view !== "tesis"){ T.f = null; T.detay = null; }
+  if ((S.view === "personel" || S.view === "devriye") && store.kodOku && Date.now() - (S.kodYoklandi||0) > 60000){ S.kodYoklandi = Date.now(); kodYokla(); }
   S.err = ""; S.armed = null;
   render();
 }
