@@ -1716,6 +1716,8 @@ async function kodDogrula(tip, kod){
   const k = await store.kodOku(kod);
   if (!k || k.aktif === false) return null;
   if (tip === "guvenlik" && k.tip !== "guvenlik") return null;
+  // Güvenlik kodu personel sayfasında da geçer (arıza bildirimi için ayrı kod gerekmez)
+  if (tip === "personel" && k.tip === "guvenlik") return Object.assign({}, k, {rol:"Güvenlik"});
   if (tip === "personel" && k.tip !== "personel") return null;
   return k;
 }
@@ -1753,7 +1755,7 @@ function kodPanel(){
       <code>${esc(k.id)}</code>
       <div class="kod-btn">
         ${k.aktif===false ? `<button class="pill-btn" data-act="kodAktif" data-id="${k.id}" data-v="1">Aktif yap</button>`
-          : `<a class="pill-btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Bizimevler 1 ${k.tip==="guvenlik"?"güvenlik":"personel"} kodunuz: ${k.id}\n\nUygulama: ${link}${k.tip==="guvenlik"?"devriye.html":"personel.html"}\nİlk açılışta bu kodu girin.`)}">WhatsApp</a>
+          : `<a class="pill-btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Bizimevler 1 ${k.tip==="guvenlik"?"güvenlik":"personel"} kodunuz: ${k.id}\n\nUygulama: ${link}${k.tip==="guvenlik"?"devriye.html":"personel.html"}${k.tip==="guvenlik"?`\nArıza bildirimi: ${link}personel.html`:""}\nİlk açılışta bu kodu girin. ${k.tip==="guvenlik"?"Aynı kod iki uygulamada da geçerli.":""}`)}">WhatsApp</a>
              <button class="pill-btn cikis-btn" data-act="kodAktif" data-id="${k.id}" data-v="0">Pasif yap</button>`}
       </div></div>`;
   return `<details class="card t-ayar" style="margin-top:14px" id="kodKart" ${S.kodAcik?"open":""}><summary><b>🔑 Personel ve güvenlik kodları</b> · ${L.filter(k=>k.aktif!==false).length} aktif</summary>
