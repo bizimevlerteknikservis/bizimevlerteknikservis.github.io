@@ -303,7 +303,7 @@ const PARIZA = {
   p_su:     ["Su kaçağı / sızıntı","Gider / rögar tıkalı","Musluk / hortum bozuk","Hidrofor / su basıncı sorunu","Yağmur suyu birikiyor","Diğer"],
   p_hasar:  ["Kırık cam","Korkuluk / tırabzan gevşek","Zemin / karo kırık","Duvar / tavan hasarı","Tabela / levha düşmüş","Diğer"],
   p_bahce:  ["Sulama sistemi arızalı","Ağaç / dal tehlikeli","Oyun parkı hasarlı","Bank / çöp kutusu kırık","Çit / tel örgü hasarlı","Diğer"],
-  p_malzeme:["Çöp poşeti","Çöp kovası / kutusu (kırık)","Deterjan / temizlik ilacı","Çamaşır suyu / dezenfektan","Paspas / mop","Süpürge / faraş","Kova","Eldiven","Bez / cam sileceği","Tuvalet kağıdı / kağıt havlu","Ampul","Bahçe malzemesi (hortum, makas vb.)","Diğer malzeme"],
+  p_malzeme:["Çöp poşeti","Çöp kovası / kutusu (kırık)","Deterjan / temizlik ilacı","Çamaşır suyu / dezenfektan","Paspas / mop","Süpürge / faraş","Kova","Eldiven","Bez / cam sileceği","Tuvalet kağıdı / kağıt havlu","Ampul","Diğer malzeme"],
   p_temiz:  ["Çöp odası / konteyner sorunu","Kötü koku","Haşere / fare görüldü","Rutubet / küf","Diğer"],
   p_diger:  ["Diğer"]
 };
@@ -633,7 +633,7 @@ function vPersonel(){
       </section>`;
   return `${kimlik}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
-    <div class="cats">${PKAT.map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
+    <div class="cats">${PKAT.filter(k => k.id!=="p_malzeme" || p.rol==="Temizlik").map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
     ${p.cat ? `<div class="issues" style="margin-top:6px">${PARIZA[p.cat].map(x => `<button class="iss" data-act="pIss" data-v="${esc(x)}" aria-pressed="${p.issues.includes(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
   </section>
   <section class="step"><h2><span>2</span>${p.cat==="p_malzeme" ? "Nereye lazım?" : "Nerede?"}</h2>
@@ -907,7 +907,7 @@ document.addEventListener("click", async e => {
     else if (act==="dSorunKapat"){ S.d.sorunAc = false; S.d.sorunNot = ""; render(); }
     else if (act==="dSorunHazir"){ S.d.sorunNot = v; render(); }
     else if (act==="dSorunGonder"){ await sorunGonder(); }
-    else if (act==="pRol"){ syncForm(); S.p.rol = v; render(); }
+    else if (act==="pRol"){ syncForm(); S.p.rol = v; if (v!=="Temizlik" && S.p.cat==="p_malzeme"){ S.p.cat = ""; S.p.issues = []; } render(); }
     else if (act==="pKimlik"){ syncForm(); S.p.kimlikAc = true; render(); }
     else if (act==="pCat"){ syncForm(); if (S.p.cat !== v) S.p.issues = []; S.p.cat = v; render(); }
     else if (act==="pIss"){ syncForm(); const L = S.p.issues; const i = L.indexOf(v); i < 0 ? L.push(v) : L.splice(i,1); render(); }
