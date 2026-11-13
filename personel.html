@@ -1755,7 +1755,7 @@ function kodPanel(){
       <code>${esc(k.id)}</code>
       <div class="kod-btn">
         ${k.aktif===false ? `<button class="pill-btn" data-act="kodAktif" data-id="${k.id}" data-v="1">Aktif yap</button>`
-          : `<a class="pill-btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Bizimevler 1 ${k.tip==="guvenlik"?"güvenlik":"personel"} kodunuz: ${k.id}\n\nUygulama: ${link}${k.tip==="guvenlik"?"devriye.html":"personel.html"}${k.tip==="guvenlik"?`\nArıza bildirimi: ${link}personel.html`:""}\nİlk açılışta bu kodu girin. ${k.tip==="guvenlik"?"Aynı kod iki uygulamada da geçerli.":""}`)}">WhatsApp</a>
+          : `<button class="pill-btn" data-act="kodPaylas" data-id="${k.id}">📤 Gönder</button>
              <button class="pill-btn cikis-btn" data-act="kodAktif" data-id="${k.id}" data-v="0">Pasif yap</button>`}
       </div></div>`;
   return `<details class="card t-ayar" style="margin-top:14px" id="kodKart" ${S.kodAcik?"open":""}><summary><b>🔑 Personel ve güvenlik kodları</b> · ${L.filter(k=>k.aktif!==false).length} aktif</summary>
@@ -1775,6 +1775,11 @@ function kodPanel(){
     ${guvYok ? `<button class="cta ghost" data-act="kodGuvToplu" style="margin-top:8px">🛡️ Güvenlik listesindeki ${VARDIYA.reduce((s,v)=>s+v.kisiler.length,0)} kişiye kod oluştur</button>` : ""}
     <div class="kod-liste">${L.length ? L.map(satir).join("") : `<p class="hint">Henüz kod yok.</p>`}</div>
   </details>`;
+}
+function kodMesaj(k){
+  const link = location.origin + location.pathname.replace(/[^/]*$/, "");
+  const g = k.tip==="guvenlik";
+  return `Bizimevler 1 ${g?"güvenlik":"personel"} kodunuz: ${k.id}\n\nUygulama: ${link}${g?"devriye.html":"personel.html"}${g?`\nArıza bildirimi: ${link}personel.html`:""}\nİlk açılışta bu kodu girin.${g?" Aynı kod iki uygulamada da geçerli.":""}`;
 }
 async function yeniKod(){
   for (let i = 0; i < 20; i++){
@@ -1894,6 +1899,14 @@ document.addEventListener("click", async e => {
       const id = await yeniKod();
       const v2 = f.tip==="guvenlik" ? {ad, tip:"guvenlik", vardiya:f.vardiya, aktif:true, ts:Date.now()} : {ad, tip:"personel", rol:f.rol, aktif:true, ts:Date.now()};
       await store.setKod(id, v2); KOD.yeni = {id, ad}; KOD.form.ad = ""; const ka = $("#kodAd"); if (ka) ka.value = ""; S.kodAcik = true; toast("Kod oluşturuldu: " + id); render();
+    }
+    else if (act==="kodPaylas"){
+      const k = KOD.liste.find(x=>x.id===id); if (!k) return;
+      const metin = kodMesaj(k);
+      // Telefonun paylaş menüsü: WhatsApp / WhatsApp Business / SMS hangisi istenirse
+      if (navigator.share){ try { await navigator.share({text: metin}); } catch(e){} }
+      else { try { await navigator.clipboard.writeText(metin); toast("Mesaj kopyalandı, istediğiniz yere yapıştırın"); } catch(e){ location.href = "https://wa.me/?text=" + encodeURIComponent(metin); } }
+      return;
     }
     else if (act==="kodAktif"){
       if (v==="0" && b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = "Emin misiniz?"; return; }
