@@ -165,6 +165,14 @@ label.f{display:grid;gap:6px;font-size:14px;font-weight:700;min-width:0;color:va
 .jen-k{background:var(--surface);border-radius:16px;padding:14px;box-shadow:var(--shadow);display:grid;gap:8px}
 .jen-ust small{display:block;color:var(--muted)}.jen-bar{height:12px;border-radius:999px;background:#e8edf2;overflow:hidden}.jen-bar i{display:block;height:100%;border-radius:999px}
 .jen-alt{display:flex;justify-content:space-between;align-items:baseline}.jen-alt strong{font-size:22px}.jen-alt span{font-size:12.5px;color:var(--muted)}
+.hid-izgara{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px;margin-bottom:10px}
+.hid-k{background:var(--surface);border-radius:16px;padding:12px;box-shadow:var(--shadow);display:grid;gap:7px}
+.hid-zon{display:flex;align-items:center;gap:4px;font-size:12.5px}.hid-zon span{width:52px;color:var(--muted)}
+.hid-zon i{font-style:normal;width:22px;height:22px;border-radius:6px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:12px}
+.hid-zon i.yesil{background:#22a55b}.hid-zon i.kirmizi{background:#d64040;animation:nabiz 1.2s infinite}
+.hid-zon em{margin-left:auto;font-style:normal;color:var(--muted);font-size:11.5px}
+.t-hizli:has(> :nth-child(3):last-child){grid-template-columns:1fr 1fr 1fr}
+.t-sheet .prefs.bloklar.hid{grid-template-columns:repeat(4,1fr)}
 .t-sheet .prefs.bloklar{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.t-sheet .prefs.bloklar .pref{padding:10px 0;min-width:0;text-align:center}
 .t-sheet{position:fixed;inset:0;background:rgba(10,20,30,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center}
 .t-sheet-in{background:var(--bg,#f3f7fb);width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom,0px))}
@@ -1060,7 +1068,56 @@ const T = { kayit:[], ayar:{}, un:null, unA:null, sekme:"ozet", f:null, detay:nu
 const jenler = () => JEN_VARSAYILAN.map(j => ({...j, ...((T.ayar.jen||{})[j.id]||{})}));
 const asAd = id => (ASANSOR.find(a=>a.id===id)||{ad:id}).ad;
 const jenAd = id => (jenler().find(j=>j.id===id)||{ad:id}).ad;
-const ekAd = id => id && id[0]==="J" ? jenAd(id) : asAd(id);
+const ekAd = id => id && id[0]==="J" ? jenAd(id) : id && id.startsWith("H-") ? hidAd(id) : asAd(id);
+/* ---------- Hidrofor: tekli blok 2+2 pompa, çiftli blok 3+3 pompa; her birinde alt/üst zon basınç tankı ---------- */
+const CIFT = [["C1","C2"],["C3","C4"],["D1","D2"],["D3","D4"],["F1","F2"]];
+const HIDRO = [
+  ...AYAR.bloklar.filter(b=>!CIFT.flat().includes(b)).map(b=>({id:"H-"+b, ad:`${b} Blok`, bloklar:[b], n:2})),
+  ...CIFT.map(([a,b])=>({id:`H-${a}${b}`, ad:`${a}–${b} Blok`, bloklar:[a,b], n:3}))
+].sort((x,y)=>x.ad.localeCompare(y.ad,"tr"));
+const HID_BAKIM_GUN = 180;
+const zonAd = z => z==="A" ? "Alt zon" : "Üst zon";
+function hidParca(id){   // "H-A1:AP2" -> {unit, tip:"P"|"T", zon:"A"|"U", no}
+  const [u, p] = id.split(":"); return {unit:u, zon:p[0], tip:p[1], no:+p.slice(2)||0};
+}
+const hidAd = id => { if (!id.includes(":")) return (HIDRO.find(h=>h.id===id)||{ad:id}).ad + " hidroforu"; const p = hidParca(id), h = HIDRO.find(x=>x.id===p.unit); return `${h?h.ad:p.unit} · ${zonAd(p.zon)} ${p.tip==="P" ? "pompa "+p.no : "basınç tankı"}`; };
+function hidHesap(K){
+  const pompa = {}; K.filter(k=>k.tur==="pompa").forEach(k=>{ pompa[k.ekipman] = k; });   // son olay
+  const tamirde = Object.values(pompa).filter(k=>k.olay==="tamire").sort((a,b)=>a.ts-b.ts);
+  const tank = {}; K.filter(k=>k.tur==="tank").forEach(k=>{ tank[k.ekipman] = k; });
+  const bakim = {}; K.filter(k=>k.tur==="bakim").forEach(k=>(k.ekipmanlar||[]).forEach(id=>{ if (id.startsWith("H-")) bakim[id] = k; }));
+  const gecikenH = HIDRO.filter(h=>!bakim[h.id] || gunOnce(bakim[h.id].ts) > HID_BAKIM_GUN);
+  return {pompa, tamirde, tank, bakim, gecikenH};
+}
+function tHidrofor(H){
+  const X = H.hid;
+  return `${X.tamirde.length ? `<div class="group-h">Tamirdeki pompalar</div><div class="list">${X.tamirde.map(k=>`<article class="ticket" data-s="onaylandi">
+      <div class="t-head"><span class="t-no">${esc(hidAd(k.ekipman))}</span><span class="chip" data-s="onaylandi">${gunOnce(k.ts)} gün</span></div>
+      <p class="t-desc">${tarihSaat(k.ts)} tamire gitti${k.firma?` · ${esc(k.firma)}`:""}${k.not?` · ${esc(k.not)}`:""}</p>
+      <div class="actions"><button class="act primary" data-t="pompaGeldi" data-v="${esc(k.ekipman)}">Tamirden geldi, takıldı</button></div></article>`).join("")}</div>`
+    : `<div class="t-uyari yesil">✓ Tamirde pompa yok</div>`}
+    <div class="t-hizli">
+      <button class="t-btn" data-t="form" data-v="pompa"><span>🔩</span>Pompa tamire gitti</button>
+      <button class="t-btn" data-t="form" data-v="tank"><span>🛢️</span>Basınç tankı değişti</button>
+      <button class="t-btn" data-t="form" data-v="bakim" data-id="H"><span>🔧</span>Hidrofor bakımı</button>
+    </div>
+    <div class="group-h">Hidroforlar (${HIDRO.length})</div><div class="hid-izgara">${HIDRO.map(h=>{
+      const sb = X.bakim[h.id], pompalar = ["A","U"].flatMap(z=>Array.from({length:h.n},(_,i)=>`${h.id}:${z}P${i+1}`));
+      const pRenk = id => X.pompa[id] && X.pompa[id].olay==="tamire" ? "kirmizi" : "yesil";
+      return `<div class="hid-k">
+        <div class="jen-ust"><b>${esc(h.ad)}</b><small>${h.n===3?"Çiftli blok · 3+3 pompa":"Tekli blok · 2+2 pompa"}</small></div>
+        ${["A","U"].map(z=>`<div class="hid-zon"><span>${zonAd(z)}</span>${Array.from({length:h.n},(_,i)=>{ const id=`${h.id}:${z}P${i+1}`; return `<i class="${pRenk(id)}" title="${esc(hidAd(id))}">${i+1}</i>`; }).join("")}<em title="Basınç tankı">🛢️ ${X.tank[`${h.id}:${z}T`] ? tarihSaat(X.tank[`${h.id}:${z}T`].ts).slice(0,5) : "—"}</em></div>`).join("")}
+        <small class="hint">Son bakım: ${sb ? `${tarihSaat(sb.ts).slice(0,5)} (${gunOnce(sb.ts)} gün)` : "kayıt yok"}${pompalar.some(id=>pRenk(id)==="kirmizi")?` · <b style="color:#d64040">pompa tamirde</b>`:""}</small>
+      </div>`; }).join("")}</div>
+    <p class="hint">🔴 tamirdeki pompa · 🛢️ tankın son değiştiği tarih · Hidrofor bakımı ${HID_BAKIM_GUN} günü geçerse uyarı verir.</p>`;
+}
+function hidSecim(f, tankMi){
+  const h = HIDRO.find(x=>x.id===f.unit);
+  return `<div class="group-h">Hangi blok?</div><div class="prefs bloklar hid">${HIDRO.map(x=>`<button class="pref" data-t="fUnit" data-v="${x.id}" aria-pressed="${f.unit===x.id}">${x.ad.replace(" Blok","")}</button>`).join("")}</div>
+    ${h ? `<div class="group-h">Zon</div><div class="prefs"><button class="pref" data-t="fZon" data-v="A" aria-pressed="${f.zon==="A"}">Alt zon</button><button class="pref" data-t="fZon" data-v="U" aria-pressed="${f.zon==="U"}">Üst zon</button></div>` : ""}
+    ${h && f.zon && !tankMi ? `<div class="group-h">Pompa</div><div class="prefs">${Array.from({length:h.n},(_,i)=>`<button class="pref" data-t="fPno" data-v="${i+1}" aria-pressed="${f.no===i+1}">Pompa ${i+1}</button>`).join("")}</div>` : ""}`;
+}
+
 const gunOnce = ts => Math.floor((Date.now()-ts)/864e5);
 const sureYaz = dk => dk < 60 ? `${dk} dk` : `${Math.floor(dk/60)} sa ${dk%60} dk`;
 const tarihSaat = ts => { const d = new Date(ts); return `${pad(d.getDate())}.${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
@@ -1075,7 +1132,7 @@ function tesisHesap(){
   kes.forEach(k=>{ if (k.olay==="basladi"){ if (!acik) acik = {bas:k.ts, by:k.by}; } else if (acik){ kesintiler.push({...acik, bit:k.ts, jen:k.jen||"", by2:k.by}); acik = null; } });
   const geciken = ASANSOR.filter(a => !sonBakim[a.id] || gunOnce(sonBakim[a.id].ts) > BAKIM_GUN);
   const dusukYakit = jenler().filter(j => yakit[j.id] && yakit[j.id].seviye < YAKIT_UYARI);
-  return {K, sonBakim, arizalar, acikAriza, yakit, kesintiler: kesintiler.reverse(), devamEden: acik, geciken, dusukYakit};
+  return {K, sonBakim, arizalar, acikAriza, yakit, kesintiler: kesintiler.reverse(), devamEden: acik, geciken, dusukYakit, hid: hidHesap(K)};
 }
 
 function tesisBaslat(){
@@ -1096,7 +1153,8 @@ function vTesis(){
   if (H.acikAriza.length) uyar.push(`<div class="t-uyari kirmizi">🛗 <b>${H.acikAriza.length} asansör arızalı</b>${H.acikAriza.some(a=>a.mahsur&&!a.geldi)?" · içeride mahsur kalan var!":""}</div>`);
   H.dusukYakit.forEach(j=>uyar.push(`<div class="t-uyari turuncu">⛽ <b>${esc(j.ad)}</b> yakıt %${H.yakit[j.id].seviye}</div>`));
   if (H.geciken.length) uyar.push(`<div class="t-uyari turuncu">🔧 <b>${H.geciken.length} asansörün</b> aylık bakımı gecikti ya da kaydı yok</div>`);
-  const sek = {ozet:"Özet", asansor:"Asansörler", jen:"Jeneratörler", kesinti:"Kesintiler"};
+  if (H.hid.tamirde.length) uyar.push(`<div class="t-uyari turuncu">🔩 <b>${H.hid.tamirde.length} hidrofor pompası</b> tamirde</div>`);
+  const sek = {ozet:"Özet", asansor:"Asansörler", hidrofor:"Hidrofor", jen:"Jeneratörler", kesinti:"Kesintiler"};
   return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
       <h2 style="margin:0;font:600 22px/1.2 var(--display)">Tesis takip</h2>
       <a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">← İş paneli</a></div>
@@ -1107,6 +1165,7 @@ function vTesis(){
         <button class="t-btn kirmizi" data-t="form" data-v="ariza"><span>🛗</span>Asansör arızası</button>
         <button class="t-btn" data-t="form" data-v="bakim"><span>🔧</span>Bakım yapıldı</button>
         <button class="t-btn" data-t="form" data-v="yakit"><span>⛽</span>Yakıt kaydı</button>
+        <button class="t-btn" data-t="sekme" data-v="hidrofor"><span>💧</span>Hidrofor</button>
         ${H.devamEden ? `<button class="t-btn yesil" data-t="form" data-v="kesinti-bitti"><span>💡</span>Elektrik geldi</button>`
                       : `<button class="t-btn" data-t="kesinti-basladi"><span>⚡</span>Elektrik kesildi</button>`}
       </div>
@@ -1117,6 +1176,7 @@ function vTesis(){
         <div class="grid2"><button class="cta ghost" data-t="rapor" data-v="bu">📥 Bu ay</button><button class="cta ghost" data-t="rapor" data-v="gecen">📥 Geçen ay</button></div></div>`
     : T.sekme==="asansor" ? `${tAcikArizalar(H)}${tAsansorIzgara(H)}`
     : T.sekme==="jen" ? `${tJenKartlar(H, false)}`
+    : T.sekme==="hidrofor" ? tHidrofor(H)
     : `${tKesintiOzet(H, true)}`}
     ${T.sekme==="ozet" || T.sekme==="jen" ? tAyarlar() : ""}
     ${T.f ? tForm() : ""}
@@ -1216,16 +1276,27 @@ function tForm(){
   } else if (f.tip==="bakim"){
     const as = f.ekipmanlar || [];
     ic = `<h2>🔧 Bakım yapıldı</h2>
-      <div class="prefs"><button class="pref" data-t="fBakimTur" data-v="asansor" aria-pressed="${f.bt!=="jen"}">Asansör</button><button class="pref" data-t="fBakimTur" data-v="jen" aria-pressed="${f.bt==="jen"}">Jeneratör</button></div>
-      ${f.bt==="jen"
+      <div class="prefs"><button class="pref" data-t="fBakimTur" data-v="asansor" aria-pressed="${f.bt==="asansor"}">Asansör</button><button class="pref" data-t="fBakimTur" data-v="jen" aria-pressed="${f.bt==="jen"}">Jeneratör</button><button class="pref" data-t="fBakimTur" data-v="hid" aria-pressed="${f.bt==="hid"}">Hidrofor</button></div>
+      ${f.bt==="hid"
+        ? `<div class="group-h">Bakımı yapılan hidroforlar</div><button class="pill-btn" data-t="fHidHepsi" style="margin-bottom:8px">${as.length===HIDRO.length?"Seçimi temizle":`Tüm hidroforlar (${HIDRO.length})`}</button>
+           <div class="prefs bloklar hid">${HIDRO.map(x=>`<button class="pref" data-t="fEk" data-v="${x.id}" aria-pressed="${as.includes(x.id)}">${x.ad.replace(" Blok","")}</button>`).join("")}</div>`
+        : f.bt==="jen"
         ? `<div class="group-h">Hangi jeneratör(ler)?</div><div class="prefs">${j.map(x=>`<button class="pref" data-t="fEk" data-v="${x.id}" aria-pressed="${as.includes(x.id)}">${esc(x.ad)}</button>`).join("")}</div>`
         : `<div class="group-h">Bakımı yapılan bloklar <small>(bloktaki 2 asansör birlikte)</small></div>
            <button class="pill-btn" data-t="fHepsi" style="margin-bottom:8px">${as.length===ASANSOR.length?"Seçimi temizle":"Tüm asansörler (44)"}</button>
            ${blokSec(b=>as.includes(b+"-1")&&as.includes(b+"-2"))}
            <p class="hint">${as.length} asansör seçili</p>`}
-      <label class="f">Firma<input id="t_firma" value="${esc(f.firma ?? (f.bt==="jen"?"":"Omak"))}"></label>
+      <label class="f">Firma<input id="t_firma" value="${esc(f.firma ?? (f.bt==="asansor"?"Omak":""))}"></label>
       <label class="f">Yapılan iş / not<input id="t_not" maxlength="200" placeholder="Örn. Aylık periyodik bakım" value="${esc(f.not||"")}"></label>
       <label class="foto-ekle" style="margin-top:6px"><input type="file" accept="image/*" capture="environment" id="t_foto" hidden><span>${f.foto?"✓ Servis formu eklendi (değiştir)":"📷 Servis formunun fotoğrafı"}</span><small>isteğe bağlı</small></label>`;
+  } else if (f.tip==="pompa"){
+    ic = `<h2>🔩 Pompa tamire gitti</h2>${hidSecim(f, false)}
+      <label class="f">Tamir eden firma / usta<input id="t_firma" value="${esc(f.firma||"")}"></label>
+      <label class="f">Arıza / not<input id="t_not" maxlength="200" placeholder="Örn. Salmastra kaçırıyor, motor sargısı yandı" value="${esc(f.not||"")}"></label>`;
+  } else if (f.tip==="tank"){
+    ic = `<h2>🛢️ Basınç tankı değişti</h2>${hidSecim(f, true)}
+      <label class="f">Not (marka, litre, sebep)<input id="t_not" maxlength="200" placeholder="Örn. 100 L membran patlamıştı" value="${esc(f.not||"")}"></label>
+      <label class="f">Tutar (₺, isteğe bağlı)<input type="number" id="t_tutar" inputmode="numeric" value="${esc(f.tutar??"")}"></label>`;
   } else if (f.tip==="yakit"){
     ic = `<h2>⛽ Yakıt kaydı</h2>
       <div class="prefs">${j.map(x=>`<button class="pref" data-t="fJen" data-v="${x.id}" aria-pressed="${f.ekipman===x.id}">${esc(x.ad)}<small style="display:block;font-weight:400">${esc(x.bolge)}</small></button>`).join("")}</div>
@@ -1246,6 +1317,8 @@ function tFormHazir(){
   const f = T.f; if (!f) return false;
   if (f.tip==="ariza") return !!(f.blok && f.no && f.mahsur !== undefined);
   if (f.tip==="bakim") return (f.ekipmanlar||[]).length > 0;
+  if (f.tip==="pompa") return !!(f.unit && f.zon && f.no);
+  if (f.tip==="tank") return !!(f.unit && f.zon);
   if (f.tip==="yakit") return !!(f.ekipman && f.seviye !== "" && f.seviye !== undefined && +f.seviye >= 0 && +f.seviye <= 100);
   if (f.tip==="kesinti-bitti") return f.jen !== undefined;
   return false;
@@ -1259,6 +1332,8 @@ async function tKaydet(){
   tSync(); const f = T.f; if (!tFormHazir()) return;
   const by = "Teknisyen"; let rec;
   if (f.tip==="ariza") rec = {tur:"ariza", ekipman:`${f.blok}-${f.no}`, mahsur:!!f.mahsur, not:(f.not||"").trim(), by};
+  if (f.tip==="pompa") rec = {tur:"pompa", olay:"tamire", ekipman:`${f.unit}:${f.zon}P${f.no}`, firma:(f.firma||"").trim(), not:(f.not||"").trim(), by};
+  if (f.tip==="tank") rec = {tur:"tank", ekipman:`${f.unit}:${f.zon}T`, not:(f.not||"").trim(), ...(f.tutar?{tutar:+f.tutar}:{}), by};
   if (f.tip==="bakim") rec = {tur:"bakim", ekipmanlar:f.ekipmanlar.slice(), firma:(f.firma ?? "").trim(), not:(f.not||"").trim(), fotoSayi: f.foto?1:0, by};
   if (f.tip==="yakit") rec = {tur:"yakit", ekipman:f.ekipman, tip:f.ytip==="dolum"?"dolum":"olcum", seviye:Math.round(+f.seviye), ...(f.litre?{litre:+f.litre}:{}), ...(f.tutar?{tutar:+f.tutar}:{}), ...(f.saat?{saat:+f.saat}:{}), by};
   if (f.tip==="kesinti-bitti") rec = {tur:"kesinti", olay:"bitti", jen:f.jen||"", by};
@@ -1305,6 +1380,9 @@ function tRapor(hangi){
     ["Asansör arızaları", [["Tarih","Asansör","Mahsur","Not","Bildirildi","Servis geldi","Geliş (dk)","Çözüldü","Çözüm (dk)"], ...ar.map(k=>[tarihSaat(k.ts), asAd(k.ekipman), k.mahsur?"Evet":"", k.not||"", k.bildirildi?tarihSaat(k.bildirildi):"", k.geldi?tarihSaat(k.geldi):"", k.geldi?Math.round((k.geldi-(k.bildirildi||k.ts))/6e4):"", k.cozuldu?tarihSaat(k.cozuldu):"Açık", k.cozuldu?Math.round((k.cozuldu-k.ts)/6e4):""])], [13,24,8,30,13,13,10,13,10], 0],
     ["Bakımlar", [["Tarih","Ekipman","Firma","Not"], ...bk.map(k=>[tarihSaat(k.ts), (k.ekipmanlar||[]).length > 4 ? `${k.ekipmanlar.length} ekipman: ${k.ekipmanlar.join(", ")}` : (k.ekipmanlar||[]).map(ekAd).join(", "), k.firma||"", k.not||""])], [13,60,16,36], 0],
     ["Yakıt", [["Tarih","Jeneratör","Kayıt","Seviye %","Litre","Tutar ₺","Çalışma saati"], ...yk.map(k=>[tarihSaat(k.ts), jenAd(k.ekipman), k.tip==="dolum"?"Yakıt alındı":"Ölçüm", k.seviye, k.litre||"", k.tutar||"", k.saat||""])], [13,18,14,10,9,10,14], 0],
+    ["Hidrofor", [["Tarih","Kayıt","Ekipman","Firma","Not","Tutar ₺"], ...K.filter(k=>k.tur==="pompa"||k.tur==="tank"||(k.tur==="bakim"&&(k.ekipmanlar||[]).some(x=>x.startsWith("H-")))).map(k=>[tarihSaat(k.ts),
+      k.tur==="pompa" ? (k.olay==="tamire"?"Pompa tamire gitti":"Pompa tamirden geldi") : k.tur==="tank" ? "Basınç tankı değişti" : "Hidrofor bakımı",
+      k.tur==="bakim" ? k.ekipmanlar.filter(x=>x.startsWith("H-")).map(hidAd).join(", ") : hidAd(k.ekipman), k.firma||"", k.not||"", k.tutar||""])], [13,22,46,16,34,10], 0],
     ["Kesintiler", [["Başladı","Bitti","Süre (dk)","Jeneratör","Bildiren"], ...ks.slice().reverse().map(k=>[tarihSaat(k.bas), tarihSaat(k.bit), Math.round((k.bit-k.bas)/6e4), k.jen==="evet"?"Çalıştı":k.jen==="hayir"?"Çalışmadı":"", k.by||""])], [13,13,10,12,20], 0]
   ];
   const blob = XLSXW(sayfalar), u = URL.createObjectURL(blob), l = document.createElement("a");
@@ -1323,7 +1401,7 @@ document.addEventListener("click", async e => {
     T.detay = null;
     T.f = {tip:v};
     if (v==="ariza" && id){ const a = ASANSOR.find(x=>x.id===id); T.f.blok = a.blok; T.f.no = a.n; }
-    if (v==="bakim"){ T.f.bt = id && id[0]==="J" ? "jen" : "asansor"; T.f.ekipmanlar = id ? [id] : []; }
+    if (v==="bakim"){ T.f.bt = id==="H" ? "hid" : id && id[0]==="J" ? "jen" : "asansor"; T.f.ekipmanlar = id && id!=="H" ? [id] : []; }
     if (v==="yakit"){ T.f.ekipman = id || ""; T.f.ytip = "olcum"; }
     render();
   }
@@ -1335,6 +1413,14 @@ document.addEventListener("click", async e => {
   else if (t==="fHepsi"){ T.f.ekipmanlar = T.f.ekipmanlar.length===ASANSOR.length ? [] : ASANSOR.map(a=>a.id); render(); }
   else if (t==="fNo"){ T.f.no = +v; render(); }
   else if (t==="fMahsur"){ T.f.mahsur = v==="1"; render(); }
+  else if (t==="fUnit"){ T.f.unit = v; T.f.no = null; render(); }
+  else if (t==="fZon"){ T.f.zon = v; render(); }
+  else if (t==="fPno"){ T.f.no = +v; render(); }
+  else if (t==="fHidHepsi"){ T.f.ekipmanlar = T.f.ekipmanlar.length===HIDRO.length ? [] : HIDRO.map(h=>h.id); render(); }
+  else if (t==="pompaGeldi"){
+    try { await store.addTesis({tur:"pompa", olay:"geldi", ekipman:v, by:"Teknisyen", ts:Date.now()}); toast("Pompa yerine takıldı olarak kaydedildi"); }
+    catch(err){ console.error(err); toast("Kaydedilemedi"); }
+  }
   else if (t==="fBakimTur"){ T.f.bt = v; T.f.ekipmanlar = []; T.f.firma = undefined; render(); }
   else if (t==="fEk"){ const L = T.f.ekipmanlar, i = L.indexOf(v); i<0 ? L.push(v) : L.splice(i,1); render(); }
   else if (t==="fJen"){ T.f.ekipman = v; render(); }
