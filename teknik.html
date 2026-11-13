@@ -546,6 +546,7 @@ function DemoStore(){
     async kodOku(kod, ayar){ if (ayar) return {aktif:true}; const K = (mem.kodlar ||= {"123456":{ad:"Demo Personel",rol:"Temizlik",tip:"personel",aktif:true},"654321":{ad:"Demo Güvenlik",tip:"guvenlik",vardiya:"1. Vardiya",aktif:true}}); return K[kod] ? {id:kod, ...K[kod]} : null; },
     listenKod: cb => sub(() => cb(Object.entries(mem.kodlar ||= {"123456":{ad:"Demo Personel",rol:"Temizlik",tip:"personel",aktif:true},"654321":{ad:"Demo Güvenlik",tip:"guvenlik",vardiya:"1. Vardiya",aktif:true}}).map(([id,v])=>({id,...v})))),
     async setKod(id, v){ (mem.kodlar ||= {})[id] = v; save(); },
+    async deleteKod(id){ delete (mem.kodlar ||= {})[id]; save(); },
     async updateKod(id, p){ Object.assign((mem.kodlar ||= {})[id] || {}, p); save(); },
     async addFoto(aid, i, data){ (mem.foto ||= {})[aid] ||= []; mem.foto[aid][i] = data; try { save(); } catch(e){} },
     async getFoto(aid){ return ((mem.foto || {})[aid] || []).filter(Boolean); },
@@ -631,6 +632,7 @@ function FirebaseStore(cfg){
     async kodOku(kod, ayar){ if (!ayar && !/^\d{6}$/.test(kod)) return null; const r = await fs.getDoc(fs.doc(db,"kod",kod)); return r.exists() ? {id:r.id, ...r.data()} : null; },
     listenKod(cb){ return fs.onSnapshot(fs.collection(db,"kod"), s => cb(s.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.error(e); cb([]); }); },
     async setKod(id, v){ await fs.setDoc(fs.doc(db,"kod",id), v); },
+    async deleteKod(id){ await fs.deleteDoc(fs.doc(db,"kod",id)); },
     async updateKod(id, p){ await fs.updateDoc(fs.doc(db,"kod",id), p); },
     async getFoto(aid){
       const s = await fs.getDocs(fs.query(fs.collection(db, "foto"), fs.where("aid", "==", aid)));
@@ -1773,8 +1775,16 @@ function kodPanel(){
       ? `🔒 <b>Kod zorunlu.</b> Kodsuz kimse bildirim gönderemez. <button class="pill-btn" data-act="kodZorunlu" data-v="0">Zorunluluğu kaldır</button>`
       : `🔓 <b>Geçiş dönemi:</b> kodsuz da kullanılabiliyor. Kodları dağıttıktan sonra açın. <button class="pill-btn" data-act="kodZorunlu" data-v="1">Kodu zorunlu yap</button>`}</div>
     ${guvYok ? `<button class="cta ghost" data-act="kodGuvToplu" style="margin-top:8px">🛡️ Güvenlik listesindeki ${VARDIYA.reduce((s,v)=>s+v.kisiler.length,0)} kişiye kod oluştur</button>` : ""}
+    ${kodTekrarlar().length ? `<div class="t-uyari"><b>${kodTekrarlar().length} kişiye iki kez kod verilmiş.</b> Her kişinin ilk kodu kalsın, fazlası silinsin: <button class="pill-btn cikis-btn" data-act="kodTekrarSil">Fazla kodları sil</button></div>` : ""}
     <div class="kod-liste">${L.length ? L.map(satir).join("") : `<p class="hint">Henüz kod yok.</p>`}</div>
   </details>`;
+}
+/* Aynı kişiye birden fazla aktif kod: en eskisi kalır, gerisi silinecekler listesi */
+function kodTekrarlar(){
+  const g = {}, sil = [];
+  KOD.liste.filter(k=>k.aktif!==false).sort((a,b)=>(a.ts||0)-(b.ts||0)||a.id.localeCompare(b.id))
+    .forEach(k=>{ const a = k.tip + "|" + (k.ad||"").trim().toLocaleLowerCase("tr"); if (g[a]) sil.push(k); else g[a] = 1; });
+  return sil;
 }
 function kodMesaj(k){
   const link = location.origin + location.pathname.replace(/[^/]*$/, "");
@@ -1914,9 +1924,17 @@ document.addEventListener("click", async e => {
     }
     else if (act==="kodGuvToplu"){
       if (b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = "Emin misiniz? Tekrar basın"; return; }
+      if (KOD.toplu) return; KOD.toplu = true; b.disabled = true; b.textContent = "Oluşturuluyor…";
       let n = 0;
-      for (const v3 of VARDIYA) for (const [ad] of v3.kisiler){ const id = await yeniKod(); await store.setKod(id, {ad, tip:"guvenlik", vardiya:v3.ad, aktif:true, ts:Date.now()}); KOD.liste.push({id, ad, tip:"guvenlik", vardiya:v3.ad, aktif:true}); n++; }
+      const var_ = ad => KOD.liste.some(k=>k.tip==="guvenlik" && k.aktif!==false && k.ad===ad);
+      try { for (const v3 of VARDIYA) for (const [ad] of v3.kisiler){ if (var_(ad)) continue; const id = await yeniKod(); await store.setKod(id, {ad, tip:"guvenlik", vardiya:v3.ad, aktif:true, ts:Date.now()}); KOD.liste.push({id, ad, tip:"guvenlik", vardiya:v3.ad, aktif:true}); n++; } } finally { KOD.toplu = false; }
       S.kodAcik = true; toast(`${n} güvenlik kodu oluşturuldu`); render();
+    }
+    else if (act==="kodTekrarSil"){
+      if (b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = "Emin misiniz? Tekrar basın"; return; }
+      const sil = kodTekrarlar(); b.disabled = true;
+      for (const k of sil){ await store.deleteKod(k.id); }
+      KOD.liste = KOD.liste.filter(k=>!sil.includes(k)); toast(`${sil.length} tekrar eden kod silindi`); render();
     }
     else if (act==="pFotoSil"){ syncForm(); S.p.foto.splice(+v, 1); render(); }
     else if (act==="foto"){ fotoGoster(id); }
