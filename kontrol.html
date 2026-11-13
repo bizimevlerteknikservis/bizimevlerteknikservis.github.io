@@ -513,11 +513,11 @@ function devriyeBaslat(){
   }
   $("#mapTitle").textContent = "Gece devriyesi";
   $("#mapSub").textContent = LIVE.on ? "21 kontrol noktası · son QR okutmaya göre renklenir · canlı" : "21 kontrol noktası · son QR okutmaya göre renklenir";
-  legend([[cssv("--ok"),"30 dk içinde"],[cssv("--warn"),"30–90 dk"],[cssv("--bad"),"90 dk+ uğranmadı"],[cssv("--muted"),"Bugün okutulmadı"]].concat(LIVE.on?[]:[[cssv("--accent"),"Görevli (demo)"]]));
+  legend([[cssv("--ok"),"30 dk içinde"],[cssv("--warn"),"30–90 dk"],[cssv("--bad"),"90 dk+ uğranmadı"],[cssv("--muted"),"Bugün okutulmadı"],[cssv("--accent"),LIVE.on?"Görevli (son okuttuğu yer)":"Görevli (demo)"]]);
   L.over.innerHTML = "";
   devriyeRenk(); devriyePanel();
-  timers.push(setInterval(()=>{ devriyeRenk(); devriyePanel(); }, LIVE.on ? 20000 : 3000));
-  if (LIVE.on) return;
+  timers.push(setInterval(()=>{ devriyeRenk(); devriyePanel(); canliGorevli(); }, LIVE.on ? 20000 : 3000));
+  if (LIVE.on){ canliGorevli(); return; }
   L.rota = el("g",{},L.over);
   DEV.gorevli.forEach(g=>{
     g.trail = el("path",{fill:"none",stroke:"var(--accent)","stroke-width":2,"stroke-dasharray":"4 6",opacity:.5},L.rota);
@@ -542,6 +542,49 @@ function devriyeBaslat(){
     raf = requestAnimationFrame(step);
   };
   raf = requestAnimationFrame(step);
+}
+/* Canlı modda görevliler: son okuttuğu noktada durur, yeni okutmada oraya yürür */
+const GOREV_DK = 60;   // son okutması bu kadar dakikadan eskiyse haritada gösterme
+const CG = {};
+const kisaAd = ad => { const p = String(ad||"").trim().split(/\s+/); return p.length>1 ? `${p[0]} ${p[p.length-1][0]}.` : p[0]||"Görevli"; };
+function canliGorevli(yeniler){
+  if (!LIVE.on || MODE!=="gece") return;
+  if (!L.cg || !L.cg.isConnected){ L.cg = el("g",{},L.over); Object.keys(CG).forEach(k=>delete CG[k]); }
+  const son = {}, once = {};
+  [...DEV.kayit].sort((a,b)=>b.ts-a.ts).forEach(k=>{ if (!N[k.nokta]) return; if (!son[k.gorevli]) son[k.gorevli] = k; else if (!once[k.gorevli]) once[k.gorevli] = k; });
+  const yeniKim = new Set((yeniler||[]).filter(k=>k.tip!=="sorun").map(k=>k.gorevli));
+  const aktif = Object.values(son).filter(k=>dkOnce(k.ts) < GOREV_DK);
+  // aynı noktadaki görevlileri yan yana diz
+  const say = {};
+  aktif.forEach(k=>{
+    const n = N[k.nokta], sira = (say[k.nokta] = (say[k.nokta]||0) + 1) - 1;
+    const hx = n.x + 22 + sira*6, hy = n.y - 4 - sira*26;
+    let g = CG[k.gorevli];
+    if (!g){
+      g = CG[k.gorevli] = {x:hx, y:hy};
+      g.trail = el("path",{fill:"none",stroke:"var(--accent)","stroke-width":2.5,"stroke-dasharray":"5 6",opacity:0},L.cg);
+      g.node = el("g",{class:"guard"},L.cg);
+      el("circle",{r:16,fill:"var(--accent)",opacity:.2},g.node);
+      el("circle",{r:8,fill:"var(--accent)",stroke:"var(--panel)","stroke-width":3},g.node);
+      g.label = el("text",{class:"gname",y:-14},g.node);
+      const o = once[k.gorevli];
+      if (yeniKim.has(k.gorevli) && o && N[o.nokta]){ g.x = N[o.nokta].x + 22; g.y = N[o.nokta].y - 4; }
+    }
+    g.label.textContent = `${kisaAd(k.gorevli)} · ${dkOnce(k.ts)} dk`;
+    g.node.style.opacity = dkOnce(k.ts) < 20 ? 1 : .5;
+    if (yeniKim.has(k.gorevli) && (Math.abs(g.x-hx) > 1 || Math.abs(g.y-hy) > 1)){
+      const x0 = g.x, y0 = g.y, t0 = performance.now(), sure = Math.min(4500, Math.max(1500, Math.hypot(hx-x0, hy-y0)*9));
+      g.trail.setAttribute("d", `M${x0} ${y0} L${hx} ${hy}`); g.trail.style.transition = "none"; g.trail.style.opacity = .7;
+      cancelAnimationFrame(g.anim);
+      const adim = t => { const p = Math.min(1, (t-t0)/sure), e = p<.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
+        g.x = x0 + (hx-x0)*e; g.y = y0 + (hy-y0)*e; g.node.setAttribute("transform", `translate(${g.x} ${g.y})`);
+        if (p < 1) g.anim = requestAnimationFrame(adim);
+        else { g.trail.style.transition = "opacity 4s"; setTimeout(()=>{ g.trail.style.opacity = 0; }, 6000); } };
+      g.anim = requestAnimationFrame(adim);
+    } else { g.x = hx; g.y = hy; g.node.setAttribute("transform", `translate(${hx} ${hy})`); }
+  });
+  // süresi geçenleri kaldır
+  Object.keys(CG).forEach(ad=>{ if (!aktif.find(k=>k.gorevli===ad)){ CG[ad].node.remove(); CG[ad].trail.remove(); delete CG[ad]; } });
 }
 function okut(g, n){
   n.son = Date.now(); g.son = {n:n.ad,t:new Date()};
@@ -750,7 +793,7 @@ function devriyeVeri(docs, yeniler){
     else { if (MODE==="gece") ripple(n.x,n.y,cssv("--ok"));
       ticker(`✅ ${n.no}. ${n.ad} · ${k.gorevli}`); feed("ok", `${n.no}. ${n.ad}`, `QR okutuldu · ${k.gorevli}`); }
   });
-  if (MODE==="gece"){ devriyeRenk(); devriyePanel(); }
+  if (MODE==="gece"){ devriyeRenk(); devriyePanel(); canliGorevli(yeniler); }
 }
 
 /* ============ AFET: Güvendeyim ============ */
