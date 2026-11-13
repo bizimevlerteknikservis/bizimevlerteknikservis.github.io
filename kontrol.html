@@ -95,6 +95,11 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .duzenle .nkt .cp-core{fill:var(--accent)!important;stroke:#fff}
 .duzenle .nkt .pulse{display:none}
 .nkt.secili .cp-core{fill:#f59e0b!important}
+.nkt .cp-core,.nkt .pulse{transform-box:fill-box;transform-origin:center}
+.nkt.yanip .cp-core{animation:yanip 1s ease-in-out infinite;stroke:#eafff1;stroke-width:2.5}
+.nkt.yanip .pulse{animation:yanipHalo 1s ease-out infinite;opacity:.6}
+@keyframes yanip{0%,100%{fill:var(--ok);transform:scale(1)}50%{fill:#7dffb0;transform:scale(1.28);filter:drop-shadow(0 0 8px var(--ok))}}
+@keyframes yanipHalo{0%{transform:scale(.8);opacity:.75}100%{transform:scale(2.3);opacity:0}}
 .ov{pointer-events:none}
 .duzenle .ov{display:none}
 .blk.secili .roof{fill:var(--accent)!important;stroke:var(--accent)}
@@ -174,6 +179,7 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
   .maphead span{display:none}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (prefers-reduced-motion:reduce){.nkt.yanip .cp-core{animation:yanip 1.4s ease-in-out infinite!important}}
 </style>
 <style>[hidden]{display:none!important}</style>
 </head>
@@ -545,7 +551,20 @@ function okut(g, n){
 }
 const renkDk = dk => dk < 30 ? "--ok" : dk < 90 ? "--warn" : "--bad";
 const nRenk = n => n.son ? renkDk(dkOnce(n.son)) : "--muted";
-function devriyeRenk(){ NOKTA.forEach(n=>{ const c = cssv(nRenk(n)); n.dot.style.fill = c; n.halo.style.fill = c; n.halo.style.display = (n.son && dkOnce(n.son)>=90) ? "" : "none"; }); }
+const YANIP_SN = 120;   // yeni okutulan nokta kaç saniye yeşil yanıp sönsün
+let yanipT = 0;
+function devriyeRenk(){
+  let enYakin = Infinity;
+  NOKTA.forEach(n=>{
+    const c = cssv(nRenk(n)); n.dot.style.fill = c; n.halo.style.fill = c;
+    const kalan = n.son ? YANIP_SN*1000 - (Date.now() - n.son) : -1;
+    const yanip = kalan > 0;
+    n.g.classList.toggle("yanip", yanip);
+    if (yanip){ n.halo.style.fill = cssv("--ok"); enYakin = Math.min(enYakin, kalan); }
+    n.halo.style.display = yanip || (n.son && dkOnce(n.son)>=90) ? "" : "none";
+  });
+  clearTimeout(yanipT); if (enYakin < Infinity) yanipT = setTimeout(()=>{ if (MODE==="gece") devriyeRenk(); }, enYakin + 50);
+}
 function devriyePanel(){
   const sirali = [...NOKTA].sort((a,b)=>(a.son||0)-(b.son||0));
   const kirmizi = NOKTA.filter(n=>!n.son || dkOnce(n.son)>=90);
