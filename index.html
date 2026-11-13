@@ -636,7 +636,7 @@ const kayitli = yerel("site-servis-iletisim") || {};
 const pKayit = yerel("site-servis-personel") || {};
 if (pKayit.rol === "Bahçe") pKayit.rol = "Bahçıvan / Peyzaj";
 const S = {
-  p: {rol:pKayit.rol||"", name:pKayit.name||"", kayitli:!!pKayit.name, kimlikAc:false, cat:pKayit.rol===BAHCIVAN?"p_bahce":null, issues:[], yerTip:"blok", block:"", kat:"", alan:"", desc:"", foto:[]},
+  p: {rol:pKayit.rol||"", name:pKayit.name||"", kayitli:!!pKayit.name, kimlikAc:false, cat:pKayit.rol===BAHCIVAN?"p_bahce":null, issues:[], yerTip:pKayit.rol===BAHCIVAN?"alan":"blok", block:"", kat:"", alan:"", desc:"", foto:[]},
   pSent: null,
   d: {kim: yerel("bz1-gorevli") || null, son: null, sorunAc: false, sorunNot: "", bekleyen: null, kimAc: false},
   view: "randevu",
@@ -777,10 +777,10 @@ function vPersonel(){
     ${p.cat ? `<div class="issues" style="margin-top:6px">${PARIZA[p.cat].map(x => `<button class="iss" data-act="pIss" data-v="${esc(x)}" aria-pressed="${p.issues.includes(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
   </section>
   <section class="step"><h2><span>2</span>${p.cat==="p_malzeme" ? "Nereye lazım?" : "Nerede?"}</h2>
-    <div class="prefs">
+    ${p.rol===BAHCIVAN ? `<p class="hint">Ortak alanı seçin.</p>` : `<div class="prefs">
       <button class="pref" data-act="pYer" data-v="blok" aria-pressed="${p.yerTip==="blok"}">Blok içinde</button>
       <button class="pref" data-act="pYer" data-v="alan" aria-pressed="${p.yerTip==="alan"}">Ortak alanda</button>
-    </div>
+    </div>`}
     ${p.yerTip==="blok" ? `<div class="grid2">
         <label class="f">Blok<select id="p_block"><option value="">Seçin</option>${AYAR.bloklar.map(b => `<option ${p.block===b?"selected":""}>${esc(b)}</option>`).join("")}</select></label>
         <label class="f">Kat${p.cat==="p_malzeme"?" (isteğe bağlı)":""}<select id="p_kat"><option value="">Seçin</option>${KATLAR.map(k => `<option ${p.kat===k?"selected":""}>${k}</option>`).join("")}</select></label>
@@ -1558,7 +1558,8 @@ document.addEventListener("click", async e => {
     else if (act==="dSorunKapat"){ S.d.sorunAc = false; S.d.sorunNot = ""; render(); }
     else if (act==="dSorunHazir"){ S.d.sorunNot = v; render(); }
     else if (act==="dSorunGonder"){ await sorunGonder(); }
-    else if (act==="pRol"){ syncForm(); if (S.p.rol === BAHCIVAN && v !== BAHCIVAN){ S.p.cat = ""; S.p.issues = []; } S.p.rol = v;
+    else if (act==="pRol"){ syncForm(); if (S.p.rol === BAHCIVAN && v !== BAHCIVAN){ S.p.cat = ""; S.p.issues = []; S.p.yerTip = "blok"; } S.p.rol = v;
+      if (v === BAHCIVAN) S.p.yerTip = "alan";   // bahçıvan: sadece ortak alan
       if (S.p.cat && !rolKat(v, {id:S.p.cat})){ S.p.cat = ""; S.p.issues = []; }
       if (v === BAHCIVAN && !S.p.cat){ S.p.cat = "p_bahce"; S.p.issues = []; }   // tek kategori: otomatik seç
       render(); }
