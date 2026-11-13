@@ -543,7 +543,7 @@ function DemoStore(){
     async update(a, patch){ const r = bul(a); if (r){ Object.assign(r, patch); save(); } },
     async login(_, pin){ if (pin !== AYAR.demoPin) throw {code:"giris"}; tech = true; save(); },
     async addDevriye(r){ (mem.devriye ||= []).push({...r, uid: mem.uid}); save(); },
-    async kodOku(kod){ const K = (mem.kodlar ||= {"123456":{ad:"Demo Personel",rol:"Temizlik",tip:"personel",aktif:true},"654321":{ad:"Demo Güvenlik",tip:"guvenlik",vardiya:"1. Vardiya",aktif:true}}); return K[kod] ? {id:kod, ...K[kod]} : null; },
+    async kodOku(kod, ayar){ if (ayar) return {aktif:true}; const K = (mem.kodlar ||= {"123456":{ad:"Demo Personel",rol:"Temizlik",tip:"personel",aktif:true},"654321":{ad:"Demo Güvenlik",tip:"guvenlik",vardiya:"1. Vardiya",aktif:true}}); return K[kod] ? {id:kod, ...K[kod]} : null; },
     listenKod: cb => sub(() => cb(Object.entries(mem.kodlar ||= {"123456":{ad:"Demo Personel",rol:"Temizlik",tip:"personel",aktif:true},"654321":{ad:"Demo Güvenlik",tip:"guvenlik",vardiya:"1. Vardiya",aktif:true}}).map(([id,v])=>({id,...v})))),
     async setKod(id, v){ (mem.kodlar ||= {})[id] = v; save(); },
     async updateKod(id, p){ Object.assign((mem.kodlar ||= {})[id] || {}, p); save(); },
@@ -628,7 +628,7 @@ function FirebaseStore(cfg){
     async addFoto(aid, i, data, kod){
       await fs.setDoc(fs.doc(db, "foto", aid + "_" + i), {aid, i, data, uid: user.uid, ts: Date.now(), ...(kod ? {kod} : {})});
     },
-    async kodOku(kod){ if (!/^\d{6}$/.test(kod)) return null; const r = await fs.getDoc(fs.doc(db,"kod",kod)); return r.exists() ? {id:r.id, ...r.data()} : null; },
+    async kodOku(kod, ayar){ if (!ayar && !/^\d{6}$/.test(kod)) return null; const r = await fs.getDoc(fs.doc(db,"kod",kod)); return r.exists() ? {id:r.id, ...r.data()} : null; },
     listenKod(cb){ return fs.onSnapshot(fs.collection(db,"kod"), s => cb(s.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.error(e); cb([]); }); },
     async setKod(id, v){ await fs.setDoc(fs.doc(db,"kod",id), v); },
     async updateKod(id, p){ await fs.updateDoc(fs.doc(db,"kod",id), p); },
@@ -684,7 +684,7 @@ if (pKayit.rol === "Bahçe") pKayit.rol = "Bahçıvan / Peyzaj";
 const S = {
   p: {kod: pKod ? pKod.kod : null, rol:pKayit.rol||"", name:pKayit.name||"", kayitli:!!pKayit.name, kimlikAc:false, cat:pKayit.rol===BAHCIVAN?"p_bahce":null, issues:[], yerTip:pKayit.rol===BAHCIVAN?"alan":"blok", block:"", kat:"", alan:"", desc:"", foto:[]},
   pSent: null,
-  d: {kim: yerel("bz1-kod-guvenlik") || null, son: null, sorunAc: false, sorunNot: "", bekleyen: null, kimAc: false},
+  d: {kim: yerel("bz1-kod-guvenlik") || yerel("bz1-gorevli") || null, son: null, sorunAc: false, sorunNot: "", bekleyen: null, kimAc: false},
   view: "randevu",
   form: {cat:null, issues:[], desc:"", name:kayitli.name||"", block:kayitli.block||AYAR.bloklar[0], flat:kayitli.flat||"", phone:kayitli.phone||""},
   mine: [], all: [], sent: null, err: "", sending: false,
@@ -820,8 +820,17 @@ function vPersonel(){
       <button class="cta" data-act="pYeni">Yeni bildirim yap</button>
     </div>${personelListe()}`;
   }
-  if (!p.kod) return `${kurBanner("B1 Personel")}${kodGirisEkrani("personel")}`;
-  const kimlik = `<section class="step who"><div><small>Bildiren</small><b>${esc(p.name)}</b> · ${esc(p.rol)}</div><button class="pill-btn" data-act="kodCikis" data-v="personel">Kodu değiştir</button></section>`;
+  if (!p.kod && (S.kodZorunlu || p.kodGir)) return `${kurBanner("B1 Personel")}${kodGirisEkrani("personel")}`;
+  const kimlik = p.kod
+    ? `<section class="step who"><div><small>Bildiren</small><b>${esc(p.name)}</b> · ${esc(p.rol)}</div><button class="pill-btn" data-act="kodCikis" data-v="personel">Kodu değiştir</button></section>`
+    : p.kayitli && p.name && p.rol && !p.kimlikAc
+    ? `<section class="step who"><div><small>Bildiren</small><b>${esc(p.name)}</b> · ${esc(p.rol)}</div><button class="pill-btn" data-act="pKimlik">Değiştir</button></section>`
+    : `<section class="step"><h2><span>👷</span>Siz kimsiniz?</h2>
+        <p class="hint"><button class="pill-btn" data-act="kodGirAc" data-v="personel">🔑 Kodum var</button></p>
+        <div class="prefs">${ROLLER.map(r=>`<button class="pref" data-act="pRol" data-v="${r}" aria-pressed="${p.rol===r}">${r}</button>`).join("")}</div>
+        <label class="f">Ad soyad<input type="text" id="p_name" autocomplete="name" value="${esc(p.name)}"></label>
+        <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
+      </section>`;
   return `${kurBanner("B1 Personel")}${kimlik}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.filter(k => rolKat(p.rol, k)).map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
@@ -868,15 +877,22 @@ function devHata(e){
 function devKuyruk(){ return yerel("bz1-devriye-kuyruk") || []; }
 function vDevriye(){
   const d = S.d;
-  if (!d.kim || !d.kim.kod){
+  if ((S.kodZorunlu || d.kodGir) && !(d.kim && d.kim.kod)){
     return `${kurBanner("B1 Devriye")}${kodGirisEkrani("guvenlik")}`;
+  }
+  if (d.kimAc || !d.kim){
+    return `${kurBanner("B1 Devriye")}<section class="step"><h2><span>🛡️</span>Adınızı seçin</h2>
+      <p class="hint">Bir kez seçmeniz yeterli, telefon hatırlar. <button class="pill-btn" data-act="kodGirAc" data-v="guvenlik">🔑 Kodum var</button></p>
+      ${VARDIYA.map(v=>`<div class="group-h" style="margin-top:6px">${v.ad}</div>
+        <div class="prefs">${v.kisiler.map(([ad,amir])=>`<button class="pref" data-act="dKim" data-v="${esc(ad)}" data-vr="${esc(v.ad)}" aria-pressed="${d.kim&&d.kim.ad===ad}">${esc(ad)}${amir?' <small class="amir">Amir</small>':""}</button>`).join("")}</div>`).join("")}
+    </section>`;
   }
   const gec = devGecmis();
   const tur = {}; gec.filter(k => k.ts > Date.now() - 2*36e5).forEach(k => { if (!tur[k.nokta] || k.ts > tur[k.nokta]) tur[k.nokta] = k.ts; });
   const kuyruk = devKuyruk().length;
   const son = d.son && Date.now() - d.son.ts < 3*6e4 ? d.son : null;
   return `
-  <section class="step who"><div><small>${esc(d.kim.vardiya)}</small><b>${esc(d.kim.ad)}</b></div><button class="pill-btn" data-act="kodCikis" data-v="guvenlik">Kodu değiştir</button></section>
+  <section class="step who"><div><small>${esc(d.kim.vardiya)}</small><b>${esc(d.kim.ad)}</b></div>${d.kim.kod ? `<button class="pill-btn" data-act="kodCikis" data-v="guvenlik">Kodu değiştir</button>` : `<button class="pill-btn" data-act="dKimAc">Değiştir</button>`}</section>
   ${son ? `<section class="okundu">
       <div class="ok-ic">✓</div>
       <div><b>${son.no}. ${esc(son.ad)}</b><small>${saatStr(son.ts)} · ${son.kuyrukta==="telefon"?"internet yok · telefona kaydedildi, internet gelince otomatik gönderilecek":son.kuyrukta?"gönderilemedi, tekrar denenecek":"merkeze iletildi ✓"}</small></div>
@@ -1716,6 +1732,7 @@ function kodUygula(tip, kod, k){
 }
 /* Açılışta kod hâlâ geçerli mi? (pasif yapıldıysa telefondan silinir) */
 async function kodYokla(){
+  try { const z = await store.kodOku("zorunlu", true); const once = S.kodZorunlu; S.kodZorunlu = !!(z && z.aktif); if (once !== S.kodZorunlu) render(); } catch(e){}
   for (const tip of ["personel","guvenlik"]){
     const s = kodAl(tip); if (!s || !s.kod || !navigator.onLine) continue;
     try {
@@ -1750,6 +1767,9 @@ function kodPanel(){
         : `<label class="f">Vardiya<select id="kodVardiya">${["1. Vardiya","2. Vardiya","3. Vardiya","Joker"].map(r=>`<option ${f.vardiya===r?"selected":""}>${r}</option>`).join("")}</select></label>`}
     </div>
     <button class="cta" data-act="kodEkle">Kod oluştur</button>
+    <div class="t-uyari ${S.kodZorunlu?"yesil":"turuncu"}" style="margin-top:12px">${S.kodZorunlu
+      ? `🔒 <b>Kod zorunlu.</b> Kodsuz kimse bildirim gönderemez. <button class="pill-btn" data-act="kodZorunlu" data-v="0">Zorunluluğu kaldır</button>`
+      : `🔓 <b>Geçiş dönemi:</b> kodsuz da kullanılabiliyor. Kodları dağıttıktan sonra açın. <button class="pill-btn" data-act="kodZorunlu" data-v="1">Kodu zorunlu yap</button>`}</div>
     ${guvYok ? `<button class="cta ghost" data-act="kodGuvToplu" style="margin-top:8px">🛡️ Güvenlik listesindeki ${VARDIYA.reduce((s,v)=>s+v.kisiler.length,0)} kişiye kod oluştur</button>` : ""}
     <div class="kod-liste">${L.length ? L.map(satir).join("") : `<p class="hint">Henüz kod yok.</p>`}</div>
   </details>`;
@@ -1763,7 +1783,7 @@ async function yeniKod(){
 }
 function kodBaslat(){
   if (KOD.un || !store.isTech() || !store.listenKod) return;
-  KOD.un = store.listenKod(L => { KOD.liste = L; if (S.view==="panel") setTimeout(render,0); });
+  KOD.un = store.listenKod(L => { KOD.liste = L.filter(k=>/^\d{6}$/.test(k.id)); const z = L.find(k=>k.id==="zorunlu"); S.kodZorunlu = !!(z && z.aktif); if (S.view==="panel") setTimeout(render,0); });
 }
 
 function render(){
@@ -1854,6 +1874,11 @@ document.addEventListener("click", async e => {
           if (v==="guvenlik" && S.d.bekleyen){ const n = S.d.bekleyen; S.d.bekleyen = null; S.kodBakiyor = false; render(); noktaOkut(n); return; } }
       } catch(err){ console.error(err); S.kodHata = "Kontrol edilemedi. İnternet bağlantınızı kontrol edin."; }
       S.kodBakiyor = false; render();
+    }
+    else if (act==="kodGirAc"){ if (v==="personel") S.p.kodGir = true; else S.d.kodGir = true; render(); }
+    else if (act==="kodZorunlu"){
+      if (b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = "Emin misiniz? Tekrar basın"; return; }
+      await store.setKod("zorunlu", {aktif: v==="1", ts: Date.now()}); S.kodZorunlu = v==="1"; toast(v==="1" ? "Kod zorunlu yapıldı" : "Kod zorunluluğu kaldırıldı"); render();
     }
     else if (act==="kodCikis"){
       kodSakla(v, null);
