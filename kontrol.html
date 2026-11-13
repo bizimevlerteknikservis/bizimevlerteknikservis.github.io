@@ -906,7 +906,7 @@ function afetPanel(){
 }
 
 /* ============ Gerçek veriye bağlantı (yalnızca sitede, FB_CONFIG varsa) ============ */
-const PKAT_AD = {p_isik:"Aydınlatma",p_kapi:"Kapı / kilit",p_asansor:"Asansör",p_su:"Su / tesisat",p_hasar:"Kırık / hasar",p_bahce:"Bahçe / çevre",p_temiz:"Temizlik / koku",p_diger:"Diğer"};
+const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı / kilit",p_asansor:"Asansör",p_su:"Su / tesisat",p_hasar:"Kırık / hasar",p_bahce:"Bahçe / çevre",p_temiz:"Temizlik / koku",p_diger:"Diğer"};
 async function canliBaslat(){
   const cfg = window.FB_CONFIG; if (!cfg) return;
   LIVE.on = true; ARZ.list = []; ARZ.gelen = 0; ARZ.cozulen = 0; ARZ.sureler = [];

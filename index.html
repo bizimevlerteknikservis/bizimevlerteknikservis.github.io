@@ -292,6 +292,7 @@ const PKAT = [
   {id:"p_su", ad:"Su / tesisat", ic:'<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/>'},
   {id:"p_hasar", ad:"Kırık / hasar", ic:'<path d="M4 4h16v16H4z"/><path d="m4 4 7 8-3 3 6 5"/>'},
   {id:"p_bahce", ad:"Bahçe / çevre", ic:'<path d="M12 22V12"/><path d="M12 12c-4 0-7-3-7-7 4 0 7 3 7 7zM12 12c4 0 7-3 7-7-4 0-7 3-7 7z"/>'},
+  {id:"p_malzeme", ad:"Malzeme talebi", ic:'<path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/>'},
   {id:"p_temiz", ad:"Temizlik / koku", ic:'<path d="M3 21h18"/><path d="M7 21V10h10v11"/><path d="M12 10V3"/><path d="M9 6h6"/>'},
   {id:"p_diger", ad:"Diğer", ic:'<circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/>'}
 ];
@@ -302,6 +303,7 @@ const PARIZA = {
   p_su:     ["Su kaçağı / sızıntı","Gider / rögar tıkalı","Musluk / hortum bozuk","Hidrofor / su basıncı sorunu","Yağmur suyu birikiyor","Diğer"],
   p_hasar:  ["Kırık cam","Korkuluk / tırabzan gevşek","Zemin / karo kırık","Duvar / tavan hasarı","Tabela / levha düşmüş","Diğer"],
   p_bahce:  ["Sulama sistemi arızalı","Ağaç / dal tehlikeli","Oyun parkı hasarlı","Bank / çöp kutusu kırık","Çit / tel örgü hasarlı","Diğer"],
+  p_malzeme:["Çöp poşeti","Çöp kovası / kutusu (kırık)","Deterjan / temizlik ilacı","Çamaşır suyu / dezenfektan","Paspas / mop","Süpürge / faraş","Kova","Eldiven","Bez / cam sileceği","Tuvalet kağıdı / kağıt havlu","Ampul","Bahçe malzemesi (hortum, makas vb.)","Diğer malzeme"],
   p_temiz:  ["Çöp odası / konteyner sorunu","Kötü koku","Haşere / fare görüldü","Rutubet / küf","Diğer"],
   p_diger:  ["Diğer"]
 };
@@ -351,7 +353,7 @@ const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
 const parseYmd = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const catOf = id => KATEGORI.find(k => k.id === id) || PKAT.find(k => k.id === id) || KATEGORI[KATEGORI.length-1];
-const yerAd = a => a.src==="personel" ? (a.alan ? a.alan : `${a.block} Blok · ${a.kat||""}`) : `${a.block} Blok, Daire ${a.flat}`;
+const yerAd = a => a.src==="personel" ? (a.alan ? a.alan : `${a.block} Blok${a.kat ? " · " + a.kat : ""}`) : `${a.block} Blok, Daire ${a.flat}`;
 const fisNo = a => "TS-" + (a.createdAt || 0).toString(36).slice(-5).toUpperCase();
 function gunEtiketi(s){
   const d = parseYmd(s), bugun = ymd(new Date()), yarin = ymd(new Date(Date.now()+864e5));
@@ -389,7 +391,7 @@ function telegramBildir(a){
   const tg = AYAR.telegram;
   if (!tg || !tg.token || !tg.chatId) return;
   const text = [
-    (a.src==="personel" ? "🧹 Personel bildirimi " : "🔧 Yeni arıza bildirimi ") + fisNo(a),
+    (a.cat==="p_malzeme" ? "📦 Malzeme talebi " : a.src==="personel" ? "🧹 Personel bildirimi " : "🔧 Yeni arıza bildirimi ") + fisNo(a),
     "⚠️ " + catOf(a.cat).ad + (a.desc ? ": " + a.desc : ""),
     "📍 " + yerAd(a),
     a.src==="personel" ? "👷 Personel · " + (a.rol||"") + " · " + a.name + (a.phone ? " · " + a.phone : "") : "👤 " + a.name + " · " + a.phone,
@@ -607,8 +609,8 @@ const yenidenEskiye = arr => arr.slice().sort((x,y) => (y.createdAt||0) - (x.cre
 
 function personelHazir(){
   const p = S.p;
-  const ariza = p.issues.length && (!(p.issues.length===1 && p.issues[0]==="Diğer") || p.desc.trim());
-  const yer = p.yerTip==="blok" ? (p.block && p.kat) : !!p.alan;
+  const ariza = p.issues.length && (!(p.issues.length===1 && /^Diğer/.test(p.issues[0])) || p.desc.trim());
+  const yer = p.yerTip==="blok" ? (p.block && (p.kat || p.cat==="p_malzeme")) : !!p.alan;
   return !!(p.name.trim() && p.rol && p.cat && ariza && yer);
 }
 function vPersonel(){
@@ -616,9 +618,9 @@ function vPersonel(){
   if (S.pSent){
     const a = S.pSent;
     return `<div class="success">
-      <div class="big">Bildirim teknik servise iletildi</div>
+      <div class="big">${a.cat==="p_malzeme" ? "Malzeme talebiniz iletildi" : "Bildirim teknik servise iletildi"}</div>
       <div class="code">${fisNo(a)}</div>
-      <p class="hint"><b>${esc(catOf(a.cat).ad)}</b> · ${esc(yerAd(a))}<br>Teşekkürler ${esc(a.name.split(" ")[0])}, teknisyen en kısa sürede ilgilenecek.</p>
+      <p class="hint"><b>${esc(catOf(a.cat).ad)}</b> · ${esc(yerAd(a))}<br>Teşekkürler ${esc(a.name.split(" ")[0])}, ${a.cat==="p_malzeme" ? "talebiniz en kısa sürede karşılanacak." : "teknisyen en kısa sürede ilgilenecek."}</p>
       <button class="cta" data-act="pYeni">Yeni bildirim yap</button>
     </div>${personelListe()}`;
   }
@@ -630,25 +632,25 @@ function vPersonel(){
         <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
       </section>`;
   return `${kimlik}
-  <section class="step"><h2><span>1</span>Ne oldu?</h2>
+  <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
     ${p.cat ? `<div class="issues" style="margin-top:6px">${PARIZA[p.cat].map(x => `<button class="iss" data-act="pIss" data-v="${esc(x)}" aria-pressed="${p.issues.includes(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
   </section>
-  <section class="step"><h2><span>2</span>Nerede?</h2>
+  <section class="step"><h2><span>2</span>${p.cat==="p_malzeme" ? "Nereye lazım?" : "Nerede?"}</h2>
     <div class="prefs">
       <button class="pref" data-act="pYer" data-v="blok" aria-pressed="${p.yerTip==="blok"}">Blok içinde</button>
       <button class="pref" data-act="pYer" data-v="alan" aria-pressed="${p.yerTip==="alan"}">Ortak alanda</button>
     </div>
     ${p.yerTip==="blok" ? `<div class="grid2">
         <label class="f">Blok<select id="p_block"><option value="">Seçin</option>${AYAR.bloklar.map(b => `<option ${p.block===b?"selected":""}>${esc(b)}</option>`).join("")}</select></label>
-        <label class="f">Kat<select id="p_kat"><option value="">Seçin</option>${KATLAR.map(k => `<option ${p.kat===k?"selected":""}>${k}</option>`).join("")}</select></label>
+        <label class="f">Kat${p.cat==="p_malzeme"?" (isteğe bağlı)":""}<select id="p_kat"><option value="">Seçin</option>${KATLAR.map(k => `<option ${p.kat===k?"selected":""}>${k}</option>`).join("")}</select></label>
       </div>`
     : `<label class="f">Alan<select id="p_alan"><option value="">Seçin</option>${ALANLAR.map(x => `<option ${p.alan===x?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`}
-    <label class="f note-l" for="p_desc">Kısa not <span>${p.issues.length===1&&p.issues[0]==="Diğer"?"(gerekli)":"(isteğe bağlı)"}</span></label>
-    <textarea id="p_desc" maxlength="300" placeholder="Örn. Merdiven tarafındaki lamba, iki gündür yanmıyor.">${esc(p.desc)}</textarea>
+    <label class="f note-l" for="p_desc">Kısa not <span>${p.issues.length===1&&/^Diğer/.test(p.issues[0])?"(gerekli)":"(isteğe bağlı)"}</span></label>
+    <textarea id="p_desc" maxlength="300" placeholder="${p.cat==="p_malzeme" ? "Örn. 2 rulo büyük boy çöp poşeti, 1 adet çöp kovası" : "Örn. Merdiven tarafındaki lamba, iki gündür yanmıyor."}">${esc(p.desc)}</textarea>
   </section>
   ${S.err ? `<p class="err">${esc(S.err)}</p>` : ""}
-  <button class="cta" data-act="pGonder" ${personelHazir() && !S.sending ? "" : "disabled"}>${S.sending ? "Gönderiliyor…" : "Teknik servise bildir"}</button>
+  <button class="cta" data-act="pGonder" ${personelHazir() && !S.sending ? "" : "disabled"}>${S.sending ? "Gönderiliyor…" : p.cat==="p_malzeme" ? "Malzeme talebini gönder" : "Teknik servise bildir"}</button>
   ${personelListe()}`;
 }
 function personelListe(){
@@ -863,7 +865,7 @@ function render(){
   $("#siteName").textContent = S.view==="devriye" ? "Devriye" : (AYAR.baslik || AYAR.siteAdi);
   $("#heroSub").textContent = S.view==="randevularim" ? "Bildirimlerinin durumunu ve teknisyen notlarını buradan takip et."
     : S.view==="panel" ? "Gelen arızaları gör, durumlarını güncelle."
-    : S.view==="personel" ? "Sahada gördüğün arızayı 15 saniyede teknik servise bildir."
+    : S.view==="personel" ? "Sahada gördüğün arızayı ya da ihtiyacın olan malzemeyi 15 saniyede bildir."
     : S.view==="devriye" ? "Noktaya geldiğinde QR'ı okut, turun kaydedilsin."
     : "Arızanı bildir, teknisyen en kısa sürede ilgilensin.";
   document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.tab===S.view ? "page" : "false"));
