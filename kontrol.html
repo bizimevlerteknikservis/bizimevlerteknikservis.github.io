@@ -331,7 +331,14 @@ function tepsiCiz(){
 }
 
 /* ============ Düzenleme: blokları gerçek binalara taşı ============ */
-let DUZENLE = false, surukle = null;
+let DUZENLE = false, surukle = null, BULUT = null;
+function konumUygula(k){
+  KONUM = k || {};
+  try { localStorage.setItem("bz1-konum", JSON.stringify(KONUM)); } catch(e){}
+  BLOK.forEach(b=>{ const [cx,cy] = KONUM[b.id] || VARSAYILAN[b.id]; merkezYap(b,cx,cy); });
+  NOKTA.forEach(n=>{ const k2 = KONUM[n.id]; merkezYap(n, k2?k2[0]:n.vx, k2?k2[1]:n.vy); });
+  tepsiCiz(); modAc(MODE);
+}
 function svgNokta(e){ const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(svg.getScreenCTM().inverse()); }
 const isNokta = o => !!o.no;
 const merkez = o => isNokta(o) ? [o.x,o.y] : [o.x+o.w/2, o.y+o.h/2];
@@ -365,7 +372,8 @@ function kaydet(o){
   const [cx,cy] = merkez(o);
   KONUM[o.id] = [Math.round(cx), Math.round(cy)];
   try { localStorage.setItem("bz1-konum", JSON.stringify(KONUM)); } catch(e){}
-  ticker(`📍 ${etiket(o)} yeni yerine taşındı`);
+  if (BULUT) BULUT(KONUM);
+  ticker(`📍 ${etiket(o)} yeni yerine taşındı${BULUT?" · kaydedildi":""}`);
 }
 const surukBit = () => { if (!surukle) return; const {o, moved} = surukle; surukle = null;
   if (!moved){ sec(SECILI===o ? null : o); return; }
@@ -676,6 +684,17 @@ async function canliBaslat(){
       return;
     }
     giris.hidden = true;
+    // Blok/nokta yerleri: bulutta saklanır, her cihazda aynı görünür
+    const kRef = fs.doc(db,"ayar","harita");
+    BULUT = k => fs.setDoc(kRef, {konum:k, ts:Date.now()}).catch(e => { console.error(e); ticker("⚠️ Yerler kaydedilemedi: " + e.code + " · Firebase kurallarını kontrol edin"); });
+    let ilkKonum = true;
+    fs.onSnapshot(kRef, snap => {
+      if (snap.metadata.hasPendingWrites || surukle) return;
+      const k = snap.exists() ? (snap.data().konum || {}) : null;
+      if (ilkKonum && !k && Object.keys(KONUM).length) BULUT(KONUM);   // ilk kez: bu cihazdaki yerleşimi yükle
+      else if (k) konumUygula(k);
+      ilkKonum = false;
+    }, e => console.error(e));
     const q = fs.query(fs.collection(db,"appointments"), fs.where("src","==","personel"));
     unsub = fs.onSnapshot(q, snap => {
       const bugun = new Date(); bugun.setHours(0,0,0,0); const b0 = bugun.getTime(), sinir = Date.now() - 30*864e5;
@@ -733,7 +752,7 @@ document.querySelectorAll(".modes button").forEach(b=>b.onclick=()=>modAc(b.data
 
 $("#edit").onclick = () => duzenleAc(!DUZENLE);
 $("#doneEdit").onclick = () => duzenleAc(false);
-$("#resetPos").onclick = () => { KONUM = {}; try { localStorage.removeItem("bz1-konum"); } catch(e){} BLOK.forEach(b=>{ const [cx,cy]=VARSAYILAN[b.id]; merkezYap(b,cx,cy); }); NOKTA.forEach(n=>merkezYap(n,n.vx,n.vy)); ticker("Varsayılan yerleşime dönüldü"); };
+$("#resetPos").onclick = () => { KONUM = {}; try { localStorage.removeItem("bz1-konum"); } catch(e){} BLOK.forEach(b=>{ const [cx,cy]=VARSAYILAN[b.id]; merkezYap(b,cx,cy); }); NOKTA.forEach(n=>merkezYap(n,n.vx,n.vy)); if (BULUT) BULUT({}); ticker("Varsayılan yerleşime dönüldü"); };
 $("#copyPos").onclick = async () => {
   const txt = "Bizimevler 1 konumları: " + JSON.stringify(Object.fromEntries([...BLOK,...NOKTA].map(o=>{ const [x,y]=merkez(o); return [o.id,[Math.round(x),Math.round(y)]]; })));
   try { await navigator.clipboard.writeText(txt); ticker("📋 Konumlar kopyalandı, sohbete yapıştırabilirsiniz"); }
