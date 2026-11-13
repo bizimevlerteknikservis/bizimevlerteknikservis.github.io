@@ -214,8 +214,6 @@ const AYAR = {
   demoPin: "1234",              // demo modunda teknisyen paneli PIN'i
   teknisyenEpostalari: ["teknisyenzeynel91@gmail.com"],  // Firebase'de teknisyen hesabı
   // Firebase'den kopyaladığınız firebaseConfig nesnesini null yerine yapıştırın:
-  // Yeni arıza bildiriminde site yönetimine özet e-posta (Web3Forms erişim anahtarı)
-  yonetimMail: { key: "" },
   // Yeni arıza bildirimi (Telegram)
   telegram: { token: "9094259666:AAGAotiIBjehLjHdHz70koqkNWRD-UR28Ag", chatId: "1380037672" },
   firebase: {
@@ -258,25 +256,6 @@ const parseYmd = s => { const [y,m,d] = s.split("-").map(Number); return new Dat
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const catOf = id => KATEGORI.find(k => k.id === id) || KATEGORI[KATEGORI.length-1];
 const fisNo = a => "TS-" + (a.createdAt || 0).toString(36).slice(-5).toUpperCase();
-function mailBildir(a){
-  const m = AYAR.yonetimMail;
-  if (!m || !m.key) return;
-  const ozet = catOf(a.cat).ad + " – " + a.block + " Blok Daire " + a.flat;
-  const govde = [
-    "Yeni arıza bildirimi: " + ozet + " (" + fisNo(a) + ")",
-    "Bildirim zamanı: " + gonderimZamani(a.createdAt),
-    "",
-    "Ayrıntılar ve sakinin iletişim bilgileri teknisyen panelinde:",
-    location.origin + location.pathname + "#panel"
-  ].join("\n");
-  try {
-    fetch("https://api.web3forms.com/submit", {
-      method: "POST", keepalive: true,
-      headers: {"Content-Type": "application/json", "Accept": "application/json"},
-      body: JSON.stringify({access_key: m.key, subject: "Yeni arıza bildirimi: " + ozet, from_name: AYAR.siteAdi, message: govde})
-    }).catch(()=>{});
-  } catch(e){}
-}
 function gunEtiketi(s){
   const d = parseYmd(s), bugun = ymd(new Date()), yarin = ymd(new Date(Date.now()+864e5));
   const ek = s === bugun ? "Bugün" : s === yarin ? "Yarın" : GUN[d.getDay()];
@@ -469,7 +448,7 @@ function vRandevu(){
   ${S.err ? `<p class="err">${esc(S.err)}</p>` : ""}
   <button class="cta" data-act="gonder" ${hazir && !S.sending ? "" : "disabled"}>${S.sending ? "Gönderiliyor…" : "Arızayı bildir"}</button>
   ${!hazir ? `<p class="hint" style="margin-top:8px">Göndermek için arıza, daire no ve telefon gerekli.</p>` : ""}
-  <p class="kvkk">Ad, telefon ve daire bilgileriniz yalnızca arıza takibi için teknisyen ve site yönetimiyle paylaşılır, başka amaçla kullanılmaz.</p>
+  <p class="kvkk">Ad, telefon ve daire bilgileriniz yalnızca arıza takibi için teknisyenle paylaşılır, başka amaçla kullanılmaz.</p>
   ${acilKutu()}`;
 }
 
@@ -615,7 +594,6 @@ document.addEventListener("click", async e => {
         const aciklama = [arizalar.join(", "), f.desc.trim()].filter(Boolean).join(" — ");
         S.sent = await store.create({cat:f.cat, issues:f.issues.slice(), desc:aciklama, name:f.name.trim(), block:f.block, flat:f.flat.trim(), phone:f.phone.trim()});
         telegramBildir(S.sent);
-        mailBildir(S.sent);
         scrollTo(0,0);
       } catch(err){
         console.error(err);
