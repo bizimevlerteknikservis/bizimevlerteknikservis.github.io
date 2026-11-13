@@ -82,13 +82,17 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .tint{fill:var(--tint);opacity:var(--tint-op);transition:fill .6s,opacity .6s;pointer-events:none}
 .editbtn{pointer-events:auto;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:10px;padding:7px 11px;font:600 12.5px var(--body);white-space:nowrap}
 .editbtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.editbar{position:absolute;left:16px;right:16px;top:64px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:10px 12px;font-size:13px;z-index:3}
+.editbar{position:relative;margin:0 14px 10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:10px 12px;font-size:13px;z-index:3}
 .editbar[hidden]{display:none}
 .map{user-select:none;-webkit-user-select:none;touch-action:none}
 .editbar span{flex:1 1 260px;color:var(--muted)}
 .editbar button{border:1px solid var(--line);background:var(--panel-2);border-radius:10px;padding:8px 12px;font-weight:600;font-size:13px}
 .editbar button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .duzenle .blk{cursor:grab}
+.ov{pointer-events:none}
+.duzenle .ov{display:none}
+.blk.secili .roof{fill:var(--accent)!important;stroke:var(--accent)}
+.blk.secili .blabel{fill:var(--accent-ink)}
 .duzenle .blk .roof{stroke:var(--accent);stroke-width:2.5;stroke-dasharray:5 4}
 .roof{opacity:.94}
 .site{fill:var(--ground);stroke:var(--line);stroke-width:3;transition:fill .6s}
@@ -199,7 +203,7 @@ window.FB_TEKNISYEN = ["teknisyenzeynel91@gmail.com"];</script>
     <section class="mapwrap" aria-label="Site haritası">
       <div class="maphead"><b id="mapTitle">Arıza haritası</b><span id="mapSub">Bizimevler 1 · kuşbakışı</span><button class="editbtn" id="edit" aria-pressed="false">Blokları yerleştir</button></div>
       <div class="editbar" id="editBar" hidden>
-        <span>Her blok etiketini fotoğraftaki doğru binanın üzerine sürükleyin. Konumlar bu cihazda kaydedilir.</span>
+        <span><b>1.</b> Bir blok etiketine dokunun (mavi olur). <b>2.</b> Fotoğrafta doğru binaya dokunun, etiket oraya gider. Sürükleyerek de taşıyabilirsiniz.</span>
         <button id="copyPos">Konumları kopyala</button><button id="resetPos">Varsayılana dön</button><button id="doneEdit" class="primary">Bitti</button>
       </div>
       <svg class="map" id="map" viewBox="0 0 1063 661" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bizimevler 1 kuşbakışı harita"></svg>
@@ -291,8 +295,8 @@ function haritaKur(){
     g.addEventListener("pointerdown", e=>surukBasla(e,b));
   });
   tepsiCiz();
-  L.over = el("g",{},svg);   // moda özel katman
-  L.fx = el("g",{},svg);     // efektler
+  L.over = el("g",{class:"ov"},svg);   // moda özel katman
+  L.fx = el("g",{class:"ov"},svg);     // efektler
 }
 function yerlestir(b){
   b.side.setAttribute("x",b.x+3); b.side.setAttribute("y",b.y+4);
@@ -306,8 +310,8 @@ function yerlestir(b){
 function tepsiCiz(){
   L.tepsi.innerHTML = "";
   if (!DUZENLE) return;
-  el("rect",{x:110,y:530,width:216,height:108,rx:14,fill:"var(--panel)",opacity:.92,stroke:"var(--accent)","stroke-dasharray":"6 6"},L.tepsi);
-  const t = el("text",{x:218,y:548,"text-anchor":"middle",class:"flabel"},L.tepsi); t.textContent = "Sürükleyip doğru binaya bırakın";
+  el("rect",{x:110,y:508,width:216,height:130,rx:14,fill:"var(--panel)",opacity:.92,stroke:"var(--accent)","stroke-dasharray":"6 6"},L.tepsi);
+  const t = el("text",{x:218,y:528,"text-anchor":"middle",class:"flabel"},L.tepsi); t.textContent = "Fotoğrafta olmayan bloklar";
 }
 
 /* ============ Düzenleme: blokları gerçek binalara taşı ============ */
@@ -316,24 +320,40 @@ function svgNokta(e){ const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = 
 function surukBasla(e,b){
   if (!DUZENLE) return;
   e.preventDefault(); const p = svgNokta(e);
-  surukle = {b, dx:p.x-b.x, dy:p.y-b.y};
+  surukle = {b, dx:p.x-b.x, dy:p.y-b.y, sx:p.x, sy:p.y, moved:false};
+  e.stopPropagation();
   L.blok.appendChild(b.g);
   try { svg.setPointerCapture(e.pointerId); } catch(_){}
 }
 svg.addEventListener("pointermove", e=>{
   if (!surukle) return; const p = svgNokta(e), b = surukle.b;
+  if (!surukle.moved && Math.hypot(p.x-surukle.sx, p.y-surukle.sy) < 6) return;
+  surukle.moved = true;
   b.x = Math.max(0, Math.min(PW-b.w, p.x-surukle.dx)); b.y = Math.max(0, Math.min(PH-b.h, p.y-surukle.dy));
   yerlestir(b);
 });
-const surukBit = () => { if (!surukle) return; const b = surukle.b; surukle = null;
+let SECILI = null;
+function sec(b){ BLOK.forEach(x=>x.g.classList.toggle("secili", x===b)); SECILI = b; if (b) ticker(`${b.id} seçildi · şimdi fotoğrafta doğru binaya dokunun`); }
+svg.addEventListener("pointerdown", e=>{
+  if (!DUZENLE || surukle || !SECILI) return;
+  const p = svgNokta(e), b = SECILI;
+  b.x = Math.max(0, Math.min(PW-b.w, p.x-b.w/2)); b.y = Math.max(0, Math.min(PH-b.h, p.y-b.h/2));
+  yerlestir(b); kaydet(b); sec(null);
+});
+function kaydet(b){
   KONUM[b.id] = [Math.round(b.x+b.w/2), Math.round(b.y+b.h/2)];
   try { localStorage.setItem("bz1-konum", JSON.stringify(KONUM)); } catch(e){}
-  ticker(`📍 ${b.id} yeni yerine taşındı`); };
+  ticker(`📍 ${b.id} yeni yerine taşındı`);
+}
+const surukBit = () => { if (!surukle) return; const {b, moved} = surukle; surukle = null;
+  if (!moved){ sec(SECILI===b ? null : b); return; }
+  kaydet(b); sec(null); };
 svg.addEventListener("pointerup", surukBit); svg.addEventListener("pointercancel", surukBit);
 function duzenleAc(ac){
   DUZENLE = ac; document.documentElement.classList.toggle("duzenle", ac);
   $("#edit").setAttribute("aria-pressed", ac); $("#editBar").hidden = !ac;
-  tepsiCiz();
+  tepsiCiz(); if (!ac) sec(null);
+  if (ac && MODE!=="gunduz") modAc("gunduz");
   if (!ac) modAc(MODE);
 }
 
