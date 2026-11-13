@@ -190,7 +190,7 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 
 <nav class="tabs" aria-label="Bölümler"><div class="in">
   <a href="#randevu" data-tab="randevu"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg>Arıza bildir</a>
-  <a href="#randevularim" data-tab="randevularim"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg>Randevularım</a>
+  <a href="#randevularim" data-tab="randevularim"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg>Bildirimlerim</a>
   <a href="#panel" data-tab="panel" hidden><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>Teknisyen</a>
 </div></nav>
 <div id="toast" class="toast" role="status" hidden></div>
@@ -208,14 +208,13 @@ const AYAR = {
             "C1","C2","C3","C4",
             "D1","D2","D3","D4",
             "F1","F2"],
-  // Panelde randevu verirken seçilecek saatler
   saatler: ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00", "17:00"],
   kapaliGunler: [0],            // 0 = Pazar, 6 = Cumartesi
   acilTelefon: "0545 943 95 33",   // acil durumda aranacak numara
   demoPin: "1234",              // demo modunda teknisyen paneli PIN'i
   teknisyenEpostalari: ["teknisyenzeynel91@gmail.com"],  // Firebase'de teknisyen hesabı
   // Firebase'den kopyaladığınız firebaseConfig nesnesini null yerine yapıştırın:
-  // Yeni randevu bildirimi (Telegram)
+  // Yeni arıza bildirimi (Telegram)
   telegram: { token: "9094259666:AAGAotiIBjehLjHdHz70koqkNWRD-UR28Ag", chatId: "1380037672" },
   firebase: {
     apiKey: "AIzaSyAAtGK76Oanri1T9nCK4bm6dDJCLVzWp5c",
@@ -245,8 +244,7 @@ const ARIZALAR = {
   asansor:  ["Asansör çalışmıyor","Kapısı açılmıyor / kapanmıyor","Katta düzgün durmuyor","Ses veya sarsıntı yapıyor","Işık / buton arızası","Diğer"],
   diger:    ["Cam / pencere","Dolap / mobilya tamiri","Boya / badana","Ortak alan arızası","Çatı / balkon akıntısı","Diğer"]
 };
-const DURUM = {bekliyor:"Talep alındı", onaylandi:"Randevu verildi", tamamlandi:"Tamamlandı", iptal:"İptal"};
-const ZAMAN = {sabah:"Sabah (09–12)", ogle:"Öğleden sonra (13–17)", aksam:"Akşamüstü (17–19)", farketmez:"Fark etmez"};
+const DURUM = {bekliyor:"Alındı", onaylandi:"İlgileniliyor", tamamlandi:"Tamamlandı", iptal:"İptal"};
 const GUN = ["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"];
 const AY = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
 
@@ -258,7 +256,6 @@ const parseYmd = s => { const [y,m,d] = s.split("-").map(Number); return new Dat
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const catOf = id => KATEGORI.find(k => k.id === id) || KATEGORI[KATEGORI.length-1];
 const fisNo = a => "TS-" + (a.createdAt || 0).toString(36).slice(-5).toUpperCase();
-const zamanAd = a => ZAMAN[a.pref] || ZAMAN.farketmez;
 function gunEtiketi(s){
   const d = parseYmd(s), bugun = ymd(new Date()), yarin = ymd(new Date(Date.now()+864e5));
   const ek = s === bugun ? "Bugün" : s === yarin ? "Yarın" : GUN[d.getDay()];
@@ -276,8 +273,8 @@ function takvim(n){
   }
   return out;
 }
-/* Randevu hâlâ açık mı? (saat bekleyen ya da tarihi gelmemiş) */
-const acik = a => a.status==="bekliyor" || (a.status==="onaylandi" && (!a.date || a.date >= ymd(new Date())));
+/* Bildirim hâlâ açık mı? */
+const acik = a => a.status==="bekliyor" || a.status==="onaylandi";
 function waNumara(p){
   let d = String(p||"").replace(/\D/g,"");
   if (d.startsWith("0")) d = "90" + d.slice(1);
@@ -286,9 +283,9 @@ function waNumara(p){
 }
 function waLink(a){
   const ad = (a.name || "").trim().split(/\s+/)[0] || "";
-  const metin = a.status==="onaylandi" && a.date
-    ? `Merhaba ${ad}, ${AYAR.siteAdi}'ten yazıyorum. ${gunEtiketi(a.date)} saat ${a.time} için randevunuz oluşturuldu. ${a.block} Blok, Daire ${a.flat}'e geleceğim.`
-    : `Merhaba ${ad}, ${AYAR.siteAdi}'ten yazıyorum. ${catOf(a.cat).ad} arıza bildiriminizi aldım (${fisNo(a)}).`;
+  const metin = a.status==="onaylandi"
+    ? `Merhaba ${ad}, ${AYAR.siteAdi}'ten yazıyorum. ${catOf(a.cat).ad} arızanız için ${a.block} Blok, Daire ${a.flat}'e geliyorum.`
+    : `Merhaba ${ad}, ${AYAR.siteAdi}'ten yazıyorum. ${catOf(a.cat).ad} arıza bildiriminizi aldım (${fisNo(a)}), en kısa sürede ilgileneceğim.`;
   return "https://wa.me/" + waNumara(a.phone) + "?text=" + encodeURIComponent(metin);
 }
 function telegramBildir(a){
@@ -299,9 +296,8 @@ function telegramBildir(a){
     "⚠️ " + catOf(a.cat).ad + (a.desc ? ": " + a.desc : ""),
     "🏠 " + a.block + " Blok, Daire " + a.flat,
     "👤 " + a.name + " · " + a.phone,
-    "🕒 Uygun zaman: " + zamanAd(a),
     "",
-    "Randevu vermek için: " + location.origin + location.pathname + "#panel"
+    "Panel: " + location.origin + location.pathname + "#panel"
   ].join("\n");
   const body = new URLSearchParams({chat_id: String(tg.chatId), text, disable_web_page_preview: "true"});
   try { fetch("https://api.telegram.org/bot" + tg.token + "/sendMessage", {method:"POST", body, mode:"no-cors", keepalive:true}).catch(()=>{}); } catch(e){}
@@ -314,14 +310,14 @@ function toast(m){ const t = $("#toast"); t.textContent = m; t.hidden = false; c
    VERİ KATMANI — Demo (telefonda) veya Firebase (gerçek)
    ========================================================= */
 function DemoStore(){
-  const KEY = "site-servis-demo-v2";
+  const KEY = "site-servis-demo-v3";
   let mem = yerel(KEY);
   if (!mem){
     const g = takvim(3), t = Date.now(), b = i => AYAR.bloklar[i] || AYAR.bloklar[0];
     mem = { uid: "demo-" + Math.random().toString(36).slice(2,9), appts: [
-      {id:"o1", uid:"ornek", sample:true, cat:"kombi", desc:"Basınç düşüyor — sabahları sıcak su gelmiyor.", pref:"sabah", date:ymd(g[0]), time:AYAR.saatler[AYAR.saatler.length-2], name:"Örnek Sakin", block:b(0), flat:"12", phone:"0555 000 00 00", status:"onaylandi", note:"Yedek parça getirilecek.", createdAt:t-9e6},
-      {id:"o2", uid:"ornek", sample:true, cat:"su", desc:"Su sızıntısı, kaçak — mutfak lavabosunun altı.", pref:"ogle", date:null, time:null, name:"Örnek Sakin 2", block:b(1), flat:"4", phone:"0555 000 00 01", status:"bekliyor", note:"", createdAt:t-5e6},
-      {id:"o3", uid:"ornek", sample:true, cat:"elektrik", desc:"Lamba / avize yanmıyor — koridor.", pref:"farketmez", date:null, time:null, name:"Örnek Sakin 3", block:b(2), flat:"7", phone:"0555 000 00 02", status:"bekliyor", note:"", createdAt:t-2e6}
+      {id:"o1", uid:"ornek", sample:true, cat:"kombi", desc:"Basınç düşüyor — sabahları sıcak su gelmiyor.", name:"Örnek Sakin", block:b(0), flat:"12", phone:"0555 000 00 00", status:"onaylandi", note:"Yedek parça getirilecek.", createdAt:t-9e6},
+      {id:"o2", uid:"ornek", sample:true, cat:"su", desc:"Su sızıntısı, kaçak — mutfak lavabosunun altı.", name:"Örnek Sakin 2", block:b(1), flat:"4", phone:"0555 000 00 01", status:"bekliyor", note:"", createdAt:t-5e6},
+      {id:"o3", uid:"ornek", sample:true, cat:"elektrik", desc:"Lamba / avize yanmıyor — koridor.", name:"Örnek Sakin 3", block:b(2), flat:"7", phone:"0555 000 00 02", status:"bekliyor", note:"", createdAt:t-2e6}
     ]};
   }
   let tech = false;
@@ -336,7 +332,7 @@ function DemoStore(){
     listenMine: cb => sub(() => cb(mem.appts.filter(a => a.uid === mem.uid))),
     listenAll: cb => sub(() => cb(mem.appts.slice())),
     async create(a){
-      const rec = {...a, id: "d" + Date.now().toString(36), uid: mem.uid, status: "bekliyor", note: "", date: null, time: null, createdAt: Date.now()};
+      const rec = {...a, id: "d" + Date.now().toString(36), uid: mem.uid, status: "bekliyor", note: "", createdAt: Date.now()};
       mem.appts.push(rec); save(); return rec;
     },
     async cancelMine(a){ const r = bul(a); if (r){ r.status = "iptal"; save(); } },
@@ -379,7 +375,7 @@ function FirebaseStore(cfg){
     },
     async create(a){
       const ref = fs.doc(fs.collection(db,"appointments"));
-      const rec = {...a, uid: user.uid, status: "bekliyor", note: "", date: null, time: null, createdAt: Date.now()};
+      const rec = {...a, uid: user.uid, status: "bekliyor", note: "", createdAt: Date.now()};
       await fs.setDoc(ref, rec);
       return {...rec, id: ref.id};
     },
@@ -401,9 +397,9 @@ const store = AYAR.firebase ? FirebaseStore(AYAR.firebase) : DemoStore();
 const kayitli = yerel("site-servis-iletisim") || {};
 const S = {
   view: "randevu",
-  form: {cat:null, issues:[], desc:"", pref:"farketmez", name:kayitli.name||"", block:kayitli.block||AYAR.bloklar[0], flat:kayitli.flat||"", phone:kayitli.phone||""},
+  form: {cat:null, issues:[], desc:"", name:kayitli.name||"", block:kayitli.block||AYAR.bloklar[0], flat:kayitli.flat||"", phone:kayitli.phone||""},
   mine: [], all: [], sent: null, err: "", sending: false,
-  filter: "acik", armed: null, notes: {}, plan: {}
+  filter: "acik", armed: null, notes: {}
 };
 let unMine = null, unAll = null;
 
@@ -424,8 +420,8 @@ function vRandevu(){
     return `<div class="success">
       <div class="big">Arıza bildiriminiz alındı</div>
       <div class="code">${fisNo(a)}</div>
-      <p class="hint">Teknisyen size uygun bir gün ve saat verdiğinde <b>Randevularım</b> bölümünde görünecek. Gerekirse sizi arayacak ya da WhatsApp'tan yazacak.</p>
-      <a class="cta" href="#randevularim" style="text-decoration:none;display:block">Randevularıma git</a>
+      <p class="hint">Teknisyen en kısa sürede ilgilenecek. Gerekirse sizi arayacak ya da WhatsApp'tan yazacak. Durumunu <b>Bildirimlerim</b> bölümünden takip edebilirsiniz.</p>
+      <a class="cta" href="#randevularim" style="text-decoration:none;display:block">Bildirimlerime git</a>
       <button class="cta ghost" data-act="yeni">Yeni arıza bildir</button>
     </div>`;
   }
@@ -441,11 +437,7 @@ function vRandevu(){
     <textarea id="desc" maxlength="500" placeholder="Örn. Mutfaktaki priz, dün akşamdan beri.">${esc(f.desc)}</textarea>`
     : `<p class="hint">Önce yukarıdan arıza türünü seçin.</p>`}
   </section>
-  <section class="step"><h2><span>3</span>Ne zaman uygunsunuz?</h2>
-    <div class="prefs">${Object.entries(ZAMAN).map(([k,v]) => `<button class="pref" data-act="pref" data-v="${k}" aria-pressed="${f.pref===k}">${v}</button>`).join("")}</div>
-    <p class="hint">Kesin gün ve saati teknisyen size bildirecek.</p>
-  </section>
-  <section class="step"><h2><span>4</span>İletişim bilgileri</h2>
+  <section class="step"><h2><span>3</span>İletişim bilgileri</h2>
     <label class="f">Ad soyad<input type="text" id="name" autocomplete="name" value="${esc(f.name)}"></label>
     <div class="grid2">
       <label class="f">Blok<select id="block">${AYAR.bloklar.map(b => `<option ${f.block===b?"selected":""}>${esc(b)}</option>`).join("")}</select></label>
@@ -471,62 +463,51 @@ function acilKutu(){
     <a class="acil-btn wa" href="${waUrl}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" class="fill"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.7 11.7 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg><span>WhatsApp'tan yaz<small>${esc(AYAR.acilTelefon)}</small></span></a>` : ""}
   </section>`;
 }
-function planAlani(a){
-  const p = S.plan[a.id] || {date: a.date || "", time: a.time || ""};
-  const saatler = AYAR.saatler.includes(p.time) || !p.time ? AYAR.saatler : [p.time, ...AYAR.saatler];
-  return `<div class="plan">
-      <label class="f">Gün<input type="date" id="pd-${a.id}" data-plan="${a.id}" data-k="date" min="${ymd(new Date())}" value="${esc(p.date)}"></label>
-      <label class="f">Saat<select id="pt-${a.id}" data-plan="${a.id}" data-k="time"><option value="">Seçin</option>${saatler.map(t => `<option ${p.time===t?"selected":""}>${t}</option>`).join("")}</select></label>
-    </div>`;
-}
-
 function fis(a, panel){
   const k = catOf(a.cat);
   const armed = S.armed === a.id;
-  const saatVar = a.status==="onaylandi" && a.date;
-  const ust = saatVar ? `${esc(gunEtiketi(a.date))} · ${esc(a.time)}`
-    : a.status==="bekliyor" ? (panel ? "Saat verilmedi" : "Teknisyen saat verecek")
-    : (a.date ? `${esc(gunEtiketi(a.date))} · ${esc(a.time)}` : "Saatsiz");
+  const ust = {
+    bekliyor: panel ? "Yeni bildirim" : "Bildiriminiz alındı",
+    onaylandi: panel ? "İlgileniyorsunuz" : "Teknisyen ilgileniyor",
+    tamamlandi: "Tamamlandı",
+    iptal: "İptal edildi"
+  }[a.status] || "";
   const iptalEdilebilir = !panel && acik(a);
   return `<article class="ticket" data-s="${a.status}">
     <div class="t-head"><span class="t-no">${fisNo(a)} · ${esc(k.ad)}</span>
       <span style="display:flex;gap:6px">${a.sample?'<span class="chip sample">Örnek</span>':""}<span class="chip" data-s="${a.status}">${panel && a.status==="bekliyor" ? "Yeni" : (DURUM[a.status]||a.status)}</span></span></div>
-    <div class="t-when${saatVar?"":" muted"}">${ust}</div>
+    <div class="t-when${a.status==="bekliyor"?" muted":""}">${ust}</div>
     <div class="t-meta"><span>Blok <b>${esc(a.block)}</b></span><span>Daire <b>${esc(a.flat)}</b></span>${panel?`<span><b>${esc(a.name)}</b></span>`:""}</div>
     ${a.desc?`<p class="t-desc">${esc(a.desc)}</p>`:""}
-    <div class="t-meta"><span>Uygun zaman: <b>${esc(zamanAd(a))}</b></span>${panel?`<span>Bildirim: ${esc(gonderimZamani(a.createdAt))}</span>`:""}</div>
+    <div class="t-meta"><span>Bildirim: ${esc(gonderimZamani(a.createdAt))}</span></div>
     ${panel?`<div class="actions">
         <a class="act" href="tel:${esc(String(a.phone).replace(/[^\d+]/g,""))}">Ara · <span style="font-weight:400">${esc(a.phone)}</span></a>
         <a class="act wa" href="${esc(waLink(a))}" target="_blank" rel="noopener">WhatsApp</a>
       </div>`:""}
     ${!panel && a.note?`<p class="t-note"><b>Teknisyen notu:</b> ${esc(a.note)}</p>`:""}
     ${panel?`
-      ${acik(a) ? planAlani(a) : ""}
-      <label class="f" style="font-weight:400">Teknisyen notu<input type="text" id="note-${a.id}" data-note="${a.id}" value="${esc(S.notes[a.id] ?? a.note ?? "")}" placeholder="Sakinin göreceği not"></label>
+      <label class="f" style="font-weight:400">Teknisyen notu<input type="text" id="note-${a.id}" data-note="${a.id}" value="${esc(S.notes[a.id] ?? a.note ?? "")}" placeholder="Sakinin göreceği not (ör. Yarın öğleden sonra geliyorum)"></label>
       <div class="actions">
-        ${acik(a)?`<button class="act primary" data-act="saatver" data-id="${a.id}">${a.status==="onaylandi"?"Saati güncelle":"Randevu ver"}</button>`:""}
-        ${a.status==="onaylandi"?`<button class="act" data-act="durum" data-id="${a.id}" data-v="tamamlandi">Tamamlandı</button>`:""}
+        ${a.status==="bekliyor"?`<button class="act primary" data-act="durum" data-id="${a.id}" data-v="onaylandi">İlgileniyorum</button>`:""}
+        ${a.status==="onaylandi"?`<button class="act primary" data-act="durum" data-id="${a.id}" data-v="tamamlandi">Tamamlandı</button>`:""}
         <button class="act" data-act="not" data-id="${a.id}">Notu kaydet</button>
-        ${a.status!=="iptal"&&a.status!=="tamamlandi"?`<button class="act ${armed?"armed":"danger"}" data-act="iptal" data-id="${a.id}">${armed?"Eminim, iptal et":"İptal et"}</button>`:""}
-        ${a.status==="iptal"||a.status==="tamamlandi"?`<button class="act" data-act="durum" data-id="${a.id}" data-v="${a.date?"onaylandi":"bekliyor"}">Yeniden aç</button>`:""}
+        ${acik(a)?`<button class="act ${armed?"armed":"danger"}" data-act="iptal" data-id="${a.id}">${armed?"Eminim, iptal et":"İptal et"}</button>`:""}
+        ${!acik(a)?`<button class="act" data-act="durum" data-id="${a.id}" data-v="bekliyor">Yeniden aç</button>`:""}
       </div>`:
-      iptalEdilebilir?`<div class="actions"><button class="act ${armed?"armed":"danger"}" data-act="iptalBenim" data-id="${a.id}">${armed?"Eminim, iptal et":"Talebi iptal et"}</button></div>`:""}
+      iptalEdilebilir?`<div class="actions"><button class="act ${armed?"armed":"danger"}" data-act="iptalBenim" data-id="${a.id}">${armed?"Eminim, iptal et":"Bildirimi iptal et"}</button></div>`:""}
   </article>`;
 }
 
-/* Saat verilmişler tarihe göre, bekleyenler geliş sırasına göre */
-const sirala = arr => arr.slice().sort((x,y) => {
-  const kx = x.date ? "1" + x.date + x.time : "0" + String(x.createdAt).padStart(15,"0");
-  const ky = y.date ? "1" + y.date + y.time : "0" + String(y.createdAt).padStart(15,"0");
-  return kx.localeCompare(ky);
-});
+/* Açık işler geliş sırasına göre (eskisi üstte), diğerleri en yeni üstte */
+const eskidenYeniye = arr => arr.slice().sort((x,y) => (x.createdAt||0) - (y.createdAt||0));
+const yenidenEskiye = arr => arr.slice().sort((x,y) => (y.createdAt||0) - (x.createdAt||0));
 
 function vRandevularim(){
   if (!S.mine.length) return `<div class="empty"><strong>Henüz arıza bildiriminiz yok</strong>Bu telefondan bildirdiğiniz arızalar burada listelenir.<br><br><a class="tel" href="#randevu">Arıza bildir</a></div>`;
-  const aktif = sirala(S.mine.filter(acik));
-  const gecmis = S.mine.filter(a => !acik(a)).sort((x,y) => (y.createdAt||0) - (x.createdAt||0));
-  return `${aktif.length?`<div class="group-h">Açık talepler</div><div class="list">${aktif.map(a=>fis(a,false)).join("")}</div>`:""}
-          ${gecmis.length?`<div class="group-h">Geçmiş ve iptal</div><div class="list">${gecmis.map(a=>fis(a,false)).join("")}</div>`:""}`;
+  const aktif = yenidenEskiye(S.mine.filter(acik));
+  const gecmis = yenidenEskiye(S.mine.filter(a => !acik(a)));
+  return `${aktif.length?`<div class="group-h">Açık bildirimler</div><div class="list">${aktif.map(a=>fis(a,false)).join("")}</div>`:""}
+          ${gecmis.length?`<div class="group-h">Geçmiş</div><div class="list">${gecmis.map(a=>fis(a,false)).join("")}</div>`:""}`;
 }
 
 function vPanel(){
@@ -538,26 +519,29 @@ function vPanel(){
       ${S.err?`<p class="err">${esc(S.err)}</p>`:""}
       <button class="cta" data-act="giris">Giriş yap</button></div>`;
   }
-  const bugun = ymd(new Date()), yarin = ymd(new Date(Date.now()+864e5));
+  const bugun = ymd(new Date());
   const all = S.all;
   const F = {
     acik: acik,
     yeni: a => a.status==="bekliyor",
-    bugun: a => a.date===bugun && a.status!=="iptal",
-    yarin: a => a.date===yarin && a.status!=="iptal",
+    isleniyor: a => a.status==="onaylandi",
+    tamam: a => a.status==="tamamlandi",
     tumu: () => true
   };
-  const ad = {acik:"Açık işler", yeni:"Yeni talepler", bugun:"Bugün", yarin:"Yarın", tumu:"Tümü"};
-  let list = sirala(all.filter(F[S.filter]));
-  if (S.filter==="tumu") list = all.slice().sort((x,y) => (y.createdAt||0) - (x.createdAt||0));
+  const ad = {acik:"Açık işler", yeni:"Yeni", isleniyor:"İlgilenilen", tamam:"Tamamlanan", tumu:"Tümü"};
+  const list = acik === F[S.filter] ? eskidenYeniye(all.filter(acik)) : yenidenEskiye(all.filter(F[S.filter]));
   const gruplar = [];
   const ekle = (baslik, a) => { let g = gruplar.find(x => x.b === baslik); if (!g){ g = {b: baslik, l: []}; gruplar.push(g); } g.l.push(a); };
-  list.forEach(a => ekle(S.filter==="tumu" ? "Son bildirimler" : a.status==="bekliyor" ? "Saat bekleyen talepler" : a.date ? gunEtiketi(a.date) : "Saatsiz", a));
+  if (S.filter==="acik"){
+    list.filter(a=>a.status==="bekliyor").forEach(a => ekle("Yeni bildirimler", a));
+    list.filter(a=>a.status==="onaylandi").forEach(a => ekle("İlgilenilenler", a));
+  } else list.forEach(a => ekle(ad[S.filter], a));
+  const bugunBiten = all.filter(a => a.status==="tamamlandi" && a.completedAt && ymd(new Date(a.completedAt))===bugun).length;
   return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="margin:0;font:600 22px/1.2 var(--display)">İş paneli</h2><button class="pill-btn" data-act="cikis">Çıkış</button></div>
     <div class="summary">
-      <div class="sum"><strong style="color:var(--wait)">${all.filter(a=>a.status==="bekliyor").length}</strong><span>Yeni talep</span></div>
-      <div class="sum"><strong style="color:var(--ok)">${all.filter(a=>a.status==="onaylandi"&&a.date>=bugun).length}</strong><span>Planlı iş</span></div>
-      <div class="sum"><strong>${all.filter(a=>a.date===bugun&&a.status==="onaylandi").length}</strong><span>Bugünkü iş</span></div>
+      <div class="sum"><strong style="color:var(--wait)">${all.filter(a=>a.status==="bekliyor").length}</strong><span>Yeni</span></div>
+      <div class="sum"><strong style="color:var(--ok)">${all.filter(a=>a.status==="onaylandi").length}</strong><span>İlgilenilen</span></div>
+      <div class="sum"><strong style="color:var(--done)">${bugunBiten}</strong><span>Bugün biten</span></div>
     </div>
     <div class="filters">${Object.keys(ad).map(k=>`<button class="pill-btn" data-act="filtre" data-v="${k}" aria-current="${S.filter===k}">${ad[k]}</button>`).join("")}</div>
     ${list.length ? gruplar.map(g=>`<div class="group-h">${esc(g.b)}</div><div class="list">${g.l.map(a=>fis(a,true)).join("")}</div>`).join("")
@@ -568,9 +552,9 @@ function render(){
   syncForm();
   const keep = document.activeElement && document.activeElement.id;
   $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : vRandevu();
-  $("#heroSub").textContent = S.view==="randevularim" ? "Taleplerinin durumunu, randevu saatini ve teknisyen notlarını buradan takip et."
-    : S.view==="panel" ? "Gelen arızaları gör, randevu saatini ver."
-    : "Arızanı bildir, teknisyen sana uygun saati versin.";
+  $("#heroSub").textContent = S.view==="randevularim" ? "Bildirimlerinin durumunu ve teknisyen notlarını buradan takip et."
+    : S.view==="panel" ? "Gelen arızaları gör, durumlarını güncelle."
+    : "Arızanı bildir, teknisyen en kısa sürede ilgilensin.";
   document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.tab===S.view ? "page" : "false"));
   /* Teknisyen sekmesi sakinlere görünmez; sadece #panel adresinden açılır */
   const teknik = S.view==="panel" || store.isTech();
@@ -582,7 +566,6 @@ function syncForm(){
   const f = S.form;
   [["desc","desc"],["name","name"],["block","block"],["flat","flat"],["phone","phone"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; });
   document.querySelectorAll("[data-note]").forEach(el => S.notes[el.dataset.note] = el.value);
-  document.querySelectorAll("[data-plan]").forEach(el => { const id = el.dataset.plan; (S.plan[id] ||= {date:"", time:""})[el.dataset.k] = el.value; });
 }
 
 /* ---------- olaylar ---------- */
@@ -592,7 +575,6 @@ document.addEventListener("input", e => {
   const btn = document.querySelector('[data-act="gonder"]');
   if (btn) btn.disabled = !formHazir() || S.sending;
 });
-document.addEventListener("change", e => { if (e.target.dataset && e.target.dataset.plan) syncForm(); });
 
 document.addEventListener("click", async e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
@@ -603,8 +585,7 @@ document.addEventListener("click", async e => {
   try {
     if (act==="cat"){ syncForm(); if (S.form.cat !== v) S.form.issues = []; S.form.cat = v; render(); }
     else if (act==="iss"){ syncForm(); const L = S.form.issues; const i = L.indexOf(v); i < 0 ? L.push(v) : L.splice(i,1); render(); }
-    else if (act==="pref"){ syncForm(); S.form.pref = v; render(); }
-    else if (act==="yeni"){ S.sent = null; S.form.cat = null; S.form.issues = []; S.form.desc = ""; S.form.pref = "farketmez"; render(); scrollTo(0,0); }
+    else if (act==="yeni"){ S.sent = null; S.form.cat = null; S.form.issues = []; S.form.desc = ""; render(); scrollTo(0,0); }
     else if (act==="gonder"){
       syncForm(); const f = S.form;
       if (!formHazir()) return;
@@ -613,7 +594,7 @@ document.addEventListener("click", async e => {
       try {
         const arizalar = f.issues.filter(x => x !== "Diğer");
         const aciklama = [arizalar.join(", "), f.desc.trim()].filter(Boolean).join(" — ");
-        S.sent = await store.create({cat:f.cat, issues:f.issues.slice(), desc:aciklama, pref:f.pref, name:f.name.trim(), block:f.block, flat:f.flat.trim(), phone:f.phone.trim()});
+        S.sent = await store.create({cat:f.cat, issues:f.issues.slice(), desc:aciklama, name:f.name.trim(), block:f.block, flat:f.flat.trim(), phone:f.phone.trim()});
         telegramBildir(S.sent);
         scrollTo(0,0);
       } catch(err){
@@ -624,7 +605,7 @@ document.addEventListener("click", async e => {
     }
     else if (act==="iptalBenim"){
       if (S.armed !== id){ S.armed = id; render(); return; }
-      S.armed = null; await store.cancelMine(find(S.mine)); toast("Talep iptal edildi"); render();
+      S.armed = null; await store.cancelMine(find(S.mine)); toast("Bildirim iptal edildi"); render();
     }
     else if (act==="giris"){
       const pin = $("#pin"), em = $("#email"), pw = $("#pass");
@@ -633,21 +614,13 @@ document.addEventListener("click", async e => {
     }
     else if (act==="cikis"){ if (unAll) unAll(); unAll = null; S.all = []; await store.logout(); render(); }
     else if (act==="filtre"){ syncForm(); S.filter = v; render(); }
-    else if (act==="saatver"){
-      syncForm(); const a = find(S.all), p = S.plan[id] || {};
-      if (!p.date || !p.time){ toast("Önce gün ve saati seçin"); return; }
-      const patch = {date: p.date, time: p.time, status: "onaylandi"};
-      if (S.notes[id] !== undefined) patch.note = S.notes[id];
-      await store.update(a, patch);
-      toast(`Randevu verildi: ${gunEtiketi(p.date)} ${p.time}`);
-    }
-    else if (act==="durum"){ syncForm(); const a = find(S.all); const patch = {status: v}; if (S.notes[id] !== undefined) patch.note = S.notes[id]; await store.update(a, patch); toast(DURUM[v] + " olarak işaretlendi"); }
+    else if (act==="durum"){ syncForm(); const a = find(S.all); const patch = {status: v}; if (v==="tamamlandi") patch.completedAt = Date.now(); if (S.notes[id] !== undefined) patch.note = S.notes[id]; await store.update(a, patch); toast(DURUM[v] + " olarak işaretlendi"); }
     else if (act==="not"){ syncForm(); const a = find(S.all); await store.update(a, {note: S.notes[id] ?? ""}); toast("Not kaydedildi"); }
     else if (act==="iptal"){
       syncForm();
       if (S.armed !== id){ S.armed = id; render(); return; }
       S.armed = null; const patch = {status: "iptal"}; if (S.notes[id] !== undefined) patch.note = S.notes[id];
-      await store.update(find(S.all), patch); toast("Talep iptal edildi");
+      await store.update(find(S.all), patch); toast("Bildirim iptal edildi");
     }
   } catch(err){ console.error(err); toast("İşlem yapılamadı, tekrar deneyin"); }
 });
