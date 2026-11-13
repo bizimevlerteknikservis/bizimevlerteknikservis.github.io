@@ -6,6 +6,14 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#17588f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script>/* Uygulama kimliği: açılan bölüme göre (personel, devriye, sakin, teknik) ayrı simge ve ad */
+(function(){ var h = location.hash.slice(1),
+  k = /^personel/.test(h) ? "personel" : /^(devriye|d-)/.test(h) ? "devriye" : /^(panel|tesis|tasinma)/.test(h) ? "teknik" : "sakin",
+  ad = {personel:"B1 Personel", devriye:"B1 Devriye", teknik:"B1 Teknik", sakin:"B1 Arıza"}[k];
+  document.write('<link rel="manifest" href="manifest-'+k+'.json"><link rel="apple-touch-icon" href="icons/'+k+'-192.png"><link rel="icon" href="icons/'+k+'-192.png"><meta name="apple-mobile-web-app-title" content="'+ad+'">');
+})();</script>
 <meta name="color-scheme" content="only light">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
@@ -181,6 +189,8 @@ label.f{display:grid;gap:6px;font-size:14px;font-weight:700;min-width:0;color:va
 .grid3{display:grid;grid-template-columns:1.2fr 1fr .8fr;gap:8px}
 .t-ayar summary{cursor:pointer;padding:4px 0}
 .kesinti-k{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kur-btn{width:100%;display:grid;gap:2px;text-align:left;border:0;border-radius:16px;padding:14px 16px;margin-bottom:14px;background:linear-gradient(140deg,#16805c,#2daa6e);color:#fff;font:600 16px var(--body);box-shadow:var(--shadow);cursor:pointer}
+.kur-btn small{font-weight:400;opacity:.9;font-size:13px}
 .foto-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
 .foto-ekle.ikincil{color:var(--muted);border-style:solid;border-width:1.5px}
 .foto-ekle{flex:1;min-width:0;min-height:96px;border:2px dashed var(--line,#cfdbe6);border-radius:14px;display:grid;place-items:center;align-content:center;gap:4px;padding:10px;cursor:pointer;color:var(--accent);text-align:center;background:var(--surface)}
@@ -770,6 +780,15 @@ function personelHazir(){
   const yer = p.yerTip==="blok" ? (p.block && (p.kat || p.cat==="p_malzeme")) : !!p.alan;
   return !!(p.name.trim() && p.rol && p.cat && ariza && yer);
 }
+/* Tek dokunuşla "uygulamayı yükle" (Android Chrome) */
+let KUR = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); KUR = e; if (S.view==="personel" || S.view==="devriye") render(); });
+window.addEventListener("appinstalled", () => { KUR = null; toast("Uygulama telefona yüklendi ✓"); render(); });
+const uygulamaModu = () => window.matchMedia && matchMedia("(display-mode: standalone)").matches;
+function kurBanner(ad){
+  if (uygulamaModu() || !KUR) return "";
+  return `<button class="kur-btn" data-act="kur">📲 <b>${ad}</b> uygulamasını telefona yükle<small>Bir kez dokunun, ana ekranda simgesi çıkar</small></button>`;
+}
 function vPersonel(){
   const p = S.p;
   if (S.pSent){
@@ -788,7 +807,7 @@ function vPersonel(){
         <label class="f">Ad soyad<input type="text" id="p_name" autocomplete="name" value="${esc(p.name)}"></label>
         <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
       </section>`;
-  return `${kimlik}
+  return `${kurBanner("B1 Personel")}${kimlik}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.filter(k => rolKat(p.rol, k)).map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
     ${p.cat ? `<div class="issues" style="margin-top:6px">${PARIZA[p.cat].map(x => `<button class="iss" data-act="pIss" data-v="${esc(x)}" aria-pressed="${p.issues.includes(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
@@ -835,7 +854,7 @@ function devKuyruk(){ return yerel("bz1-devriye-kuyruk") || []; }
 function vDevriye(){
   const d = S.d;
   if (!d.kim || d.kimAc){
-    return `<section class="step"><h2><span>🛡️</span>Adınızı seçin</h2>
+    return `${kurBanner("B1 Devriye")}<section class="step"><h2><span>🛡️</span>Adınızı seçin</h2>
       <p class="hint">Bir kez seçmeniz yeterli, telefon hatırlar.</p>
       ${VARDIYA.map(v=>`<div class="group-h" style="margin-top:6px">${v.ad}</div>
         <div class="prefs">${v.kisiler.map(([ad,amir])=>`<button class="pref" data-act="dKim" data-v="${esc(ad)}" data-vr="${esc(v.ad)}" aria-pressed="${d.kim&&d.kim.ad===ad}">${esc(ad)}${amir?' <small class="amir">Amir</small>':""}</button>`).join("")}</div>`).join("")}
@@ -1721,6 +1740,7 @@ document.addEventListener("click", async e => {
     else if (act==="pIss"){ syncForm(); const L = S.p.issues; const i = L.indexOf(v); i < 0 ? L.push(v) : L.splice(i,1); render(); }
     else if (act==="pYer"){ syncForm(); S.p.yerTip = v; render(); }
     else if (act==="pYeni"){ S.pSent = null; Object.assign(S.p, {cat:S.p.rol===BAHCIVAN?"p_bahce":null, issues:[], desc:"", foto:[]}); render(); scrollTo(0,0); }
+    else if (act==="kur"){ if (KUR){ KUR.prompt(); const r = await KUR.userChoice; KUR = null; render(); } }
     else if (act==="pFotoSil"){ syncForm(); S.p.foto.splice(+v, 1); render(); }
     else if (act==="foto"){ fotoGoster(id); }
     else if (act==="pGonder"){

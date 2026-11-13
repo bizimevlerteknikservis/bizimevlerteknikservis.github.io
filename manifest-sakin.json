@@ -1,0 +1,38 @@
+{
+ "id": "sakin",
+ "name": "Bizimevler 1 Teknik Servis",
+ "short_name": "B1 Arıza",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#ffffff",
+ "theme_color": "#17588f",
+ "lang": "tr",
+ "icons": [
+  {
+   "src": "icons/sakin-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icons/sakin-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icons/sakin-192-maskable.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "maskable"
+  },
+  {
+   "src": "icons/sakin-512-maskable.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ],
+ "orientation": "portrait"
+}

@@ -1,0 +1,38 @@
+{
+ "id": "teknik",
+ "name": "Bizimevler Teknik Panel",
+ "short_name": "B1 Teknik",
+ "start_url": "./#panel",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#ffffff",
+ "theme_color": "#3c308c",
+ "lang": "tr",
+ "icons": [
+  {
+   "src": "icons/teknik-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icons/teknik-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icons/teknik-192-maskable.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "maskable"
+  },
+  {
+   "src": "icons/teknik-512-maskable.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ],
+ "orientation": "portrait"
+}

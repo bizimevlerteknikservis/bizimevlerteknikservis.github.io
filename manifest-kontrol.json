@@ -1,0 +1,37 @@
+{
+ "id": "kontrol",
+ "name": "Bizimevler Kontrol Merkezi",
+ "short_name": "B1 Kontrol",
+ "start_url": "./kontrol.html",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#ffffff",
+ "theme_color": "#0a1828",
+ "lang": "tr",
+ "icons": [
+  {
+   "src": "icons/kontrol-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icons/kontrol-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icons/kontrol-192-maskable.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "maskable"
+  },
+  {
+   "src": "icons/kontrol-512-maskable.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
