@@ -1158,7 +1158,7 @@ const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı /
 async function canliBaslat(){
   const cfg = window.FB_CONFIG; if (!cfg) return;
   LIVE.on = true; ARZ.list = []; ARZ.gelen = 0; ARZ.cozulen = 0; ARZ.sureler = [];
-  document.querySelector(".demo").textContent = "Canlı veri · s12";
+  document.querySelector(".demo").textContent = "Canlı veri · s13";
   const V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
   const [app, fs, au] = await Promise.all([import(U+"firebase-app.js"), import(U+"firebase-firestore.js"), import(U+"firebase-auth.js")]);
   const ap = app.initializeApp(cfg), db = fs.getFirestore(ap), auth = au.getAuth(ap);
@@ -1170,14 +1170,19 @@ async function canliBaslat(){
     catch(_){ $("#loginErr").textContent = "E-posta veya şifre hatalı."; }
   };
   let unsub = null, unsubD = null, onceki = null;
-  au.onAuthStateChanged(auth, u => {
+  au.onAuthStateChanged(auth, async u => {
     if (unsub){ unsub(); unsub = null; } if (unsubD){ unsubD(); unsubD = null; }
-    if (!u || u.isAnonymous || !izinli(u.email)){
-      giris.hidden = false;
-      if (u && !u.isAnonymous) { $("#loginErr").textContent = "Bu hesap kontrol merkezine yetkili değil."; au.signOut(auth); }
-      return;
+    if (!u || u.isAnonymous){ giris.hidden = false; return; }
+    // Rol: teknisyen (tam yetki) ya da yönetim (sadece izleme; daire arızalarını görmez)
+    let rol = izinli(u.email) ? "teknisyen" : null;
+    if (!rol){
+      try { const r = await fs.getDoc(fs.doc(db,"ayar","roller")); const L = (r.exists() && r.data().yonetim) || [];
+        if (L.map(x=>String(x).toLowerCase().trim()).includes((u.email||"").toLowerCase())) rol = "yonetim"; } catch(e){ console.error(e); }
     }
+    if (!rol){ giris.hidden = false; $("#loginErr").textContent = "Bu hesap kontrol merkezine yetkili değil."; au.signOut(auth); return; }
+    window.ROL = rol;
     giris.hidden = true;
+    if (rol === "yonetim"){ $("#edit").hidden = true; document.querySelector(".demo").textContent = "Canlı veri · Yönetim"; }
     const cb = $("#cikisBtn"); cb.hidden = false;
     cb.onclick = async () => { if (!confirm("Kontrol Merkezi'nden çıkış yapılsın mı?")) return; await au.signOut(auth); location.reload(); };
     fs.onSnapshot(fs.query(fs.collection(db,"tesis"), fs.where("ts",">=",Date.now()-45*864e5)), snap => tesisVeri(snap.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.error(e); TES.hata = e.code || "hata"; tesisSerit(); });
@@ -1186,12 +1191,12 @@ async function canliBaslat(){
     RAPOR_CEK = async (a, b) => (await fs.getDocs(fs.query(fs.collection(db,"devriye"), fs.where("ts",">=",a), fs.where("ts","<",b)))).docs.map(d=>d.data());
     // Blok/nokta yerleri: bulutta saklanır, her cihazda aynı görünür
     const kRef = fs.doc(db,"ayar","harita2");
-    BULUT = k => fs.setDoc(kRef, {konum:k, ts:Date.now()}).catch(e => { console.error(e); ticker("⚠️ Yerler kaydedilemedi: " + e.code + " · Firebase kurallarını kontrol edin"); });
+    BULUT = rol === "yonetim" ? null : k => fs.setDoc(kRef, {konum:k, ts:Date.now()}).catch(e => { console.error(e); ticker("⚠️ Yerler kaydedilemedi: " + e.code + " · Firebase kurallarını kontrol edin"); });
     let ilkKonum = true;
     fs.onSnapshot(kRef, snap => {
       if (snap.metadata.hasPendingWrites || surukle) return;
       const k = snap.exists() ? (snap.data().konum || {}) : null;
-      if (ilkKonum && !k && Object.keys(KONUM).length) BULUT(KONUM);   // ilk kez: bu cihazdaki yerleşimi yükle
+      if (ilkKonum && !k && Object.keys(KONUM).length && BULUT) BULUT(KONUM);   // ilk kez: bu cihazdaki yerleşimi yükle
       else if (k) konumUygula(k);
       ilkKonum = false;
     }, e => console.error(e));

@@ -528,7 +528,9 @@ function DemoStore(){
     async addTesis(r){ const id = "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,5); (mem.tesis ||= []).push({...r, id, uid: mem.uid}); save(); return id; },
     async updateTesis(id, p){ const r = (mem.tesis||[]).find(x=>x.id===id); if (r){ Object.assign(r, p); save(); } },
     async setTesisAyar(p){ mem.tesisAyar = {...(mem.tesisAyar||{}), ...p}; save(); },
-    async logout(){ tech = false; save(); }
+    async logout(){ tech = false; save(); },
+    async getRoller(){ return mem.roller || {}; },
+    async setRoller(p){ mem.roller = {...(mem.roller||{}), ...p}; save(); }
   };
 }
 
@@ -603,9 +605,15 @@ function FirebaseStore(cfg){
     async login(email, pass){
       try { await au.signInWithEmailAndPassword(auth, email, pass); } catch(e){ throw {code:"giris"}; }
       tech = AYAR.teknisyenEpostalari.map(x => x.toLowerCase()).includes((auth.currentUser?.email||"").toLowerCase());
-      if (!tech) { await au.signOut(auth); throw {code:"yetki"}; }
+      if (!tech) {
+        let yon = false;
+        try { const r = await fs.getDoc(fs.doc(db,"ayar","roller")); yon = ((r.exists() && r.data().yonetim) || []).map(x=>String(x).toLowerCase()).includes((auth.currentUser?.email||"").toLowerCase()); } catch(e){}
+        await au.signOut(auth); throw {code: yon ? "yonetim" : "yetki"};
+      }
     },
-    async logout(){ await au.signOut(auth); tech = false; }
+    async logout(){ await au.signOut(auth); tech = false; },
+    async getRoller(){ const r = await fs.getDoc(fs.doc(db,"ayar","roller")); return r.exists() ? r.data() : {}; },
+    async setRoller(p){ await fs.setDoc(fs.doc(db,"ayar","roller"), p, {merge:true}); }
   };
 }
 
@@ -975,7 +983,7 @@ function vPanel(){
       ${store.mode==="demo"
         ? `<label class="f">PIN<input type="password" id="pin" inputmode="numeric" autocomplete="off"></label>`
         : `<label class="f">E-posta<input type="email" id="email" autocomplete="username"></label><label class="f">Şifre<input type="password" id="pass" autocomplete="current-password"></label>`}
-      ${S.err?`<p class="err">${esc(S.err)}</p>`:""}
+      ${S.err==="YONETIM" ? `<p class="err" style="background:#eef6ff;color:#1b4f80">Bu bir <b>yönetim hesabı</b>. Daire arızaları sadece teknisyene açıktır. Yönetim ekranı: <a href="kontrol.html"><b>Canlı Kontrol Merkezi</b></a></p>` : S.err?`<p class="err">${esc(S.err)}</p>`:""}
       <button class="cta" data-act="giris">Giriş yap</button></div>`;
   }
   const bugun = ymd(new Date());
@@ -1005,7 +1013,12 @@ function vPanel(){
     </div>
     <div class="filters">${Object.keys(ad).map(k=>`<button class="pill-btn" data-act="filtre" data-v="${k}" aria-current="${S.filter===k}">${ad[k]}</button>`).join("")}</div>
     ${list.length ? gruplar.map(g=>`<div class="group-h">${esc(g.b)}</div><div class="list">${g.l.map(a=>fis(a,true)).join("")}</div>`).join("")
-      : `<div class="empty"><strong>Bu filtrede iş yok</strong>Sakinler arıza bildirdikçe burada görünür.</div>`}`;
+      : `<div class="empty"><strong>Bu filtrede iş yok</strong>Sakinler arıza bildirdikçe burada görünür.</div>`}
+    <details class="card t-ayar" style="margin-top:18px" id="rolKart" ${S.rolAcik?"open":""}><summary><b>👥 Yönetim erişimi</b> · Kontrol Merkezi'ne kim girebilir</summary>
+      <p class="hint">Buraya yazılan e-postalar <b>sadece Canlı Kontrol Merkezi'ni</b> görebilir (personel bildirimleri, devriye, tesis durumu, raporlar). <b>Daire arızalarını ve bu paneli göremezler.</b> Her satıra bir e-posta.</p>
+      <textarea id="rolListe" rows="4" placeholder="mudur@ornek.com&#10;yonetim@ornek.com">${esc(S.rolTaslak ?? (S.roller||[]).join("\n"))}</textarea>
+      <button class="cta ghost" data-act="rolKaydet" style="margin-top:8px">Kaydet</button>
+      <p class="hint">Sonra Firebase → Authentication → <b>Add user</b> ile bu e-postalara birer şifre tanımlayın.</p></details>`;
 }
 
 /* Küçük XLSX yazıcı (dış kütüphane gerektirmez) */
@@ -1485,6 +1498,8 @@ function render(){
   if (keep && document.getElementById(keep)) { const el = document.getElementById(keep); el.focus(); if (el.setSelectionRange && el.value && el.type !== "date") try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){} }
 }
 function syncForm(){
+  const rk = document.getElementById("rolKart"); if (rk) S.rolAcik = rk.open;
+  const rl = document.getElementById("rolListe"); if (rl) S.rolTaslak = rl.value;
   const f = S.form;
   [["desc","desc"],["name","name"],["block","block"],["flat","flat"],["phone","phone"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; });
   document.querySelectorAll("[data-note]").forEach(el => S.notes[el.dataset.note] = el.value);
@@ -1581,9 +1596,13 @@ document.addEventListener("click", async e => {
     else if (act==="giris"){
       const pin = $("#pin"), em = $("#email"), pw = $("#pass");
       try { await store.login(em?em.value.trim():"", pin?pin.value:pw.value); startPanel(); toast("Giriş yapıldı"); }
-      catch(err){ S.err = err.code==="yetki" ? "Bu hesap teknisyen olarak tanımlı değil." : store.mode==="demo" ? "PIN hatalı." : "E-posta veya şifre hatalı."; render(); }
+      catch(err){ S.err = err.code==="yonetim" ? "YONETIM" : err.code==="yetki" ? "Bu hesap teknisyen olarak tanımlı değil." : store.mode==="demo" ? "PIN hatalı." : "E-posta veya şifre hatalı."; render(); }
     }
     else if (act==="cikis"){ if (unAll) unAll(); unAll = null; S.all = []; tesisDurdur(); await store.logout(); render(); }
+    else if (act==="rolKaydet"){
+      const L = $("#rolListe").value.split(/[\s,;]+/).map(x=>x.trim().toLowerCase()).filter(x=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
+      try { await store.setRoller({yonetim: L}); S.roller = L; $("#rolListe").value = L.join("\n"); toast(`${L.length} yönetim hesabı kaydedildi`); render(); } catch(err){ console.error(err); toast("Kaydedilemedi: Firebase kurallarını kontrol edin"); }
+    }
     else if (act==="filtre"){ syncForm(); S.filter = v; render(); }
     else if (act==="durum"){ syncForm(); const a = find(S.all); const patch = {status: v}; if (v==="tamamlandi") patch.completedAt = Date.now(); if (S.notes[id] !== undefined) patch.note = S.notes[id]; await store.update(a, patch); toast(DURUM[v] + " olarak işaretlendi"); }
     else if (act==="not"){ syncForm(); const a = find(S.all); await store.update(a, {note: S.notes[id] ?? ""}); toast("Not kaydedildi"); }
@@ -1598,6 +1617,7 @@ document.addEventListener("click", async e => {
 
 function startPanel(){
   if (unAll) unAll();
+  if (store.isTech() && store.getRoller) store.getRoller().then(r => { S.roller = r.yonetim || []; if (S.view==="panel") render(); }).catch(()=>{});
   unAll = store.isTech() ? store.listenAll(list => { S.all = list; if (S.view==="panel") render(); }) : null;
   render();
 }
