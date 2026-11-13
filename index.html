@@ -657,6 +657,10 @@ function personelListe(){
 }
 
 function devGecmis(){ return (yerel("bz1-devriye-gecmis") || []).filter(k => k.ts > Date.now() - 12*36e5); }
+function devHata(e){
+  const c = (e && e.code) || "";
+  S.d.hata = c.includes("permission") ? "Sunucu kaydı reddetti (Firebase kuralı yayınlanmamış olabilir)" : c ? "Hata: " + c : (navigator.onLine ? "Bağlantı hatası" : "İnternet yok");
+}
 function devKuyruk(){ return yerel("bz1-devriye-kuyruk") || []; }
 function vDevriye(){
   const d = S.d;
@@ -675,7 +679,7 @@ function vDevriye(){
   <section class="step who"><div><small>${esc(d.kim.vardiya)}</small><b>${esc(d.kim.ad)}</b></div><button class="pill-btn" data-act="dKimAc">Değiştir</button></section>
   ${son ? `<section class="okundu">
       <div class="ok-ic">✓</div>
-      <div><b>${son.no}. ${esc(son.ad)}</b><small>${saatStr(son.ts)} · kaydedildi${son.kuyrukta?" (internet gelince gönderilecek)":""}</small></div>
+      <div><b>${son.no}. ${esc(son.ad)}</b><small>${saatStr(son.ts)} · ${son.kuyrukta?"gönderilemedi, tekrar denenecek":"merkeze iletildi ✓"}</small></div>
     </section>
     ${d.sorunAc ? `<section class="step sorun"><h2><span>⚠️</span>Ne sorun var?</h2>
         <div class="issues">${SORUN_HAZIR.map(x=>`<button class="iss" data-act="dSorunHazir" data-v="${esc(x)}" aria-pressed="${d.sorunNot===x}">${esc(x)}</button>`).join("")}</div>
@@ -685,7 +689,7 @@ function vDevriye(){
     : `<button class="cta ghost sorun-btn" data-act="dSorunAc">⚠️ Bu noktada sorun var</button>`}` : ""}
   <button class="scan-btn" data-act="dTara"><svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>QR Okut</button>
   <p class="hint" style="text-align:center;margin:8px 0 14px">Telefonun kendi kamerasıyla okutursanız da kaydedilir.</p>
-  ${kuyruk ? `<p class="kuyruk">📶 ${kuyruk} okutma internet gelince gönderilecek.</p>` : ""}
+  ${kuyruk ? `<p class="kuyruk">📶 ${kuyruk} okutma henüz gönderilmedi, otomatik tekrar denenecek.${S.d.hata?`<br><b>${esc(S.d.hata)}</b>`:""}</p>` : ""}
   <section class="step"><h2><span>🔁</span>Bu tur <em class="turnum">${Object.keys(tur).length}/21</em></h2>
     <p class="hint">Son 2 saatte okuttuğunuz noktalar yeşil.</p>
     <div class="nlist">${DEV_NOKTA.map(n=>`<div class="nrow${tur[n.id]?" on":""}"><i>${n.no}</i><span>${esc(n.ad)}</span><em>${tur[n.id]?saatStr(tur[n.id]):""}</em></div>`).join("")}</div>
@@ -710,12 +714,13 @@ function konumAl(){
 }
 async function devKaydet(rec){
   try { await store.addDevriye(rec); return true; }
-  catch(e){ console.error(e); const q = devKuyruk(); q.push(rec); yerel("bz1-devriye-kuyruk", q); return false; }
+  catch(e){ console.error(e); devHata(e); const q = devKuyruk(); q.push(rec); yerel("bz1-devriye-kuyruk", q); return false; }
 }
 async function kuyrukGonder(){
   const q = devKuyruk(); if (!q.length) return;
   const kalan = [];
-  for (const r of q){ try { await store.addDevriye(r); } catch(e){ kalan.push(r); } }
+  for (const r of q){ try { await store.addDevriye(r); } catch(e){ devHata(e); kalan.push(r); } }
+  if (!kalan.length) S.d.hata = "";
   yerel("bz1-devriye-kuyruk", kalan);
   if (S.view==="devriye") render();
 }
