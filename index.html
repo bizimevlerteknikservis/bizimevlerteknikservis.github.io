@@ -90,6 +90,33 @@ textarea:focus,input:focus,select:focus,button:focus-visible{outline:3px solid c
 label.f.note-l{display:block;margin-top:4px}
 .note-l span{font-weight:400;color:var(--muted)}
 .who{grid-template-columns:1fr auto;align-items:center}
+.amir{display:inline-block;font-size:11px;font-weight:700;background:var(--tag);color:var(--tag-ink);border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:1px}
+.scan-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:14px;border:0;border-radius:24px;padding:30px 16px;font:800 28px/1 var(--display);color:#fff;
+  background:linear-gradient(140deg,#123e66,var(--accent));box-shadow:var(--shadow-lg);cursor:pointer;margin-top:4px}
+.scan-btn svg{width:40px;height:40px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.scan-btn:active{transform:scale(.98)}
+.okundu{display:flex;gap:14px;align-items:center;background:#e6f6ec;border:1.5px solid #9ad7b0;color:#14532d;border-radius:var(--r);padding:16px;margin-bottom:10px;box-shadow:var(--shadow)}
+.okundu .ok-ic{flex:0 0 52px;height:52px;border-radius:50%;background:#22a861;color:#fff;display:grid;place-items:center;font:800 28px/1 var(--display)}
+.okundu b{display:block;font:700 18px/1.25 var(--display)}
+.okundu small{font-size:13.5px;color:#2f6b45}
+.cta.ghost.sorun-btn{margin-bottom:12px;color:#b45309;border-color:#f5c58a}
+.cta.danger{background:#d93a2b;box-shadow:none}
+.sorun textarea{min-height:70px}
+.kuyruk{background:#fff7e6;border:1px solid #f5d6a1;color:#7a4a05;border-radius:12px;padding:10px 12px;font-size:14px;margin:0 0 12px}
+.turnum{font-style:normal;margin-left:auto;font:700 16px var(--mono);color:var(--accent)}
+.nlist{display:grid;gap:6px}
+.nrow{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;background:var(--sunk);font-size:14px}
+.nrow i{font-style:normal;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#d4dee8;color:var(--muted);font:700 12px var(--mono)}
+.nrow em{font-style:normal;font:600 12.5px var(--mono);color:#1c7a43}
+.nrow.on{background:#e6f6ec}
+.nrow.on i{background:#22a861;color:#fff}
+.scan{position:fixed;inset:0;z-index:50;background:#000;display:grid;place-items:center}
+.scan video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scan-frame{position:relative;width:min(70vw,300px);aspect-ratio:1;border:4px solid rgba(255,255,255,.95);border-radius:24px;box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
+.scan-msg{position:absolute;left:16px;right:16px;top:calc(24px + env(safe-area-inset-top,0px));text-align:center;color:#fff;font-weight:700;font-size:17px;margin:0;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.scan-bar{position:absolute;left:0;right:0;bottom:calc(28px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:12px}
+.scan-b{border:0;border-radius:999px;padding:16px 26px;font:700 17px var(--body);background:rgba(255,255,255,.92);color:#111}
+.scan-b[aria-pressed="true"]{background:#f6c445}
 .who small{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 .staff{background:#eef4ff;color:#244a8f;border-radius:8px;padding:3px 8px}
 .prefs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -197,6 +224,15 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
   <a href="#panel" data-tab="panel" hidden><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>Teknisyen</a>
 </div></nav>
 <div id="toast" class="toast" role="status" hidden></div>
+<div id="scan" class="scan" hidden>
+  <video id="scanVideo" playsinline muted></video>
+  <div class="scan-frame"></div>
+  <p id="scanMsg" class="scan-msg">Kamera açılıyor…</p>
+  <div class="scan-bar">
+    <button id="scanFener" class="scan-b" aria-pressed="false" hidden onclick="fenerDegistir()">🔦 Fener</button>
+    <button class="scan-b" onclick="taramaKapat()">Kapat</button>
+  </div>
+</div>
 
 <script>
 /* =========================================================
@@ -271,6 +307,39 @@ const PARIZA = {
 };
 const ALANLAR = ["Otopark","Bahçe / peyzaj","Çocuk parkı","Yüzme havuzu","Spor sahası / kort","Sosyal tesis","Site girişi / güvenlik","Teknik bina / kazan","Çöp alanı","Yürüyüş yolları","Diğer"];
 const KATLAR = ["Bodrum -2","Bodrum -1","Zemin kat", ...Array.from({length:30},(_,i)=>`${i+1}. kat`), "Çatı"];
+/* ===== Güvenlik devriyesi ===== */
+/* QR içeriği: <site>/#d-<no>-<k>. k, kartın elle uydurulmasını zorlaştıran kısa koddur. */
+const DEV_NOKTA = [
+  {id:"n01", no:1, ad:"A1 Basket Sahası Köşesi", k:"fa5e"},
+  {id:"n02", no:2, ad:"A1 – Final Arası Tel Örgü", k:"n8x8"},
+  {id:"n03", no:3, ad:"A2 Önü Büyük Aydınlatma Direği", k:"arct"},
+  {id:"n04", no:4, ad:"Boy Turnike Yanı Tel Örgü", k:"edbp"},
+  {id:"n05", no:5, ad:"A3 Arkası Tel Örgü", k:"budw"},
+  {id:"n06", no:6, ad:"A4 Arkası Kamera Direği", k:"kak7"},
+  {id:"n07", no:7, ad:"A4 Önü Otopark Kepengi", k:"saxy"},
+  {id:"n08", no:8, ad:"C4 Arkası Kamelya", k:"26yk"},
+  {id:"n09", no:9, ad:"Mescit Camı", k:"tz9q"},
+  {id:"n10", no:10, ad:"F1 Arkası Kamelya", k:"j4bs"},
+  {id:"n11", no:11, ad:"F2 Karşısı Demir Kapı", k:"63pm"},
+  {id:"n12", no:12, ad:"F1 Önü Büyük Aydınlatma", k:"y2ke"},
+  {id:"n13", no:13, ad:"F1 – C2 Arası Küçük Direk", k:"4f76"},
+  {id:"n14", no:14, ad:"C1 – C4 Arası Küçük Direk", k:"7cns"},
+  {id:"n15", no:15, ad:"Trafo Bölgesi", k:"348p"},
+  {id:"n16", no:16, ad:"B3 Karşısı Büyük Aydınlatma", k:"j4pm"},
+  {id:"n17", no:17, ad:"B3 – B4 Arası Küçük Direk", k:"tbtr"},
+  {id:"n18", no:18, ad:"B6 Arkası Küçük Direk", k:"y2qn"},
+  {id:"n19", no:19, ad:"B6 Önü Büyük Direk", k:"urdk"},
+  {id:"n20", no:20, ad:"Kuaför Merdiveni Büyük Direk", k:"5jaa"},
+  {id:"n21", no:21, ad:"D3 Arkası Park Yapılamaz Tabelası", k:"2fzf"}
+];
+const DEV_N = Object.fromEntries(DEV_NOKTA.map(n=>[n.id,n]));
+const VARDIYA = [
+  {ad:"1. Vardiya", kisiler:[["Rüstem Eryüksel",1],["Ali Vesek"],["Tayfun Özdemir"],["Erkan Bavkir"]]},
+  {ad:"2. Vardiya", kisiler:[["Yakup Erol",1],["Cihan Yıldırım"],["Serkan Çinibulak"],["Mehmet Ünal"]]},
+  {ad:"3. Vardiya", kisiler:[["Nejdet Baydemir",1],["Yalçın Akyol"],["Berke Dursun Tuncer"],["Yusuf Nazlım"]]},
+  {ad:"Joker", kisiler:[["Eray Polat"]]}
+];
+const SORUN_HAZIR = ["Kapı açık bulundu","Lamba yanmıyor","Şüpheli kişi / araç","Hasar / kırık var","Su kaçağı","Tel örgü hasarlı"];
 const DURUM = {bekliyor:"Alındı", onaylandi:"İlgileniliyor", tamamlandi:"Tamamlandı", iptal:"İptal"};
 const GUN = ["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"];
 const AY = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
@@ -366,6 +435,7 @@ function DemoStore(){
     async cancelMine(a){ const r = bul(a); if (r){ r.status = "iptal"; save(); } },
     async update(a, patch){ const r = bul(a); if (r){ Object.assign(r, patch); save(); } },
     async login(_, pin){ if (pin !== AYAR.demoPin) throw {code:"giris"}; tech = true; save(); },
+    async addDevriye(r){ (mem.devriye ||= []).push({...r, uid: mem.uid}); save(); },
     async logout(){ tech = false; save(); }
   };
 }
@@ -409,6 +479,7 @@ function FirebaseStore(cfg){
     },
     async cancelMine(a){ await fs.updateDoc(fs.doc(db,"appointments",a.id), {status:"iptal"}); },
     async update(a, patch){ await fs.updateDoc(fs.doc(db,"appointments",a.id), patch); },
+    async addDevriye(r){ await fs.addDoc(fs.collection(db,"devriye"), {...r, uid: user.uid}); },
     async login(email, pass){
       try { await au.signInWithEmailAndPassword(auth, email, pass); } catch(e){ throw {code:"giris"}; }
       tech = AYAR.teknisyenEpostalari.map(x => x.toLowerCase()).includes((auth.currentUser?.email||"").toLowerCase());
@@ -427,6 +498,7 @@ const pKayit = yerel("site-servis-personel") || {};
 const S = {
   p: {rol:pKayit.rol||"", name:pKayit.name||"", kayitli:!!pKayit.name, kimlikAc:false, cat:null, issues:[], yerTip:"blok", block:"", kat:"", alan:"", desc:""},
   pSent: null,
+  d: {kim: yerel("bz1-gorevli") || null, son: null, sorunAc: false, sorunNot: "", bekleyen: null, kimAc: false},
   view: "randevu",
   form: {cat:null, issues:[], desc:"", name:kayitli.name||"", block:kayitli.block||AYAR.bloklar[0], flat:kayitli.flat||"", phone:kayitli.phone||""},
   mine: [], all: [], sent: null, err: "", sending: false,
@@ -584,6 +656,151 @@ function personelListe(){
   return l.length ? `<div class="group-h">Son bildirdikleriniz</div><div class="list">${l.map(a=>fis(a,false)).join("")}</div>` : "";
 }
 
+function devGecmis(){ return (yerel("bz1-devriye-gecmis") || []).filter(k => k.ts > Date.now() - 12*36e5); }
+function devKuyruk(){ return yerel("bz1-devriye-kuyruk") || []; }
+function vDevriye(){
+  const d = S.d;
+  if (!d.kim || d.kimAc){
+    return `<section class="step"><h2><span>🛡️</span>Adınızı seçin</h2>
+      <p class="hint">Bir kez seçmeniz yeterli, telefon hatırlar.</p>
+      ${VARDIYA.map(v=>`<div class="group-h" style="margin-top:6px">${v.ad}</div>
+        <div class="prefs">${v.kisiler.map(([ad,amir])=>`<button class="pref" data-act="dKim" data-v="${esc(ad)}" data-vr="${esc(v.ad)}" aria-pressed="${d.kim&&d.kim.ad===ad}">${esc(ad)}${amir?' <small class="amir">Amir</small>':""}</button>`).join("")}</div>`).join("")}
+    </section>`;
+  }
+  const gec = devGecmis();
+  const tur = {}; gec.filter(k => k.ts > Date.now() - 2*36e5).forEach(k => { if (!tur[k.nokta] || k.ts > tur[k.nokta]) tur[k.nokta] = k.ts; });
+  const kuyruk = devKuyruk().length;
+  const son = d.son && Date.now() - d.son.ts < 3*6e4 ? d.son : null;
+  return `
+  <section class="step who"><div><small>${esc(d.kim.vardiya)}</small><b>${esc(d.kim.ad)}</b></div><button class="pill-btn" data-act="dKimAc">Değiştir</button></section>
+  ${son ? `<section class="okundu">
+      <div class="ok-ic">✓</div>
+      <div><b>${son.no}. ${esc(son.ad)}</b><small>${saatStr(son.ts)} · kaydedildi${son.kuyrukta?" (internet gelince gönderilecek)":""}</small></div>
+    </section>
+    ${d.sorunAc ? `<section class="step sorun"><h2><span>⚠️</span>Ne sorun var?</h2>
+        <div class="issues">${SORUN_HAZIR.map(x=>`<button class="iss" data-act="dSorunHazir" data-v="${esc(x)}" aria-pressed="${d.sorunNot===x}">${esc(x)}</button>`).join("")}</div>
+        <textarea id="d_not" maxlength="300" placeholder="Kısaca yazın">${esc(d.sorunNot)}</textarea>
+        <div class="grid2"><button class="cta ghost" data-act="dSorunKapat">Vazgeç</button><button class="cta danger" data-act="dSorunGonder">Sorunu bildir</button></div>
+      </section>`
+    : `<button class="cta ghost sorun-btn" data-act="dSorunAc">⚠️ Bu noktada sorun var</button>`}` : ""}
+  <button class="scan-btn" data-act="dTara"><svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>QR Okut</button>
+  <p class="hint" style="text-align:center;margin:8px 0 14px">Telefonun kendi kamerasıyla okutursanız da kaydedilir.</p>
+  ${kuyruk ? `<p class="kuyruk">📶 ${kuyruk} okutma internet gelince gönderilecek.</p>` : ""}
+  <section class="step"><h2><span>🔁</span>Bu tur <em class="turnum">${Object.keys(tur).length}/21</em></h2>
+    <p class="hint">Son 2 saatte okuttuğunuz noktalar yeşil.</p>
+    <div class="nlist">${DEV_NOKTA.map(n=>`<div class="nrow${tur[n.id]?" on":""}"><i>${n.no}</i><span>${esc(n.ad)}</span><em>${tur[n.id]?saatStr(tur[n.id]):""}</em></div>`).join("")}</div>
+  </section>`;
+}
+const saatStr = ts => { const x = new Date(ts); return `${pad(x.getHours())}:${pad(x.getMinutes())}`; };
+
+/* ---- QR okutma ---- */
+function qrCoz(txt){
+  const m = String(txt||"").match(/#?d-(\d{1,2})-([a-z0-9]{4})/i);
+  if (!m) return null;
+  const n = DEV_N["n"+String(+m[1]).padStart(2,"0")];
+  return n && n.k === m[2].toLowerCase() ? n : null;
+}
+function konumAl(){
+  return new Promise(res => {
+    if (!navigator.geolocation) return res(null);
+    const t = setTimeout(()=>res(null), 4000);
+    navigator.geolocation.getCurrentPosition(p => { clearTimeout(t); res({lat:+p.coords.latitude.toFixed(6), lng:+p.coords.longitude.toFixed(6), acc:Math.round(p.coords.accuracy)}); },
+      () => { clearTimeout(t); res(null); }, {enableHighAccuracy:true, timeout:3800, maximumAge:30000});
+  });
+}
+async function devKaydet(rec){
+  try { await store.addDevriye(rec); return true; }
+  catch(e){ console.error(e); const q = devKuyruk(); q.push(rec); yerel("bz1-devriye-kuyruk", q); return false; }
+}
+async function kuyrukGonder(){
+  const q = devKuyruk(); if (!q.length) return;
+  const kalan = [];
+  for (const r of q){ try { await store.addDevriye(r); } catch(e){ kalan.push(r); } }
+  yerel("bz1-devriye-kuyruk", kalan);
+  if (S.view==="devriye") render();
+}
+async function noktaOkut(n){
+  const d = S.d;
+  if (!d.kim){ d.bekleyen = n; S.view = "devriye"; render(); toast("Önce adınızı seçin"); return; }
+  const gec = yerel("bz1-devriye-gecmis") || [];
+  const tekrar = gec.find(k => k.nokta===n.id && Date.now()-k.ts < 60000);
+  if (tekrar){ d.son = {...n, ts: tekrar.ts}; render(); toast("Bu nokta az önce okutuldu"); return; }
+  const ts = Date.now();
+  try { navigator.vibrate && navigator.vibrate([60,40,120]); } catch(e){}
+  d.son = {...n, ts, kuyrukta:false}; d.sorunAc = false; d.sorunNot = "";
+  gec.push({nokta:n.id, ts}); yerel("bz1-devriye-gecmis", gec.filter(k => k.ts > Date.now()-24*36e5));
+  S.view = "devriye"; render(); scrollTo(0,0);
+  const konum = await konumAl();
+  const ok = await devKaydet({tip:"okutma", nokta:n.id, ad:n.ad, gorevli:d.kim.ad, vardiya:d.kim.vardiya, ts, not:"", ...(konum?{konum}:{})});
+  if (!ok){ d.son.kuyrukta = true; render(); }
+}
+async function sorunGonder(){
+  const d = S.d, n = d.son; if (!n) return;
+  const not = (document.getElementById("d_not")?.value || d.sorunNot || "").trim() || "Sorun bildirildi";
+  const ts = Date.now();
+  const ok = await devKaydet({tip:"sorun", nokta:n.id, ad:n.ad, gorevli:d.kim.ad, vardiya:d.kim.vardiya, ts, not});
+  const tg = AYAR.telegram;
+  if (tg && tg.token && tg.chatId){
+    const text = ["⚠️ Devriye sorunu", `📍 ${n.no}. ${n.ad}`, `📝 ${not}`, `🛡️ ${d.kim.ad} · ${d.kim.vardiya}`, `🕒 ${saatStr(ts)}`].join("\n");
+    try { fetch("https://api.telegram.org/bot"+tg.token+"/sendMessage",{method:"POST",body:new URLSearchParams({chat_id:String(tg.chatId),text}),mode:"no-cors",keepalive:true}).catch(()=>{}); } catch(e){}
+  }
+  d.sorunAc = false; d.sorunNot = "";
+  toast(ok ? "Sorun bildirildi" : "Sorun kaydedildi, internet gelince gönderilecek"); render();
+}
+/* Kamera ile okutma: Android Chrome'da yerleşik okuyucu, yoksa jsQR */
+const TARA = {stream:null, raf:0, det:null, fener:false};
+async function taramaAc(){
+  const kutu = $("#scan"); kutu.hidden = false; $("#scanMsg").textContent = "Kamera açılıyor…";
+  try {
+    TARA.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment", width:{ideal:1280}}, audio:false});
+  } catch(e){ $("#scanMsg").textContent = "Kameraya izin verilmedi. Tarayıcı ayarlarından kamera iznini açın ya da QR'ı telefonun kendi kamerasıyla okutun."; return; }
+  const v = $("#scanVideo"); v.srcObject = TARA.stream; await v.play().catch(()=>{});
+  const track = TARA.stream.getVideoTracks()[0];
+  const caps = track.getCapabilities ? track.getCapabilities() : {};
+  $("#scanFener").hidden = !caps.torch;
+  if ("BarcodeDetector" in window){ try { TARA.det = new BarcodeDetector({formats:["qr_code"]}); } catch(e){ TARA.det = null; } }
+  if (!TARA.det && !window.jsQR){
+    await new Promise(r => { const sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"; sc.onload = r; sc.onerror = r; document.head.appendChild(sc); });
+  }
+  $("#scanMsg").textContent = "QR kodu çerçevenin içine getirin";
+  const cv = document.createElement("canvas"), cx = cv.getContext("2d", {willReadFrequently:true});
+  let mesgul = false;
+  const dongu = async () => {
+    if (!TARA.stream) return;
+    if (!mesgul && v.readyState >= 2){
+      mesgul = true;
+      let txt = null;
+      try {
+        if (TARA.det){ const r = await TARA.det.detect(v); if (r[0]) txt = r[0].rawValue; }
+        else if (window.jsQR){
+          const w = Math.min(640, v.videoWidth), h = Math.round(v.videoHeight * w / v.videoWidth);
+          cv.width = w; cv.height = h; cx.drawImage(v,0,0,w,h);
+          const r = jsQR(cx.getImageData(0,0,w,h).data, w, h, {inversionAttempts:"dontInvert"}); if (r) txt = r.data;
+        }
+      } catch(e){}
+      mesgul = false;
+      if (txt){
+        const n = qrCoz(txt);
+        if (n){ taramaKapat(); noktaOkut(n); return; }
+        $("#scanMsg").textContent = "Bu QR bir devriye noktasına ait değil";
+      }
+    }
+    TARA.raf = requestAnimationFrame(dongu);
+  };
+  TARA.raf = requestAnimationFrame(dongu);
+}
+function taramaKapat(){
+  cancelAnimationFrame(TARA.raf);
+  if (TARA.stream){ TARA.stream.getTracks().forEach(t=>t.stop()); TARA.stream = null; }
+  TARA.fener = false; $("#scan").hidden = true;
+}
+async function fenerDegistir(){
+  const t = TARA.stream && TARA.stream.getVideoTracks()[0]; if (!t) return;
+  TARA.fener = !TARA.fener;
+  try { await t.applyConstraints({advanced:[{torch:TARA.fener}]}); } catch(e){ TARA.fener = false; }
+  $("#scanFener").setAttribute("aria-pressed", TARA.fener);
+}
+
 function vRandevularim(){
   const benim = S.mine.filter(a => a.src!=="personel");
   if (!benim.length) return `<div class="empty"><strong>Henüz arıza bildiriminiz yok</strong>Bu telefondan bildirdiğiniz arızalar burada listelenir.<br><br><a class="tel" href="#randevu">Arıza bildir</a></div>`;
@@ -635,12 +852,14 @@ function vPanel(){
 function render(){
   syncForm();
   const keep = document.activeElement && document.activeElement.id;
-  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="personel" ? vPersonel() : vRandevu();
-  document.querySelector("nav.tabs").hidden = S.view==="personel";
-  $("#ustYazi").textContent = S.view==="personel" ? "Bizimevler 1 · Personel" : (AYAR.ustYazi || "Teknik Servis");
+  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="personel" ? vPersonel() : S.view==="devriye" ? vDevriye() : vRandevu();
+  document.querySelector("nav.tabs").hidden = S.view==="personel" || S.view==="devriye";
+  $("#ustYazi").textContent = S.view==="personel" ? "Bizimevler 1 · Personel" : S.view==="devriye" ? "Bizimevler 1 · Güvenlik" : (AYAR.ustYazi || "Teknik Servis");
+  $("#siteName").textContent = S.view==="devriye" ? "Devriye" : (AYAR.baslik || AYAR.siteAdi);
   $("#heroSub").textContent = S.view==="randevularim" ? "Bildirimlerinin durumunu ve teknisyen notlarını buradan takip et."
     : S.view==="panel" ? "Gelen arızaları gör, durumlarını güncelle."
     : S.view==="personel" ? "Sahada gördüğün arızayı 15 saniyede teknik servise bildir."
+    : S.view==="devriye" ? "Noktaya geldiğinde QR'ı okut, turun kaydedilsin."
     : "Arızanı bildir, teknisyen en kısa sürede ilgilensin.";
   document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.tab===S.view ? "page" : "false"));
   /* Teknisyen sekmesi sakinlere görünmez; sadece #panel adresinden açılır */
@@ -673,7 +892,15 @@ document.addEventListener("click", async e => {
   if (act !== "iptal" && act !== "iptalBenim") S.armed = null;
   S.err = "";
   try {
-    if (act==="pRol"){ syncForm(); S.p.rol = v; render(); }
+    if (act==="dKim"){ const kim = {ad:v, vardiya:b.dataset.vr}; S.d.kim = kim; S.d.kimAc = false; yerel("bz1-gorevli", kim); render(); scrollTo(0,0);
+      if (S.d.bekleyen){ const n = S.d.bekleyen; S.d.bekleyen = null; noktaOkut(n); } }
+    else if (act==="dKimAc"){ S.d.kimAc = true; render(); }
+    else if (act==="dTara"){ taramaAc(); }
+    else if (act==="dSorunAc"){ S.d.sorunAc = true; render(); }
+    else if (act==="dSorunKapat"){ S.d.sorunAc = false; S.d.sorunNot = ""; render(); }
+    else if (act==="dSorunHazir"){ S.d.sorunNot = v; render(); }
+    else if (act==="dSorunGonder"){ await sorunGonder(); }
+    else if (act==="pRol"){ syncForm(); S.p.rol = v; render(); }
     else if (act==="pKimlik"){ syncForm(); S.p.kimlikAc = true; render(); }
     else if (act==="pCat"){ syncForm(); if (S.p.cat !== v) S.p.issues = []; S.p.cat = v; render(); }
     else if (act==="pIss"){ syncForm(); const L = S.p.issues; const i = L.indexOf(v); i < 0 ? L.push(v) : L.splice(i,1); render(); }
@@ -746,7 +973,14 @@ function startPanel(){
 
 function route(){
   const h = location.hash.slice(1);
-  S.view = ["randevu","randevularim","panel","personel"].includes(h) ? h : "randevu";
+  if (/^d-\d/.test(h)){
+    history.replaceState(null, "", location.pathname + "#devriye");
+    const n = qrCoz(h);
+    S.view = "devriye"; S.err = ""; render();
+    if (n) noktaOkut(n); else toast("QR kodu tanınmadı");
+    return;
+  }
+  S.view = ["randevu","randevularim","panel","personel","devriye"].includes(h) ? h : "randevu";
   S.err = ""; S.armed = null;
   render();
 }
@@ -757,6 +991,7 @@ store.ready.then(() => {
   unMine = store.listenMine(list => { S.mine = list; if (S.view==="randevularim" || S.view==="personel") render(); });
   if (store.isTech()) startPanel();
   route();
+  kuyrukGonder(); setInterval(kuyrukGonder, 30000); window.addEventListener("online", kuyrukGonder);
 }).catch(err => {
   console.error(err);
   $("#view").innerHTML = `<div class="empty"><strong>Bağlantı kurulamadı</strong>Sayfayı yenileyin. Sorun sürerse teknisyene haber verin.</div>`;

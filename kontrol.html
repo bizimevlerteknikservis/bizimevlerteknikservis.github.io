@@ -88,7 +88,13 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .editbar span{flex:1 1 260px;color:var(--muted)}
 .editbar button{border:1px solid var(--line);background:var(--panel-2);border-radius:10px;padding:8px 12px;font-weight:600;font-size:13px}
 .editbar button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.duzenle .blk{cursor:grab}
+.duzenle .blk,.duzenle .nkt{cursor:grab}
+.nk{display:none}
+:root[data-mode="gece"] .nk,.duzenle .nk{display:inline}
+.nnum{font:700 11px var(--display);fill:#fff;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.duzenle .nkt .cp-core{fill:var(--accent)!important;stroke:#fff}
+.duzenle .nkt .pulse{display:none}
+.nkt.secili .cp-core{fill:#f59e0b!important}
 .ov{pointer-events:none}
 .duzenle .ov{display:none}
 .blk.secili .roof{fill:var(--accent)!important;stroke:var(--accent)}
@@ -201,9 +207,9 @@ window.FB_TEKNISYEN = ["teknisyenzeynel91@gmail.com"];</script>
 
   <div class="main">
     <section class="mapwrap" aria-label="Site haritası">
-      <div class="maphead"><b id="mapTitle">Arıza haritası</b><span id="mapSub">Bizimevler 1 · kuşbakışı</span><button class="editbtn" id="edit" aria-pressed="false">Blokları yerleştir</button></div>
+      <div class="maphead"><b id="mapTitle">Arıza haritası</b><span id="mapSub">Bizimevler 1 · kuşbakışı</span><button class="editbtn" id="edit" aria-pressed="false">Yerleri düzenle</button></div>
       <div class="editbar" id="editBar" hidden>
-        <span><b>1.</b> Bir blok etiketine dokunun (mavi olur). <b>2.</b> Fotoğrafta doğru binaya dokunun, etiket oraya gider. Sürükleyerek de taşıyabilirsiniz.</span>
+        <span><b>1.</b> Bir blok etiketine ya da numaralı devriye noktasına dokunun (mavi olur). <b>2.</b> Fotoğrafta doğru yere dokunun, oraya gider. Sürükleyerek de taşıyabilirsiniz.</span>
         <button id="copyPos">Konumları kopyala</button><button id="resetPos">Varsayılana dön</button><button id="doneEdit" class="primary">Bitti</button>
       </div>
       <svg class="map" id="map" viewBox="0 0 1063 661" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bizimevler 1 kuşbakışı harita"></svg>
@@ -242,23 +248,19 @@ const B = Object.fromEntries(BLOK.map(b=>[b.id,b]));
 const ctr = b => [b.x+b.w/2, b.y+b.h/2];
 const DAIRE = 24; // demo: blok başına daire
 
-const NOKTA = [
-  {id:"giris",  ad:"Ana Giriş",        x:560,y:470},
-  {id:"oto1",   ad:"Otopark Rampası",  x:482,y:512},
-  {id:"oto2",   ad:"Açık Otopark",     x:850,y:372},
-  {id:"kazan",  ad:"Teknik Bina",      x:285,y:342},
-  {id:"fblok",  ad:"Batı Duvarı",      x:60, y:222},
-  {id:"akuzey", ad:"Yüzme Havuzu",     x:398,y:178},
-  {id:"akuzey2",ad:"İç Yol",           x:690,y:122},
-  {id:"bdogu",  ad:"Doğu Kapısı",      x:955,y:140},
-  {id:"jen",    ad:"Sosyal Tesis",     x:872,y:300},
-  {id:"park",   ad:"Çocuk Parkı",      x:568,y:352},
-  {id:"toplan", ad:"Futbol Sahası",    x:778,y:572},
-  {id:"dblok",  ad:"Güney Yolu",       x:330,y:395},
-  {id:"cavlu",  ad:"Tenis Kortu",      x:342,y:258},
-  {id:"arka",   ad:"Süs Havuzu",       x:590,y:286}
+/* 21 devriye kontrol noktası (QR kartlarıyla aynı numaralar). Konumlar fotoğraf üzerinde tahminîdir, düzenle modunda taşınabilir. */
+const NOKTA_LISTE = [
+  ["n01","A1 Basket Sahası Köşesi",60,182],["n02","A1 – Final Arası Tel Örgü",30,140],["n03","A2 Önü Büyük Aydınlatma Direği",222,252],
+  ["n04","Boy Turnike Yanı Tel Örgü",120,250],["n05","A3 Arkası Tel Örgü",120,22],["n06","A4 Arkası Kamera Direği",250,40],
+  ["n07","A4 Önü Otopark Kepengi",300,192],["n08","C4 Arkası Kamelya",1040,300],["n09","Mescit Camı",872,332],
+  ["n10","F1 Arkası Kamelya",180,470],["n11","F2 Karşısı Demir Kapı",330,470],["n12","F1 Önü Büyük Aydınlatma",252,420],
+  ["n13","F1 – C2 Arası Küçük Direk",400,432],["n14","C1 – C4 Arası Küçük Direk",800,462],["n15","Trafo Bölgesi",960,560],
+  ["n16","B3 Karşısı Büyük Aydınlatma",620,142],["n17","B3 – B4 Arası Küçük Direk",660,70],["n18","B6 Arkası Küçük Direk",800,232],
+  ["n19","B6 Önü Büyük Direk",690,302],["n20","Kuaför Merdiveni Büyük Direk",560,470],["n21","D3 Arkası Park Yapılamaz Tabelası",470,560]
 ];
+const NOKTA = NOKTA_LISTE.map(([id,ad,x,y]) => { const k = KONUM[id]; return {id, no:+id.slice(1), ad, x:k?k[0]:x, y:k?k[1]:y, vx:x, vy:y}; });
 const N = Object.fromEntries(NOKTA.map(n=>[n.id,n]));
+const TOPLANMA = [778,572];
 
 const KAT = ["Elektrik","Su tesisatı","Kombi / ısıtma","Kapı / kilit","Asansör"];
 const AD = ["Ahmet Y.","Mehmet K.","Hasan T.","Murat D.","Emre S.","Ali R."];
@@ -295,8 +297,22 @@ function haritaKur(){
     g.addEventListener("pointerdown", e=>surukBasla(e,b));
   });
   tepsiCiz();
+  L.nokta = el("g",{class:"nk"},svg);
+  NOKTA.forEach(n=>{
+    n.g = el("g",{id:"n-"+n.id,class:"nkt"},L.nokta);
+    n.halo = el("circle",{r:17,opacity:.35,class:"pulse",fill:"var(--muted)"},n.g);
+    n.dot = el("circle",{r:12,class:"cp-core",fill:"var(--muted)"},n.g);
+    n.num = el("text",{class:"nnum"},n.g); n.num.textContent = n.no;
+    const t = el("title",{},n.g); t.textContent = `${n.no}. ${n.ad}`;
+    noktaYerlestir(n);
+    n.g.addEventListener("pointerdown", e=>surukBasla(e,n));
+  });
   L.over = el("g",{class:"ov"},svg);   // moda özel katman
   L.fx = el("g",{class:"ov"},svg);     // efektler
+}
+function noktaYerlestir(n){
+  [n.halo,n.dot].forEach(c=>{ c.setAttribute("cx",n.x); c.setAttribute("cy",n.y); });
+  n.num.setAttribute("x",n.x); n.num.setAttribute("y",n.y+.5);
 }
 function yerlestir(b){
   b.side.setAttribute("x",b.x+3); b.side.setAttribute("y",b.y+4);
@@ -317,44 +333,49 @@ function tepsiCiz(){
 /* ============ Düzenleme: blokları gerçek binalara taşı ============ */
 let DUZENLE = false, surukle = null;
 function svgNokta(e){ const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(svg.getScreenCTM().inverse()); }
-function surukBasla(e,b){
+const isNokta = o => !!o.no;
+const merkez = o => isNokta(o) ? [o.x,o.y] : [o.x+o.w/2, o.y+o.h/2];
+function merkezYap(o, cx, cy){
+  if (isNokta(o)){ o.x = Math.max(8,Math.min(PW-8,cx)); o.y = Math.max(8,Math.min(PH-8,cy)); noktaYerlestir(o); }
+  else { o.x = Math.max(0,Math.min(PW-o.w,cx-o.w/2)); o.y = Math.max(0,Math.min(PH-o.h,cy-o.h/2)); yerlestir(o); }
+}
+const etiket = o => isNokta(o) ? `${o.no}. nokta (${o.ad})` : `${o.id}`;
+function surukBasla(e,o){
   if (!DUZENLE) return;
-  e.preventDefault(); const p = svgNokta(e);
-  surukle = {b, dx:p.x-b.x, dy:p.y-b.y, sx:p.x, sy:p.y, moved:false};
+  e.preventDefault(); const p = svgNokta(e); const [cx,cy] = merkez(o);
+  surukle = {o, dx:p.x-cx, dy:p.y-cy, sx:p.x, sy:p.y, moved:false};
   e.stopPropagation();
-  L.blok.appendChild(b.g);
+  o.g.parentNode.appendChild(o.g);
   try { svg.setPointerCapture(e.pointerId); } catch(_){}
 }
 svg.addEventListener("pointermove", e=>{
-  if (!surukle) return; const p = svgNokta(e), b = surukle.b;
+  if (!surukle) return; const p = svgNokta(e), o = surukle.o;
   if (!surukle.moved && Math.hypot(p.x-surukle.sx, p.y-surukle.sy) < 6) return;
   surukle.moved = true;
-  b.x = Math.max(0, Math.min(PW-b.w, p.x-surukle.dx)); b.y = Math.max(0, Math.min(PH-b.h, p.y-surukle.dy));
-  yerlestir(b);
+  merkezYap(o, p.x-surukle.dx, p.y-surukle.dy);
 });
 let SECILI = null;
-function sec(b){ BLOK.forEach(x=>x.g.classList.toggle("secili", x===b)); SECILI = b; if (b) ticker(`${b.id} seçildi · şimdi fotoğrafta doğru binaya dokunun`); }
+function sec(o){ [...BLOK,...NOKTA].forEach(x=>x.g.classList.toggle("secili", x===o)); SECILI = o; if (o) ticker(`${etiket(o)} seçildi · şimdi fotoğrafta doğru yere dokunun`); }
 svg.addEventListener("pointerdown", e=>{
   if (!DUZENLE || surukle || !SECILI) return;
-  const p = svgNokta(e), b = SECILI;
-  b.x = Math.max(0, Math.min(PW-b.w, p.x-b.w/2)); b.y = Math.max(0, Math.min(PH-b.h, p.y-b.h/2));
-  yerlestir(b); kaydet(b); sec(null);
+  const p = svgNokta(e), o = SECILI;
+  merkezYap(o, p.x, p.y); kaydet(o); sec(null);
 });
-function kaydet(b){
-  KONUM[b.id] = [Math.round(b.x+b.w/2), Math.round(b.y+b.h/2)];
+function kaydet(o){
+  const [cx,cy] = merkez(o);
+  KONUM[o.id] = [Math.round(cx), Math.round(cy)];
   try { localStorage.setItem("bz1-konum", JSON.stringify(KONUM)); } catch(e){}
-  ticker(`📍 ${b.id} yeni yerine taşındı`);
+  ticker(`📍 ${etiket(o)} yeni yerine taşındı`);
 }
-const surukBit = () => { if (!surukle) return; const {b, moved} = surukle; surukle = null;
-  if (!moved){ sec(SECILI===b ? null : b); return; }
-  kaydet(b); sec(null); };
+const surukBit = () => { if (!surukle) return; const {o, moved} = surukle; surukle = null;
+  if (!moved){ sec(SECILI===o ? null : o); return; }
+  kaydet(o); sec(null); };
 svg.addEventListener("pointerup", surukBit); svg.addEventListener("pointercancel", surukBit);
 function duzenleAc(ac){
   DUZENLE = ac; document.documentElement.classList.toggle("duzenle", ac);
   $("#edit").setAttribute("aria-pressed", ac); $("#editBar").hidden = !ac;
   tepsiCiz(); if (!ac) sec(null);
-  if (ac && MODE!=="gunduz") modAc("gunduz");
-  if (!ac) modAc(MODE);
+  modAc(MODE);
 }
 
 /* ============ Ortak durum ============ */
@@ -461,31 +482,27 @@ function arizaPanel(){
 }
 
 /* ============ GECE: Devriye ============ */
-const DEV = { kur:false, gorevli:[], tur:3, turHedef:6 };
+const DEV = { kur:false, gorevli:[], tur:3, turHedef:6, kayit:[], sorun:[] };
 function devriyeBaslat(){
   const now = Date.now();
-  if (!DEV.kur){
+  if (!LIVE.on && !DEV.kur){
     NOKTA.forEach(n=>n.son = now - (5+Math.random()*70)*6e4);
-    N.arka.son = now - 112*6e4;       // demo: uzun süredir uğranmayan nokta
-    N.oto2.son = now - 84*6e4;
+    N.n15.son = now - 112*6e4; N.n08.son = now - 84*6e4;   // demo: uzun süredir uğranmayan noktalar
     DEV.gorevli = [
-      {ad:"Ahmet Y.", rota:["giris","oto1","oto2","kazan","fblok","akuzey","cavlu","giris"]},
-      {ad:"Mehmet K.",rota:["dblok","jen","bdogu","toplan","park","akuzey2","cavlu","dblok"]},
-      {ad:"Hasan T.", rota:["park","toplan","jen","arka","bdogu","akuzey2","park"]}
+      {ad:"Ahmet Y.", rota:["n04","n01","n02","n05","n06","n07","n03","n12","n10","n04"]},
+      {ad:"Mehmet K.",rota:["n11","n13","n21","n20","n14","n15","n08","n09","n11"]},
+      {ad:"Hasan T.", rota:["n19","n18","n16","n17","n09","n14","n20","n19"]}
     ].map(g=>({...g,i:0,p:Math.random(),son:null}));
     DEV.kur = true;
   }
   $("#mapTitle").textContent = "Gece devriyesi";
-  $("#mapSub").textContent = "Noktalar son QR okutma zamanına göre renklenir";
-  legend([[cssv("--ok"),"30 dk içinde"],[cssv("--warn"),"30–90 dk"],[cssv("--bad"),"90 dk+ uğranmadı"],[cssv("--accent"),"Görevli"]]);
+  $("#mapSub").textContent = LIVE.on ? "21 kontrol noktası · son QR okutmaya göre renklenir · canlı" : "21 kontrol noktası · son QR okutmaya göre renklenir";
+  legend([[cssv("--ok"),"30 dk içinde"],[cssv("--warn"),"30–90 dk"],[cssv("--bad"),"90 dk+ uğranmadı"],[cssv("--muted"),"Bugün okutulmadı"]].concat(LIVE.on?[]:[[cssv("--accent"),"Görevli (demo)"]]));
   L.over.innerHTML = "";
+  devriyeRenk(); devriyePanel();
+  timers.push(setInterval(()=>{ devriyeRenk(); devriyePanel(); }, LIVE.on ? 20000 : 3000));
+  if (LIVE.on) return;
   L.rota = el("g",{},L.over);
-  NOKTA.forEach(n=>{
-    n.g = el("g",{},L.over);
-    n.halo = el("circle",{cx:n.x,cy:n.y,r:12,opacity:.35,class:"pulse"},n.g);
-    n.dot = el("circle",{cx:n.x,cy:n.y,r:9,class:"cp-core"},n.g);
-    const lbl = el("text",{class:"cplabel",x:n.x,y:n.y-16},n.g); lbl.textContent = n.ad;
-  });
   DEV.gorevli.forEach(g=>{
     g.trail = el("path",{fill:"none",stroke:"var(--accent)","stroke-width":2,"stroke-dasharray":"4 6",opacity:.5},L.rota);
     g.node = el("g",{class:"guard"},L.over);
@@ -493,7 +510,6 @@ function devriyeBaslat(){
     el("circle",{r:8,fill:"var(--accent)",stroke:"var(--panel)","stroke-width":3},g.node);
     const t = el("text",{class:"gname",y:-14},g.node); t.textContent = g.ad;
   });
-  devriyeRenk(); devriyePanel();
   let last = performance.now();
   const step = now => {
     const dt = (now-last)/1000; last = now;
@@ -510,40 +526,72 @@ function devriyeBaslat(){
     raf = requestAnimationFrame(step);
   };
   raf = requestAnimationFrame(step);
-  timers.push(setInterval(()=>{ devriyeRenk(); devriyePanel(); }, 3000));
 }
 function okut(g, n){
   n.son = Date.now(); g.son = {n:n.ad,t:new Date()};
-  ripple(n.x,n.y,cssv("--ok")); devriyeRenk();
-  ticker(`✅ ${n.ad} okutuldu · ${g.ad}`); feed("ok", `${n.ad}`, `QR okutuldu · ${g.ad}`);
-  if (n.id==="giris" || n.id==="dblok" || n.id==="park"){ DEV.tur = Math.min(DEV.turHedef, DEV.tur + (Math.random()<.34?1:0)); }
+  if (MODE==="gece") ripple(n.x,n.y,cssv("--ok")); devriyeRenk();
+  ticker(`✅ ${n.no}. ${n.ad} okutuldu · ${g.ad}`); feed("ok", `${n.no}. ${n.ad}`, `QR okutuldu · ${g.ad}`);
+  if (n.id==="n04" || n.id==="n11" || n.id==="n19"){ DEV.tur = Math.min(DEV.turHedef, DEV.tur + (Math.random()<.34?1:0)); }
 }
 const renkDk = dk => dk < 30 ? "--ok" : dk < 90 ? "--warn" : "--bad";
-function devriyeRenk(){ NOKTA.forEach(n=>{ const c = cssv(renkDk(dkOnce(n.son))); n.dot.setAttribute("fill",c); n.halo.setAttribute("fill",c); n.halo.style.display = dkOnce(n.son)>=90 ? "" : "none"; }); }
+const nRenk = n => n.son ? renkDk(dkOnce(n.son)) : "--muted";
+function devriyeRenk(){ NOKTA.forEach(n=>{ const c = cssv(nRenk(n)); n.dot.style.fill = c; n.halo.style.fill = c; n.halo.style.display = (n.son && dkOnce(n.son)>=90) ? "" : "none"; }); }
 function devriyePanel(){
-  const sirali = [...NOKTA].sort((a,b)=>a.son-b.son);
-  const kirmizi = NOKTA.filter(n=>dkOnce(n.son)>=90);
-  const yuzde = Math.round(NOKTA.filter(n=>dkOnce(n.son)<90).length/NOKTA.length*100);
+  const sirali = [...NOKTA].sort((a,b)=>(a.son||0)-(b.son||0));
+  const kirmizi = NOKTA.filter(n=>!n.son || dkOnce(n.son)>=90);
+  const yuzde = Math.round(NOKTA.filter(n=>n.son && dkOnce(n.son)<90).length/NOKTA.length*100);
+  let kpi1, gorev, ek = "";
+  if (LIVE.on){
+    const s12 = Date.now() - 12*36e5;
+    const say = {}; DEV.kayit.filter(k=>k.ts>=s12).forEach(k=>say[k.nokta]=(say[k.nokta]||0)+1);
+    const tur = Math.min(...NOKTA.map(n=>say[n.id]||0));
+    kpi1 = `<div class="kpi"><strong>${tur}</strong><span>Tam tur (son 12 sa)</span></div>`;
+    const kisiler = {};
+    DEV.kayit.filter(k=>k.ts >= Date.now()-3*36e5).forEach(k=>{ const g = kisiler[k.gorevli] ||= {ad:k.gorevli, vardiya:k.vardiya, n:0, son:null}; g.n++; if (!g.son || k.ts>g.son.ts) g.son = k; });
+    const liste = Object.values(kisiler).sort((a,b)=>b.son.ts-a.son.ts);
+    gorev = liste.length ? liste.map(g=>`<div class="row"><div><b>${esc(g.ad)}</b><small style="display:block;color:var(--muted);font-size:12.5px">Son: ${esc(N[g.son.nokta]?.no+". "+(N[g.son.nokta]?.ad||""))} · ${g.n} okutma</small></div><em>${saat(new Date(g.son.ts))}</em></div>`).join("")
+      : `<div class="row"><b>Son 3 saatte okutma yok</b><em>—</em></div>`;
+    const sorunlar = DEV.sorun.slice(0,5);
+    if (sorunlar.length) ek = `<div class="card"><h2>Bildirilen sorunlar</h2><div class="rows">${sorunlar.map(k=>`<div class="row"><div><b>${esc((N[k.nokta]?.no||"")+". "+(N[k.nokta]?.ad||"Nokta"))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${esc(k.not||"Sorun bildirildi")} · ${esc(k.gorevli)}</small></div><em>${saat(new Date(k.ts))}</em></div>`).join("")}</div></div>`;
+  } else {
+    kpi1 = `<div class="kpi"><strong>${DEV.tur}/${DEV.turHedef}</strong><span>Tamamlanan tur</span></div>`;
+    gorev = DEV.gorevli.map(g=>`<div class="row"><div><b>${g.ad}</b><small style="display:block;color:var(--muted);font-size:12.5px">${g.son?`Son: ${esc(g.son.n)}`:"Tura başladı"}</small></div><em>${g.son?saat(g.son.t):"--:--"}</em></div>`).join("");
+  }
   $("#panel").innerHTML = `
-    <div class="card"><h2>Bu gece</h2>
+    <div class="card"><h2>${LIVE.on?"Devriye özeti":"Bu gece"}</h2>
       <div class="kpis">
-        <div class="kpi"><strong>${DEV.tur}/${DEV.turHedef}</strong><span>Tamamlanan tur</span></div>
-        <div class="kpi"><strong style="color:${kirmizi.length?"var(--bad)":"var(--ok)"}">${kirmizi.length}</strong><span>Uğranmayan nokta</span></div>
+        ${kpi1}
+        <div class="kpi"><strong style="color:${kirmizi.length?"var(--bad)":"var(--ok)"}">${kirmizi.length}</strong><span>90 dk+ uğranmayan</span></div>
       </div>
       <div class="meter" aria-label="Kapsama"><i style="width:${yuzde}%"></i></div>
-      <p class="note">Noktaların %${yuzde}'i son 90 dakikada kontrol edildi.</p></div>
-    <div class="card"><h2>Görevdekiler</h2><div class="rows">${DEV.gorevli.map(g=>`<div class="row"><div><b>${g.ad}</b><small style="display:block;color:var(--muted);font-size:12.5px">${g.son?`Son: ${esc(g.son.n)}`:"Tura başladı"}</small></div><em>${g.son?saat(g.son.t):"--:--"}</em></div>`).join("")}</div></div>
-    <div class="card"><h2>En uzun süredir uğranmayan</h2><div class="rows">${sirali.slice(0,4).map(n=>{const dk=dkOnce(n.son);return `<div class="row"><b>${n.ad}</b><span class="pill" style="background:${cssv(renkDk(dk))}">${dk} dk</span></div>`}).join("")}</div>
-      <button class="act sos" id="sos" style="margin-top:12px">SOS testini başlat</button>
-      <p class="note">Görevli SOS'a bastığında konumu haritada yanıp söner, Telegram'a uyarı gider.</p></div>
+      <p class="note">21 noktanın %${yuzde}'i son 90 dakikada okutuldu.</p></div>
+    ${ek}
+    <div class="card"><h2>Görevdekiler</h2><div class="rows">${gorev}</div></div>
+    <div class="card"><h2>En uzun süredir uğranmayan</h2><div class="rows">${sirali.slice(0,5).map(n=>{const dk=n.son?dkOnce(n.son):null;return `<div class="row"><b>${n.no}. ${esc(n.ad)}</b><span class="pill" style="background:${cssv(nRenk(n))}">${dk===null?"okutulmadı":dk>=60?Math.floor(dk/60)+" sa "+(dk%60)+" dk":dk+" dk"}</span></div>`}).join("")}</div>
+      ${LIVE.on?"":`<button class="act sos" id="sos" style="margin-top:12px">SOS testini başlat</button>`}</div>
     <div class="card"><h2>Canlı akış</h2><ul class="feed" id="feed">${feedHTML()}</ul></div>`;
-  $("#sos").onclick = sosTest;
+  const sb = $("#sos"); if (sb) sb.onclick = sosTest;
 }
 function sosTest(){
-  const g = DEV.gorevli[0]; const tr = g.node.getAttribute("transform")||""; const m = tr.match(/translate\(([\d.]+) ([\d.]+)\)/); if(!m) return;
+  const g = DEV.gorevli[0]; if (!g || !g.node) return; const tr = g.node.getAttribute("transform")||""; const m = tr.match(/translate\(([\d.]+) ([\d.]+)\)/); if(!m) return;
   const x=+m[1], y=+m[2];
   for (let i=0;i<4;i++) setTimeout(()=>ripple(x,y,cssv("--bad")), i*350);
   ticker(`🚨 SOS · ${g.ad} · konum işaretlendi`); feed("bad", `SOS · ${g.ad}`, "Test uyarısı · Telegram'a iletildi");
+}
+/* Canlı devriye kayıtları */
+function devriyeVeri(docs, yeniler){
+  const okumalar = docs.filter(d=>d.tip!=="sorun").sort((a,b)=>b.ts-a.ts);
+  DEV.kayit = okumalar; DEV.sorun = docs.filter(d=>d.tip==="sorun").sort((a,b)=>b.ts-a.ts);
+  NOKTA.forEach(n=>n.son = null);
+  okumalar.forEach(k=>{ const n = N[k.nokta]; if (n && (!n.son || k.ts > n.son)) n.son = k.ts; });
+  (yeniler||[]).forEach(k=>{
+    const n = N[k.nokta]; if (!n) return;
+    if (k.tip==="sorun"){ if (MODE==="gece") for (let i=0;i<3;i++) setTimeout(()=>ripple(n.x,n.y,cssv("--bad")), i*350);
+      ticker(`⚠️ Sorun · ${n.no}. ${n.ad} · ${k.gorevli}`); feed("bad", `Sorun · ${n.no}. ${n.ad}`, `${k.not||""} · ${k.gorevli}`); }
+    else { if (MODE==="gece") ripple(n.x,n.y,cssv("--ok"));
+      ticker(`✅ ${n.no}. ${n.ad} · ${k.gorevli}`); feed("ok", `${n.no}. ${n.ad}`, `QR okutuldu · ${k.gorevli}`); }
+  });
+  if (MODE==="gece"){ devriyeRenk(); devriyePanel(); }
 }
 
 /* ============ AFET: Güvendeyim ============ */
@@ -555,7 +603,7 @@ function afetBaslat(){
   $("#mapSub").textContent = "Bloklar güvende bildirimleriyle dolar";
   legend([[cssv("--ok"),"Güvende bildiren daireler"],[cssv("--bad"),"Haber alınamayan"],["var(--accent)","Toplanma alanı"]]);
   L.over.innerHTML = "";
-  const t = N.toplan;
+  const t = {x:TOPLANMA[0], y:TOPLANMA[1]};
   el("circle",{cx:t.x,cy:t.y-20,r:26,fill:"var(--accent)",opacity:.25,class:"pulse"},L.over);
   el("path",{d:`M${t.x} ${t.y-6} l-10 -16 a12 12 0 1 1 20 0 z`,fill:"var(--accent)"},L.over);
   BLOK.forEach(b=>{ b.fillTop.setAttribute("opacity",.85); });
@@ -608,7 +656,7 @@ const PKAT_AD = {p_isik:"Aydınlatma",p_kapi:"Kapı / kilit",p_asansor:"Asansör
 async function canliBaslat(){
   const cfg = window.FB_CONFIG; if (!cfg) return;
   LIVE.on = true; ARZ.list = []; ARZ.gelen = 0; ARZ.cozulen = 0; ARZ.sureler = [];
-  document.querySelector(".demo").textContent = "Canlı · personel bildirimleri";
+  document.querySelector(".demo").textContent = "Canlı veri";
   const V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
   const [app, fs, au] = await Promise.all([import(U+"firebase-app.js"), import(U+"firebase-firestore.js"), import(U+"firebase-auth.js")]);
   const ap = app.initializeApp(cfg), db = fs.getFirestore(ap), auth = au.getAuth(ap);
@@ -619,9 +667,9 @@ async function canliBaslat(){
     try { await au.signInWithEmailAndPassword(auth, $("#lEmail").value.trim(), $("#lPass").value); }
     catch(_){ $("#loginErr").textContent = "E-posta veya şifre hatalı."; }
   };
-  let unsub = null, onceki = null;
+  let unsub = null, unsubD = null, onceki = null;
   au.onAuthStateChanged(auth, u => {
-    if (unsub){ unsub(); unsub = null; }
+    if (unsub){ unsub(); unsub = null; } if (unsubD){ unsubD(); unsubD = null; }
     if (!u || u.isAnonymous || !izinli(u.email)){
       giris.hidden = false;
       if (u && !u.isAnonymous) { $("#loginErr").textContent = "Bu hesap kontrol merkezine yetkili değil."; au.signOut(auth); }
@@ -661,6 +709,14 @@ async function canliBaslat(){
       onceki = simdi;
       if (MODE==="gunduz"){ arizaCiz(); arizaPanel(); }
     }, err => { console.error(err); ticker("Veriler okunamadı: " + err.code); });
+    let ilkDev = true;
+    const qd = fs.query(fs.collection(db,"devriye"), fs.where("ts",">=", Date.now() - 24*36e5));
+    unsubD = fs.onSnapshot(qd, snap => {
+      const docs = snap.docs.map(d=>d.data());
+      const yeniler = ilkDev ? [] : snap.docChanges().filter(c=>c.type==="added").map(c=>c.doc.data());
+      ilkDev = false;
+      devriyeVeri(docs, yeniler);
+    }, err => { console.error(err); ticker("Devriye kayıtları okunamadı: " + err.code + " · Firebase kurallarını kontrol edin"); });
   });
 }
 
@@ -677,9 +733,9 @@ document.querySelectorAll(".modes button").forEach(b=>b.onclick=()=>modAc(b.data
 
 $("#edit").onclick = () => duzenleAc(!DUZENLE);
 $("#doneEdit").onclick = () => duzenleAc(false);
-$("#resetPos").onclick = () => { KONUM = {}; try { localStorage.removeItem("bz1-konum"); } catch(e){} BLOK.forEach(b=>{ const [cx,cy]=VARSAYILAN[b.id]; b.x=cx-b.w/2; b.y=cy-b.h/2; yerlestir(b); }); ticker("Varsayılan yerleşime dönüldü"); };
+$("#resetPos").onclick = () => { KONUM = {}; try { localStorage.removeItem("bz1-konum"); } catch(e){} BLOK.forEach(b=>{ const [cx,cy]=VARSAYILAN[b.id]; merkezYap(b,cx,cy); }); NOKTA.forEach(n=>merkezYap(n,n.vx,n.vy)); ticker("Varsayılan yerleşime dönüldü"); };
 $("#copyPos").onclick = async () => {
-  const txt = "Bizimevler 1 blok konumları: " + JSON.stringify(Object.fromEntries(BLOK.map(b=>[b.id,[Math.round(b.x+b.w/2),Math.round(b.y+b.h/2)]])));
+  const txt = "Bizimevler 1 konumları: " + JSON.stringify(Object.fromEntries([...BLOK,...NOKTA].map(o=>{ const [x,y]=merkez(o); return [o.id,[Math.round(x),Math.round(y)]]; })));
   try { await navigator.clipboard.writeText(txt); ticker("📋 Konumlar kopyalandı, sohbete yapıştırabilirsiniz"); }
   catch(e){ ticker("Kopyalanamadı. Ekran görüntüsü göndermeniz de yeterli."); }
 };
