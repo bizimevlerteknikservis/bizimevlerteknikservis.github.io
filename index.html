@@ -63,7 +63,7 @@ section.step{display:grid;gap:12px;margin-bottom:14px;background:var(--surface);
 .cat svg{width:46px;height:46px;padding:11px;border-radius:15px;background:color-mix(in srgb,var(--c) 13%,#fff);stroke:var(--c);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .cat[aria-pressed="true"]{border-color:transparent;background:linear-gradient(140deg,var(--accent),var(--accent-2));color:#fff;box-shadow:var(--shadow-lg)}
 .cat[aria-pressed="true"] svg{background:rgba(255,255,255,.2);stroke:#fff}
-textarea,input[type=text],input[type=tel],input[type=email],input[type=password],select{width:100%;border:1.5px solid var(--line);background:var(--sunk);border-radius:12px;padding:12px 14px;min-height:50px}
+textarea,input[type=text],input[type=tel],input[type=email],input[type=password],input[type=number],input[type=date],input[type=time],input:not([type]),select{width:100%;border:1.5px solid var(--line);background:var(--sunk);border-radius:12px;padding:12px 14px;min-height:50px}
 textarea{min-height:92px;resize:vertical}
 textarea:focus,input:focus,select:focus{background:#fff}
 textarea:focus,input:focus,select:focus,button:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 30%,transparent);outline-offset:1px;border-color:var(--accent)}
@@ -533,7 +533,11 @@ function DemoStore(){
     async setTesisAyar(p){ mem.tesisAyar = {...(mem.tesisAyar||{}), ...p}; save(); },
     async logout(){ tech = false; save(); },
     isTesis: () => tech,
+    isYetkili: () => tech,
     kim: () => "Teknisyen",
+    listenTasinma: (from, cb) => sub(() => cb((mem.tasinma||[]).filter(k=>k.bit>=from))),
+    async addTasinma(r){ const id = "m" + Date.now().toString(36); (mem.tasinma ||= []).push({...r, id}); save(); return id; },
+    async updateTasinma(id, p){ const r = (mem.tasinma||[]).find(x=>x.id===id); if (r){ Object.assign(r, p); save(); } },
     async getRoller(){ return mem.roller || {}; },
     async setRoller(p){ mem.roller = {...(mem.roller||{}), ...p}; save(); }
   };
@@ -541,7 +545,7 @@ function DemoStore(){
 
 function FirebaseStore(cfg){
   const V = "10.12.2", B = `https://www.gstatic.com/firebasejs/${V}/`;
-  let fs, au, db, auth, user = null, tech = false, tesisRol = false;
+  let fs, au, db, auth, user = null, tech = false, tesisRol = false, yonRol = false;
   const rolListe = async () => { try { const r = await fs.getDoc(fs.doc(db,"ayar","roller")); return r.exists() ? r.data() : {}; } catch(e){ return {}; } };
   const listede = (L, e) => (L || []).map(x=>String(x).toLowerCase()).includes((e||"").toLowerCase());
   const ready = (async () => {
@@ -556,8 +560,8 @@ function FirebaseStore(cfg){
         if (!u){ try { await a.signInAnonymously(auth); } catch(e){ console.error(e); res(); } return; }
         user = u;
         tech = !u.isAnonymous && AYAR.teknisyenEpostalari.map(x => x.toLowerCase()).includes((u.email||"").toLowerCase());
-        tesisRol = false;
-        if (!u.isAnonymous && !tech) tesisRol = listede((await rolListe()).tesis, u.email);
+        tesisRol = false; yonRol = false;
+        if (!u.isAnonymous && !tech){ const R = await rolListe(); tesisRol = listede(R.tesis, u.email); yonRol = listede(R.yonetim, u.email); }
         res();
       });
     });
@@ -616,12 +620,25 @@ function FirebaseStore(cfg){
       tech = AYAR.teknisyenEpostalari.map(x => x.toLowerCase()).includes((auth.currentUser?.email||"").toLowerCase());
       if (!tech) {
         const R = await rolListe(), em = auth.currentUser?.email;
-        if (listede(R.tesis, em)) { tesisRol = true; return; }
-        await au.signOut(auth); throw {code: listede(R.yonetim, em) ? "yonetim" : "yetki"};
+        tesisRol = listede(R.tesis, em); yonRol = listede(R.yonetim, em);
+        if (tesisRol || yonRol) return;
+        await au.signOut(auth); throw {code: "yetki"};
       }
     },
-    async logout(){ await au.signOut(auth); tech = false; tesisRol = false; },
+    async logout(){ await au.signOut(auth); tech = false; tesisRol = false; yonRol = false; },
     isTesis: () => tech || tesisRol,
+    isYetkili: () => tech || tesisRol || yonRol,
+    listenTasinma(from, cb){
+      const q = fs.query(fs.collection(db,"tasinma"), fs.where("bit",">=",from));
+      return fs.onSnapshot(q, s => cb(s.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.error(e); cb([]); });
+    },
+    async addTasinma(r){
+      const ref = fs.doc(fs.collection(db,"tasinma"));
+      const yaz = fs.setDoc(ref, {...r, uid: user.uid}).then(()=>"ok");
+      await Promise.race([yaz, new Promise(ok => setTimeout(ok, navigator.onLine ? 8000 : 800))]);
+      return ref.id;
+    },
+    async updateTasinma(id, p){ await fs.updateDoc(fs.doc(db,"tasinma",id), p); },
     kim: () => tech ? "Teknisyen" : ((auth && auth.currentUser && auth.currentUser.email) || "").split("@")[0],
     async getRoller(){ const r = await fs.getDoc(fs.doc(db,"ayar","roller")); return r.exists() ? r.data() : {}; },
     async setRoller(p){ await fs.setDoc(fs.doc(db,"ayar","roller"), p, {merge:true}); }
@@ -848,6 +865,7 @@ function vDevriye(){
     <p class="hint">Son 2 saatte okuttuğunuz noktalar yeşil.</p>
     <div class="nlist">${DEV_NOKTA.map(n=>`<div class="nrow${tur[n.id]?" on":""}"><i>${n.no}</i><span>${esc(n.ad)}</span><em>${tur[n.id]?saatStr(tur[n.id]):""}</em></div>`).join("")}</div>
   </section>
+  ${(tasBaslat(), tasGuvenlikKart())}
   <section class="step"><h2><span>⚡</span>Elektrik kesintisi</h2>
     <p class="hint">Elektrik kesilince ve gelince bir kez basın. Saat otomatik kaydedilir, teknisyene bildirim gider.</p>
     ${S.d.kesinti ? `<p class="kuyruk">⚡ ${saatStr(S.d.kesinti)}'de kesinti bildirdiniz.</p>` : ""}
@@ -990,9 +1008,11 @@ function vRandevularim(){
 }
 
 function vPanel(){
-  if (!store.isTech() && store.isTesis && store.isTesis()){
-    return `<div class="card"><h2>Tesis takip yetkisi</h2><p class="hint">Hesabınız tesis takibine yetkili. Daire arızaları sadece teknisyene açıktır.</p>
-      <a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none">🏢 Tesis takibe git</a>
+  if (!store.isTech() && store.isYetkili && store.isYetkili()){
+    return `<div class="card"><h2>Hoş geldiniz${store.kim ? ", " + esc(store.kim()) : ""}</h2><p class="hint">Daire arızaları sadece teknisyene açıktır. Yetkili olduğunuz bölümler:</p>
+      <a class="cta" href="#tasinma" style="display:block;text-align:center;text-decoration:none">🚚 Taşınma & Tadilat</a>
+      ${store.isTesis() ? `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏢 Tesis takip</a>` : ""}
+      <a class="cta ghost" href="kontrol.html" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🗺️ Canlı Kontrol Merkezi</a>
       <button class="cta ghost" data-act="cikis" style="margin-top:10px">Çıkış yap</button></div>`;
   }
   if (!store.isTech()){
@@ -1496,22 +1516,155 @@ document.addEventListener("input", e => {
   if (T.f && e.target.id && e.target.id.startsWith("t_")){ tSync(); const k = document.querySelector('[data-t="kaydet"]'); if (k) k.disabled = !tFormHazir(); }
 });
 
+/* =================== TAŞINMA & TADİLAT =================== */
+const TAS_KURAL = { bas:"10:00", bit:"17:00" };   // Pzt–Cmt 10:00–17:00, Pazar yasak
+const TS = { kayit:[], un:null, f:null, kaydediliyor:false };
+const tasTur = {giris:"🚚 Taşınma (giriş)", cikis:"🚚 Taşınma (çıkış)", tadilat:"🔨 Tadilat"};
+const gunAdi = ts => new Date(ts).toLocaleDateString("tr-TR",{weekday:"long", day:"numeric", month:"long"});
+const saatOf = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const tsOf = (gun, saat) => { const [y,m,d] = gun.split("-").map(Number), [h,dk] = saat.split(":").map(Number); return new Date(y, m-1, d, h, dk).getTime(); };
+function tasAktifBugun(k, t = Date.now()){ const g0 = new Date(t); g0.setHours(0,0,0,0); return !k.iptal && !k.bitti && k.bas < g0.getTime()+864e5 && k.bit >= g0.getTime(); }
+function tasDogrula(f){
+  if (!f.tur) return "Tür seçin";
+  if (!f.blok) return "Blok seçin";
+  if (!String(f.daire||"").trim()) return "Daire no yazın";
+  if (!f.gun) return "Tarih seçin";
+  if (!f.sbas || !f.sbit) return "Saat aralığını seçin";
+  if (f.sbas < TAS_KURAL.bas || f.sbit > TAS_KURAL.bit) return `Saat ${TAS_KURAL.bas}–${TAS_KURAL.bit} arasında olmalı`;
+  if (f.sbas >= f.sbit) return "Bitiş saati başlangıçtan sonra olmalı";
+  const son = f.tur==="tadilat" ? (f.gunBit || f.gun) : f.gun;
+  if (son < f.gun) return "Bitiş tarihi başlangıçtan önce olamaz";
+  for (let t = tsOf(f.gun,"12:00"); t <= tsOf(son,"12:00"); t += 864e5){
+    if (new Date(t).getDay() === 0){
+      if (f.tur !== "tadilat" || f.gun === son) return "Pazar günü taşınma ve tadilat yasak";
+    }
+  }
+  if (new Date(tsOf(f.gun,"12:00")).getDay() === 0) return "Pazar günü başlayamaz";
+  if (new Date(tsOf(son,"12:00")).getDay() === 0) return "Bitiş günü pazar olamaz";
+  if (tsOf(son, f.sbit) < Date.now() - 36e5) return "Geçmiş bir tarih seçildi";
+  return "";
+}
+function tasBaslat(){
+  if (TS.un) return;
+  TS.basladi = true;
+  TS.un = store.listenTasinma(Date.now() - 2*864e5, L => { TS.kayit = L; if (S.view==="tasinma" || S.view==="devriye") setTimeout(render,0); });
+}
+function tasDurdur(){ if (TS.un) TS.un(); TS.un = null; TS.kayit = []; }
+function tasSatir(k, yonet){
+  const tek = new Date(k.bas).toDateString() === new Date(k.bit).toDateString();
+  const zaman = tek ? `${gunAdi(k.bas)} · ${saatOf(k.bas)}–${saatOf(k.bit)}` : `${gunAdi(k.bas)} → ${gunAdi(k.bit)} · her gün ${saatOf(k.bas)}–${saatOf(k.bit)}`;
+  const gecikti = k.tur==="tadilat" && !k.bitti && Date.now() > k.bit;
+  return `<article class="ticket" data-s="${k.iptal?"iptal":k.bitti?"tamamlandi":tasAktifBugun(k)?"onaylandi":"bekliyor"}">
+    <div class="t-head"><span class="t-no">${tasTur[k.tur]||k.tur}</span><span class="chip" data-s="${k.iptal?"iptal":gecikti?"bekliyor":"onaylandi"}">${k.iptal?"İptal":k.bitti?"Bitti":gecikti?"Süresi geçti":tasAktifBugun(k)?"Bugün":"Planlandı"}</span></div>
+    <div class="t-meta"><span>📍 <b>${esc(k.blok)} Blok · Daire ${esc(k.daire)}</b></span></div>
+    <div class="t-meta"><span>🕒 ${zaman}</span></div>
+    ${k.plaka||k.firma ? `<div class="t-meta">${k.plaka?`<span>🚛 <b>${esc(k.plaka)}</b></span>`:""}${k.firma?`<span>${esc(k.firma)}</span>`:""}</div>` : ""}
+    ${k.asansor ? `<div class="t-uyari turuncu" style="margin:0;padding:8px 12px;font-size:14px">🛗 Asansör kullanılacak · koruma takılmalı</div>` : ""}
+    ${k.not ? `<p class="t-desc">${esc(k.not)}</p>` : ""}
+    ${yonet && !k.iptal && !k.bitti ? `<div class="actions">${k.tur==="tadilat"?`<button class="act" data-t="tasBitti" data-id="${k.id}">✓ Tadilat bitti</button>`:""}<button class="act danger" data-t="tasIptal" data-id="${k.id}">İptal et</button></div>` : ""}
+    <small class="hint">Kaydeden: ${esc(k.by||"")}</small>
+  </article>`;
+}
+function vTasinma(){
+  if (!(store.isYetkili && store.isYetkili())) return vPanel();
+  tasBaslat();
+  const f = TS.f || (TS.f = {tur:"", blok:"", daire:"", gun:"", gunBit:"", sbas:TAS_KURAL.bas, sbit:TAS_KURAL.bit, firma:"", plaka:"", asansor:null, not:""});
+  const hata = TS.denendi ? tasDogrula(f) : "";
+  const L = TS.kayit.filter(k=>!k.iptal).sort((a,b)=>a.bas-b.bas);
+  const bugun = L.filter(k=>tasAktifBugun(k)), sonra = L.filter(k=>!tasAktifBugun(k) && k.bas > Date.now() && !k.bitti), geciken = L.filter(k=>k.tur==="tadilat" && !k.bitti && Date.now() > k.bit);
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
+      <h2 style="margin:0;font:600 22px/1.2 var(--display)">Taşınma & Tadilat</h2>
+      ${store.isTech() ? `<a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">← İş paneli</a>` : `<button class="pill-btn cikis-btn" data-act="cikis">Çıkış yap</button>`}</div>
+    <div class="t-uyari" style="margin-bottom:14px">📋 <b>Kural:</b> Pazartesi–Cumartesi ${TAS_KURAL.bas}–${TAS_KURAL.bit} · <b>Pazar yasak</b></div>
+    <section class="step"><h2><span>＋</span>Yeni kayıt</h2>
+      <div class="prefs">${Object.entries(tasTur).map(([k,v])=>`<button class="pref" data-t="tsTur" data-v="${k}" aria-pressed="${f.tur===k}">${v}</button>`).join("")}</div>
+      <div class="grid2" style="margin-top:10px">
+        <label class="f">Blok<select id="ts_blok"><option value="">Seçin</option>${AYAR.bloklar.map(b=>`<option ${f.blok===b?"selected":""}>${b}</option>`).join("")}</select></label>
+        <label class="f">Daire no<input id="ts_daire" inputmode="numeric" maxlength="6" value="${esc(f.daire)}"></label>
+      </div>
+      <div class="grid2">
+        <label class="f">${f.tur==="tadilat"?"Başlangıç tarihi":"Tarih"}<input type="date" id="ts_gun" value="${esc(f.gun)}"></label>
+        ${f.tur==="tadilat" ? `<label class="f">Bitiş tarihi<input type="date" id="ts_gunBit" value="${esc(f.gunBit)}"></label>` : `<span></span>`}
+      </div>
+      <div class="grid2">
+        <label class="f">Başlangıç saati<input type="time" id="ts_sbas" min="${TAS_KURAL.bas}" max="${TAS_KURAL.bit}" step="1800" value="${esc(f.sbas)}"></label>
+        <label class="f">Bitiş saati<input type="time" id="ts_sbit" min="${TAS_KURAL.bas}" max="${TAS_KURAL.bit}" step="1800" value="${esc(f.sbit)}"></label>
+      </div>
+      <div class="grid2">
+        <label class="f">${f.tur==="tadilat"?"Usta / firma":"Nakliye firması"}<input id="ts_firma" maxlength="60" value="${esc(f.firma)}"></label>
+        <label class="f">Araç plakası<input id="ts_plaka" maxlength="12" style="text-transform:uppercase" value="${esc(f.plaka)}"></label>
+      </div>
+      <div class="group-h">Asansör kullanılacak mı?</div>
+      <div class="prefs"><button class="pref" data-t="tsAs" data-v="1" aria-pressed="${f.asansor===true}">Evet</button><button class="pref" data-t="tsAs" data-v="0" aria-pressed="${f.asansor===false}">Hayır</button></div>
+      <label class="f" style="margin-top:8px">Not (isteğe bağlı)<input id="ts_not" maxlength="200" placeholder="Örn. Moloz konteyneri otoparka konacak, depozito alındı" value="${esc(f.not)}"></label>
+      ${hata ? `<p class="err">${esc(hata)}</p>` : ""}
+      <button class="cta" data-t="tsKaydet" style="margin-top:10px">${TS.kaydediliyor ? "Kaydediliyor…" : "Kaydet"}</button>
+      <p class="hint">Kişi adı ve telefon yazmayın; güvenlik bu listeyi kapıda görür.</p>
+    </section>
+    ${geciken.length ? `<div class="group-h">⚠️ Süresi geçen tadilatlar</div><div class="list">${geciken.map(k=>tasSatir(k,true)).join("")}</div>` : ""}
+    <div class="group-h">Bugün (${bugun.length})</div>
+    ${bugun.length ? `<div class="list">${bugun.map(k=>tasSatir(k,true)).join("")}</div>` : `<div class="empty" style="padding:16px"><strong>Bugün taşınma ya da tadilat yok</strong></div>`}
+    <div class="group-h">Yaklaşan (${sonra.length})</div>
+    ${sonra.length ? `<div class="list">${sonra.slice(0,30).map(k=>tasSatir(k,true)).join("")}</div>` : `<div class="empty" style="padding:16px"><strong>Planlanmış kayıt yok</strong></div>`}`;
+}
+function tsSync(){
+  const f = TS.f; if (!f) return;
+  [["blok","ts_blok"],["daire","ts_daire"],["gun","ts_gun"],["gunBit","ts_gunBit"],["sbas","ts_sbas"],["sbit","ts_sbit"],["firma","ts_firma"],["plaka","ts_plaka"],["not","ts_not"]]
+    .forEach(([k,id]) => { const el = document.getElementById(id); if (el) f[k] = el.value; });
+}
+/* Güvenlik sayfası için: bugünkü taşınma/tadilatlar (ad-telefon yok) */
+function tasGuvenlikKart(){
+  const L = TS.kayit.filter(k=>tasAktifBugun(k)).sort((a,b)=>a.bas-b.bas);
+  return `<section class="step"><h2><span>🚚</span>Bugün taşınma / tadilat</h2>
+    ${L.length ? L.map(k=>`<div class="t-satir"><b>${esc(k.blok)} / Daire ${esc(k.daire)}</b> · ${k.tur==="tadilat"?"🔨 Tadilat":"🚚 Taşınma"} · ${saatOf(k.bas)}–${saatOf(k.bit)}${k.plaka?` · <b>${esc(k.plaka)}</b>`:""}${k.asansor?" · 🛗 asansör":""}</div>`).join("")
+      : `<p class="hint">Bugün kayıtlı taşınma ya da tadilat yok. Kayıtsız araç gelirse amire haber verin.</p>`}
+  </section>`;
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-t]"); if (!b || !b.dataset.t.startsWith("ts") && !b.dataset.t.startsWith("tas")) return;
+  const t = b.dataset.t, v = b.dataset.v, id = b.dataset.id; tsSync();
+  if (t==="tsTur"){ TS.f.tur = v; render(); }
+  else if (t==="tsAs"){ TS.f.asansor = v==="1"; render(); }
+  else if (t==="tsKaydet"){
+    TS.denendi = true; const f = TS.f, hata = tasDogrula(f);
+    if (!hata && f.asansor === null){ toast("Asansör kullanılacak mı? Seçin"); render(); return; }
+    if (hata){ render(); return; }
+    const son = f.tur==="tadilat" ? (f.gunBit || f.gun) : f.gun;
+    const rec = {tur:f.tur, blok:f.blok, daire:String(f.daire).trim(), bas:tsOf(f.gun, f.sbas), bit:tsOf(son, f.sbit),
+      firma:f.firma.trim(), plaka:f.plaka.trim().toUpperCase(), asansor:!!f.asansor, not:f.not.trim(), by: store.kim ? store.kim() : "", ts:Date.now()};
+    TS.kaydediliyor = true; render();
+    try {
+      await store.addTasinma(rec);
+      tgGonder([`${tasTur[rec.tur]} kaydı`, `📍 ${rec.blok} Blok · Daire ${rec.daire}`, `🕒 ${gunAdi(rec.bas)} ${saatOf(rec.bas)}–${saatOf(rec.bit)}${rec.tur==="tadilat"&&son!==f.gun?` → ${gunAdi(rec.bit)}`:""}`,
+        rec.plaka?`🚛 ${rec.plaka}`:"", rec.asansor?"🛗 Asansör kullanılacak → koruma takılmalı":"", rec.not?`📝 ${rec.not}`:"", `👤 ${rec.by}`].filter(Boolean).join("\n"));
+      toast("Kaydedildi"); TS.f = null; TS.denendi = false;
+    } catch(err){ console.error(err); toast("Kaydedilemedi: " + (err.code || "tekrar deneyin")); }
+    TS.kaydediliyor = false; render();
+  }
+  else if (t==="tasIptal" || t==="tasBitti"){
+    if (b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = "Emin misiniz? Tekrar basın"; return; }
+    try { await store.updateTasinma(id, t==="tasIptal" ? {iptal:true, iptalBy: store.kim ? store.kim() : ""} : {bitti:Date.now()}); toast(t==="tasIptal" ? "İptal edildi" : "Tadilat bitti olarak kaydedildi"); }
+    catch(err){ console.error(err); toast("Kaydedilemedi"); }
+  }
+});
+
 function render(){
   syncForm();
   const keep = document.activeElement && document.activeElement.id;
-  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="personel" ? vPersonel() : S.view==="devriye" ? vDevriye() : vRandevu();
+  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="personel" ? vPersonel() : S.view==="devriye" ? vDevriye() : vRandevu();
   document.querySelector("nav.tabs").hidden = S.view==="personel" || S.view==="devriye";
   $("#ustYazi").textContent = S.view==="personel" ? "Bizimevler 1 · Personel" : S.view==="devriye" ? "Bizimevler 1 · Güvenlik" : (AYAR.ustYazi || "Teknik Servis");
   $("#siteName").textContent = S.view==="devriye" ? "Devriye" : (AYAR.baslik || AYAR.siteAdi);
   $("#heroSub").textContent = S.view==="randevularim" ? "Bildirimlerinin durumunu ve teknisyen notlarını buradan takip et."
     : S.view==="panel" ? "Gelen arızaları gör, durumlarını güncelle."
     : S.view==="tesis" ? "Asansör, jeneratör, yakıt ve elektrik kesintisi takibi."
+    : S.view==="tasinma" ? "Taşınma ve tadilat kayıtları · Pzt–Cmt 10:00–17:00, pazar yasak."
     : S.view==="personel" ? "Sahada gördüğün arızayı ya da ihtiyacın olan malzemeyi 15 saniyede bildir."
     : S.view==="devriye" ? "Noktaya geldiğinde QR'ı okut, turun kaydedilsin."
     : "Arızanı bildir, teknisyen en kısa sürede ilgilensin.";
-  document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.tab===(S.view==="tesis"?"panel":S.view) ? "page" : "false"));
+  document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.dataset.tab===(S.view==="tesis"||S.view==="tasinma"?"panel":S.view) ? "page" : "false"));
   /* Teknisyen sekmesi sakinlere görünmez; sadece #panel adresinden açılır */
-  const teknik = S.view==="panel" || S.view==="tesis" || store.isTech();
+  const teknik = S.view==="panel" || S.view==="tesis" || S.view==="tasinma" || store.isTech();
   document.querySelector('nav.tabs a[data-tab="panel"]').hidden = !teknik;
   document.querySelector("nav.tabs .in").style.setProperty("--tabs", teknik ? 3 : 2);
   if (keep && document.getElementById(keep)) { const el = document.getElementById(keep); el.focus(); if (el.setSelectionRange && el.value && el.type !== "date") try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){} }
@@ -1619,7 +1772,7 @@ document.addEventListener("click", async e => {
     }
     else if (act==="giris"){
       const pin = $("#pin"), em = $("#email"), pw = $("#pass");
-      try { await store.login(em?em.value.trim():"", pin?pin.value:pw.value); S.err = ""; startPanel(); toast("Giriş yapıldı"); if (!store.isTech() && store.isTesis()) location.hash = "#tesis"; }
+      try { await store.login(em?em.value.trim():"", pin?pin.value:pw.value); S.err = ""; startPanel(); toast("Giriş yapıldı"); }
       catch(err){ S.err = err.code==="yonetim" ? "YONETIM" : err.code==="yetki" ? "Bu hesap teknisyen olarak tanımlı değil." : store.mode==="demo" ? "PIN hatalı." : "E-posta veya şifre hatalı."; render(); }
     }
     else if (act==="cikis"){ if (unAll) unAll(); unAll = null; S.all = []; tesisDurdur(); await store.logout(); render(); }
@@ -1656,7 +1809,7 @@ function route(){
     if (n) noktaOkut(n); else toast("QR kodu tanınmadı");
     return;
   }
-  S.view = ["randevu","randevularim","panel","personel","devriye","tesis"].includes(h) ? h : "randevu";
+  S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma"].includes(h) ? h : "randevu";
   if (S.view !== "tesis"){ T.f = null; T.detay = null; }
   S.err = ""; S.armed = null;
   render();

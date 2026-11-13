@@ -163,6 +163,7 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .pill{font:600 12px/1 var(--body);padding:5px 9px;border-radius:999px;color:#fff;white-space:nowrap}
 .act{border:0;border-radius:12px;padding:12px 14px;font-weight:700;background:var(--accent);color:var(--accent-ink);width:100%}
 .act.ghost{background:var(--panel-2);color:var(--ink);border:1px solid var(--line)}
+.tasl{display:none;pointer-events:none}:root[data-mode="gunduz"] .tasl,:root[data-mode="tesis"] .tasl{display:inline}
 .jenl{display:none}:root[data-mode="tesis"] .jenl{display:inline}
 .duzenle .jenl .jenk{cursor:grab}
 :root[data-mode="tesis"].kesik{--tint:#020812;--tint-op:.72}
@@ -345,6 +346,7 @@ function haritaKur(){
   L.jen = el("g",{class:"jenl"},svg);  // tesis modu: jeneratörler (düzenle modunda taşınabilir)
   const df = el("defs",{},svg), rg = el("radialGradient",{id:"jenIsik"},df);
   el("stop",{offset:"0%","stop-color":"#ffd54a","stop-opacity":.55},rg); el("stop",{offset:"60%","stop-color":"#ffd54a","stop-opacity":.18},rg); el("stop",{offset:"100%","stop-color":"#ffd54a","stop-opacity":0},rg);
+  L.tas = el("g",{class:"tasl"},svg);   // taşınma/tadilat rozetleri (arıza ve tesis modunda)
   L.over = el("g",{class:"ov"},svg);   // moda özel katman
   L.fx = el("g",{class:"ov"},svg);     // efektler
 }
@@ -514,7 +516,7 @@ function arizaPanel(){
   const ort = Math.round(ARZ.sureler.reduce((x,y)=>x+y,0)/Math.max(1,ARZ.sureler.length));
   const blokSay = {}; ARZ.list.forEach(a=>{ const k = a.b || a.alan; blokSay[k]=(blokSay[k]||0)+1; });
   const enCok = Object.entries(blokSay).sort((a,b)=>b[1]-a[1]).slice(0,3);
-  $("#panel").innerHTML = `${tesisKart()}
+  $("#panel").innerHTML = `${tesisKart()}${tasKart()}
     <div class="card"><h2>Bugün</h2>
       <div class="kpis">
         <div class="kpi"><strong>${ARZ.gelen}</strong><span>${LIVE.on?"Bugün gelen":"Gelen arıza"}</span></div>
@@ -560,9 +562,10 @@ function tesisSerit(){
   D.ariza.forEach(k=>p.push(`<b>🛗 ${esc(k.ekipman)} arızalı${k.mahsur&&!k.geldi?" · MAHSUR VAR":""}</b>`));
   D.dusuk.forEach(k=>p.push(`⛽ ${esc(JEN_AD[k.ekipman]||k.ekipman)} %${k.seviye}`));
   if (D.pompa.length) p.push(`🔩 ${D.pompa.length} hidrofor pompası tamirde`);
+  const tb = tasBugun(), tbYaz = tb.length ? `<span class="ayr">·</span>🚚 Bugün ${tb.length} taşınma/tadilat` : "";
   el.className = "tserit " + (D.kesik || D.ariza.length ? "kirmizi" : D.dusuk.length || D.pompa.length ? "uyari" : "iyi");
   const yakitVar = (TES.kayit||[]).some(k=>k.tur==="yakit");
-  el.innerHTML = p.length ? p.join('<span class="ayr">·</span>') : `✓ Elektrik var · 44 asansör çalışıyor · ${yakitVar ? "jeneratör yakıtları yeterli" : "jeneratör yakıt ölçümü henüz girilmedi"}`;
+  el.innerHTML = (p.length ? p.join('<span class="ayr">·</span>') : `✓ Elektrik var · 44 asansör çalışıyor · ${yakitVar ? "jeneratör yakıtları yeterli" : "jeneratör yakıt ölçümü henüz girilmedi"}`) + tbYaz;
 }
 setInterval(tesisSerit, 60000);
 function tesisVeri(list){
@@ -665,7 +668,7 @@ function tesisPanel(){
   const say = r => tum.filter(id=>asDurum(id,D)===r).length;
   const ay0 = new Date(); ay0.setDate(1); ay0.setHours(0,0,0,0);
   const buAy = D.kesintiler.filter(k=>k.bas>=ay0.getTime());
-  $("#panel").innerHTML = `${tesisKart()}
+  $("#panel").innerHTML = `${tesisKart()}${tasKart()}
     <div class="card"><h2>Asansörler</h2><div class="kpis">
       <div class="kpi"><strong style="color:var(--ok)">${say("--ok")}</strong><span>Çalışıyor, bakımı güncel</span></div>
       <div class="kpi"><strong style="color:var(--bad)">${say("--bad")}</strong><span>Arızalı</span></div>
@@ -688,6 +691,27 @@ function tesisPanel(){
     ticker(D.kesik ? "💡 Elektrik geldi" : "⚡ Elektrik kesildi · jeneratörler devrede"); feed(D.kesik?"ok":"bad", D.kesik?"Elektrik geldi":"Elektrik kesildi", "Test");
     tesisSerit(); tesisCiz(); tesisPanel();
   };
+}
+/* Taşınma & tadilat (Teknik servis > Taşınma & Tadilat'tan gelir) */
+const TAS = { kayit:[] };
+function tasBugun(){ const g0 = new Date(); g0.setHours(0,0,0,0); const a = g0.getTime(), b = a + 864e5;
+  return TAS.kayit.filter(k=>!k.iptal && !k.bitti && k.bas < b && k.bit >= a).sort((x,y)=>x.bas-y.bas); }
+const hhmm = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function tasKart(){
+  if (!LIVE.on) return "";
+  const L = tasBugun(), gec = TAS.kayit.filter(k=>k.tur==="tadilat" && !k.iptal && !k.bitti && Date.now() > k.bit);
+  if (!L.length && !gec.length) return "";
+  return `<div class="card"><h2>Bugün taşınma & tadilat</h2><div class="rows">${L.map(k=>`<div class="row"><div><b>${k.tur==="tadilat"?"🔨":"🚚"} ${esc(k.blok)} / Daire ${esc(k.daire)}</b><small style="display:block;color:var(--muted);font-size:12.5px">${k.tur==="tadilat"?"Tadilat":k.tur==="cikis"?"Taşınma (çıkış)":"Taşınma (giriş)"}${k.plaka?" · "+esc(k.plaka):""}${k.asansor?" · 🛗 asansör korumalı":""}</small></div><em>${hhmm(k.bas)}–${hhmm(k.bit)}</em></div>`).join("")}
+    ${gec.map(k=>`<div class="row"><div><b>⚠️ ${esc(k.blok)} / Daire ${esc(k.daire)}</b><small style="display:block;color:var(--warn);font-size:12.5px">Tadilat süresi geçti, bitti kaydı yok</small></div></div>`).join("")}</div></div>`;
+}
+function tasCiz(){
+  if (!L.tas) return; L.tas.innerHTML = "";
+  if (!LIVE.on) return;
+  const say = {}; tasBugun().forEach(k=>{ (say[k.blok] ||= []).push(k.tur==="tadilat"?"🔨":"🚚"); });
+  Object.entries(say).forEach(([bid, ik])=>{ const b = B[bid]; if (!b) return;
+    const g = el("g",{},L.tas), w = 14 + ik.length*16;
+    el("rect",{x:b.x-w+8, y:b.y-14, width:w, height:20, rx:10, fill:"var(--panel)", stroke:"var(--accent)","stroke-width":1.5},g);
+    const t = el("text",{x:b.x-w/2+8, y:b.y+1, "text-anchor":"middle","font-size":12},g); t.textContent = ik.join(""); });
 }
 /* Personelin çektiği fotoğraf */
 let FOTO_CEK = null;
@@ -1158,7 +1182,7 @@ const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı /
 async function canliBaslat(){
   const cfg = window.FB_CONFIG; if (!cfg) return;
   LIVE.on = true; ARZ.list = []; ARZ.gelen = 0; ARZ.cozulen = 0; ARZ.sureler = [];
-  document.querySelector(".demo").textContent = "Canlı veri · s15";
+  document.querySelector(".demo").textContent = "Canlı veri · s16";
   const V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
   const [app, fs, au] = await Promise.all([import(U+"firebase-app.js"), import(U+"firebase-firestore.js"), import(U+"firebase-auth.js")]);
   const ap = app.initializeApp(cfg), db = fs.getFirestore(ap), auth = au.getAuth(ap);
@@ -1190,6 +1214,12 @@ async function canliBaslat(){
     cb.onclick = async () => { if (!confirm("Kontrol Merkezi'nden çıkış yapılsın mı?")) return; await au.signOut(auth); location.reload(); };
     fs.onSnapshot(fs.query(fs.collection(db,"tesis"), fs.where("ts",">=",Date.now()-45*864e5)), snap => tesisVeri(snap.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.error(e); TES.hata = e.code || "hata"; tesisSerit(); });
     tesisSerit();
+    fs.onSnapshot(fs.query(fs.collection(db,"tasinma"), fs.where("bit",">=",Date.now()-2*864e5)), snap => {
+      const once = new Set(TAS.kayit.map(k=>k.id)), ilk = !TAS.yuklendi; TAS.yuklendi = true;
+      TAS.kayit = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      if (!ilk) TAS.kayit.filter(k=>!once.has(k.id)).forEach(k=>{ ticker(`${k.tur==="tadilat"?"🔨 Tadilat":"🚚 Taşınma"} kaydı · ${k.blok}/${k.daire}`); feed("ok", `${k.tur==="tadilat"?"Tadilat":"Taşınma"} · ${k.blok}/${k.daire}`, `${hhmm(k.bas)}–${hhmm(k.bit)}`); });
+      tasCiz(); tesisSerit(); if (MODE==="gunduz") arizaPanel(); else if (MODE==="tesis") tesisPanel();
+    }, e => console.error(e));
     FOTO_CEK = async id => (await fs.getDocs(fs.query(fs.collection(db,"foto"), fs.where("aid","==",id)))).docs.map(d=>d.data()).sort((a,b)=>a.i-b.i).map(x=>x.data);
     RAPOR_CEK = async (a, b) => (await fs.getDocs(fs.query(fs.collection(db,"devriye"), fs.where("ts",">=",a), fs.where("ts","<",b)))).docs.map(d=>d.data());
     // Blok/nokta yerleri: bulutta saklanır, her cihazda aynı görünür
