@@ -561,7 +561,8 @@ function tesisSerit(){
   D.dusuk.forEach(k=>p.push(`⛽ ${esc(JEN_AD[k.ekipman]||k.ekipman)} %${k.seviye}`));
   if (D.pompa.length) p.push(`🔩 ${D.pompa.length} hidrofor pompası tamirde`);
   el.className = "tserit " + (D.kesik || D.ariza.length ? "kirmizi" : D.dusuk.length || D.pompa.length ? "uyari" : "iyi");
-  el.innerHTML = p.length ? p.join('<span class="ayr">·</span>') : "✓ Elektrik var · 44 asansör çalışıyor · jeneratör yakıtları yeterli";
+  const yakitVar = (TES.kayit||[]).some(k=>k.tur==="yakit");
+  el.innerHTML = p.length ? p.join('<span class="ayr">·</span>') : `✓ Elektrik var · 44 asansör çalışıyor · ${yakitVar ? "jeneratör yakıtları yeterli" : "jeneratör yakıt ölçümü henüz girilmedi"}`;
 }
 setInterval(tesisSerit, 60000);
 function tesisVeri(list){
@@ -1157,7 +1158,7 @@ const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı /
 async function canliBaslat(){
   const cfg = window.FB_CONFIG; if (!cfg) return;
   LIVE.on = true; ARZ.list = []; ARZ.gelen = 0; ARZ.cozulen = 0; ARZ.sureler = [];
-  document.querySelector(".demo").textContent = "Canlı veri · s10";
+  document.querySelector(".demo").textContent = "Canlı veri · s11";
   const V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
   const [app, fs, au] = await Promise.all([import(U+"firebase-app.js"), import(U+"firebase-firestore.js"), import(U+"firebase-auth.js")]);
   const ap = app.initializeApp(cfg), db = fs.getFirestore(ap), auth = au.getAuth(ap);
