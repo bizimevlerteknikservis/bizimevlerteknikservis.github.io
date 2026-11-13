@@ -163,6 +163,12 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .pill{font:600 12px/1 var(--body);padding:5px 9px;border-radius:999px;color:#fff;white-space:nowrap}
 .act{border:0;border-radius:12px;padding:12px 14px;font-weight:700;background:var(--accent);color:var(--accent-ink);width:100%}
 .act.ghost{background:var(--panel-2);color:var(--ink);border:1px solid var(--line)}
+.tserit{margin:0 0 14px;padding:12px 16px;border-radius:16px;font:600 15px var(--body);background:var(--panel);border:1px solid var(--line);color:var(--ink);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.tserit.iyi{color:var(--ok)}
+.tserit.uyari{background:rgba(227,162,27,.16);border-color:var(--warn)}
+.tserit.kirmizi{background:rgba(214,64,64,.18);border-color:var(--bad);color:var(--ink);animation:tsNabiz 1.6s ease-in-out infinite}
+.tserit .ayr{opacity:.4}
+@keyframes tsNabiz{50%{box-shadow:0 0 0 6px rgba(214,64,64,.18)}}
 .fotobtn{margin-top:6px;border:1px solid var(--line);background:var(--panel-2);color:var(--accent);border-radius:999px;padding:5px 12px;font:700 12.5px var(--body);cursor:pointer}
 .fotogor{position:fixed;inset:0;z-index:50;background:rgba(5,10,18,.9);display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px;overflow:auto}
 .fotogor img{max-width:min(100%,1100px);max-height:82vh;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
@@ -220,6 +226,7 @@ window.FB_TEKNISYEN = ["teknisyenzeynel91@gmail.com"];</script>
       <button class="iconbtn" id="fs" aria-label="Tam ekran"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     </div>
   </header>
+  <div class="tserit" id="tesisSerit" hidden></div>
 
   <div class="main">
     <section class="mapwrap" aria-label="Site haritası">
@@ -525,8 +532,22 @@ function tesisKart(){
   D.dusuk.forEach(k=>s.push(`<div class="row"><b>⛽ ${esc(JEN_AD[k.ekipman]||k.ekipman)} yakıt düşük</b><span class="pill" style="background:var(--warn)">%${k.seviye}</span></div>`));
   return `<div class="card"${D.kesik||D.ariza.length?' style="border-color:var(--bad)"':""}><h2>Tesis durumu</h2><div class="rows">${s.join("") || `<div class="row"><b>Elektrik var · asansörler çalışıyor</b><em style="color:var(--ok)">✓</em></div>`}</div></div>`;
 }
+function tesisSerit(){
+  const el = $("#tesisSerit"); if (!el || !LIVE.on) return;
+  el.hidden = false;
+  if (TES.hata){ el.className = "tserit uyari"; el.innerHTML = `⚠️ Tesis bilgileri okunamadı (${esc(TES.hata)}) · Firebase kurallarını yayınlayın`; return; }
+  if (!TES.kayit){ el.className = "tserit"; el.textContent = "Tesis bilgileri yükleniyor…"; return; }
+  const D = tesisDurum(), p = [];
+  if (D.kesik) p.push(`<b>⚡ Elektrik kesik · ${dkOnce(D.kesik.ts)} dk</b>`);
+  D.ariza.forEach(k=>p.push(`<b>🛗 ${esc(k.ekipman)} arızalı${k.mahsur&&!k.geldi?" · MAHSUR VAR":""}</b>`));
+  D.dusuk.forEach(k=>p.push(`⛽ ${esc(JEN_AD[k.ekipman]||k.ekipman)} %${k.seviye}`));
+  el.className = "tserit " + (D.kesik || D.ariza.length ? "kirmizi" : D.dusuk.length ? "uyari" : "iyi");
+  el.innerHTML = p.length ? p.join('<span class="ayr">·</span>') : "✓ Elektrik var · 44 asansör çalışıyor · jeneratör yakıtları yeterli";
+}
+setInterval(tesisSerit, 60000);
 function tesisVeri(list){
-  TES.kayit = list;
+  TES.kayit = list; TES.hata = "";
+  tesisSerit();
   const yeni = list.filter(k=>TES.gorulen && !TES.gorulen.has(k.id));
   TES.gorulen = new Set(list.map(k=>k.id));
   yeni.forEach(k=>{
@@ -1005,7 +1026,7 @@ const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı /
 async function canliBaslat(){
   const cfg = window.FB_CONFIG; if (!cfg) return;
   LIVE.on = true; ARZ.list = []; ARZ.gelen = 0; ARZ.cozulen = 0; ARZ.sureler = [];
-  document.querySelector(".demo").textContent = "Canlı veri · s6";
+  document.querySelector(".demo").textContent = "Canlı veri · s7";
   const V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
   const [app, fs, au] = await Promise.all([import(U+"firebase-app.js"), import(U+"firebase-firestore.js"), import(U+"firebase-auth.js")]);
   const ap = app.initializeApp(cfg), db = fs.getFirestore(ap), auth = au.getAuth(ap);
@@ -1027,7 +1048,8 @@ async function canliBaslat(){
     giris.hidden = true;
     const cb = $("#cikisBtn"); cb.hidden = false;
     cb.onclick = async () => { if (!confirm("Kontrol Merkezi'nden çıkış yapılsın mı?")) return; await au.signOut(auth); location.reload(); };
-    fs.onSnapshot(fs.query(fs.collection(db,"tesis"), fs.where("ts",">=",Date.now()-45*864e5)), snap => tesisVeri(snap.docs.map(d=>({id:d.id, ...d.data()}))), e => console.error(e));
+    fs.onSnapshot(fs.query(fs.collection(db,"tesis"), fs.where("ts",">=",Date.now()-45*864e5)), snap => tesisVeri(snap.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.error(e); TES.hata = e.code || "hata"; tesisSerit(); });
+    tesisSerit();
     FOTO_CEK = async id => (await fs.getDocs(fs.query(fs.collection(db,"foto"), fs.where("aid","==",id)))).docs.map(d=>d.data()).sort((a,b)=>a.i-b.i).map(x=>x.data);
     RAPOR_CEK = async (a, b) => (await fs.getDocs(fs.query(fs.collection(db,"devriye"), fs.where("ts",">=",a), fs.where("ts","<",b)))).docs.map(d=>d.data());
     // Blok/nokta yerleri: bulutta saklanır, her cihazda aynı görünür
