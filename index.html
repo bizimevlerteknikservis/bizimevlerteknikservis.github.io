@@ -147,7 +147,9 @@ label.f{display:grid;gap:6px;font-size:14px;font-weight:700;min-width:0;color:va
 .foto-k{position:relative;width:96px;height:96px;border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
 .foto-k img{width:100%;height:100%;object-fit:cover;display:block}
 .foto-k button{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(15,30,45,.75);color:#fff;font-weight:700;cursor:pointer}
-.foto-ekle{flex:1;min-width:150px;min-height:96px;border:2px dashed var(--line,#cfdbe6);border-radius:14px;display:grid;place-items:center;align-content:center;gap:4px;padding:10px;cursor:pointer;color:var(--accent);text-align:center;background:var(--surface)}
+.foto-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.foto-ekle.ikincil{color:var(--muted);border-style:solid;border-width:1.5px}
+.foto-ekle{flex:1;min-width:0;min-height:96px;border:2px dashed var(--line,#cfdbe6);border-radius:14px;display:grid;place-items:center;align-content:center;gap:4px;padding:10px;cursor:pointer;color:var(--accent);text-align:center;background:var(--surface)}
 .foto-ekle svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
 .foto-ekle span{font-weight:700;font-size:15px}.foto-ekle small{color:var(--muted);font-size:12px}
 .foto-gor{position:fixed;inset:0;background:rgba(8,16,26,.92);z-index:20;display:flex;flex-direction:column;gap:12px;padding:16px;overflow:auto;align-items:center}
@@ -715,9 +717,14 @@ function vPersonel(){
     <textarea id="p_desc" maxlength="300" placeholder="${p.cat==="p_malzeme" ? "Örn. 2 rulo büyük boy çöp poşeti, 1 adet çöp kovası" : "Örn. Merdiven tarafındaki lamba, iki gündür yanmıyor."}">${esc(p.desc)}</textarea>
     <div class="foto-alan">
       ${p.foto.map((f,i)=>`<div class="foto-k"><img src="${f}" alt="Fotoğraf ${i+1}"><button type="button" data-act="pFotoSil" data-v="${i}" aria-label="Fotoğrafı kaldır">✕</button></div>`).join("")}
-      ${p.foto.length < 3 ? `<label class="foto-ekle"><input type="file" accept="image/*" id="p_foto" hidden>
-        <svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
-        <span>${p.foto.length ? "Bir fotoğraf daha" : "Fotoğraf çek / ekle"}</span><small>${S.fotoIsleniyor ? "Hazırlanıyor…" : "isteğe bağlı · en fazla 3"}</small></label>` : ""}
+      ${p.foto.length < 3 ? `<div class="foto-btns">
+        <label class="foto-ekle"><input type="file" accept="image/*" capture="environment" id="p_foto" hidden>
+          <svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+          <span>${p.foto.length ? "Bir tane daha çek" : "Fotoğraf çek"}</span><small>${S.fotoIsleniyor ? "Hazırlanıyor…" : "kamera açılır"}</small></label>
+        <label class="foto-ekle ikincil"><input type="file" accept="image/*" id="p_foto2" hidden>
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>
+          <span>Galeriden seç</span><small>en fazla 3 fotoğraf</small></label>
+      </div>` : ""}
     </div>
   </section>
   ${S.err ? `<p class="err">${esc(S.err)}</p>` : ""}
@@ -976,7 +983,7 @@ document.addEventListener("input", e => {
 });
 
 document.addEventListener("change", async e => {
-  if (e.target.id === "p_foto" && e.target.files && e.target.files[0]){
+  if ((e.target.id === "p_foto" || e.target.id === "p_foto2") && e.target.files && e.target.files[0]){
     syncForm(); S.fotoIsleniyor = true; render();
     try { S.p.foto.push(await fotoKucult(e.target.files[0])); } catch(err){ toast("Fotoğraf okunamadı, tekrar deneyin"); }
     S.fotoIsleniyor = false; render(); return;
