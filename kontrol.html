@@ -155,6 +155,7 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .pill{font:600 12px/1 var(--body);padding:5px 9px;border-radius:999px;color:#fff;white-space:nowrap}
 .act{border:0;border-radius:12px;padding:12px 14px;font-weight:700;background:var(--accent);color:var(--accent-ink);width:100%}
 .act.ghost{background:var(--panel-2);color:var(--ink);border:1px solid var(--line)}
+.rsel{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font:600 14px var(--body)}
 .act.sos{background:var(--bad);color:#fff}
 .note{font-size:12.5px;color:var(--muted);margin:10px 0 0}
 @keyframes in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
@@ -578,8 +579,138 @@ function devriyePanel(){
     <div class="card"><h2>Görevdekiler</h2><div class="rows">${gorev}</div></div>
     <div class="card"><h2>En uzun süredir uğranmayan</h2><div class="rows">${sirali.slice(0,5).map(n=>{const dk=n.son?dkOnce(n.son):null;return `<div class="row"><b>${n.no}. ${esc(n.ad)}</b><span class="pill" style="background:${cssv(nRenk(n))}">${dk===null?"okutulmadı":dk>=60?Math.floor(dk/60)+" sa "+(dk%60)+" dk":dk+" dk"}</span></div>`}).join("")}</div>
       ${LIVE.on?"":`<button class="act sos" id="sos" style="margin-top:12px">SOS testini başlat</button>`}</div>
+    <div class="card"><h2>Devriye raporu</h2>
+      <select id="raporDonem" class="rsel">${["bugun","dun","hafta","ay","gecenay"].map(v=>`<option value="${v}"${RAPOR_SEC===v?" selected":""}>${raporDonem(v)[2]}</option>`).join("")}</select>
+      <button class="act" id="raporBtn" style="margin-top:10px">📥 Excel indir</button>
+      <p class="note">Görevliler, noktalar, günlük özet, sorunlar ve tüm okutmalar ayrı sayfalarda.</p></div>
     <div class="card"><h2>Canlı akış</h2><ul class="feed" id="feed">${feedHTML()}</ul></div>`;
   const sb = $("#sos"); if (sb) sb.onclick = sosTest;
+  $("#raporBtn").onclick = raporIndir;
+  $("#raporDonem").onchange = e => { RAPOR_SEC = e.target.value; };
+}
+/* ============ Devriye raporu (Excel) ============ */
+let RAPOR_CEK = null, RAPOR_SEC = "hafta";   // canlı modda Firebase'den kayıt çeker
+function raporDonem(k){
+  const g0 = new Date(); g0.setHours(0,0,0,0); const bugun = g0.getTime(), now = Date.now();
+  const ay0 = new Date(g0.getFullYear(), g0.getMonth(), 1).getTime();
+  const gecenAy0 = new Date(g0.getFullYear(), g0.getMonth()-1, 1).getTime();
+  return ({
+    bugun:[bugun, now, "Bugün"], dun:[bugun-864e5, bugun, "Dün"],
+    hafta:[bugun-6*864e5, now, "Son 7 gün"], ay:[ay0, now, "Bu ay"], gecenay:[gecenAy0, ay0, "Geçen ay"]
+  })[k];
+}
+function demoKayit(a, b){
+  const ad = ["Ali Vesek","Tayfun Özdemir","Cihan Yıldırım","Serkan Çinibulak","Yalçın Akyol","Yusuf Nazlım"], out = [];
+  for (let t = a; t < Math.min(b, Date.now()); t += 2*36e5){
+    const h = new Date(t).getHours(), v = h<8 ? "3. Vardiya" : h<16 ? "1. Vardiya" : "2. Vardiya", g = ad[Math.floor(t/36e5/8)%ad.length];
+    NOKTA.forEach((n,i)=>{ if (Math.random()<.06) return; out.push({tip:"okutma", nokta:n.id, ad:n.ad, gorevli:g, vardiya:v, ts:t+i*4*6e4+Math.random()*6e4, not:""}); });
+    if (Math.random()<.08){ const n = NOKTA[Math.floor(Math.random()*21)]; out.push({tip:"sorun", nokta:n.id, ad:n.ad, gorevli:g, vardiya:v, ts:t+30*6e4, not:"Kapı açık bulundu"}); }
+  }
+  return out;
+}
+/* Küçük XLSX yazıcı (dış kütüphane gerektirmez) */
+const XLSXW = (() => {
+  const enc = new TextEncoder();
+  const crcT = (() => { const t = new Uint32Array(256); for (let n=0;n<256;n++){ let c=n; for (let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+  const crc32 = b => { let c = 0xFFFFFFFF; for (let i=0;i<b.length;i++) c = crcT[(c^b[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; };
+  function zip(files){
+    const parts = [], merkez = []; let off = 0;
+    files.forEach(([ad, veri]) => {
+      const a = enc.encode(ad), d = typeof veri==="string" ? enc.encode(veri) : veri, c = crc32(d);
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true);
+      h.setUint32(14,c,true); h.setUint32(18,d.length,true); h.setUint32(22,d.length,true); h.setUint16(26,a.length,true);
+      parts.push(new Uint8Array(h.buffer), a, d);
+      const m = new DataView(new ArrayBuffer(46));
+      m.setUint32(0,0x02014b50,true); m.setUint16(4,20,true); m.setUint16(6,20,true); m.setUint16(8,0x0800,true);
+      m.setUint32(16,c,true); m.setUint32(20,d.length,true); m.setUint32(24,d.length,true); m.setUint16(28,a.length,true); m.setUint32(42,off,true);
+      merkez.push(new Uint8Array(m.buffer), a); off += 30 + a.length + d.length;
+    });
+    const mBoy = merkez.reduce((s,p)=>s+p.length,0), e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,mBoy,true); e.setUint32(16,off,true);
+    return new Blob([...parts, ...merkez, new Uint8Array(e.buffer)], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  }
+  const x = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,"");
+  const kol = i => { let s=""; i++; while(i){ const m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26); } return s; };
+  function sayfa(satirlar, gen, baslikSatiri){
+    const cols = gen && gen.length ? `<cols>${gen.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")}</cols>` : "";
+    const rows = satirlar.map((r,ri)=>`<row r="${ri+1}">${r.map((v,ci)=>{
+      const ref = kol(ci)+(ri+1), st = ri===baslikSatiri ? ' s="1"' : "";
+      if (v===null || v===undefined || v==="") return "";
+      return typeof v==="number" && isFinite(v) ? `<c r="${ref}"${st}><v>${v}</v></c>` : `<c r="${ref}" t="inlineStr"${st}><is><t xml:space="preserve">${x(v)}</t></is></c>`;
+    }).join("")}</row>`).join("");
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"${baslikSatiri===0?'><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView':"/"}></sheetViews>${cols}<sheetData>${rows}</sheetData></worksheet>`;
+  }
+  return function yaz(sayfalar){   // sayfalar: [[ad, satirlar, genislikler, baslikSatiri]]
+    const f = [
+      ["[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sayfalar.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`],
+      ["_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+      ["xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sayfalar.map((s,i)=>`<sheet name="${x(s[0]).slice(0,31)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets></workbook>`],
+      ["xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sayfalar.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}<Relationship Id="rId${sayfalar.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
+      ["xl/styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F6FB5"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`],
+      ...sayfalar.map((s,i)=>[`xl/worksheets/sheet${i+1}.xml`, sayfa(s[1], s[2], s[3])])
+    ];
+    return zip(f);
+  };
+})();
+const tarihStr = ms => { const d = new Date(ms); return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`; };
+const sureStr = ms => { const dk = Math.round(ms/6e4); return dk>=60 ? `${Math.floor(dk/60)} sa ${dk%60} dk` : `${dk} dk`; };
+function raporTablolar(kayit, a, b, baslik){
+  kayit = kayit.filter(k=>k.ts>=a && k.ts<b).sort((x,y)=>x.ts-y.ts);
+  const ok = kayit.filter(k=>k.tip!=="sorun"), sr = kayit.filter(k=>k.tip==="sorun");
+  const son = Math.min(b, Date.now());
+  // Noktalar
+  const noktalar = NOKTA.map(n=>{
+    const ts = ok.filter(k=>k.nokta===n.id).map(k=>k.ts);
+    let enUzun = 0, onceki = a; ts.forEach(t=>{ enUzun = Math.max(enUzun, t-onceki); onceki = t; }); enUzun = Math.max(enUzun, son-onceki);
+    return [n.no, n.ad, ts.length, sr.filter(k=>k.nokta===n.id).length, sureStr(enUzun), ts.length?`${tarihStr(ts[ts.length-1])} ${saat(new Date(ts[ts.length-1]))}`:"Hiç okutulmadı"];
+  });
+  // Görevliler
+  const gk = {}; kayit.forEach(k=>{ const g = gk[k.gorevli] ||= {ad:k.gorevli, v:k.vardiya, n:0, s:0, gun:new Set(), ilk:k.ts, son:k.ts};
+    k.tip==="sorun" ? g.s++ : g.n++; g.gun.add(tarihStr(k.ts)); g.son = k.ts; });
+  const gorevli = Object.values(gk).sort((x,y)=>y.n-x.n).map(g=>[g.ad, g.v||"", g.n, g.s, g.gun.size, `${tarihStr(g.ilk)} ${saat(new Date(g.ilk))}`, `${tarihStr(g.son)} ${saat(new Date(g.son))}`]);
+  // Günlük
+  const gunler = []; for (let t = new Date(a).setHours(0,0,0,0); t < son; t += 864e5){
+    const gun = ok.filter(k=>k.ts>=t && k.ts<t+864e5), say = {}; gun.forEach(k=>say[k.nokta]=(say[k.nokta]||0)+1);
+    gunler.push([tarihStr(t), gun.length, sr.filter(k=>k.ts>=t && k.ts<t+864e5).length, Math.min(...NOKTA.map(n=>say[n.id]||0)), NOKTA.filter(n=>!say[n.id]).length, new Set(gun.map(k=>k.gorevli)).size]);
+  }
+  // Vardiya
+  const vk = {}; ok.forEach(k=>{ const v = k.vardiya||"Belirtilmemiş"; vk[v]=(vk[v]||0)+1; });
+  const tumSay = {}; ok.forEach(k=>tumSay[k.nokta]=(tumSay[k.nokta]||0)+1);
+  const ozet = [
+    ["Bizimevler 1 Sitesi · Güvenlik Devriye Raporu"], [],
+    ["Dönem", `${baslik} (${tarihStr(a)} – ${tarihStr(son)})`],
+    ["Oluşturulma", `${tarihStr(Date.now())} ${saat(new Date())}`], [],
+    ["Toplam QR okutma", ok.length], ["Bildirilen sorun", sr.length],
+    ["Tam tur (21 noktanın hepsi)", Math.min(...NOKTA.map(n=>tumSay[n.id]||0))],
+    ["Görevli sayısı", Object.keys(gk).length],
+    ["Hiç okutulmayan nokta", NOKTA.filter(n=>!tumSay[n.id]).map(n=>n.no).join(", ") || "Yok"], [],
+    ["Vardiya", "Okutma"], ...Object.entries(vk).sort()
+  ];
+  const kayitlar = kayit.map(k=>[tarihStr(k.ts), saat(new Date(k.ts)), k.tip==="sorun"?"SORUN":"Okutma", N[k.nokta]?.no||"", N[k.nokta]?.ad||k.ad||"", k.gorevli||"", k.vardiya||"", k.not||"", k.konum?`https://maps.google.com/?q=${k.konum.lat},${k.konum.lng}`:""]);
+  return {ozet, ok, sr,
+    sayfalar: [
+      ["Özet", ozet, [32,48]],
+      ["Görevliler", [["Görevli","Vardiya","Okutma","Sorun bildirimi","Aktif gün","İlk okutma","Son okutma"], ...gorevli], [24,13,10,15,10,18,18]],
+      ["Noktalar", [["No","Kontrol noktası","Okutma","Sorun","En uzun boşluk","Son okutma"], ...noktalar], [5,36,10,8,15,18]],
+      ["Günlük", [["Tarih","Okutma","Sorun","Tam tur","Okutulmayan nokta","Görevli"], ...gunler], [12,10,8,10,18,10]],
+      ["Sorunlar", [["Tarih","Saat","No","Nokta","Görevli","Not"], ...sr.map(k=>[tarihStr(k.ts), saat(new Date(k.ts)), N[k.nokta]?.no||"", N[k.nokta]?.ad||"", k.gorevli||"", k.not||""])], [12,7,5,36,22,40]],
+      ["Tüm kayıtlar", [["Tarih","Saat","Tür","No","Nokta","Görevli","Vardiya","Not","Konum"], ...kayitlar], [12,7,9,5,36,22,12,30,40]]
+    ]};
+}
+async function raporIndir(){
+  const btn = $("#raporBtn"), sec = RAPOR_SEC, [a, b, baslik] = raporDonem(sec);
+  btn.disabled = true; btn.textContent = "Hazırlanıyor…";
+  try {
+    const kayit = RAPOR_CEK ? await RAPOR_CEK(a, b) : demoKayit(a, b);
+    const r = raporTablolar(kayit, a, b, baslik);
+    const ad = `bizimevler1-devriye-raporu-${sec}-${tarihStr(Date.now()).split(".").reverse().join("-")}`;
+    const blob = XLSXW(r.sayfalar.map(([isim, satirlar, gen]) => [isim, satirlar, gen, isim==="Özet" ? -1 : 0]));
+    const u = URL.createObjectURL(blob), l = document.createElement("a");
+    l.href = u; l.download = ad + ".xlsx"; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(u), 5000);
+    ticker(`📥 Rapor indirildi · ${baslik} · ${r.ok.length} okutma, ${r.sr.length} sorun`);
+  } catch(e){ console.error(e); ticker("Rapor alınamadı: " + (e.code || e.message)); }
+  btn.disabled = false; btn.textContent = "📥 Excel indir";
 }
 function sosTest(){
   const g = DEV.gorevli[0]; if (!g || !g.node) return; const tr = g.node.getAttribute("transform")||""; const m = tr.match(/translate\(([\d.]+) ([\d.]+)\)/); if(!m) return;
@@ -685,6 +816,7 @@ async function canliBaslat(){
       return;
     }
     giris.hidden = true;
+    RAPOR_CEK = async (a, b) => (await fs.getDocs(fs.query(fs.collection(db,"devriye"), fs.where("ts",">=",a), fs.where("ts","<",b)))).docs.map(d=>d.data());
     // Blok/nokta yerleri: bulutta saklanır, her cihazda aynı görünür
     const kRef = fs.doc(db,"ayar","harita2");
     BULUT = k => fs.setDoc(kRef, {konum:k, ts:Date.now()}).catch(e => { console.error(e); ticker("⚠️ Yerler kaydedilemedi: " + e.code + " · Firebase kurallarını kontrol edin"); });
