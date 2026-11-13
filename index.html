@@ -202,6 +202,7 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 @media (max-width:360px){.cats{grid-template-columns:repeat(2,minmax(0,1fr))}.slots{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (prefers-reduced-motion:no-preference){.cat,.day,.slot,.act,.cta,nav.tabs a{transition:background .18s,border-color .18s,color .18s,box-shadow .18s,transform .12s}
   .cat:active,.day:active,.slot:active,.cta:active{transform:scale(.97)}}
+.cikis-btn{display:inline-flex;align-items:center;gap:6px;color:#c0392b!important;border:1.5px solid #f1b5ad!important;background:#fff5f3!important;font-weight:700}
 </style>
 </head>
 <body>
@@ -865,7 +866,7 @@ function vPanel(){
     list.filter(a=>a.status==="onaylandi").forEach(a => ekle("İlgilenilenler", a));
   } else list.forEach(a => ekle(ad[S.filter], a));
   const bugunBiten = all.filter(a => a.status==="tamamlandi" && a.completedAt && ymd(new Date(a.completedAt))===bugun).length;
-  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="margin:0;font:600 22px/1.2 var(--display)">İş paneli</h2><button class="pill-btn" data-act="cikis">Çıkış</button></div>
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="margin:0;font:600 22px/1.2 var(--display)">İş paneli</h2><button class="pill-btn cikis-btn" data-act="cikis"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Çıkış yap</button></div>
     <div class="summary">
       <div class="sum"><strong style="color:var(--wait)">${all.filter(a=>a.status==="bekliyor").length}</strong><span>Yeni</span></div>
       <div class="sum"><strong style="color:var(--ok)">${all.filter(a=>a.status==="onaylandi").length}</strong><span>İlgilenilen</span></div>

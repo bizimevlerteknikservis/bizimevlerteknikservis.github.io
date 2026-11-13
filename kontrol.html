@@ -211,6 +211,7 @@ window.FB_TEKNISYEN = ["teknisyenzeynel91@gmail.com"];</script>
     </div>
     <div class="tools">
       <span class="demo" title="Bu ekran örnek verilerle çalışan bir tanıtımdır">Demo · örnek veri</span>
+      <button class="iconbtn" id="cikisBtn" aria-label="Çıkış yap" title="Çıkış yap" hidden><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
       <button class="iconbtn" id="fs" aria-label="Tam ekran"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     </div>
   </header>
@@ -936,7 +937,7 @@ const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı /
 async function canliBaslat(){
   const cfg = window.FB_CONFIG; if (!cfg) return;
   LIVE.on = true; ARZ.list = []; ARZ.gelen = 0; ARZ.cozulen = 0; ARZ.sureler = [];
-  document.querySelector(".demo").textContent = "Canlı veri · s2";
+  document.querySelector(".demo").textContent = "Canlı veri · s3";
   const V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
   const [app, fs, au] = await Promise.all([import(U+"firebase-app.js"), import(U+"firebase-firestore.js"), import(U+"firebase-auth.js")]);
   const ap = app.initializeApp(cfg), db = fs.getFirestore(ap), auth = au.getAuth(ap);
@@ -956,6 +957,8 @@ async function canliBaslat(){
       return;
     }
     giris.hidden = true;
+    const cb = $("#cikisBtn"); cb.hidden = false;
+    cb.onclick = async () => { if (!confirm("Kontrol Merkezi'nden çıkış yapılsın mı?")) return; await au.signOut(auth); location.reload(); };
     RAPOR_CEK = async (a, b) => (await fs.getDocs(fs.query(fs.collection(db,"devriye"), fs.where("ts",">=",a), fs.where("ts","<",b)))).docs.map(d=>d.data());
     // Blok/nokta yerleri: bulutta saklanır, her cihazda aynı görünür
     const kRef = fs.doc(db,"ayar","harita2");
