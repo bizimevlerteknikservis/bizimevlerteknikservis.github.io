@@ -1158,7 +1158,7 @@ const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı /
 async function canliBaslat(){
   const cfg = window.FB_CONFIG; if (!cfg) return;
   LIVE.on = true; ARZ.list = []; ARZ.gelen = 0; ARZ.cozulen = 0; ARZ.sureler = [];
-  document.querySelector(".demo").textContent = "Canlı veri · s14";
+  document.querySelector(".demo").textContent = "Canlı veri · s15";
   const V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
   const [app, fs, au] = await Promise.all([import(U+"firebase-app.js"), import(U+"firebase-firestore.js"), import(U+"firebase-auth.js")]);
   const ap = app.initializeApp(cfg), db = fs.getFirestore(ap), auth = au.getAuth(ap);
@@ -1176,7 +1176,7 @@ async function canliBaslat(){
     // Rol: teknisyen (tam yetki) ya da yönetim (sadece izleme; daire arızalarını görmez)
     let rol = izinli(u.email) ? "teknisyen" : null, neden = "Bu e-posta yönetim listesinde yok. Teknisyen panelindeki “Yönetim erişimi”ne ekleyip Kaydet’e basın.";
     if (!rol){
-      try { const r = await fs.getDoc(fs.doc(db,"ayar","roller")); const L = (r.exists() && r.data().yonetim) || [];
+      try { const r = await fs.getDoc(fs.doc(db,"ayar","roller")); const L = r.exists() ? [...(r.data().yonetim||[]), ...(r.data().tesis||[])] : [];
         if (L.map(x=>String(x).toLowerCase().trim()).includes((u.email||"").toLowerCase())) rol = "yonetim"; }
       catch(e){ console.error(e); neden = e.code === "permission-denied"
         ? "Yetki yok: ya bu e-posta “Yönetim erişimi” listesinde değil ya da yeni Firebase kuralı (isYonetim) yayınlanmadı."

@@ -529,6 +529,8 @@ function DemoStore(){
     async updateTesis(id, p){ const r = (mem.tesis||[]).find(x=>x.id===id); if (r){ Object.assign(r, p); save(); } },
     async setTesisAyar(p){ mem.tesisAyar = {...(mem.tesisAyar||{}), ...p}; save(); },
     async logout(){ tech = false; save(); },
+    isTesis: () => tech,
+    kim: () => "Teknisyen",
     async getRoller(){ return mem.roller || {}; },
     async setRoller(p){ mem.roller = {...(mem.roller||{}), ...p}; save(); }
   };
@@ -536,7 +538,9 @@ function DemoStore(){
 
 function FirebaseStore(cfg){
   const V = "10.12.2", B = `https://www.gstatic.com/firebasejs/${V}/`;
-  let fs, au, db, auth, user = null, tech = false;
+  let fs, au, db, auth, user = null, tech = false, tesisRol = false;
+  const rolListe = async () => { try { const r = await fs.getDoc(fs.doc(db,"ayar","roller")); return r.exists() ? r.data() : {}; } catch(e){ return {}; } };
+  const listede = (L, e) => (L || []).map(x=>String(x).toLowerCase()).includes((e||"").toLowerCase());
   const ready = (async () => {
     const [app, f, a] = await Promise.all([import(B+"firebase-app.js"), import(B+"firebase-firestore.js"), import(B+"firebase-auth.js")]);
     fs = f; au = a;
@@ -549,6 +553,8 @@ function FirebaseStore(cfg){
         if (!u){ try { await a.signInAnonymously(auth); } catch(e){ console.error(e); res(); } return; }
         user = u;
         tech = !u.isAnonymous && AYAR.teknisyenEpostalari.map(x => x.toLowerCase()).includes((u.email||"").toLowerCase());
+        tesisRol = false;
+        if (!u.isAnonymous && !tech) tesisRol = listede((await rolListe()).tesis, u.email);
         res();
       });
     });
@@ -606,12 +612,14 @@ function FirebaseStore(cfg){
       try { await au.signInWithEmailAndPassword(auth, email, pass); } catch(e){ throw {code:"giris"}; }
       tech = AYAR.teknisyenEpostalari.map(x => x.toLowerCase()).includes((auth.currentUser?.email||"").toLowerCase());
       if (!tech) {
-        let yon = false;
-        try { const r = await fs.getDoc(fs.doc(db,"ayar","roller")); yon = ((r.exists() && r.data().yonetim) || []).map(x=>String(x).toLowerCase()).includes((auth.currentUser?.email||"").toLowerCase()); } catch(e){}
-        await au.signOut(auth); throw {code: yon ? "yonetim" : "yetki"};
+        const R = await rolListe(), em = auth.currentUser?.email;
+        if (listede(R.tesis, em)) { tesisRol = true; return; }
+        await au.signOut(auth); throw {code: listede(R.yonetim, em) ? "yonetim" : "yetki"};
       }
     },
-    async logout(){ await au.signOut(auth); tech = false; },
+    async logout(){ await au.signOut(auth); tech = false; tesisRol = false; },
+    isTesis: () => tech || tesisRol,
+    kim: () => tech ? "Teknisyen" : ((auth && auth.currentUser && auth.currentUser.email) || "").split("@")[0],
     async getRoller(){ const r = await fs.getDoc(fs.doc(db,"ayar","roller")); return r.exists() ? r.data() : {}; },
     async setRoller(p){ await fs.setDoc(fs.doc(db,"ayar","roller"), p, {merge:true}); }
   };
@@ -978,6 +986,11 @@ function vRandevularim(){
 }
 
 function vPanel(){
+  if (!store.isTech() && store.isTesis && store.isTesis()){
+    return `<div class="card"><h2>Tesis takip yetkisi</h2><p class="hint">Hesabınız tesis takibine yetkili. Daire arızaları sadece teknisyene açıktır.</p>
+      <a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none">🏢 Tesis takibe git</a>
+      <button class="cta ghost" data-act="cikis" style="margin-top:10px">Çıkış yap</button></div>`;
+  }
   if (!store.isTech()){
     return `<div class="card"><h2>Teknisyen girişi</h2>
       ${store.mode==="demo"
@@ -1017,6 +1030,8 @@ function vPanel(){
     <details class="card t-ayar" style="margin-top:18px" id="rolKart" ${S.rolAcik?"open":""}><summary><b>👥 Yönetim erişimi</b> · Kontrol Merkezi'ne kim girebilir</summary>
       <p class="hint">Buraya yazılan e-postalar <b>sadece Canlı Kontrol Merkezi'ni</b> görebilir (personel bildirimleri, devriye, tesis durumu, raporlar). <b>Daire arızalarını ve bu paneli göremezler.</b> Her satıra bir e-posta.</p>
       <textarea id="rolListe" rows="4" placeholder="mudur@ornek.com&#10;yonetim@ornek.com">${esc(S.rolTaslak ?? (S.roller||[]).join("\n"))}</textarea>
+      <p class="hint" style="margin-top:12px"><b>🏢 Tesis takibe de girebilenler</b> · Bu e-postalar ayrıca <b>Tesis takip</b> sayfasına girip asansör, jeneratör, hidrofor ve kesinti kaydı yapabilir. (Daire arızalarını yine göremezler.)</p>
+      <textarea id="rolTesis" rows="2" placeholder="ali@ornek.com">${esc(S.rolTesisTaslak ?? (S.rolTesis||[]).join("\n"))}</textarea>
       <button class="cta ghost" data-act="rolKaydet" style="margin-top:8px">Kaydet</button>
       <p class="hint">Sonra Firebase → Authentication → <b>Add user</b> ile bu e-postalara birer şifre tanımlayın.</p></details>`;
 }
@@ -1149,7 +1164,7 @@ function tesisHesap(){
 }
 
 function tesisBaslat(){
-  if (T.basladi || !store.isTech()) return;
+  if (T.basladi || !store.isTesis()) return;
   T.basladi = true;
   const ciz = () => { if (S.view==="tesis") setTimeout(render, 0); };
   T.un = store.listenTesis(list => { T.kayit = list; ciz(); });
@@ -1158,7 +1173,7 @@ function tesisBaslat(){
 function tesisDurdur(){ if (T.un) T.un(); if (T.unA) T.unA(); T.un = T.unA = null; T.basladi = false; T.kayit = []; }
 
 function vTesis(){
-  if (!store.isTech()) return vPanel();
+  if (!store.isTesis()) return vPanel();
   tesisBaslat();
   const H = tesisHesap();
   const uyar = [];
@@ -1170,7 +1185,7 @@ function vTesis(){
   const sek = {ozet:"Özet", asansor:"Asansörler", hidrofor:"Hidrofor", jen:"Jeneratörler", kesinti:"Kesintiler"};
   return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
       <h2 style="margin:0;font:600 22px/1.2 var(--display)">Tesis takip</h2>
-      <a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">← İş paneli</a></div>
+      ${store.isTech() ? `<a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">← İş paneli</a>` : `<button class="pill-btn cikis-btn" data-act="cikis">Çıkış yap</button>`}</div>
     <div class="filters">${Object.entries(sek).map(([k,v])=>`<button class="pill-btn" data-t="sekme" data-v="${k}" aria-current="${T.sekme===k}">${v}</button>`).join("")}</div>
     ${T.sekme==="ozet" ? `
       ${uyar.length ? `<div class="t-uyarilar">${uyar.join("")}</div>` : `<div class="t-uyari yesil">✓ Her şey yolunda: açık arıza yok, elektrik var.</div>`}
@@ -1343,7 +1358,7 @@ function tSync(){
 }
 async function tKaydet(){
   tSync(); const f = T.f; if (!tFormHazir()) return;
-  const by = "Teknisyen"; let rec;
+  const by = store.kim ? store.kim() : "Teknisyen"; let rec;
   if (f.tip==="ariza") rec = {tur:"ariza", ekipman:`${f.blok}-${f.no}`, mahsur:!!f.mahsur, not:(f.not||"").trim(), by};
   if (f.tip==="pompa") rec = {tur:"pompa", olay:"tamire", ekipman:`${f.unit}:${f.zon}P${f.no}`, firma:(f.firma||"").trim(), not:(f.not||"").trim(), by};
   if (f.tip==="tank") rec = {tur:"tank", ekipman:`${f.unit}:${f.zon}T`, not:(f.not||"").trim(), ...(f.tutar?{tutar:+f.tutar}:{}), by};
@@ -1500,6 +1515,7 @@ function render(){
 function syncForm(){
   const rk = document.getElementById("rolKart"); if (rk) S.rolAcik = rk.open;
   const rl = document.getElementById("rolListe"); if (rl) S.rolTaslak = rl.value;
+  const rt = document.getElementById("rolTesis"); if (rt) S.rolTesisTaslak = rt.value;
   const f = S.form;
   [["desc","desc"],["name","name"],["block","block"],["flat","flat"],["phone","phone"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; });
   document.querySelectorAll("[data-note]").forEach(el => S.notes[el.dataset.note] = el.value);
@@ -1595,13 +1611,14 @@ document.addEventListener("click", async e => {
     }
     else if (act==="giris"){
       const pin = $("#pin"), em = $("#email"), pw = $("#pass");
-      try { await store.login(em?em.value.trim():"", pin?pin.value:pw.value); startPanel(); toast("Giriş yapıldı"); }
+      try { await store.login(em?em.value.trim():"", pin?pin.value:pw.value); S.err = ""; startPanel(); toast("Giriş yapıldı"); if (!store.isTech() && store.isTesis()) location.hash = "#tesis"; }
       catch(err){ S.err = err.code==="yonetim" ? "YONETIM" : err.code==="yetki" ? "Bu hesap teknisyen olarak tanımlı değil." : store.mode==="demo" ? "PIN hatalı." : "E-posta veya şifre hatalı."; render(); }
     }
     else if (act==="cikis"){ if (unAll) unAll(); unAll = null; S.all = []; tesisDurdur(); await store.logout(); render(); }
     else if (act==="rolKaydet"){
-      const L = $("#rolListe").value.split(/[\s,;]+/).map(x=>x.trim().toLowerCase()).filter(x=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
-      try { await store.setRoller({yonetim: L}); S.roller = L; $("#rolListe").value = L.join("\n"); toast(`${L.length} yönetim hesabı kaydedildi`); render(); } catch(err){ console.error(err); toast("Kaydedilemedi: Firebase kurallarını kontrol edin"); }
+      const temiz = id => $(id).value.split(/[\s,;]+/).map(x=>x.trim().toLowerCase()).filter(x=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
+      const L = temiz("#rolListe"), TL = temiz("#rolTesis");
+      try { await store.setRoller({yonetim: L, tesis: TL}); S.roller = L; S.rolTesis = TL; $("#rolListe").value = L.join("\n"); $("#rolTesis").value = TL.join("\n"); toast(`${L.length} yönetim · ${TL.length} tesis hesabı kaydedildi`); render(); } catch(err){ console.error(err); toast("Kaydedilemedi: Firebase kurallarını kontrol edin"); }
     }
     else if (act==="filtre"){ syncForm(); S.filter = v; render(); }
     else if (act==="durum"){ syncForm(); const a = find(S.all); const patch = {status: v}; if (v==="tamamlandi") patch.completedAt = Date.now(); if (S.notes[id] !== undefined) patch.note = S.notes[id]; await store.update(a, patch); toast(DURUM[v] + " olarak işaretlendi"); }
@@ -1617,7 +1634,7 @@ document.addEventListener("click", async e => {
 
 function startPanel(){
   if (unAll) unAll();
-  if (store.isTech() && store.getRoller) store.getRoller().then(r => { S.roller = r.yonetim || []; if (S.view==="panel") render(); }).catch(()=>{});
+  if (store.isTech() && store.getRoller) store.getRoller().then(r => { S.roller = r.yonetim || []; S.rolTesis = r.tesis || []; if (S.view==="panel") render(); }).catch(()=>{});
   unAll = store.isTech() ? store.listenAll(list => { S.all = list; if (S.view==="panel") render(); }) : null;
   render();
 }
