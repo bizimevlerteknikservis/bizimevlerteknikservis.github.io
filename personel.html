@@ -13,8 +13,8 @@
   var ham = location.pathname.split("/").pop(), f = ham || "index.html",
       k = {"personel.html":"personel","devriye.html":"devriye","teknik.html":"teknik"}[f] || "sakin",
       ac = {personel:"#personel", devriye:"#devriye", teknik:"#panel"}[k];
-  if (!ham) history.replaceState(null, "", "index.html" + location.hash);   // ana adres → index.html (uygulama kapsamı)
-  if (ac && !location.hash) history.replaceState(null, "", f + ac);
+  if (!ham) history.replaceState(null, "", "index.html" + location.search + location.hash);   // ana adres → index.html (uygulama kapsamı)
+  if (ac && !location.hash) history.replaceState(null, "", f + location.search + ac);
   var ad = {personel:"B1 Personel", devriye:"B1 Devriye", teknik:"B1 Teknik", sakin:"B1 Arıza"}[k];
   document.write('<link rel="manifest" href="manifest-'+k+'.json?v=3"><link rel="apple-touch-icon" href="icons/'+k+'-192.png"><link rel="icon" href="icons/'+k+'-192.png"><meta name="apple-mobile-web-app-title" content="'+ad+'">');
 })();</script>
@@ -1786,10 +1786,21 @@ function kodTekrarlar(){
     .forEach(k=>{ const a = k.tip + "|" + (k.ad||"").trim().toLocaleLowerCase("tr"); if (g[a]) sil.push(k); else g[a] = 1; });
   return sil;
 }
+async function linkKodu(kod){
+  if (kod.length !== 6) return;
+  try {
+    const k = await store.kodOku(kod);
+    if (!k || k.aktif === false){ toast("Linkteki kod geçersiz ya da pasif"); return; }
+    if (k.tip === "guvenlik") kodUygula("guvenlik", kod, k);
+    kodUygula("personel", kod, k.tip === "guvenlik" ? Object.assign({}, k, {rol:"Güvenlik"}) : k);
+    S.kodYoklandi = Date.now(); toast(`Hoş geldiniz ${String(k.ad||"").split(" ")[0]} · kodunuz kaydedildi`); render();
+  } catch(e){ toast("Kod kontrol edilemedi, internet bağlantısını kontrol edin"); }
+}
 function kodMesaj(k){
   const link = location.origin + location.pathname.replace(/[^/]*$/, "");
   const g = k.tip==="guvenlik";
-  return `Bizimevler 1 ${g?"güvenlik":"personel"} kodunuz: ${k.id}\n\nUygulama: ${link}${g?"devriye.html":"personel.html"}${g?`\nArıza bildirimi: ${link}personel.html`:""}\nİlk açılışta bu kodu girin.${g?" Aynı kod iki uygulamada da geçerli.":""}`;
+  const q = "?kod=" + k.id;
+  return `Bizimevler 1 ${g?"güvenlik":"personel"} kodunuz: ${k.id}\n\n👉 Bu linke dokunun, kod otomatik girilir:\n${link}${g?"devriye.html":"personel.html"}${q}${g?`\n\nArıza bildirimi:\n${link}personel.html${q}`:""}\n\nKod sorarsa yukarıdaki 6 haneli kodu yazın.`;
 }
 async function yeniKod(){
   for (let i = 0; i < 20; i++){
@@ -2027,7 +2038,13 @@ function route(){
   }
   S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma"].includes(h) ? h : "randevu";
   if (S.view !== "tesis"){ T.f = null; T.detay = null; }
-  if ((S.view === "personel" || S.view === "devriye") && store.kodOku && Date.now() - (S.kodYoklandi||0) > 60000){ S.kodYoklandi = Date.now(); kodYokla(); }
+  // Linkte kod varsa (…devriye.html?kod=123456) otomatik gir, sonra adres çubuğundan sil
+  const lk = new URLSearchParams(location.search).get("kod");
+  if (lk && (S.view === "personel" || S.view === "devriye") && store.kodOku){
+    history.replaceState(null, "", location.pathname + location.hash);
+    linkKodu(lk.replace(/\D/g,""));
+  }
+  else if ((S.view === "personel" || S.view === "devriye") && store.kodOku && Date.now() - (S.kodYoklandi||0) > 60000){ S.kodYoklandi = Date.now(); kodYokla(); }
   S.err = ""; S.armed = null;
   render();
 }
