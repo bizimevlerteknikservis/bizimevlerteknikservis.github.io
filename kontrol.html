@@ -236,13 +236,14 @@ window.FB_TEKNISYEN = ["teknisyenzeynel91@gmail.com"];</script>
 const PW = 1063, PH = 661, BW = 52, BH = 34;
 /* Varsayılan yerleşim: fotoğraftaki kulelere tahmini atama. Düzenle modunda sürükleyerek düzeltilir. */
 const VARSAYILAN = {
-  A1:[85,108], A2:[192,162], A3:[150,42], A4:[272,98], A5:[340,58], A6:[392,22], A7:[432,196],
-  B2:[506,98], B3:[552,48], B4:[752,82], B5:[750,148], B6:[746,246],
-  C1:[642,392], C2:[876,86], C3:[940,220], C4:[1000,360],
-  D1:[150,560], D2:[214,560], D3:[278,560], D4:[150,606], F1:[214,606], F2:[278,606]
+  A1:[891,76], A2:[958,220], A3:[1019,383], A4:[649,407], A5:[746,251], A6:[755,91], A7:[752,152],
+  B2:[749,38], B3:[170,154], B4:[259,80], B5:[333,52], B6:[381,17],
+  C1:[493,111], C2:[510,81], C3:[419,219], C4:[437,183],
+  D1:[103,33], D2:[159,31], D3:[54,90], D4:[111,91],
+  F1:[578,17], F2:[553,41]
 };
 const TEPSI = ["D1","D2","D3","D4","F1","F2"];
-let KONUM = (()=>{ try { return JSON.parse(localStorage.getItem("bz1-konum")) || null; } catch(e){ return null; } })() || {};
+let KONUM = (()=>{ try { return JSON.parse(localStorage.getItem("bz1-konum2")) || null; } catch(e){ return null; } })() || {};
 const BLOK = Object.keys(VARSAYILAN).map(id=>{ const [cx,cy] = KONUM[id] || VARSAYILAN[id]; return {id, x:cx-BW/2, y:cy-BH/2, w:BW, h:BH}; });
 const B = Object.fromEntries(BLOK.map(b=>[b.id,b]));
 const ctr = b => [b.x+b.w/2, b.y+b.h/2];
@@ -250,13 +251,13 @@ const DAIRE = 24; // demo: blok başına daire
 
 /* 21 devriye kontrol noktası (QR kartlarıyla aynı numaralar). Konumlar fotoğraf üzerinde tahminîdir, düzenle modunda taşınabilir. */
 const NOKTA_LISTE = [
-  ["n01","A1 Basket Sahası Köşesi",60,182],["n02","A1 – Final Arası Tel Örgü",30,140],["n03","A2 Önü Büyük Aydınlatma Direği",222,252],
-  ["n04","Boy Turnike Yanı Tel Örgü",120,250],["n05","A3 Arkası Tel Örgü",120,22],["n06","A4 Arkası Kamera Direği",250,40],
-  ["n07","A4 Önü Otopark Kepengi",300,192],["n08","C4 Arkası Kamelya",1040,300],["n09","Mescit Camı",872,332],
-  ["n10","F1 Arkası Kamelya",180,470],["n11","F2 Karşısı Demir Kapı",330,470],["n12","F1 Önü Büyük Aydınlatma",252,420],
-  ["n13","F1 – C2 Arası Küçük Direk",400,432],["n14","C1 – C4 Arası Küçük Direk",800,462],["n15","Trafo Bölgesi",960,560],
-  ["n16","B3 Karşısı Büyük Aydınlatma",620,142],["n17","B3 – B4 Arası Küçük Direk",660,70],["n18","B6 Arkası Küçük Direk",800,232],
-  ["n19","B6 Önü Büyük Direk",690,302],["n20","Kuaför Merdiveni Büyük Direk",560,470],["n21","D3 Arkası Park Yapılamaz Tabelası",470,560]
+  ["n01","A1 Basket Sahası Köşesi",831,119],["n02","A1 – Final Arası Tel Örgü",897,192],["n03","A2 Önü Büyük Aydınlatma Direği",841,339],
+  ["n04","Boy Turnike Yanı Tel Örgü",992,316],["n05","A3 Arkası Tel Örgü",1035,558],["n06","A4 Arkası Kamera Direği",739,629],
+  ["n07","A4 Önü Otopark Kepengi",528,583],["n08","C4 Arkası Kamelya",555,293],["n09","Mescit Camı",657,216],
+  ["n10","F1 Arkası Kamelya",602,149],["n11","F2 Karşısı Demir Kapı",520,45],["n12","F1 Önü Büyük Aydınlatma",466,138],
+  ["n13","F1 – C2 Arası Küçük Direk",555,161],["n14","C1 – C4 Arası Küçük Direk",506,254],["n15","Trafo Bölgesi",281,348],
+  ["n16","B3 Karşısı Büyük Aydınlatma",81,277],["n17","B3 – B4 Arası Küçük Direk",299,240],["n18","B6 Arkası Küçük Direk",442,79],
+  ["n19","B6 Önü Büyük Direk",353,28],["n20","Kuaför Merdiveni Büyük Direk",219,139],["n21","D3 Arkası Park Yapılamaz Tabelası",13,215]
 ];
 const NOKTA = NOKTA_LISTE.map(([id,ad,x,y]) => { const k = KONUM[id]; return {id, no:+id.slice(1), ad, x:k?k[0]:x, y:k?k[1]:y, vx:x, vy:y}; });
 const N = Object.fromEntries(NOKTA.map(n=>[n.id,n]));
@@ -325,7 +326,7 @@ function yerlestir(b){
 /* Yerleştirilmemiş bloklar için tepsi (yalnızca düzenleme modunda görünür) */
 function tepsiCiz(){
   L.tepsi.innerHTML = "";
-  if (!DUZENLE) return;
+  return; // tüm bloklar fotoğrafa yerleştirildi
   el("rect",{x:110,y:508,width:216,height:130,rx:14,fill:"var(--panel)",opacity:.92,stroke:"var(--accent)","stroke-dasharray":"6 6"},L.tepsi);
   const t = el("text",{x:218,y:528,"text-anchor":"middle",class:"flabel"},L.tepsi); t.textContent = "Fotoğrafta olmayan bloklar";
 }
@@ -334,7 +335,7 @@ function tepsiCiz(){
 let DUZENLE = false, surukle = null, BULUT = null;
 function konumUygula(k){
   KONUM = k || {};
-  try { localStorage.setItem("bz1-konum", JSON.stringify(KONUM)); } catch(e){}
+  try { localStorage.setItem("bz1-konum2", JSON.stringify(KONUM)); } catch(e){}
   BLOK.forEach(b=>{ const [cx,cy] = KONUM[b.id] || VARSAYILAN[b.id]; merkezYap(b,cx,cy); });
   NOKTA.forEach(n=>{ const k2 = KONUM[n.id]; merkezYap(n, k2?k2[0]:n.vx, k2?k2[1]:n.vy); });
   tepsiCiz(); modAc(MODE);
@@ -371,7 +372,7 @@ svg.addEventListener("pointerdown", e=>{
 function kaydet(o){
   const [cx,cy] = merkez(o);
   KONUM[o.id] = [Math.round(cx), Math.round(cy)];
-  try { localStorage.setItem("bz1-konum", JSON.stringify(KONUM)); } catch(e){}
+  try { localStorage.setItem("bz1-konum2", JSON.stringify(KONUM)); } catch(e){}
   if (BULUT) BULUT(KONUM);
   ticker(`📍 ${etiket(o)} yeni yerine taşındı${BULUT?" · kaydedildi":""}`);
 }
@@ -685,7 +686,7 @@ async function canliBaslat(){
     }
     giris.hidden = true;
     // Blok/nokta yerleri: bulutta saklanır, her cihazda aynı görünür
-    const kRef = fs.doc(db,"ayar","harita");
+    const kRef = fs.doc(db,"ayar","harita2");
     BULUT = k => fs.setDoc(kRef, {konum:k, ts:Date.now()}).catch(e => { console.error(e); ticker("⚠️ Yerler kaydedilemedi: " + e.code + " · Firebase kurallarını kontrol edin"); });
     let ilkKonum = true;
     fs.onSnapshot(kRef, snap => {
@@ -752,7 +753,7 @@ document.querySelectorAll(".modes button").forEach(b=>b.onclick=()=>modAc(b.data
 
 $("#edit").onclick = () => duzenleAc(!DUZENLE);
 $("#doneEdit").onclick = () => duzenleAc(false);
-$("#resetPos").onclick = () => { KONUM = {}; try { localStorage.removeItem("bz1-konum"); } catch(e){} BLOK.forEach(b=>{ const [cx,cy]=VARSAYILAN[b.id]; merkezYap(b,cx,cy); }); NOKTA.forEach(n=>merkezYap(n,n.vx,n.vy)); if (BULUT) BULUT({}); ticker("Varsayılan yerleşime dönüldü"); };
+$("#resetPos").onclick = () => { KONUM = {}; try { localStorage.removeItem("bz1-konum2"); } catch(e){} BLOK.forEach(b=>{ const [cx,cy]=VARSAYILAN[b.id]; merkezYap(b,cx,cy); }); NOKTA.forEach(n=>merkezYap(n,n.vx,n.vy)); if (BULUT) BULUT({}); ticker("Varsayılan yerleşime dönüldü"); };
 $("#copyPos").onclick = async () => {
   const txt = "Bizimevler 1 konumları: " + JSON.stringify(Object.fromEntries([...BLOK,...NOKTA].map(o=>{ const [x,y]=merkez(o); return [o.id,[Math.round(x),Math.round(y)]]; })));
   try { await navigator.clipboard.writeText(txt); ticker("📋 Konumlar kopyalandı, sohbete yapıştırabilirsiniz"); }
