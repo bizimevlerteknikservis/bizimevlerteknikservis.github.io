@@ -493,7 +493,7 @@ function arizaPanel(){
   const ort = Math.round(ARZ.sureler.reduce((x,y)=>x+y,0)/Math.max(1,ARZ.sureler.length));
   const blokSay = {}; ARZ.list.forEach(a=>{ const k = a.b || a.alan; blokSay[k]=(blokSay[k]||0)+1; });
   const enCok = Object.entries(blokSay).sort((a,b)=>b[1]-a[1]).slice(0,3);
-  $("#panel").innerHTML = `
+  $("#panel").innerHTML = `${tesisKart()}
     <div class="card"><h2>Bugün</h2>
       <div class="kpis">
         <div class="kpi"><strong>${ARZ.gelen}</strong><span>${LIVE.on?"Bugün gelen":"Gelen arıza"}</span></div>
@@ -506,6 +506,36 @@ function arizaPanel(){
       ${enCok.length?`<p class="note">En çok bildirim: ${enCok.map(([b,n])=>`${b} (${n})`).join(", ")}</p>`:""}</div>`;
 }
 
+/* Tesis: elektrik kesintisi, asansör arızası, yakıt (Teknik servis > Tesis takip'ten gelir) */
+const TES = { kayit:null, gorulen:null };
+const JEN_AD = {J1:"Jeneratör 1", J2:"Jeneratör 2", J3:"Jeneratör 3", J4:"Jeneratör 4"};
+function tesisDurum(){
+  const K = (TES.kayit||[]).slice().sort((a,b)=>a.ts-b.ts);
+  let kesik = null; K.filter(k=>k.tur==="kesinti").forEach(k=>{ if (k.olay==="basladi"){ if (!kesik) kesik = k; } else kesik = null; });
+  const ariza = K.filter(k=>k.tur==="ariza" && !k.cozuldu);
+  const yakit = {}; K.filter(k=>k.tur==="yakit").forEach(k=>yakit[k.ekipman]=k);
+  const dusuk = Object.values(yakit).filter(k=>k.seviye < 30);
+  return {kesik, ariza, dusuk};
+}
+function tesisKart(){
+  if (!LIVE.on || !TES.kayit) return "";
+  const D = tesisDurum(), s = [];
+  if (D.kesik) s.push(`<div class="row" style="background:rgba(214,64,64,.18)"><b>⚡ Elektrik kesik</b><span class="pill" style="background:var(--bad)">${dkOnce(D.kesik.ts)} dk</span></div>`);
+  D.ariza.forEach(k=>s.push(`<div class="row"><div><b>🛗 ${esc(k.ekipman.replace("-"," Blok · Asansör "))}</b>${k.mahsur&&!k.geldi?`<small style="display:block;color:var(--bad);font-weight:700">🚨 İçeride mahsur kalan var</small>`:""}<small style="display:block;color:var(--muted);font-size:12.5px">${k.geldi?"Servis geldi":k.bildirildi?"Omak'a bildirildi, bekleniyor":"Henüz firmaya bildirilmedi"}</small></div><span class="pill" style="background:var(--bad)">${dkOnce(k.ts)} dk</span></div>`));
+  D.dusuk.forEach(k=>s.push(`<div class="row"><b>⛽ ${esc(JEN_AD[k.ekipman]||k.ekipman)} yakıt düşük</b><span class="pill" style="background:var(--warn)">%${k.seviye}</span></div>`));
+  return `<div class="card"${D.kesik||D.ariza.length?' style="border-color:var(--bad)"':""}><h2>Tesis durumu</h2><div class="rows">${s.join("") || `<div class="row"><b>Elektrik var · asansörler çalışıyor</b><em style="color:var(--ok)">✓</em></div>`}</div></div>`;
+}
+function tesisVeri(list){
+  TES.kayit = list;
+  const yeni = list.filter(k=>TES.gorulen && !TES.gorulen.has(k.id));
+  TES.gorulen = new Set(list.map(k=>k.id));
+  yeni.forEach(k=>{
+    if (k.tur==="kesinti" && k.olay==="basladi"){ ticker("⚡ Elektrik kesildi"); feed("bad","Elektrik kesildi", k.by ? "Bildiren: "+k.by : "Tesis"); }
+    if (k.tur==="kesinti" && k.olay==="bitti"){ ticker("💡 Elektrik geldi"); feed("ok","Elektrik geldi", k.by ? "Bildiren: "+k.by : "Tesis"); }
+    if (k.tur==="ariza"){ ticker(`🛗 Asansör arızası · ${k.ekipman}${k.mahsur?" · MAHSUR VAR":""}`); feed("bad",`Asansör arızası · ${k.ekipman}`, k.not||""); }
+  });
+  if (MODE==="gece") devriyePanel(); else if (MODE==="gunduz") arizaPanel();
+}
 /* Personelin çektiği fotoğraf */
 let FOTO_CEK = null;
 document.addEventListener("click", async e => {
@@ -730,7 +760,7 @@ function devriyePanel(){
     kpi1 = `<div class="kpi"><strong>${DEV.tur}/${DEV.turHedef}</strong><span>Tamamlanan tur</span></div>`;
     gorev = DEV.gorevli.map(g=>`<div class="row"><div><b>${g.ad}</b><small style="display:block;color:var(--muted);font-size:12.5px">${g.son?`Son: ${esc(g.son.n)}`:"Tura başladı"}</small></div><em>${g.son?saat(g.son.t):"--:--"}</em></div>`).join("");
   }
-  $("#panel").innerHTML = `
+  $("#panel").innerHTML = `${tesisKart()}
     <div class="card"><h2>${LIVE.on?"Devriye özeti":"Bu gece"}</h2>
       <div class="kpis">
         ${kpi1}
@@ -975,7 +1005,7 @@ const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı /
 async function canliBaslat(){
   const cfg = window.FB_CONFIG; if (!cfg) return;
   LIVE.on = true; ARZ.list = []; ARZ.gelen = 0; ARZ.cozulen = 0; ARZ.sureler = [];
-  document.querySelector(".demo").textContent = "Canlı veri · s5";
+  document.querySelector(".demo").textContent = "Canlı veri · s6";
   const V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
   const [app, fs, au] = await Promise.all([import(U+"firebase-app.js"), import(U+"firebase-firestore.js"), import(U+"firebase-auth.js")]);
   const ap = app.initializeApp(cfg), db = fs.getFirestore(ap), auth = au.getAuth(ap);
@@ -997,6 +1027,7 @@ async function canliBaslat(){
     giris.hidden = true;
     const cb = $("#cikisBtn"); cb.hidden = false;
     cb.onclick = async () => { if (!confirm("Kontrol Merkezi'nden çıkış yapılsın mı?")) return; await au.signOut(auth); location.reload(); };
+    fs.onSnapshot(fs.query(fs.collection(db,"tesis"), fs.where("ts",">=",Date.now()-45*864e5)), snap => tesisVeri(snap.docs.map(d=>({id:d.id, ...d.data()}))), e => console.error(e));
     FOTO_CEK = async id => (await fs.getDocs(fs.query(fs.collection(db,"foto"), fs.where("aid","==",id)))).docs.map(d=>d.data()).sort((a,b)=>a.i-b.i).map(x=>x.data);
     RAPOR_CEK = async (a, b) => (await fs.getDocs(fs.query(fs.collection(db,"devriye"), fs.where("ts",">=",a), fs.where("ts","<",b)))).docs.map(d=>d.data());
     // Blok/nokta yerleri: bulutta saklanır, her cihazda aynı görünür
