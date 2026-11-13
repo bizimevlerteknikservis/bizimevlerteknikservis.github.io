@@ -517,7 +517,7 @@ function devriyeBaslat(){
   }
   $("#mapTitle").textContent = "Gece devriyesi";
   $("#mapSub").textContent = LIVE.on ? "21 kontrol noktası · son QR okutmaya göre renklenir · canlı" : "21 kontrol noktası · son QR okutmaya göre renklenir";
-  legend([[cssv("--ok"),`${TUR.yesil} dk içinde`],[cssv("--warn"),`${TUR.yesil}–${TUR.kirmizi} dk`],[cssv("--bad"),`${TUR.kirmizi} dk+ uğranmadı`],[cssv("--muted"),"Bugün okutulmadı"],[cssv("--accent"),LIVE.on?"Görevli (son okuttuğu yer)":"Görevli (demo)"]]);
+  if (LIVE.on && !devriyeSaati()) legend([[cssv("--ok"),"Dün gece okutuldu"],[cssv("--muted"),"Dün gece okutulmadı"],[cssv("--bad"),"Atlanan nokta"],[cssv("--accent"),"Görevli"]]); else legend([[cssv("--ok"),`${TUR.yesil} dk içinde`],[cssv("--warn"),`${TUR.yesil}–${TUR.kirmizi} dk`],[cssv("--bad"),`${TUR.kirmizi} dk+ uğranmadı`],[cssv("--muted"),"Bugün okutulmadı"],[cssv("--accent"),LIVE.on?"Görevli (son okuttuğu yer)":"Görevli (demo)"]]);
   L.over.innerHTML = "";
   devriyeRenk(); devriyePanel();
   timers.push(setInterval(()=>{ devriyeRenk(); devriyePanel(); canliGorevli(); }, LIVE.on ? 20000 : 3000));
@@ -632,7 +632,10 @@ function atlaGuncelle(){
   ATLA = yeni;
 }
 /* Turlar: saatte bir, 1→21 yaklaşık 45 dk */
-const TUR = { dk:45, yesil:70, kirmizi:90, araDk:45 };
+const TUR = { dk:45, yesil:70, kirmizi:90, araDk:45, bas:21, bit:7, gece:10 };   // devriye 21:00–07:00, saatte 1 tur (görevliler sırayla)
+const devriyeSaati = (ts = Date.now()) => { const h = new Date(ts).getHours(); return h >= TUR.bas || h < TUR.bit; };
+function geceBasi(ts = Date.now()){ const d = new Date(ts); if (d.getHours() < TUR.bas) d.setDate(d.getDate()-1); d.setHours(TUR.bas,0,0,0); return d.getTime(); }
+const geceAd = bas => { const a = new Date(bas), b = new Date(bas + 864e5); return `${a.getDate()}–${b.getDate()} ${b.toLocaleDateString("tr-TR",{month:"short"})}`; };
 function turlar(kayit){
   const ok = kayit.filter(k=>k.tip!=="sorun" && N[k.nokta]).sort((a,b)=>a.ts-b.ts);
   const kisi = {}; ok.forEach(k=>(kisi[k.gorevli] ||= []).push(k));
@@ -660,7 +663,10 @@ function okut(g, n){
   if (n.id==="n04" || n.id==="n11" || n.id==="n19"){ DEV.tur = Math.min(DEV.turHedef, DEV.tur + (Math.random()<.34?1:0)); }
 }
 const renkDk = dk => dk < TUR.yesil ? "--ok" : dk < TUR.kirmizi ? "--warn" : "--bad";
-const nRenk = n => n.son ? renkDk(dkOnce(n.son)) : "--muted";
+const nRenk = n => {
+  if (LIVE.on && !devriyeSaati()) return n.son && n.son >= geceBasi() ? "--ok" : "--muted";   // gündüz: son geceyi göster
+  return n.son ? renkDk(dkOnce(n.son)) : "--muted";
+};
 const YANIP_SN = 120;   // yeni okutulan nokta kaç saniye yeşil yanıp sönsün
 let yanipT = 0;
 function devriyeRenk(){
@@ -679,14 +685,20 @@ function devriyeRenk(){
 }
 function devriyePanel(){
   const sirali = [...NOKTA].sort((a,b)=>(a.son||0)-(b.son||0));
-  const kirmizi = NOKTA.filter(n=>!n.son || dkOnce(n.son)>=TUR.kirmizi);
-  const yuzde = Math.round(NOKTA.filter(n=>n.son && dkOnce(n.son)<TUR.kirmizi).length/NOKTA.length*100);
+  const kirmizi = NOKTA.filter(n=>nRenk(n)==="--bad" || nRenk(n)==="--muted");
+  const yuzde = Math.round((NOKTA.length - kirmizi.length)/NOKTA.length*100);
   let kpi1, gorev, ek = "";
   if (LIVE.on){
-    const s12 = Date.now() - 12*36e5;
-    const say = {}; DEV.kayit.filter(k=>k.ts>=s12).forEach(k=>say[k.nokta]=(say[k.nokta]||0)+1);
-    const tur = Math.min(...NOKTA.map(n=>say[n.id]||0));
-    kpi1 = `<div class="kpi"><strong>${tur}<small style="font-size:.5em;color:var(--muted)">/12</small></strong><span>Tam tur (son 12 sa)</span></div>`;
+    const gb = geceBasi(), gt = turlar(DEV.kayit).filter(t=>t.bas >= gb && t.bas < gb + TUR.gece*36e5).sort((x,y)=>x.bas-y.bas);
+    const tam = gt.filter(t=>t.sayi===21).length, gecti = Math.min(TUR.gece, Math.max(0, Math.floor((Math.min(Date.now(), gb+TUR.gece*36e5) - gb)/36e5)));
+    kpi1 = `<div class="kpi"><strong>${tam}<small style="font-size:.5em;color:var(--muted)">/${devriyeSaati() ? gecti || 1 : TUR.gece}</small></strong><span>${devriyeSaati() ? "Bu gece tam tur" : "Dün gece tam tur"}</span></div>`;
+    if (devriyeSaati()){
+      const sonOk = DEV.kayit.filter(k=>k.tip!=="sorun").reduce((m,k)=>Math.max(m,k.ts),0);
+      const bekle = Math.round((Date.now() - Math.max(sonOk, gb)) / 6e4);
+      if (bekle >= 30) ek += `<div class="card" style="border-color:var(--bad)"><h2 style="color:var(--bad)">⏰ Devriye bekleniyor</h2><p class="note" style="font-size:14px;color:var(--ink)">${sonOk >= gb ? `Son okutmanın üzerinden <b>${bekle} dk</b> geçti.` : `Gece devriyesi başladı (21:00), henüz okutma yok.`} Saatte bir tur bekleniyor.</p></div>`;
+    } else {
+      ek += `<div class="card"><h2>🌙 Devriye saati dışında</h2><p class="note" style="font-size:14px">Devriye 21:00–07:00 arası. Harita dün geceyi gösteriyor: yeşil = gece okutuldu, gri = okutulmadı.</p>${gt.length ? `<div class="rows">${gt.map(t=>`<div class="row"><div><b>${saat(new Date(t.bas))}–${saat(new Date(t.son))} · ${esc(kisaAd(t.gorevli))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${t.sayi}/21 nokta · ${t.sureDk} dk</small></div><em style="color:${t.durum==="Tam tur"?"var(--ok)":"var(--warn)"}">${t.durum}</em></div>`).join("")}</div>` : ""}</div>`;
+    }
     const kisiler = {};
     DEV.kayit.filter(k=>k.ts >= Date.now()-3*36e5).forEach(k=>{ const g = kisiler[k.gorevli] ||= {ad:k.gorevli, vardiya:k.vardiya, n:0, son:null}; g.n++; if (!g.son || k.ts>g.son.ts) g.son = k; });
     const liste = Object.values(kisiler).sort((a,b)=>b.son.ts-a.son.ts);
@@ -705,16 +717,16 @@ function devriyePanel(){
     <div class="card"><h2>${LIVE.on?"Devriye özeti":"Bu gece"}</h2>
       <div class="kpis">
         ${kpi1}
-        <div class="kpi"><strong style="color:${kirmizi.length?"var(--bad)":"var(--ok)"}">${kirmizi.length}</strong><span>${TUR.kirmizi} dk+ uğranmayan</span></div>
+        <div class="kpi"><strong style="color:${kirmizi.length?"var(--bad)":"var(--ok)"}">${kirmizi.length}</strong><span>${LIVE.on && !devriyeSaati() ? "Dün gece okutulmayan" : TUR.kirmizi+" dk+ uğranmayan"}</span></div>
       </div>
       <div class="meter" aria-label="Kapsama"><i style="width:${yuzde}%"></i></div>
-      <p class="note">21 noktanın %${yuzde}'i son ${TUR.kirmizi} dakikada okutuldu. Hedef: saatte 1 tur, tur ~${TUR.dk} dk.</p></div>
+      <p class="note">21 noktanın %${yuzde}'i ${LIVE.on && !devriyeSaati() ? "dün gece" : `son ${TUR.kirmizi} dakikada`} okutuldu. Devriye ${TUR.bas}:00–0${TUR.bit}:00, saatte 1 tur (~${TUR.dk} dk), gece ${TUR.gece} tur.</p></div>
     ${ek}
     <div class="card"><h2>Görevdekiler</h2><div class="rows">${gorev}</div></div>
     <div class="card"><h2>En uzun süredir uğranmayan</h2><div class="rows">${sirali.slice(0,5).map(n=>{const dk=n.son?dkOnce(n.son):null;return `<div class="row"><b>${n.no}. ${esc(n.ad)}</b><span class="pill" style="background:${cssv(nRenk(n))}">${dk===null?"okutulmadı":dk>=60?Math.floor(dk/60)+" sa "+(dk%60)+" dk":dk+" dk"}</span></div>`}).join("")}</div>
       ${LIVE.on?"":`<button class="act sos" id="sos" style="margin-top:12px">SOS testini başlat</button>`}</div>
     <div class="card"><h2>Devriye raporu</h2>
-      <select id="raporDonem" class="rsel">${["bugun","dun","hafta","ay","gecenay"].map(v=>`<option value="${v}"${RAPOR_SEC===v?" selected":""}>${raporDonem(v)[2]}</option>`).join("")}</select>
+      <select id="raporDonem" class="rsel">${["songece","hafta","ay","gecenay","bugun","dun"].map(v=>`<option value="${v}"${RAPOR_SEC===v?" selected":""}>${raporDonem(v)[2]}</option>`).join("")}</select>
       <button class="act" id="raporBtn" style="margin-top:10px">📥 Excel indir</button>
       <p class="note">Görevliler, noktalar, günlük özet, sorunlar ve tüm okutmalar ayrı sayfalarda.</p></div>
     <div class="card"><h2>Canlı akış</h2><ul class="feed" id="feed">${feedHTML()}</ul></div>`;
@@ -723,20 +735,24 @@ function devriyePanel(){
   $("#raporDonem").onchange = e => { RAPOR_SEC = e.target.value; };
 }
 /* ============ Devriye raporu (Excel) ============ */
-let RAPOR_CEK = null, RAPOR_SEC = "hafta";   // canlı modda Firebase'den kayıt çeker
+let RAPOR_CEK = null, RAPOR_SEC = "songece";   // canlı modda Firebase'den kayıt çeker
 function raporDonem(k){
   const g0 = new Date(); g0.setHours(0,0,0,0); const bugun = g0.getTime(), now = Date.now();
   const ay0 = new Date(g0.getFullYear(), g0.getMonth(), 1).getTime();
   const gecenAy0 = new Date(g0.getFullYear(), g0.getMonth()-1, 1).getTime();
   return ({
+    songece:[geceBasi(), Math.min(now, geceBasi()+TUR.gece*36e5), "Son gece"],
     bugun:[bugun, now, "Bugün"], dun:[bugun-864e5, bugun, "Dün"],
     hafta:[bugun-6*864e5, now, "Son 7 gün"], ay:[ay0, now, "Bu ay"], gecenay:[gecenAy0, ay0, "Geçen ay"]
   })[k];
 }
 function demoKayit(a, b){
   const ad = ["Ali Vesek","Tayfun Özdemir","Cihan Yıldırım","Serkan Çinibulak","Yalçın Akyol","Yusuf Nazlım"], out = [];
-  for (let t = a; t < Math.min(b, Date.now()); t += 36e5){
-    const h = new Date(t).getHours(), v = h<8 ? "3. Vardiya" : h<16 ? "1. Vardiya" : "2. Vardiya", g = ad[Math.floor(t/36e5/8)%ad.length];
+  for (let t = new Date(a).setMinutes(0,0,0); t < Math.min(b, Date.now()); t += 36e5){
+    if (!devriyeSaati(t) || t < a) continue;
+    const gece = Math.floor((geceBasi(t) / 864e5)) % 3, v = ["1. Vardiya","2. Vardiya","3. Vardiya"][gece];
+    const g = ad[gece*2 + (new Date(t).getHours() % 2)];   // iki görevli sırayla
+    if (t + 21*2.1*6e4 > Date.now()) continue;
     NOKTA.forEach((n,i)=>{ if (Math.random()<.015) return; out.push({tip:"okutma", nokta:n.id, ad:n.ad, gorevli:g, vardiya:v, ts:t+i*2.1*6e4+Math.random()*4e4, not:""}); });
     if (Math.random()<.08){ const n = NOKTA[Math.floor(Math.random()*21)]; out.push({tip:"sorun", nokta:n.id, ad:n.ad, gorevli:g, vardiya:v, ts:t+30*6e4, not:"Kapı açık bulundu"}); }
   }
@@ -805,9 +821,13 @@ function raporTablolar(kayit, a, b, baslik){
     k.tip==="sorun" ? g.s++ : g.n++; g.gun.add(tarihStr(k.ts)); g.son = k.ts; });
   const gorevli = Object.values(gk).sort((x,y)=>y.n-x.n).map(g=>[g.ad, g.v||"", g.n, g.s, g.gun.size, `${tarihStr(g.ilk)} ${saat(new Date(g.ilk))}`, `${tarihStr(g.son)} ${saat(new Date(g.son))}`]);
   // Günlük
-  const gunler = []; for (let t = new Date(a).setHours(0,0,0,0); t < son; t += 864e5){
-    const gun = ok.filter(k=>k.ts>=t && k.ts<t+864e5), say = {}; gun.forEach(k=>say[k.nokta]=(say[k.nokta]||0)+1);
-    gunler.push([tarihStr(t), gun.length, sr.filter(k=>k.ts>=t && k.ts<t+864e5).length, Math.min(...NOKTA.map(n=>say[n.id]||0)), NOKTA.filter(n=>!say[n.id]).length, new Set(gun.map(k=>k.gorevli)).size]);
+  // Geceler (21:00–07:00)
+  const geceler = []; for (let g = geceBasi(a); g < son; g += 864e5){
+    const ge = g + TUR.gece*36e5; if (ge <= a) continue;
+    const go = ok.filter(k=>k.ts>=g && k.ts<ge), gtur = tr.filter(t=>t.bas>=g && t.bas<ge), say = {}; go.forEach(k=>say[k.nokta]=1);
+    geceler.push([geceAd(g), gtur.filter(t=>t.sayi===21).length, TUR.gece, gtur.filter(t=>t.sayi<21).length,
+      atl.filter(o=>o.ts>=g && o.ts<ge).reduce((x,o)=>x+o.atlanan.length,0), NOKTA.filter(n=>!say[n.id]).length, go.length,
+      [...new Set(go.map(k=>k.gorevli))].map(kisaAd).join(", ")]);
   }
   // Vardiya
   const vk = {}; ok.forEach(k=>{ const v = k.vardiya||"Belirtilmemiş"; vk[v]=(vk[v]||0)+1; });
@@ -815,7 +835,8 @@ function raporTablolar(kayit, a, b, baslik){
   const ozet = [
     ["Bizimevler 1 Sitesi · Güvenlik Devriye Raporu"], [],
     ["Dönem", `${baslik} (${tarihStr(a)} – ${tarihStr(son)})`],
-    ["Oluşturulma", `${tarihStr(Date.now())} ${saat(new Date())}`], [],
+    ["Oluşturulma", `${tarihStr(Date.now())} ${saat(new Date())}`],
+    ["Devriye düzeni", `${TUR.bas}:00–0${TUR.bit}:00, saatte 1 tur (~${TUR.dk} dk), gece ${TUR.gece} tur, görevliler sırayla`], [],
     ["Toplam QR okutma", ok.length], ["Bildirilen sorun", sr.length],
     ["Görevli sayısı", Object.keys(gk).length],
     ["Tamamlanan tur (21/21)", tr.filter(t=>t.sayi===21).length],
@@ -831,7 +852,7 @@ function raporTablolar(kayit, a, b, baslik){
       ["Özet", ozet, [32,48]],
       ["Görevliler", [["Görevli","Vardiya","Okutma","Sorun bildirimi","Aktif gün","İlk okutma","Son okutma"], ...gorevli], [24,13,10,15,10,18,18]],
       ["Noktalar", [["No","Kontrol noktası","Okutma","Sorun","En uzun boşluk","Son okutma"], ...noktalar], [5,36,10,8,15,18]],
-      ["Günlük", [["Tarih","Okutma","Sorun","Tam tur","Okutulmayan nokta","Görevli"], ...gunler], [12,10,8,10,18,10]],
+      ["Geceler", [["Gece","Tam tur","Hedef","Eksik tur","Atlanan nokta","Hiç okutulmayan nokta","Okutma","Görevliler"], ...geceler], [14,9,8,10,14,22,9,40]],
       ["Sorunlar", [["Tarih","Saat","No","Nokta","Görevli","Not"], ...sr.map(k=>[tarihStr(k.ts), saat(new Date(k.ts)), N[k.nokta]?.no||"", N[k.nokta]?.ad||"", k.gorevli||"", k.not||""])], [12,7,5,36,22,40]],
       ["Turlar", [["Tarih","Başlangıç","Bitiş","Görevli","Vardiya","Okutulan nokta","Süre (dk)","Durum"], ...tr.map(t=>[tarihStr(t.bas), saat(new Date(t.bas)), saat(new Date(t.son)), t.gorevli||"", t.vardiya||"", `${t.sayi}/21`, t.sureDk, t.durum])], [12,11,9,22,12,15,10,18]],
       ["Atlanan noktalar", [["Tarih","Saat","Görevli","Vardiya","Geçiş","Atlanan nokta(lar)","Sonradan okutuldu mu"], ...atl.map(o=>[tarihStr(o.ts), saat(new Date(o.ts)), o.gorevli||"", o.vardiya||"", `${N[o.onceki].no} → ${N[o.simdiki].no}`, o.atlanan.map(id=>`${N[id].no}. ${N[id].ad}`).join(", "), o.atlanan.every(id=>o.sonra(id)) ? "Evet" : "Hayır"])], [12,7,22,12,9,48,20]],
@@ -937,7 +958,7 @@ const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı /
 async function canliBaslat(){
   const cfg = window.FB_CONFIG; if (!cfg) return;
   LIVE.on = true; ARZ.list = []; ARZ.gelen = 0; ARZ.cozulen = 0; ARZ.sureler = [];
-  document.querySelector(".demo").textContent = "Canlı veri · s3";
+  document.querySelector(".demo").textContent = "Canlı veri · s4";
   const V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
   const [app, fs, au] = await Promise.all([import(U+"firebase-app.js"), import(U+"firebase-firestore.js"), import(U+"firebase-auth.js")]);
   const ap = app.initializeApp(cfg), db = fs.getFirestore(ap), auth = au.getAuth(ap);
