@@ -974,12 +974,34 @@ const ymdS = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}
 const ymdTarih = x => { const [y,m,d] = String(x||"").split("-").map(Number); return y ? new Date(y, m-1, d, 12) : null; };
 const aralik = e => { const a = ymdTarih(e.bas), b = ymdTarih(e.bit) || a; return a ? (ymdS(a) === ymdS(b) ? gunAy(a) : `${gunAy(a)} – ${gunAy(b)}`) : ""; };
 function yiBaslat(){
-  if (!YI.un && store.listenIzinler) YI.un = store.listenIzinler(v => { YI.v = v; if (["personel","calisma"].includes(S.view)) setTimeout(render,0); });
+  if (!YI.un && store.listenIzinler) YI.un = store.listenIzinler(v => { YI.v = v; if (["personel","calisma","devriye"].includes(S.view)) setTimeout(render,0); });
 }
 function gelBaslat(){
   if (!YI.unG && store.listenGelemeyen && (store.isTech() || store.isTesis() || (store.isYetkili && store.isYetkili()))) YI.unG = store.listenGelemeyen(L => { YI.gel = L; if (S.view==="calisma") setTimeout(render,0); });
 }
 const izinListe = () => (YI.v && Array.isArray(YI.v.liste)) ? YI.v.liste : [];
+function guvIsimler(){
+  const L = VARDIYA.flatMap(v => v.kisiler.map(k => k[0])).concat((KOD.liste||[]).filter(k=>k.tip==="guvenlik" && k.aktif!==false).map(k=>k.ad));
+  const gor = new Set(); return L.filter(n => { const k = adSade(n); if (gor.has(k)) return false; gor.add(k); return true; }).sort((a,b)=>a.localeCompare(b,"tr"));
+}
+const isbasi = e => { const b = ymdTarih(e.bit || e.bas); return b ? new Date(b.getTime() + GUN_MS) : null; };
+/* aynı bölümdeki arkadaşların izinleri (bugün izinde olanlar + 30 gün içinde gidecekler) */
+function izinGuvenlik(benAd){
+  yiBaslat();
+  const bugun = ymdS(new Date()), ben = adKok(benAd);
+  const benim = izinListe().filter(e => (e.grup||"temizlik") === "guvenlik" && adKok(e.ad) === ben && (e.bit||e.bas) >= bugun);
+  return (benim.length ? `<section class="step izin-k"><h2><span>🏖️</span>İzniniz</h2><div class="izin-ben">${benim.map(e=>`<div><small>${esc(IZIN_TUR[e.tur]||"İzin")}</small><b>${aralik(e)}</b>${isbasi(e)?`<em>İşbaşı: ${gunAy(isbasi(e))}</em>`:""}</div>`).join("")}</div></section>` : "") + izinArkadas("guvenlik", benAd);
+}
+function izinArkadas(grup, benAd){
+  yiBaslat();
+  const bugun = ymdS(new Date()), ufuk = ymdS(new Date(Date.now() + 30*GUN_MS)), ben = adKok(benAd);
+  const L = izinListe().filter(e => (e.grup || "temizlik") === grup && adKok(e.ad) !== ben && (e.bit||e.bas) >= bugun && e.bas <= ufuk).sort((a,b)=>a.bas.localeCompare(b.bas));
+  if (!L.length) return "";
+  return `<section class="step izin-k"><h2><span>🏖️</span>İzindeki arkadaşlar</h2>
+    ${L.map(e => { const simdi = e.bas <= bugun, ib = isbasi(e);
+      return `<div class="izin-s${simdi ? " bugun" : ""}"><span><b>${esc(e.ad)}</b><br><small>${simdi ? "Şu an izinde" : "İzne çıkacak"} · ${aralik(e)}</small></span><b>${ib ? "Dönüş: " + gunAy(ib) : ""}</b></div>`; }).join("")}
+  </section>`;
+}
 /* personel ekranı: kendi izni + "bugün gelemiyorum" düğmesi */
 function izinBenKart(){
   yiBaslat();
@@ -993,7 +1015,8 @@ function izinBenKart(){
       ${g.hata ? `<p class="err">${esc(g.hata)}</p>` : ""}
       <div class="grid2"><button class="cta ghost" data-act="gelKapat">Vazgeç</button><button class="cta danger" data-act="gelGonder">${S.sending ? "Gönderiliyor…" : "Bildir"}</button></div>
     </section>`;
-  return `${benim.length ? `<section class="step izin-k"><h2><span>🏖️</span>İzinleriniz</h2><div class="izin-ben">${benim.map(e=>`<div><small>${esc(IZIN_TUR[e.tur]||"İzin")}</small><b>${aralik(e)}</b>${e.not?`<em>${esc(e.not)}</em>`:""}</div>`).join("")}</div></section>` : ""}
+  return `${benim.length ? `<section class="step izin-k"><h2><span>🏖️</span>İzinleriniz</h2><div class="izin-ben">${benim.map(e=>`<div><small>${esc(IZIN_TUR[e.tur]||"İzin")}</small><b>${aralik(e)}</b>${isbasi(e)?`<em>İşbaşı: ${gunAy(isbasi(e))}</em>`:""}${e.not?`<em>${esc(e.not)}</em>`:""}</div>`).join("")}</div></section>` : ""}
+    ${izinArkadas("temizlik", S.p.name)}
     ${g.gonderildi ? `<div class="t-uyari yesil" style="margin:0 0 12px">✓ Bugün gelemeyeceğiniz bildirildi. Geçmiş olsun.</div>` : `<button class="cta ghost gel-btn" data-act="gelAc">🤒 Bugün işe gelemiyorum</button>`}`;
 }
 /* yönetim ekranı: izin listesi + bugün gelemeyenler */
@@ -1007,10 +1030,12 @@ function yiPanel(isimler){
       ${gel.length ? gel.map(a=>`<div class="izin-s${ymdS(new Date(a.createdAt))===bugun?" bugun":""}"><span><b>${esc(a.name)}</b> · ${esc(a.desc || (a.issues||[]).join(", "))}</span><b>${ymdS(new Date(a.createdAt))===bugun ? "Bugün" : gunAy(new Date(a.createdAt))} ${saatStr(a.createdAt)}</b></div>`).join("") : `<p class="hint">Bildirim yok.</p>`}
     </section>
     <section class="card" style="margin-top:14px"><h3 style="margin-bottom:6px">🏖️ Yıllık izin ve raporlar</h3>
-      <p class="hint">Eklediğiniz izni personel kendi telefonunda görür.</p>
-      ${aktif.length ? aktif.map((e,i)=>`<div class="izin-s${(e.bas<=bugun && (e.bit||e.bas)>=bugun)?" bugun":""}${(e.bit||e.bas)<bugun?" gecmis":""}"><span><b>${esc(e.ad)}</b> · ${esc(IZIN_TUR[e.tur]||"İzin")}${e.not?` <small>${esc(e.not)}</small>`:""}</span><span style="display:flex;gap:6px;align-items:center"><b>${aralik(e)}</b><button class="pill-btn cikis-btn" data-act="yiSil" data-id="${esc(e.id)}" style="padding:4px 10px">✕</button></span></div>`).join("") : `<p class="hint">Kayıtlı izin yok.</p>`}
+      <p class="hint">Eklediğiniz izin personelin telefonunda yayınlanır: kişi kendi iznini görür, aynı bölümdeki arkadaşları da kimin ne zaman gidip ne zaman döneceğini görür. Rapor/mazeret türü arkadaşlarına "İzinli" olarak görünür.</p>
+      ${aktif.length ? aktif.map((e,i)=>`<div class="izin-s${(e.bas<=bugun && (e.bit||e.bas)>=bugun)?" bugun":""}${(e.bit||e.bas)<bugun?" gecmis":""}"><span>${e.grup==="guvenlik"?"🛡️":"🧹"} <b>${esc(e.ad)}</b> · ${esc(IZIN_TUR[e.tur]||"İzin")}${e.not?` <small>${esc(e.not)}</small>`:""}</span><span style="display:flex;gap:6px;align-items:center"><b>${aralik(e)}</b><button class="pill-btn cikis-btn" data-act="yiSil" data-id="${esc(e.id)}" style="padding:4px 10px">✕</button></span></div>`).join("") : `<p class="hint">Kayıtlı izin yok.</p>`}
       <div class="group-h" style="margin-top:12px">İzin ekle</div>
-      <div class="grid2"><label class="f">Kişi<select id="yi_ad"><option value="">Seçin</option>${isimler.map(n=>`<option ${n===f.ad?"selected":""}>${esc(n)}</option>`).join("")}</select></label>
+      <div class="grid2"><label class="f">Kişi<select id="yi_ad"><option value="">Seçin</option>
+        <optgroup label="🧹 Temizlik">${isimler.map(n=>`<option value="t|${esc(n)}" ${"t|"+n===f.ad?"selected":""}>${esc(n)}</option>`).join("")}</optgroup>
+        <optgroup label="🛡️ Güvenlik">${guvIsimler().map(n=>`<option value="g|${esc(n)}" ${"g|"+n===f.ad?"selected":""}>${esc(n)}</option>`).join("")}</optgroup></select></label>
         <label class="f">Tür<select id="yi_tur">${Object.entries(IZIN_TUR).map(([k,a])=>`<option value="${k}" ${f.tur===k?"selected":""}>${a}</option>`).join("")}</select></label></div>
       <div class="grid2"><label class="f">Başlangıç<input type="date" id="yi_bas" value="${esc(f.bas)}"></label><label class="f">Bitiş<input type="date" id="yi_bit" value="${esc(f.bit)}"></label></div>
       <label class="f">Not (isteğe bağlı)<input id="yi_not" maxlength="120" value="${esc(f.not)}" placeholder="Örn. İşbaşı 28 Kasım"></label>
@@ -1228,6 +1253,7 @@ function vDevriyeIc(){
         <div class="grid2"><button class="cta ghost" data-act="dSorunKapat">Vazgeç</button><button class="cta danger" data-act="dSorunGonder">Sorunu bildir</button></div>
       </section>`
     : `<button class="cta ghost sorun-btn" data-act="dSorunAc">⚠️ Bu noktada sorun var</button>`}` : ""}
+  ${izinGuvenlik(d.kim.ad)}
   <button class="scan-btn" data-act="dTara"><svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>QR Okut</button>
   <p class="hint" style="text-align:center;margin:8px 0 14px">Telefonun kendi kamerasıyla okutursanız da kaydedilir.</p>
   ${!navigator.onLine ? `<p class="kuyruk">📵 İnternet yok. Okutmaya devam edin, hepsi telefonda saklanıyor ve internet gelince kendiliğinden gönderilecek.</p>` : ""}
@@ -2615,7 +2641,8 @@ document.addEventListener("click", async e => {
     else if (act==="yiEkle"){ syncForm(); const f = YI.f;
       if (!f.ad){ toast("Kişiyi seçin"); return; } if (!f.bas){ toast("Başlangıç tarihini seçin"); return; }
       const bit = f.bit && f.bit >= f.bas ? f.bit : f.bas;
-      const e = {id: "i" + Date.now().toString(36), ad: f.ad, tur: f.tur, bas: f.bas, bit, not: (f.not||"").trim(), by: store.kim ? store.kim() : "Teknisyen", ts: Date.now()};
+      const [gk, ...adP] = String(f.ad).split("|"); const ad = adP.join("|") || f.ad;
+      const e = {id: "i" + Date.now().toString(36), ad, grup: gk === "g" ? "guvenlik" : "temizlik", tur: f.tur, bas: f.bas, bit, not: (f.not||"").trim(), by: store.kim ? store.kim() : "Teknisyen", ts: Date.now()};
       const L = [...izinListe().filter(x => (x.bit||x.bas) >= ymdS(new Date(Date.now()-120*GUN_MS))), e];
       try { await store.setIzinler({liste: L, ts: Date.now()}); YI.v = {liste: L}; YI.f = null; toast("İzin kaydedildi"); } catch(err){ console.error(err); toast("Kaydedilemedi: " + (err.code||"")); }
       render(); return; }
