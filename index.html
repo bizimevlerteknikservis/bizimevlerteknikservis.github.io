@@ -572,6 +572,7 @@ function DemoStore(){
     async setTesisAyar(p){ mem.tesisAyar = {...(mem.tesisAyar||{}), ...p}; save(); },
     async logout(){ tech = false; save(); },
     isTesis: () => tech,
+    isAsansor: () => tech,
     isYetkili: () => tech,
     kim: () => "Teknisyen",
     listenTasinma: (from, cb) => sub(() => cb((mem.tasinma||[]).filter(k=>k.bit>=from))),
@@ -671,6 +672,7 @@ function FirebaseStore(cfg){
     },
     async logout(){ await au.signOut(auth); tech = false; tesisRol = false; yonRol = false; },
     isTesis: () => tech || tesisRol,
+    isAsansor: () => tech || tesisRol || yonRol,   // amirler: sadece asansör arızası açar/günceller
     isYetkili: () => tech || tesisRol || yonRol,
     listenTasinma(from, cb){
       const q = fs.query(fs.collection(db,"tasinma"), fs.where("bit",">=",from));
@@ -1082,7 +1084,7 @@ function vPanel(){
   if (!store.isTech() && store.isYetkili && store.isYetkili()){
     return `<div class="card"><h2>Hoş geldiniz${store.kim ? ", " + esc(store.kim()) : ""}</h2><p class="hint">Daire arızaları sadece teknisyene açıktır. Yetkili olduğunuz bölümler:</p>
       <a class="cta" href="#tasinma" style="display:block;text-align:center;text-decoration:none">🚚 Taşınma & Tadilat</a>
-      ${store.isTesis() ? `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏢 Tesis takip</a>` : ""}
+      ${store.isTesis() ? `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏢 Tesis takip</a>` : `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🛗 Asansör arızası</a>`}
       <a class="cta ghost" href="kontrol.html" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🗺️ Canlı Kontrol Merkezi</a>
       <button class="cta ghost" data-act="cikis" style="margin-top:10px">Çıkış yap</button></div>`;
   }
@@ -1513,7 +1515,7 @@ function tesisHesap(){
 }
 
 function tesisBaslat(){
-  if (T.basladi || !store.isTesis()) return;
+  if (T.basladi || !store.isAsansor()) return;
   T.basladi = true;
   const ciz = () => { if (S.view==="tesis") setTimeout(render, 0); };
   T.un = store.listenTesis(list => { T.kayit = list; ciz(); });
@@ -1522,7 +1524,8 @@ function tesisBaslat(){
 function tesisDurdur(){ if (T.un) T.un(); if (T.unA) T.unA(); T.un = T.unA = null; T.basladi = false; T.kayit = []; }
 
 function vTesis(){
-  if (!store.isTesis()) return vPanel();
+  if (!store.isAsansor()) return vPanel();
+  if (!store.isTesis()) return vAsansorAmir();
   tesisBaslat();
   const H = tesisHesap();
   const uyar = [];
@@ -1564,6 +1567,19 @@ function vTesis(){
     ${T.detay ? tDetay(H) : ""}`;
 }
 
+/* Amirler (yönetim): sadece asansör arızası açar ve adımlarını günceller */
+function vAsansorAmir(){
+  tesisBaslat(); T.sekme = "asansor";
+  const H = tesisHesap();
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
+      <h2 style="margin:0;font:600 22px/1.2 var(--display)">Asansör arızaları</h2>
+      <a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">← Geri</a></div>
+    ${H.acikAriza.length ? `<div class="t-uyari kirmizi">🛗 <b>${H.acikAriza.length} asansör arızalı</b>${H.acikAriza.some(a=>a.mahsur&&!a.geldi)?" · içeride mahsur kalan var!":""}</div>` : ""}
+    <button class="cta danger" data-t="form" data-v="ariza" style="margin-bottom:14px">🛗 Asansör arızası bildir</button>
+    ${tAcikArizalar(H)}${tAsansorIzgara(H)}
+    ${T.f && T.f.tip==="ariza" ? tForm() : ""}
+    ${T.detay ? tDetay(H) : ""}`;
+}
 function tAcikArizalar(H){
   if (!H.acikAriza.length) return T.sekme==="asansor" ? `<div class="t-uyari yesil" style="margin-bottom:12px">✓ Açık asansör arızası yok</div>` : "";
   const tel = (T.ayar.omakTel||"").replace(/[^\d+]/g,"");
@@ -1601,10 +1617,10 @@ function tDetay(H){
   return `<div class="t-sheet"><div class="t-sheet-in">
     <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">${esc(a.ad)}</h2><button class="pill-btn" data-t="kapat">Kapat ✕</button></div>
     <p class="hint">Son bakım: <b>${sb ? `${tarihSaat(sb.ts)} (${gunOnce(sb.ts)} gün önce)` : "kayıt yok"}</b></p>
-    <label class="f">Muayene etiketi<select id="t_etiket"><option value="">Bilinmiyor</option>${Object.entries(ETIKET).map(([k,[ad]])=>`<option value="${k}" ${et.renk===k?"selected":""}>${ad}</option>`).join("")}</select></label>
+    ${!store.isTesis() ? `<button class="cta danger" data-t="form" data-v="ariza" data-id="${a.id}">Arıza aç</button>` : `<label class="f">Muayene etiketi<select id="t_etiket"><option value="">Bilinmiyor</option>${Object.entries(ETIKET).map(([k,[ad]])=>`<option value="${k}" ${et.renk===k?"selected":""}>${ad}</option>`).join("")}</select></label>
     <label class="f">Muayene tarihi<input type="date" id="t_etiketTarih" value="${esc(et.tarih||"")}"></label>
     <div class="grid2"><button class="cta ghost" data-t="etiketKaydet" data-v="${a.id}">Etiketi kaydet</button><button class="cta danger" data-t="form" data-v="ariza" data-id="${a.id}">Arıza aç</button></div>
-    <button class="cta ghost" style="margin-top:10px" data-t="form" data-v="bakim" data-id="${a.id}">🔧 Bakım yapıldı</button>
+    <button class="cta ghost" style="margin-top:10px" data-t="form" data-v="bakim" data-id="${a.id}">🔧 Bakım yapıldı</button>`}
     <div class="group-h">Arıza geçmişi</div>
     ${gecmis.length ? gecmis.map(k=>`<div class="t-satir"><b>${tarihSaat(k.ts)}</b> ${k.cozuldu?`çözüldü (${sureYaz(Math.round((k.cozuldu-k.ts)/6e4))})`:"<span style='color:var(--bad,#d64040)'>açık</span>"}${k.mahsur?" · mahsur":""}${k.not?` · ${esc(k.not)}`:""}</div>`).join("") : `<p class="hint">Arıza kaydı yok.</p>`}
     <div class="group-h">Bakımlar</div>
