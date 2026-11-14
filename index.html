@@ -882,7 +882,7 @@ function kimlikSatir(a){
 /* =================== İZİN / HAFTA SONU ÇALIŞMA LİSTESİ =================== */
 /* Teknisyen Excel'den kopyalayıp yapıştırır; personel uygulamasında herkes görür, kendi satırı vurgulanır. */
 const IZN = {v:null, un:null};
-function izinBaslat(){ if (IZN.un || !store.listenIzin) return; IZN.un = store.listenIzin(v => { IZN.v = v; if (S.view==="personel" || S.view==="panel") setTimeout(render,0); }); }
+function izinBaslat(){ if (IZN.un || !store.listenIzin) return; IZN.un = store.listenIzin(v => { IZN.v = v; IZN.geldi = true; if (S.view==="personel" || S.view==="panel") setTimeout(render,0); }); }
 const TARIH_RE = /(\d{1,2})[./](\d{1,2})[./](\d{4})/;
 function izinCoz(metin){
   const gunler = [];
@@ -944,8 +944,12 @@ function izinKart(){
 }
 /* ---------- Düzenleme ekranı (#calisma): teknisyen + tesis yetkilileri ---------- */
 const CL = {f:null, gen:0};
+/* Henüz liste yayınlanmadıysa düzenleme ekranına hazır gelen liste (3–4 Ekim 2026 tablosu) */
+const CALISMA_VARSAYILAN = {baz: new Date(2026, 9, 3, 12).getTime(),
+  cmt: [["ŞÜKRAN","A1-A2-A3-A4"],["DURSUN","C1-C2-F1-B6"],["GÜNNUR","D1-D2-D3-D4-B5"],["SABRİYE","C3-C4-B3-B4"],["HATUN","A6-B2-A5-A7-F2"]],
+  paz: [["AYŞE","F1-F2-C1-C2"],["RABİA","D1-D2-D3-D4-B6"],["GÜLTEN","A5-A6-A7-B2"],["MERAL","A1-A2-A3-A4-C3"],["SEMRA","B3-B4-B5-C4"]]};
 function clYukle(){
-  const plan = izinPlan(IZN.v);
+  const plan = izinPlan(IZN.v) || izinPlan(CALISMA_VARSAYILAN);
   const bu = plan ? haftaSonu(plan, new Date()) : null;
   const ymdS = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   CL.f = {cmt: bu ? bu.cmtL.map(x=>x.slice()) : [["",""]], paz: bu ? bu.pazL.map(x=>x.slice()) : [["",""]], tarih: ymdS(cmtBul(new Date())), yapistir:"", not: (IZN.v && IZN.v.not) || ""};
@@ -958,13 +962,16 @@ function clSync(){
 }
 function vCalisma(){
   if (!(store.isTech() || store.isTesis())) return vPanel();
-  izinBaslat(); if (!CL.f && IZN.v !== undefined) clYukle(); if (!CL.f) clYukle();
+  izinBaslat();
+  if (!IZN.geldi) return `<p class="hint" style="padding:30px;text-align:center">Liste yükleniyor…</p>`;
+  if (!CL.f) clYukle();
   const f = CL.f, cm = cmtBul(new Date()), pz = new Date(cm.getTime() + GUN_MS), sc = new Date(cm.getTime() + 7*GUN_MS), sp = new Date(sc.getTime() + GUN_MS);
   const satir = (g, r, i) => `<div class="cl-s"><input id="cl${CL.gen}_${g}_${i}_a" placeholder="Ad" value="${esc(r[0])}"><input id="cl${CL.gen}_${g}_${i}_b" placeholder="Bloklar (A1-A2…)" value="${esc(r[1])}">
       <button class="pill-btn" data-act="clTasi" data-v="${g}" data-id="${i}" title="Diğer güne taşı">⇄</button><button class="pill-btn cikis-btn" data-act="clSil" data-v="${g}" data-id="${i}">✕</button></div>`;
   return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
       <h2 style="margin:0;font:600 22px/1.2 var(--display)">Temizlik çalışma listesi</h2>
       <a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">${store.isTech() ? "← İş paneli" : "← Menü"}</a></div>
+    ${!(IZN.v && (IZN.v.cmt || (IZN.v.gunler && IZN.v.gunler.length))) ? `<div class="t-uyari turuncu" style="margin-bottom:12px">📋 Verdiğiniz liste hazır yüklendi (3–4 Ekim tablosu, bu hafta sonuna göre döndürüldü). Kontrol edin, <b>Kaydet ve yayınla</b>'ya basın. Basmadan personel görmez.</div>` : ""}
     <div class="t-uyari mavi" style="margin-bottom:12px">🔁 Değiştirmezseniz liste <b>her hafta kendiliğinden döner</b>: bu Cumartesi çalışan gelecek hafta Pazar, Pazar çalışan Cumartesi çalışır. Personel kendi telefonunda görür.</div>
     <section class="card"><h3 style="margin-bottom:8px">Bu hafta sonu · ${gunAy(cm)}–${gunAy(pz)}</h3>
       <div class="group-h">Cumartesi · ${gunAy(cm)}</div>${f.cmt.map((r,i)=>satir("cmt", r, i)).join("")}
