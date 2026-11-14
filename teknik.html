@@ -676,8 +676,9 @@ function FirebaseStore(cfg){
     async setTesisAyar(p){ await fs.setDoc(fs.doc(db,"ayar","tesis"), p, {merge:true}); },
     listenDuyuru(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","devriye"), s => cb(s.exists() ? s.data() : null), e => { console.warn("duyuru", e && e.code); cb(null); }); },
     async setDuyuru(v){ await fs.setDoc(fs.doc(db,"duyuru","devriye"), v); },
-    listenIzin(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","izin"), s => cb(s.exists() ? s.data() : null), e => { console.warn("izin", e && e.code); cb(null); }); },
-    async setIzin(v){ await fs.setDoc(fs.doc(db,"duyuru","izin"), v); },
+    // Firestore iç içe dizi kabul etmez: [ad, blok] çiftleri {ad, blok} nesnesi olarak saklanır
+    listenIzin(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","izin"), s => cb(s.exists() ? izinOku(s.data()) : null), e => { console.warn("izin", e && e.code); cb(null); }); },
+    async setIzin(v){ await fs.setDoc(fs.doc(db,"duyuru","izin"), izinYaz(v)); },
     async addFoto(aid, i, data, kod){
       await fs.setDoc(fs.doc(db, "foto", aid + "_" + i), {aid, i, data, uid: user.uid, ts: Date.now(), ...(kod ? {kod} : {})});
     },
@@ -888,7 +889,7 @@ function kimlikSatir(a){
 /* =================== İZİN / HAFTA SONU ÇALIŞMA LİSTESİ =================== */
 /* Teknisyen Excel'den kopyalayıp yapıştırır; personel uygulamasında herkes görür, kendi satırı vurgulanır. */
 const IZN = {v:null, un:null};
-function izinBaslat(){ if (IZN.un || !store.listenIzin) return; IZN.un = store.listenIzin(v => { IZN.v = v; IZN.geldi = true; if (S.view==="personel" || S.view==="panel") setTimeout(render,0); }); }
+function izinBaslat(){ if (IZN.un || !store.listenIzin) return; IZN.un = store.listenIzin(v => { IZN.v = v; IZN.geldi = true; if (S.view==="personel" || S.view==="panel" || S.view==="calisma") setTimeout(render,0); }); }
 const TARIH_RE = /(\d{1,2})[./](\d{1,2})[./](\d{4})/;
 function izinCoz(metin){
   const gunler = [];
@@ -956,6 +957,10 @@ function izinKart(){
 }
 /* ---------- Düzenleme ekranı (#calisma): teknisyen + tesis yetkilileri ---------- */
 const CL = {f:null, gen:0, acik:null};
+const ciftYaz = L => (L||[]).map(r => Array.isArray(r) ? {ad: r[0] || "", blok: r[1] || ""} : r);
+const ciftOku = L => (L||[]).map(r => Array.isArray(r) ? r : [r.ad || "", r.blok || ""]);
+function izinYaz(v){ const o = {...v}; if (o.cmt) o.cmt = ciftYaz(o.cmt); if (o.paz) o.paz = ciftYaz(o.paz); if (o.gunler) o.gunler = o.gunler.map(g => ({...g, satir: ciftYaz(g.satir)})); delete o.metin; return o; }
+function izinOku(v){ const o = {...v}; if (o.cmt) o.cmt = ciftOku(o.cmt); if (o.paz) o.paz = ciftOku(o.paz); if (o.gunler) o.gunler = o.gunler.map(g => ({...g, satir: ciftOku(g.satir)})); return o; }
 window.clIsim = el => { if (el.value === "__diger"){ clSync(); render(); setTimeout(()=>{ const i = document.getElementById(el.id); if (i) i.focus(); }, 50); } };
 /* Henüz liste yayınlanmadıysa düzenleme ekranına hazır gelen liste (3–4 Ekim 2026 tablosu) */
 const CALISMA_VARSAYILAN = {baz: new Date(2026, 9, 3, 12).getTime(),
