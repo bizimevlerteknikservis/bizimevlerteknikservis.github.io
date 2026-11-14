@@ -575,6 +575,8 @@ function tesisKart(){
   D.dusuk.forEach(k=>s.push(`<div class="row"><b>⛽ ${esc(JEN_AD[k.ekipman]||k.ekipman)} yakıt düşük</b><span class="pill" style="background:var(--warn)">%${k.seviye}</span></div>`));
   return `<div class="card"${D.kesik||D.ariza.length?' style="border-color:var(--bad)"':""}><h2>Tesis durumu</h2><div class="rows">${s.join("") || `<div class="row"><b>Elektrik var · asansörler çalışıyor</b><em style="color:var(--ok)">✓</em></div>`}</div></div>`;
 }
+let DUYK = null;   // devriye duyurusu (yağmur/kar → devriye iptal)
+const DUYK_AD = {yagmur:"🌧️ Yağmur", kar:"❄️ Kar", firtina:"💨 Fırtına", diger:"⚠️"};
 function tesisSerit(){
   const el = $("#tesisSerit"); if (!el || !LIVE.on) return;
   el.hidden = false;
@@ -585,8 +587,9 @@ function tesisSerit(){
   D.ariza.forEach(k=>p.push(`<b>🛗 ${esc(k.ekipman)} arızalı${k.mahsur&&!k.geldi?" · MAHSUR VAR":""}</b>`));
   D.dusuk.forEach(k=>p.push(`⛽ ${esc(JEN_AD[k.ekipman]||k.ekipman)} %${k.seviye}`));
   if (D.pompa.length) p.push(`🔩 ${D.pompa.length} hidrofor pompası tamirde`);
+  if (DUYK && DUYK.aktif && (!DUYK.bitis || DUYK.bitis > Date.now())) p.unshift(`<b>${DUYK_AD[DUYK.sebep]||"⚠️"} · DEVRİYE İPTAL (${esc(DUYK.by||"amir")})</b>`);
   const tb = tasBugun(), tbYaz = tb.length ? `<span class="ayr">·</span>🚚 Bugün ${tb.length} taşınma/tadilat` : "";
-  el.className = "tserit " + (D.kesik || D.ariza.length ? "kirmizi" : D.dusuk.length || D.pompa.length ? "uyari" : "iyi");
+  el.className = "tserit " + (D.kesik || D.ariza.length ? "kirmizi" : p.length ? "uyari" : "iyi");
   const yakitVar = (TES.kayit||[]).some(k=>k.tur==="yakit");
   el.innerHTML = (p.length ? p.join('<span class="ayr">·</span>') : `✓ Elektrik var · 44 asansör çalışıyor · ${yakitVar ? "jeneratör yakıtları yeterli" : "jeneratör yakıt ölçümü henüz girilmedi"}`) + tbYaz;
 }
@@ -1208,7 +1211,7 @@ const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı /
 async function canliBaslat(){
   const cfg = window.FB_CONFIG; if (!cfg) return;
   LIVE.on = true; ARZ.list = []; ARZ.gelen = 0; ARZ.cozulen = 0; ARZ.sureler = [];
-  document.querySelector(".demo").textContent = "Canlı veri · s18";
+  document.querySelector(".demo").textContent = "Canlı veri · s19";
   const V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
   const [app, fs, au] = await Promise.all([import(U+"firebase-app.js"), import(U+"firebase-firestore.js"), import(U+"firebase-auth.js")]);
   const ap = app.initializeApp(cfg), db = fs.getFirestore(ap), auth = au.getAuth(ap);
@@ -1240,6 +1243,7 @@ async function canliBaslat(){
     cb.onclick = async () => { if (!confirm("Kontrol Merkezi'nden çıkış yapılsın mı?")) return; await au.signOut(auth); location.reload(); };
     fs.onSnapshot(fs.query(fs.collection(db,"tesis"), fs.where("ts",">=",Date.now()-45*864e5)), snap => tesisVeri(snap.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.error(e); TES.hata = e.code || "hata"; tesisSerit(); });
     tesisSerit();
+    fs.onSnapshot(fs.doc(db,"duyuru","devriye"), s => { DUYK = s.exists() ? s.data() : null; tesisSerit(); }, e => console.warn("duyuru", e && e.code));
     fs.onSnapshot(fs.query(fs.collection(db,"tasinma"), fs.where("bit",">=",Date.now()-2*864e5)), snap => {
       const once = new Set(TAS.kayit.map(k=>k.id)), ilk = !TAS.yuklendi; TAS.yuklendi = true;
       TAS.kayit = snap.docs.map(d=>({id:d.id, ...d.data()}));
