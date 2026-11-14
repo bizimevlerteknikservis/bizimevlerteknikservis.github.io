@@ -292,7 +292,7 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .duyuru-b{display:flex;flex-direction:column;gap:3px;padding:14px 16px;border-radius:16px;background:#fff1d6;border:2px solid #e8952b;color:#6b3d00;margin-bottom:12px}
 .duyuru-b b{font-size:17px}.duyuru-b small{opacity:.8}
 .duyuru-k{margin-bottom:12px}.duyuru-k summary{cursor:pointer}
-.hizli-menu{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:0 0 14px}
+.hizli-menu{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 14px}
 .hizli-menu a{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:14px;background:var(--card,#fff);border:1px solid var(--line,#e3e9f2);text-decoration:none;color:var(--ink);font-size:11.5px;font-weight:700;text-align:center;line-height:1.15}
 .hizli-menu a span{font-size:22px}
 .izin-k h2{margin-bottom:8px}
@@ -1321,6 +1321,7 @@ function vPanel(){
     <a href="#tesis"><span>🏢</span>Tesis takip</a>
     <a href="#tasinma"><span>🚚</span>Taşınma</a>
     <a href="#kontrol"><span>🗺️</span>Kontrol Merkezi</a>
+    <a href="#calisma"><span>📅</span>Çalışma listesi</a>
   </div>
     <div class="summary">
       <div class="sum"><strong style="color:var(--wait)">${all.filter(a=>a.status==="bekliyor").length}</strong><span>Yeni</span></div>
