@@ -292,7 +292,7 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .duyuru-b{display:flex;flex-direction:column;gap:3px;padding:14px 16px;border-radius:16px;background:#fff1d6;border:2px solid #e8952b;color:#6b3d00;margin-bottom:12px}
 .duyuru-b b{font-size:17px}.duyuru-b small{opacity:.8}
 .duyuru-k{margin-bottom:12px}.duyuru-k summary{cursor:pointer}
-.hizli-menu{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 14px}
+.hizli-menu{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 14px}
 .hizli-menu a{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:14px;background:var(--card,#fff);border:1px solid var(--line,#e3e9f2);text-decoration:none;color:var(--ink);font-size:11.5px;font-weight:700;text-align:center;line-height:1.15}
 .hizli-menu a span{font-size:22px}
 .izin-k h2{margin-bottom:8px}
@@ -901,7 +901,7 @@ function kimlikSatir(a){
 /* =================== İZİN / HAFTA SONU ÇALIŞMA LİSTESİ =================== */
 /* Teknisyen Excel'den kopyalayıp yapıştırır; personel uygulamasında herkes görür, kendi satırı vurgulanır. */
 const IZN = {v:null, un:null};
-function izinBaslat(){ if (IZN.un || !store.listenIzin) return; IZN.un = store.listenIzin(v => { IZN.v = v; IZN.geldi = true; if (S.view==="personel" || S.view==="panel" || S.view==="calisma") setTimeout(render,0); }); }
+function izinBaslat(){ if (IZN.un || !store.listenIzin) return; IZN.un = store.listenIzin(v => { IZN.v = v; IZN.geldi = true; if (["personel","panel","calisma","izinler"].includes(S.view)) setTimeout(render,0); }); }
 const TARIH_RE = /(\d{1,2})[./](\d{1,2})[./](\d{4})/;
 function izinCoz(metin){
   const gunler = [];
@@ -974,10 +974,10 @@ const ymdS = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}
 const ymdTarih = x => { const [y,m,d] = String(x||"").split("-").map(Number); return y ? new Date(y, m-1, d, 12) : null; };
 const aralik = e => { const a = ymdTarih(e.bas), b = ymdTarih(e.bit) || a; return a ? (ymdS(a) === ymdS(b) ? gunAy(a) : `${gunAy(a)} – ${gunAy(b)}`) : ""; };
 function yiBaslat(){
-  if (!YI.un && store.listenIzinler) YI.un = store.listenIzinler(v => { YI.v = v; if (["personel","calisma","devriye"].includes(S.view)) setTimeout(render,0); });
+  if (!YI.un && store.listenIzinler) YI.un = store.listenIzinler(v => { YI.v = v; if (["personel","calisma","devriye","izinler"].includes(S.view)) setTimeout(render,0); });
 }
 function gelBaslat(){
-  if (!YI.unG && store.listenGelemeyen && (store.isTech() || store.isTesis() || (store.isYetkili && store.isYetkili()))) YI.unG = store.listenGelemeyen(L => { YI.gel = L; if (S.view==="calisma") setTimeout(render,0); });
+  if (!YI.unG && store.listenGelemeyen && (store.isTech() || store.isTesis() || (store.isYetkili && store.isYetkili()))) YI.unG = store.listenGelemeyen(L => { YI.gel = L; if (S.view==="izinler") setTimeout(render,0); });
 }
 const izinListe = () => (YI.v && Array.isArray(YI.v.liste)) ? YI.v.liste : [];
 function guvIsimler(){
@@ -1042,6 +1042,17 @@ function yiPanel(isimler){
       <button class="cta" data-act="yiEkle">+ İzni kaydet</button>
     </section>`;
 }
+function vIzinler(){
+  if (!(store.isTech() || store.isTesis())) return vPanel();
+  izinBaslat();
+  const plan = izinPlan(IZN.v) || izinPlan(CALISMA_VARSAYILAN);
+  const isimler = [...new Set([...(plan ? [...plan.cmt, ...plan.paz] : []), ...CALISMA_VARSAYILAN.cmt, ...CALISMA_VARSAYILAN.paz].map(r=>r[0]).concat((KOD.liste||[]).filter(k=>k.tip==="personel" && k.rol==="Temizlik" && k.aktif!==false).map(k=>adKok(k.ad))).filter(Boolean).map(x=>x.toLocaleUpperCase("tr")))].sort((a,b)=>a.localeCompare(b,"tr"));
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
+      <h2 style="margin:0;font:600 22px/1.2 var(--display)">İzinler</h2>
+      <a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">${store.isTech() ? "← İş paneli" : "← Menü"}</a></div>
+    <p class="hint">İzinleri sadece siz, Ali ve Tuğrul girebilir. Girdiğiniz izin temizlik ve güvenlik ekranlarında yayınlanır.</p>
+    ${yiPanel(isimler)}`;
+}
 function yiSync(){ const f = YI.f; if (!f) return; [["yi_ad","ad"],["yi_tur","tur"],["yi_bas","bas"],["yi_bit","bit"],["yi_not","not"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; }); }
 /* ---------- Düzenleme ekranı (#calisma): teknisyen + tesis yetkilileri ---------- */
 const CL = {f:null, gen:0, acik:null};
@@ -1105,7 +1116,7 @@ function vCalisma(){
       <textarea id="cl_yap" rows="6">${esc(f.yapistir)}</textarea>
       <button class="cta ghost" data-act="clAktar" style="margin-top:8px">Listeye aktar</button>
     </details>
-    ${yiPanel(isimler)}
+    <a class="cta ghost" href="#izinler" style="display:block;text-align:center;text-decoration:none;margin-top:14px">🏖️ Yıllık izinler ve işe gelemeyenler →</a>
     ${IZN.v && IZN.v.ts ? `<p class="hint" style="margin-top:10px">Son yayın: ${tarihSaat(IZN.v.ts)}${IZN.v.by ? " · " + esc(IZN.v.by) : ""}</p>` : ""}`;
 }
 function vPersonel(){
@@ -1456,7 +1467,7 @@ function vPanel(){
       <a class="cta" href="#devriye" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px">🛡️ Devriye (QR okut)</a>
       <a class="cta" href="#personel" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px">📝 Arıza bildir (fotoğraflı)</a>
       <a class="cta" href="#tasinma" style="display:block;text-align:center;text-decoration:none">🚚 Taşınma & Tadilat</a>
-      ${store.isTesis() ? `<a class="cta" href="#calisma" style="display:block;text-align:center;text-decoration:none;margin-top:10px">📅 Temizlik çalışma listesi</a>` : ""}${store.isTesis() ? `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏢 Tesis takip</a>` : `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🛗 Asansör arızası</a>`}
+      ${store.isTesis() ? `<a class="cta" href="#calisma" style="display:block;text-align:center;text-decoration:none;margin-top:10px">📅 Temizlik çalışma listesi</a><a class="cta" href="#izinler" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏖️ İzinler</a>` : ""}${store.isTesis() ? `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏢 Tesis takip</a>` : `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🛗 Asansör arızası</a>`}
       <a class="cta" href="#kontrol" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🗺️ Canlı Kontrol Merkezi</a>
       <button class="cta ghost" data-act="cikis" style="margin-top:10px">Çıkış yap</button></div>`;
   }
@@ -1495,6 +1506,7 @@ function vPanel(){
     <a href="#tasinma"><span>🚚</span>Taşınma</a>
     <a href="#kontrol"><span>🗺️</span>Kontrol Merkezi</a>
     <a href="#calisma"><span>📅</span>Çalışma listesi</a>
+    <a href="#izinler"><span>🏖️</span>İzinler</a>
   </div>
     <div class="summary">
       <div class="sum"><strong style="color:var(--wait)">${all.filter(a=>a.status==="bekliyor").length}</strong><span>Yeni</span></div>
@@ -2499,7 +2511,7 @@ function kodBaslat(){
 function render(){
   syncForm();
   const keep = document.activeElement && document.activeElement.id;
-  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="calisma" ? vCalisma() : S.view==="personel" ? vPersonel() : S.view==="devriye" ? vDevriye() : vRandevu();
+  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="calisma" ? vCalisma() : S.view==="izinler" ? vIzinler() : S.view==="personel" ? vPersonel() : S.view==="devriye" ? vDevriye() : vRandevu();
   document.querySelector("nav.tabs").hidden = S.view==="personel" || S.view==="devriye" || (appDosya()==="teknik.html" && !store.isTech());
   $("#ustYazi").textContent = S.view==="personel" ? "Bizimevler 1 · Personel" : S.view==="devriye" ? "Bizimevler 1 · Güvenlik" : (AYAR.ustYazi || "Teknik Servis");
   $("#siteName").textContent = S.view==="devriye" ? "Devriye" : (AYAR.baslik || AYAR.siteAdi);
@@ -2520,7 +2532,8 @@ function render(){
 function syncForm(){
   const rk = document.getElementById("rolKart"); if (rk) S.rolAcik = rk.open;
   const kk = document.getElementById("kodKart"); if (kk) S.kodAcik = kk.open;
-  if (S.view === "calisma"){ clSync(); yiSync(); }
+  if (S.view === "calisma") clSync();
+  if (S.view === "izinler") yiSync();
   const gn = document.getElementById("gel_not"); if (gn && S.gel) S.gel.not = gn.value;
   const kg = document.getElementById("kodGir"); if (kg) S.kodTaslak = kg.value;
   [["kodAd","ad"],["kodRol","rol"],["kodVardiya","vardiya"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) KOD.form[k] = el.value; });
@@ -2794,7 +2807,7 @@ function route(){
     if (n) noktaOkut(n); else toast("QR kodu tanınmadı");
     return;
   }
-  S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma","calisma"].includes(h) ? h : "randevu";
+  S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma","calisma","izinler"].includes(h) ? h : "randevu";
   // B1 Teknik uygulamasında sakin arıza formu yok (amirler görmesin); teknisyen #randevu ile yine açabilir
   if (appDosya()==="teknik.html" && (S.view==="randevu"||S.view==="randevularim") && !store.isTech()){ S.view = "panel"; history.replaceState(null, "", location.pathname + "#panel"); }
   if (S.view !== "tesis"){ T.f = null; T.detay = null; }
