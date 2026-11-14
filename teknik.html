@@ -828,6 +828,13 @@ function kurBanner(ad){
 }
 function vPersonel(){
   const p = S.p;
+  const geri = /devriye\.html$/.test(location.pathname) ? `<a class="pill-btn" href="#devriye" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Devriyeye dön</a>` : "";
+  // Devriye uygulamasında güvenlik kodu varsa arıza bildirimi için ayrıca kod istenmez
+  if (!p.kod && S.d.kim && S.d.kim.kod && geri){ Object.assign(p, {kod:S.d.kim.kod, name:S.d.kim.ad, rol:"Güvenlik", kayitli:true, kimlikAc:false}); }
+  return geri + vPersonelIc();
+}
+function vPersonelIc(){
+  const p = S.p;
   if (S.pSent){
     const a = S.pSent;
     return `<div class="success">
@@ -837,7 +844,7 @@ function vPersonel(){
       <button class="cta" data-act="pYeni">Yeni bildirim yap</button>
     </div>${personelListe()}`;
   }
-  if (!p.kod && (S.kodZorunlu || p.kodGir)) return `${kurBanner("B1 Personel")}${kodGirisEkrani("personel")}`;
+  if (!p.kod && (S.kodZorunlu || p.kodGir)) return `${kurBanner(/devriye\.html$/.test(location.pathname) ? "B1 Devriye" : "B1 Personel")}${kodGirisEkrani("personel")}`;
   const kimlik = p.kod
     ? `<section class="step who"><div><small>Bildiren</small><b>${esc(p.name)}</b> · ${esc(p.rol)}</div><button class="pill-btn" data-act="kodCikis" data-v="personel">Kodu değiştir</button></section>`
     : p.kayitli && p.name && p.rol && !p.kimlikAc
@@ -848,7 +855,7 @@ function vPersonel(){
         <label class="f">Ad soyad<input type="text" id="p_name" autocomplete="name" value="${esc(p.name)}"></label>
         <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
       </section>`;
-  return `${kurBanner("B1 Personel")}${kimlik}
+  return `${kurBanner(/devriye\.html$/.test(location.pathname) ? "B1 Devriye" : "B1 Personel")}${kimlik}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.filter(k => rolKat(p.rol, k)).map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
     ${p.cat ? `<div class="issues" style="margin-top:6px">${PARIZA[p.cat].map(x => `<button class="iss" data-act="pIss" data-v="${esc(x)}" aria-pressed="${p.issues.includes(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
@@ -922,6 +929,7 @@ function vDevriye(){
     : `<button class="cta ghost sorun-btn" data-act="dSorunAc">⚠️ Bu noktada sorun var</button>`}` : ""}
   <button class="scan-btn" data-act="dTara"><svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>QR Okut</button>
   <p class="hint" style="text-align:center;margin:8px 0 14px">Telefonun kendi kamerasıyla okutursanız da kaydedilir.</p>
+  <a class="cta ghost" href="#personel" style="display:block;text-align:center;text-decoration:none;margin-bottom:14px">📝 Arıza bildir (fotoğraflı)</a>
   ${!navigator.onLine ? `<p class="kuyruk">📵 İnternet yok. Okutmaya devam edin, hepsi telefonda saklanıyor ve internet gelince kendiliğinden gönderilecek.</p>` : ""}
   ${kuyruk ? `<p class="kuyruk">📶 ${kuyruk} okutma henüz gönderilmedi, otomatik tekrar denenecek.${S.d.hata?`<br><b>${esc(S.d.hata)}</b>`:""}</p>` : ""}
   <section class="step"><h2><span>🔁</span>Bu tur <em class="turnum">${Object.keys(tur).length}/21</em></h2>
