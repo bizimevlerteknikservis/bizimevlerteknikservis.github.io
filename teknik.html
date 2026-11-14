@@ -284,6 +284,10 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .y-sec-s[aria-pressed="true"]{border-color:#2b7cd3;background:rgba(43,124,211,.08)}.y-sec-s>span:first-child{font-size:20px}
 .y-sec-s>span:last-child{display:flex;flex-direction:column}.y-sec-s small{color:var(--muted,#6b7a90);font-size:12.5px}
 .t-sheet .prefs.bloklar .pref.genis{grid-column:span 2}
+#kontrolCerceve{position:fixed;inset:0;z-index:60;background:#0d1b2a}
+#kontrolCerceve[hidden]{display:none}
+#kontrolCerceve iframe{width:100%;height:100%;border:0;display:block}
+.kc-geri{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:2;background:rgba(255,255,255,.95);color:#12324f;font:600 14px/1 var(--display,system-ui);padding:11px 18px;border-radius:999px;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,.3)}
 </style>
 </head>
 <body>
@@ -1085,7 +1089,7 @@ function vPanel(){
     return `<div class="card"><h2>Hoş geldiniz${store.kim ? ", " + esc(store.kim()) : ""}</h2><p class="hint">Daire arızaları sadece teknisyene açıktır. Yetkili olduğunuz bölümler:</p>
       <a class="cta" href="#tasinma" style="display:block;text-align:center;text-decoration:none">🚚 Taşınma & Tadilat</a>
       ${store.isTesis() ? `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏢 Tesis takip</a>` : `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🛗 Asansör arızası</a>`}
-      <a class="cta ghost" href="kontrol.html" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🗺️ Canlı Kontrol Merkezi</a>
+      <a class="cta" href="#kontrol" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🗺️ Canlı Kontrol Merkezi</a>
       <button class="cta ghost" data-act="cikis" style="margin-top:10px">Çıkış yap</button></div>`;
   }
   if (!store.isTech()){
@@ -1124,6 +1128,7 @@ function vPanel(){
     <div class="filters">${Object.keys(ad).map(k=>`<button class="pill-btn" data-act="filtre" data-v="${k}" aria-current="${S.filter===k}">${ad[k]}</button>`).join("")}</div>
     ${list.length ? gruplar.map(g=>`<div class="group-h">${esc(g.b)}</div><div class="list">${g.l.map(a=>fis(a,true)).join("")}</div>`).join("")
       : `<div class="empty"><strong>Bu filtrede iş yok</strong>Sakinler arıza bildirdikçe burada görünür.</div>`}
+    <a class="cta ghost" href="#kontrol" style="display:block;text-align:center;text-decoration:none;margin-top:18px">🗺️ Canlı Kontrol Merkezi</a>
     <details class="card t-ayar" style="margin-top:18px" id="rolKart" ${S.rolAcik?"open":""}><summary><b>👥 Yönetim erişimi</b> · Kontrol Merkezi'ne kim girebilir</summary>
       <p class="hint">Buraya yazılan e-postalar <b>sadece Canlı Kontrol Merkezi'ni</b> görebilir (personel bildirimleri, devriye, tesis durumu, raporlar). <b>Daire arızalarını ve bu paneli göremezler.</b> Her satıra bir e-posta.</p>
       <textarea id="rolListe" rows="4" placeholder="mudur@ornek.com&#10;yonetim@ornek.com">${esc(S.rolTaslak ?? (S.roller||[]).join("\n"))}</textarea>
@@ -2327,8 +2332,21 @@ function startPanel(){
   render();
 }
 
+/* Kontrol Merkezi'ni aynı uygulamanın içinde aç (ayrı uygulama kurmaya gerek kalmasın) */
+function kontrolCerceve(ac){
+  let k = document.getElementById("kontrolCerceve");
+  if (!ac){ if (k) k.hidden = true; return; }
+  if (!k){
+    k = document.createElement("div"); k.id = "kontrolCerceve";
+    k.innerHTML = `<a href="#panel" class="kc-geri">← Geri</a><iframe src="kontrol.html" title="Canlı Kontrol Merkezi"></iframe>`;
+    document.body.appendChild(k);
+  }
+  k.hidden = false;
+}
 function route(){
   const h = location.hash.slice(1);
+  kontrolCerceve(h === "kontrol");
+  if (h === "kontrol"){ if (S.view !== "panel"){ S.view = "panel"; render(); } return; }
   if (/^d-\d/.test(h)){
     history.replaceState(null, "", location.pathname + "#devriye");
     const n = qrCoz(h);
