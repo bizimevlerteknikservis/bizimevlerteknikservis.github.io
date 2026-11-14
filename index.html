@@ -269,6 +269,11 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 @media (prefers-reduced-motion:no-preference){.cat,.day,.slot,.act,.cta,nav.tabs a{transition:background .18s,border-color .18s,color .18s,box-shadow .18s,transform .12s}
   .cat:active,.day:active,.slot:active,.cta:active{transform:scale(.97)}}
 .cikis-btn{display:inline-flex;align-items:center;gap:6px;color:#c0392b!important;border:1.5px solid #f1b5ad!important;background:#fff5f3!important;font-weight:700}
+.hid-gecmis{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.hg-satir{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:var(--card,#fff);border:1px solid var(--line,#e3e9f2)}
+.hg-satir>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.hg-satir b{font-size:14px}.hg-satir span{font-size:14px}.hg-satir small{color:var(--muted,#6b7a90);font-size:12.5px}
+.hg-satir time{white-space:nowrap;font-size:13px;text-align:right;display:flex;flex-direction:column;color:var(--muted,#6b7a90)}
 </style>
 </head>
 <body>
@@ -1207,10 +1212,42 @@ function tHidrofor(H){
       const pRenk = id => X.pompa[id] && X.pompa[id].olay==="tamire" ? "kirmizi" : "yesil";
       return `<div class="hid-k">
         <div class="jen-ust"><b>${esc(h.ad)}</b><small>${h.n===3?"Çiftli blok · 3+3 pompa":"Tekli blok · 2+2 pompa"}</small></div>
-        ${["A","U"].map(z=>`<div class="hid-zon"><span>${zonAd(z)}</span>${Array.from({length:h.n},(_,i)=>{ const id=`${h.id}:${z}P${i+1}`; return `<i class="${pRenk(id)}" title="${esc(hidAd(id))}">${i+1}</i>`; }).join("")}<em title="Basınç tankı">🛢️ ${X.tank[`${h.id}:${z}T`] ? tarihSaat(X.tank[`${h.id}:${z}T`].ts).slice(0,5) : "—"}</em></div>`).join("")}
+        ${["A","U"].map(z=>`<div class="hid-zon"><span>${zonAd(z)}</span>${Array.from({length:h.n},(_,i)=>{ const id=`${h.id}:${z}P${i+1}`; return `<i class="${pRenk(id)}" title="${esc(hidAd(id))}">${i+1}</i>`; }).join("")}<em title="${X.tank[`${h.id}:${z}T`] ? "Basınç tankı değişti: " + tarihTam(X.tank[`${h.id}:${z}T`].ts) : "Basınç tankı: kayıt yok"}">🛢️ ${X.tank[`${h.id}:${z}T`] ? tarihSaat(X.tank[`${h.id}:${z}T`].ts).slice(0,5) : "—"}</em></div>`).join("")}
         <small class="hint">Son bakım: ${sb ? `${tarihSaat(sb.ts).slice(0,5)} (${gunOnce(sb.ts)} gün)` : "kayıt yok"}${pompalar.some(id=>pRenk(id)==="kirmizi")?` · <b style="color:#d64040">pompa tamirde</b>`:""}</small>
       </div>`; }).join("")}</div>
-    <p class="hint">🔴 tamirdeki pompa · 🛢️ tankın son değiştiği tarih · Hidrofor bakımı ${HID_BAKIM_GUN} günü geçerse uyarı verir.</p>`;
+    <p class="hint">🔴 tamirdeki pompa · 🛢️ tankın son değiştiği tarih · Hidrofor bakımı ${HID_BAKIM_GUN} günü geçerse uyarı verir.</p>
+    ${hidGecmis(H.K)}`;
+}
+const tarihTam = ts => { const d = new Date(ts); return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function hidKayitlar(K){
+  return K.filter(k=>k.tur==="pompa"||k.tur==="tank"||(k.tur==="bakim"&&(k.ekipmanlar||[]).some(x=>x.startsWith("H-")))).slice().sort((a,b)=>b.ts-a.ts);
+}
+const hidTurAd = k => k.tur==="pompa" ? (k.olay==="tamire"?"🔩 Pompa tamire gitti":"✅ Pompa tamirden geldi") : k.tur==="tank" ? "🛢️ Basınç tankı değişti" : "🔧 Hidrofor bakımı";
+const hidEkip = k => k.tur==="bakim" ? (k.ekipmanlar||[]).filter(x=>x.startsWith("H-")).map(hidAd).join(", ") : hidAd(k.ekipman);
+function hidGecmis(K){
+  const fl = T.hidF || "hepsi";
+  const L = hidKayitlar(K).filter(k=>fl==="hepsi" || (fl==="tank"&&k.tur==="tank") || (fl==="pompa"&&k.tur==="pompa") || (fl==="bakim"&&k.tur==="bakim"));
+  const say = t => hidKayitlar(K).filter(k=>k.tur===t).length;
+  const goster = T.hidHepsi ? L : L.slice(0, 15);
+  return `<div class="group-h" id="hidGecmis">Hidrofor geçmişi</div>
+    <div class="prefs">${[["hepsi","Hepsi ("+hidKayitlar(K).length+")"],["tank","Tank ("+say("tank")+")"],["pompa","Pompa ("+say("pompa")+")"],["bakim","Bakım ("+say("bakim")+")"]].map(([v,a])=>`<button class="pref" data-t="hidF" data-v="${v}" aria-pressed="${fl===v}">${a}</button>`).join("")}</div>
+    ${L.length ? `<div class="hid-gecmis">${goster.map(k=>`<div class="hg-satir"><div><b>${hidTurAd(k)}</b><span>${esc(hidEkip(k))}</span>${k.firma||k.not||k.tutar?`<small>${[k.firma,k.not,k.tutar?k.tutar+" ₺":""].filter(Boolean).map(esc).join(" · ")}</small>`:""}</div><time>${tarihTam(k.ts)}${k.by?`<small>${esc(k.by)}</small>`:""}</time></div>`).join("")}</div>
+      ${L.length > goster.length ? `<button class="cta ghost" data-t="hidHepsi" style="margin-top:8px">Tümünü göster (${L.length})</button>` : ""}`
+      : `<p class="hint">Bu türde kayıt yok.</p>`}
+    <button class="cta ghost" data-t="hidExcel" style="margin-top:8px">📥 Hidrofor geçmişini Excel'e indir (tüm kayıtlar)</button>`;
+}
+function hidExcel(){
+  const L = hidKayitlar(tesisHesap().K);
+  const ozet = [["Hidrofor özeti",""],["Rapor tarihi", tarihTam(Date.now())],["Toplam kayıt", L.length],["Tank değişimi", L.filter(k=>k.tur==="tank").length],["Pompa tamire gitti", L.filter(k=>k.tur==="pompa"&&k.olay==="tamire").length],["Hidrofor bakımı", L.filter(k=>k.tur==="bakim").length],["Toplam tutar ₺", L.reduce((s,k)=>s+(+k.tutar||0),0)]];
+  const sayfalar = [
+    ["Özet", ozet, [26,20], -1],
+    ["Tüm kayıtlar", [["Tarih","Kayıt","Ekipman","Firma","Not","Tutar ₺","Giren"], ...L.map(k=>[tarihTam(k.ts), hidTurAd(k).replace(/^\S+ /,""), hidEkip(k), k.firma||"", k.not||"", k.tutar||"", k.by||""])], [17,22,46,16,34,10,12], 0],
+    ["Tank değişimleri", [["Tarih","Blok / zon","Not","Tutar ₺","Giren"], ...L.filter(k=>k.tur==="tank").map(k=>[tarihTam(k.ts), hidEkip(k), k.not||"", k.tutar||"", k.by||""])], [17,40,34,10,12], 0],
+    ["Pompa tamirleri", [["Tarih","Olay","Pompa","Firma","Not","Giren"], ...L.filter(k=>k.tur==="pompa").map(k=>[tarihTam(k.ts), k.olay==="tamire"?"Tamire gitti":"Tamirden geldi", hidEkip(k), k.firma||"", k.not||"", k.by||""])], [17,15,42,16,34,12], 0]
+  ];
+  const blob = XLSXW(sayfalar), u = URL.createObjectURL(blob), l = document.createElement("a"), d = new Date();
+  l.href = u; l.download = `bizimevler1-hidrofor-gecmisi-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.xlsx`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(u), 5000);
+  toast("Hidrofor geçmişi indirildi");
 }
 function hidSecim(f, tankMi){
   const h = HIDRO.find(x=>x.id===f.unit);
@@ -1544,6 +1581,9 @@ document.addEventListener("click", async e => {
     try { await store.setTesisAyar({omakTel: $("#t_omak").value.trim(), jen}); toast("Ayarlar kaydedildi"); } catch(err){ toast("Kaydedilemedi"); }
   }
   else if (t==="rapor"){ tRapor(v); }
+  else if (t==="hidF"){ T.hidF = v; T.hidHepsi = false; render(); }
+  else if (t==="hidHepsi"){ T.hidHepsi = true; render(); }
+  else if (t==="hidExcel"){ hidExcel(); }
   else if (t==="dKesinti"){
     const kim = (S.d.kim && S.d.kim.ad) || "Güvenlik";
     if (b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = v==="basladi" ? "Emin misiniz? Tekrar basın" : "Emin misiniz? Tekrar basın"; setTimeout(()=>{ if (b.isConnected){ b.dataset.onay = ""; b.textContent = v==="basladi" ? "⚡ Elektrik kesildi" : "💡 Elektrik geldi"; } }, 4000); return; }
