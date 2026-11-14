@@ -274,6 +274,16 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .hg-satir>div{display:flex;flex-direction:column;gap:2px;min-width:0}
 .hg-satir b{font-size:14px}.hg-satir span{font-size:14px}.hg-satir small{color:var(--muted,#6b7a90);font-size:12.5px}
 .hg-satir time{white-space:nowrap;font-size:13px;text-align:right;display:flex;flex-direction:column;color:var(--muted,#6b7a90)}
+.y-liste{display:flex;flex-direction:column;gap:6px}
+.y-satir{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:12px;background:var(--card,#fff);border:1px solid var(--line,#e3e9f2);border-left:5px solid #2fa36b;font:inherit;color:inherit;cursor:pointer}
+.y-satir[data-d="gecti"]{border-left-color:#d64040}.y-satir[data-d="yakin"],.y-satir[data-d="yok"]{border-left-color:#e8952b}
+.y-ik{font-size:22px}.y-ad{flex:1;display:flex;flex-direction:column;min-width:0}.y-ad small{color:var(--muted,#6b7a90);font-size:12.5px}
+.y-kalan{font-size:13px;font-weight:600;white-space:nowrap;color:#2fa36b}.y-satir[data-d="gecti"] .y-kalan{color:#d64040}.y-satir[data-d="yakin"] .y-kalan,.y-satir[data-d="yok"] .y-kalan{color:#c7771b}
+.y-sec{display:flex;flex-direction:column;gap:5px;max-height:38vh;overflow:auto;padding:2px}
+.y-sec-s{display:flex;gap:10px;align-items:center;text-align:left;padding:9px 10px;border-radius:10px;border:1px solid var(--line,#e3e9f2);background:var(--card,#fff);font:inherit;color:inherit}
+.y-sec-s[aria-pressed="true"]{border-color:#2b7cd3;background:rgba(43,124,211,.08)}.y-sec-s>span:first-child{font-size:20px}
+.y-sec-s>span:last-child{display:flex;flex-direction:column}.y-sec-s small{color:var(--muted,#6b7a90);font-size:12.5px}
+.t-sheet .prefs.bloklar .pref.genis{grid-column:span 2}
 </style>
 </head>
 <body>
@@ -1249,6 +1259,227 @@ function hidExcel(){
   l.href = u; l.download = `bizimevler1-hidrofor-gecmisi-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.xlsx`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(u), 5000);
   toast("Hidrofor geçmişi indirildi");
 }
+/* =================== YANGIN VE GÜVENLİK EKİPMANLARI =================== */
+/* Envanter ayar/tesis.yangin'de, yapılan kontrol/dolum işlemleri "tesis" koleksiyonunda tur:"yangin" */
+const YTIP = {
+  tup:   {ad:"Yangın tüpü (KKT)",          ik:"🧯", gun:365},
+  co2:   {ad:"CO₂ tüpü",                   ik:"🧯", gun:365},
+  dolap: {ad:"Yangın dolabı / hortum",     ik:"🚒", gun:365},
+  acil:  {ad:"Acil aydınlatma / çıkış",    ik:"🚨", gun:180},
+  alarm: {ad:"Yangın alarm / dedektör",    ik:"🔔", gun:365},
+  pompa: {ad:"Yangın pompası / sprinkler", ik:"💦", gun:365},
+  kapi:  {ad:"Yangın kapısı",              ik:"🚪", gun:365},
+  diger: {ad:"Diğer",                      ik:"🛡️", gun:365}
+};
+const YISLEM = {kontrol:"Kontrol edildi", dolum:"Dolum yapıldı", test:"Test edildi", degisim:"Yenisiyle değişti"};
+const Y_YAKLASAN = 30;   // bu kadar gün kala turuncu
+const Y_YERLER = [...AYAR.bloklar, "Ortak alan", "Otopark", "Sosyal tesis", "Güvenlik kulübesi"];
+const ySure = tip => { const s = (T.ayar.yanginSure||{})[tip]; return +s > 0 ? +s : (YTIP[tip]||YTIP.diger).gun; };
+const yListe = () => Array.isArray(T.ayar.yangin) ? T.ayar.yangin : [];
+const yAd = e => `${e.blok}${e.yer ? " · " + e.yer : ""}`;
+const tarihGun = ts => { const d = new Date(ts); return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`; };
+
+function yHesap(K){
+  const son = {};   // ekipman id -> son işlem kaydı
+  K.filter(k=>k.tur==="yangin").forEach(k=>(k.ekipmanlar||[]).forEach(id=>{ if (!son[id] || son[id].ts < k.ts) son[id] = k; }));
+  const L = yListe().map(e=>{
+    const kayit = son[e.id], sonTs = Math.max(e.tarih||0, kayit ? kayit.ts : 0) || 0;
+    const sonraki = sonTs ? sonTs + ySure(e.tip)*864e5 : 0;
+    const kalan = sonTs ? Math.ceil((sonraki - Date.now())/864e5) : null;
+    const durum = kalan === null ? "yok" : kalan < 0 ? "gecti" : kalan <= Y_YAKLASAN ? "yakin" : "tamam";
+    return {...e, sonTs, sonraki, kalan, durum, kayit};
+  });
+  return {L, gecti: L.filter(e=>e.durum==="gecti"), yakin: L.filter(e=>e.durum==="yakin"), yok: L.filter(e=>e.durum==="yok")};
+}
+const yDurumYaz = e => e.durum==="yok" ? "tarih girilmemiş" : e.durum==="gecti" ? `${-e.kalan} gün geçti` : `${e.kalan} gün kaldı`;
+
+function tYangin(H){
+  const Y = H.yangin, f = T.yFiltre || {tip:"", durum:""};
+  if (!Y.L.length) return `<div class="card"><h2>🧯 Yangın ve güvenlik ekipmanları</h2>
+      <p class="hint">Yangın tüpleri, yangın dolapları, acil aydınlatmalar, alarm paneli… Her ekipmanın son kontrol/dolum tarihini tutar, süresi dolmadan uyarır. Denetimde tek tuşla Excel listesi verir.</p>
+      <p class="hint"><b>Başlamak için</b> ekipmanları ekleyin. Aynı bloktaki 6 tüpü tek seferde ekleyebilirsiniz; tüp etiketindeki son dolum tarihini de yazın.</p>
+      <button class="cta" data-t="yForm" data-v="ekle">+ Ekipman ekle</button></div>${T.yf ? yForm(Y) : ""}`;
+  const uy = [];
+  if (Y.gecti.length) uy.push(`<div class="t-uyari kirmizi">🧯 <b>${Y.gecti.length} ekipmanın</b> kontrol/dolum süresi geçti</div>`);
+  if (Y.yakin.length) uy.push(`<div class="t-uyari turuncu">⏳ <b>${Y.yakin.length} ekipmanın</b> süresi ${Y_YAKLASAN} gün içinde doluyor</div>`);
+  if (Y.yok.length) uy.push(`<div class="t-uyari turuncu">📝 <b>${Y.yok.length} ekipmanın</b> son kontrol tarihi girilmemiş</div>`);
+  const tipler = [...new Set(Y.L.map(e=>e.tip))];
+  const goster = Y.L.filter(e=>(!f.tip || e.tip===f.tip) && (!f.durum || (f.durum==="sorun" ? e.durum!=="tamam" : e.durum===f.durum)));
+  const gruplar = {}; goster.forEach(e=>{ (gruplar[e.blok] ||= []).push(e); });
+  const sira = Object.keys(gruplar).sort((a,b)=>Y_YERLER.indexOf(a)-Y_YERLER.indexOf(b));
+  return `${uy.length ? `<div class="t-uyarilar">${uy.join("")}</div>` : `<div class="t-uyari yesil">✓ Tüm ekipmanların süresi geçerli (${Y.L.length} ekipman)</div>`}
+    <div class="t-hizli">
+      <button class="t-btn" data-t="yForm" data-v="islem"><span>✅</span>Kontrol / dolum yapıldı</button>
+      <button class="t-btn" data-t="yForm" data-v="ekle"><span>➕</span>Ekipman ekle</button>
+      <button class="t-btn" data-t="yExcel"><span>📥</span>Excel (denetim listesi)</button>
+    </div>
+    <div class="prefs" style="margin-top:4px">
+      <button class="pref" data-t="yF" data-id="durum" data-v="" aria-pressed="${!f.durum}">Hepsi (${Y.L.length})</button>
+      <button class="pref" data-t="yF" data-id="durum" data-v="sorun" aria-pressed="${f.durum==="sorun"}">Dikkat (${Y.gecti.length+Y.yakin.length+Y.yok.length})</button>
+    </div>
+    ${tipler.length > 1 ? `<div class="prefs" style="margin-top:6px"><button class="pref" data-t="yF" data-id="tip" data-v="" aria-pressed="${!f.tip}">Tüm türler</button>${tipler.map(t=>`<button class="pref" data-t="yF" data-id="tip" data-v="${t}" aria-pressed="${f.tip===t}">${YTIP[t].ik} ${esc(YTIP[t].ad.split(" (")[0])}</button>`).join("")}</div>` : ""}
+    ${sira.length ? sira.map(bl=>`<div class="group-h">${esc(bl)} <small style="text-transform:none;font-weight:500">· ${gruplar[bl].length} ekipman</small></div>
+      <div class="y-liste">${gruplar[bl].sort((a,b)=>(a.kalan??-1e9)-(b.kalan??-1e9)).map(e=>`<button class="y-satir" data-d="${e.durum}" data-t="yDetay" data-v="${e.id}">
+        <span class="y-ik">${YTIP[e.tip].ik}</span>
+        <span class="y-ad"><b>${esc(e.yer || YTIP[e.tip].ad)}</b><small>${esc(YTIP[e.tip].ad)}${e.kg?` · ${esc(e.kg)} kg`:""}${e.sonTs?` · son: ${tarihGun(e.sonTs)}`:""}</small></span>
+        <span class="y-kalan">${yDurumYaz(e)}</span></button>`).join("")}</div>`).join("")
+      : `<p class="hint" style="margin-top:12px">Bu filtrede ekipman yok.</p>`}
+    <details class="card t-ayar" style="margin-top:16px"><summary><b>⚙️ Kontrol süreleri</b></summary>
+      <p class="hint">Her tür için kaç günde bir kontrol/dolum gerektiğini yazın. Süre dolmadan ${Y_YAKLASAN} gün önce uyarı başlar.</p>
+      <div class="grid2">${Object.entries(YTIP).map(([k,t])=>`<label class="f">${t.ik} ${esc(t.ad)}<input type="number" inputmode="numeric" id="ys_${k}" value="${ySure(k)}"></label>`).join("")}</div>
+      <button class="cta ghost" data-t="ySure">Süreleri kaydet</button>
+    </details>
+    ${T.yf ? yForm(Y) : ""}${T.yd ? yDetay(H) : ""}`;
+}
+
+function yForm(Y){
+  const f = T.yf;
+  if (f.tip === "ekle"){
+    return `<div class="t-sheet"><div class="t-sheet-in">
+      <h2>➕ Ekipman ekle</h2>
+      <div class="group-h">Tür</div>
+      <div class="prefs">${Object.entries(YTIP).map(([k,t])=>`<button class="pref" data-t="yfSet" data-id="etip" data-v="${k}" aria-pressed="${f.etip===k}">${t.ik} ${esc(t.ad)}</button>`).join("")}</div>
+      <div class="group-h">Nerede? <small style="text-transform:none;font-weight:500">(birden fazla seçebilirsiniz)</small></div>
+      <div class="prefs bloklar">${Y_YERLER.map(b=>`<button class="pref${b.length>3?" genis":""}" data-t="yfBlok" data-v="${esc(b)}" aria-pressed="${f.bloklar.includes(b)}">${esc(b)}</button>`).join("")}</div>
+      <div class="grid2" style="margin-top:10px">
+        <label class="f">Her yerde kaç adet?<input type="number" inputmode="numeric" id="yf_adet" min="1" max="50" value="${esc(f.adet||1)}"></label>
+        ${f.etip==="tup"||f.etip==="co2" ? `<label class="f">Kg (isteğe bağlı)<input type="number" inputmode="decimal" id="yf_kg" value="${esc(f.kg||"")}" placeholder="6"></label>` : `<span></span>`}
+      </div>
+      <label class="f">Konum (isteğe bağlı)<input id="yf_yer" maxlength="40" value="${esc(f.yer||"")}" placeholder="Örn. Zemin kat merdiven yanı"></label>
+      <p class="hint" style="margin-top:-4px">Birden fazla adet seçerseniz sonuna sıra no eklenir (Kat 1, Kat 2…). Konumu boş bırakırsanız "Kat 1, Kat 2…" yazılır.</p>
+      <label class="f">Son kontrol / dolum tarihi (etiketteki)<input type="date" id="yf_tarih" value="${esc(f.tarih||"")}"></label>
+      <p class="hint" style="margin-top:-4px">Bilmiyorsanız boş bırakın, sonra "Kontrol / dolum yapıldı" ile girersiniz.</p>
+      ${f.hata ? `<p class="err">${esc(f.hata)}</p>` : ""}
+      <button class="cta" data-t="yEkle">Ekle</button>
+      <button class="cta ghost" data-t="yKapat" style="margin-top:8px">Vazgeç</button>
+    </div></div>`;
+  }
+  // işlem
+  const aday = Y.L.filter(e=>(!f.blok || e.blok===f.blok) && (!f.etip || e.tip===f.etip));
+  const bloklar = [...new Set(Y.L.map(e=>e.blok))].sort((a,b)=>Y_YERLER.indexOf(a)-Y_YERLER.indexOf(b));
+  const tipler = [...new Set(Y.L.map(e=>e.tip))];
+  return `<div class="t-sheet"><div class="t-sheet-in">
+    <h2>✅ Kontrol / dolum yapıldı</h2>
+    <div class="group-h">Ne yapıldı?</div>
+    <div class="prefs">${Object.entries(YISLEM).map(([k,a])=>`<button class="pref" data-t="yfSet" data-id="islem" data-v="${k}" aria-pressed="${f.islem===k}">${a}</button>`).join("")}</div>
+    <div class="group-h">Nerede?</div>
+    <div class="prefs bloklar"><button class="pref genis" data-t="yfSet" data-id="blok" data-v="" aria-pressed="${!f.blok}">Hepsi</button>${bloklar.map(b=>`<button class="pref${b.length>3?" genis":""}" data-t="yfSet" data-id="blok" data-v="${esc(b)}" aria-pressed="${f.blok===b}">${esc(b)}</button>`).join("")}</div>
+    ${tipler.length > 1 ? `<div class="prefs" style="margin-top:6px"><button class="pref" data-t="yfSet" data-id="etip" data-v="" aria-pressed="${!f.etip}">Tüm türler</button>${tipler.map(t=>`<button class="pref" data-t="yfSet" data-id="etip" data-v="${t}" aria-pressed="${f.etip===t}">${YTIP[t].ik} ${esc(YTIP[t].ad.split(" (")[0])}</button>`).join("")}</div>` : ""}
+    <div class="group-h" style="display:flex;justify-content:space-between;align-items:center">Ekipmanlar (${f.sec.length} seçili)
+      <button class="pill-btn" data-t="yfHepsi">${aday.length && aday.every(e=>f.sec.includes(e.id)) ? "Seçimi kaldır" : "Hepsini seç"}</button></div>
+    <div class="y-sec">${aday.length ? aday.map(e=>`<button class="y-sec-s" data-t="yfSec" data-v="${e.id}" aria-pressed="${f.sec.includes(e.id)}">
+        <span>${f.sec.includes(e.id) ? "☑" : "☐"}</span><span><b>${esc(yAd(e))}</b><small>${YTIP[e.tip].ik} ${esc(YTIP[e.tip].ad)} · ${yDurumYaz(e)}</small></span></button>`).join("") : `<p class="hint">Ekipman yok.</p>`}</div>
+    <div class="grid2" style="margin-top:10px">
+      <label class="f">Tarih<input type="date" id="yf_tarih" value="${esc(f.tarih)}"></label>
+      <label class="f">Firma (isteğe bağlı)<input id="yf_firma" maxlength="40" value="${esc(f.firma||"")}"></label>
+    </div>
+    <label class="f">Not (isteğe bağlı)<input id="yf_not" maxlength="200" value="${esc(f.not||"")}" placeholder="Örn. 2 tüpün manometresi düşüktü, değişti"></label>
+    ${f.hata ? `<p class="err">${esc(f.hata)}</p>` : ""}
+    <button class="cta" data-t="yKaydet">Kaydet${f.sec.length ? ` (${f.sec.length} ekipman)` : ""}</button>
+    <button class="cta ghost" data-t="yKapat" style="margin-top:8px">Vazgeç</button>
+  </div></div>`;
+}
+
+function yDetay(H){
+  const e = H.yangin.L.find(x=>x.id===T.yd); if (!e){ T.yd = null; return ""; }
+  const gec = H.K.filter(k=>k.tur==="yangin" && (k.ekipmanlar||[]).includes(e.id)).sort((a,b)=>b.ts-a.ts);
+  return `<div class="t-sheet"><div class="t-sheet-in">
+    <h2>${YTIP[e.tip].ik} ${esc(yAd(e))}</h2>
+    <p class="hint">${esc(YTIP[e.tip].ad)}${e.kg?` · ${esc(e.kg)} kg`:""} · ${ySure(e.tip)} günde bir</p>
+    <div class="t-uyari ${e.durum==="gecti"?"kirmizi":e.durum==="tamam"?"yesil":"turuncu"}">${e.sonTs ? `Son işlem: <b>${tarihGun(e.sonTs)}</b> · Sonraki: <b>${tarihGun(e.sonraki)}</b> (${yDurumYaz(e)})` : "Son kontrol tarihi girilmemiş"}</div>
+    <button class="cta" data-t="yForm" data-v="islem" data-id="${e.id}" style="margin-top:10px">✅ Bu ekipman için kontrol / dolum gir</button>
+    <div class="group-h">Geçmiş</div>
+    ${gec.length ? `<div class="hid-gecmis">${gec.map(k=>`<div class="hg-satir"><div><b>${esc(YISLEM[k.islem]||k.islem)}</b>${k.firma||k.not?`<small>${[k.firma,k.not].filter(Boolean).map(esc).join(" · ")}</small>`:""}</div><time>${tarihGun(k.ts)}${k.by?`<small>${esc(k.by)}</small>`:""}</time></div>`).join("")}</div>`
+      : `<p class="hint">${e.tarih ? `Eklenirken girilen etiket tarihi: ${tarihGun(e.tarih)}` : "Henüz işlem kaydı yok."}</p>`}
+    <div class="grid2" style="margin-top:14px">
+      <button class="cta ghost" data-t="yKapat">Kapat</button>
+      <button class="cta ghost cikis-btn" data-t="ySil" data-v="${e.id}">Ekipmanı sil</button>
+    </div>
+  </div></div>`;
+}
+
+function ySync(){
+  const f = T.yf; if (!f) return;
+  const v = id => { const el = document.getElementById(id); return el ? el.value : undefined; };
+  ["adet","kg","yer","tarih","firma","not"].forEach(k=>{ const x = v("yf_"+k); if (x !== undefined) f[k] = x; });
+}
+const yTarihTs = s => { if (!s) return 0; const [y,m,d] = s.split("-").map(Number); const t = new Date(y, m-1, d, 12, 0); return isNaN(t) ? 0 : t.getTime(); };
+const bugunStr = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+
+async function yTik(t, v, id, b){
+  ySync();
+  if (t==="yForm"){
+    T.yd = null;
+    T.yf = v==="ekle" ? {tip:"ekle", etip:"tup", bloklar:[], adet:1} : {tip:"islem", islem:"kontrol", blok:"", etip:"", sec: id ? [id] : [], tarih: bugunStr()};
+    if (id){ const e = yListe().find(x=>x.id===id); if (e){ T.yf.blok = e.blok; T.yf.etip = e.tip; } }
+  }
+  else if (t==="yKapat"){ T.yf = null; T.yd = null; }
+  else if (t==="yDetay"){ T.yd = v; }
+  else if (t==="yF"){ T.yFiltre = {...(T.yFiltre||{tip:"",durum:""}), [id]: v}; }
+  else if (t==="yfSet"){ T.yf[id] = v; T.yf.hata = ""; }
+  else if (t==="yfBlok"){ const L = T.yf.bloklar; const i = L.indexOf(v); if (i<0) L.push(v); else L.splice(i,1); }
+  else if (t==="yfSec"){ const L = T.yf.sec; const i = L.indexOf(v); if (i<0) L.push(v); else L.splice(i,1); }
+  else if (t==="yfHepsi"){
+    const f = T.yf, aday = yListe().filter(e=>(!f.blok || e.blok===f.blok) && (!f.etip || e.tip===f.etip)).map(e=>e.id);
+    f.sec = aday.every(x=>f.sec.includes(x)) ? f.sec.filter(x=>!aday.includes(x)) : [...new Set([...f.sec, ...aday])];
+  }
+  else if (t==="yEkle"){
+    const f = T.yf, adet = Math.max(1, Math.min(50, Math.round(+f.adet||1)));
+    if (!f.bloklar.length){ f.hata = "En az bir yer seçin"; render(); return; }
+    const yeni = [], tarih = yTarihTs(f.tarih), yer = (f.yer||"").trim();
+    for (const bl of f.bloklar) for (let i = 1; i <= adet; i++){
+      yeni.push({id:"Y" + Date.now().toString(36) + Math.random().toString(36).slice(2,6), tip:f.etip, blok:bl,
+        yer: adet > 1 ? (yer ? `${yer} ${i}` : `Kat ${i}`) : yer,
+        ...(f.kg && (f.etip==="tup"||f.etip==="co2") ? {kg:String(f.kg)} : {}), ...(tarih ? {tarih} : {})});
+    }
+    const yeniL = [...yListe(), ...yeni];
+    try { await store.setTesisAyar({yangin: yeniL}); T.ayar.yangin = yeniL; T.yf = null; toast(`${yeni.length} ekipman eklendi`); }
+    catch(err){ console.error(err); toast("Kaydedilemedi: " + (err.code||"")); }
+  }
+  else if (t==="yKaydet"){
+    const f = T.yf;
+    if (!f.sec.length){ f.hata = "En az bir ekipman seçin"; render(); return; }
+    const ts0 = yTarihTs(f.tarih); if (!ts0){ f.hata = "Tarih seçin"; render(); return; }
+    const ts = f.tarih === bugunStr() ? Date.now() : ts0;
+    if (ts > Date.now() + 864e5){ f.hata = "İleri bir tarih seçilemez"; render(); return; }
+    const rec = {tur:"yangin", islem:f.islem, ekipmanlar:f.sec.slice(), firma:(f.firma||"").trim(), not:(f.not||"").trim(), by: store.kim ? store.kim() : "Teknisyen", ts};
+    try { await store.addTesis(rec); T.yf = null; toast(`${rec.ekipmanlar.length} ekipman: ${YISLEM[rec.islem].toLowerCase()}`); }
+    catch(err){ console.error(err); toast("Kaydedilemedi: " + (err.code||"")); }
+  }
+  else if (t==="ySil"){
+    if (b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = "Emin misiniz? Tekrar basın"; return; }
+    const L = yListe().filter(e=>e.id!==v);
+    try { await store.setTesisAyar({yangin: L}); T.ayar.yangin = L; T.yd = null; toast("Ekipman silindi"); } catch(err){ toast("Silinemedi"); }
+  }
+  else if (t==="ySure"){
+    const s = {}; Object.keys(YTIP).forEach(k=>{ const x = +($("#ys_"+k)||{}).value; if (x > 0) s[k] = Math.round(x); });
+    try { await store.setTesisAyar({yanginSure: s}); T.ayar.yanginSure = s; toast("Süreler kaydedildi"); } catch(err){ toast("Kaydedilemedi"); }
+  }
+  else if (t==="yExcel"){ yExcel(); return; }
+  render();
+}
+
+function yExcel(){
+  const H = tesisHesap(), Y = H.yangin;
+  const durumAd = e => e.durum==="gecti" ? "SÜRESİ GEÇTİ" : e.durum==="yakin" ? "Yaklaşıyor" : e.durum==="yok" ? "Tarih yok" : "Geçerli";
+  const L = Y.L.slice().sort((a,b)=>Y_YERLER.indexOf(a.blok)-Y_YERLER.indexOf(b.blok) || (a.yer||"").localeCompare(b.yer||"","tr",{numeric:true}));
+  const gec = H.K.filter(k=>k.tur==="yangin").sort((a,b)=>b.ts-a.ts);
+  const adlar = id => { const e = Y.L.find(x=>x.id===id); return e ? `${yAd(e)} (${YTIP[e.tip].ad})` : "silinmiş ekipman"; };
+  const sayfalar = [
+    ["Özet", [["Yangın ve güvenlik ekipmanları",""],["Rapor tarihi", tarihTam(Date.now())],["Toplam ekipman", L.length],["Süresi geçen", Y.gecti.length],[`${Y_YAKLASAN} gün içinde dolacak`, Y.yakin.length],["Tarihi girilmemiş", Y.yok.length],["",""],
+      ...Object.entries(YTIP).filter(([k])=>L.some(e=>e.tip===k)).map(([k,t])=>[`${t.ad} (${ySure(k)} günde bir)`, L.filter(e=>e.tip===k).length])], [40,20], -1],
+    ["Envanter", [["Yer","Konum","Tür","Kg","Son kontrol/dolum","Sonraki tarih","Kalan gün","Durum"],
+      ...L.map(e=>[e.blok, e.yer||"", YTIP[e.tip].ad, e.kg||"", e.sonTs?tarihGun(e.sonTs):"", e.sonraki?tarihGun(e.sonraki):"", e.kalan ?? "", durumAd(e)])], [16,26,26,6,16,14,10,14], 0],
+    ["Dikkat edilecekler", [["Yer","Konum","Tür","Sonraki tarih","Durum"],
+      ...L.filter(e=>e.durum!=="tamam").sort((a,b)=>(a.kalan??-1e9)-(b.kalan??-1e9)).map(e=>[e.blok, e.yer||"", YTIP[e.tip].ad, e.sonraki?tarihGun(e.sonraki):"", e.durum==="yok"?"Tarih yok":yDurumYaz(e)])], [16,26,26,14,18], 0],
+    ["İşlem geçmişi", [["Tarih","İşlem","Ekipman sayısı","Ekipmanlar","Firma","Not","Giren"],
+      ...gec.map(k=>[tarihTam(k.ts), YISLEM[k.islem]||k.islem, (k.ekipmanlar||[]).length, (k.ekipmanlar||[]).map(adlar).join(", "), k.firma||"", k.not||"", k.by||""])], [17,18,10,70,16,30,12], 0]
+  ];
+  const blob = XLSXW(sayfalar), u = URL.createObjectURL(blob), l = document.createElement("a"), d = new Date();
+  l.href = u; l.download = `bizimevler1-yangin-ekipmanlari-${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.xlsx`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(u), 5000);
+  toast("Yangın ekipman listesi indirildi");
+}
+
 function hidSecim(f, tankMi){
   const h = HIDRO.find(x=>x.id===f.unit);
   return `<div class="group-h">Hangi blok?</div><div class="prefs bloklar hid">${HIDRO.map(x=>`<button class="pref" data-t="fUnit" data-v="${x.id}" aria-pressed="${f.unit===x.id}">${x.ad.replace(" Blok","")}</button>`).join("")}</div>
@@ -1270,7 +1501,7 @@ function tesisHesap(){
   kes.forEach(k=>{ if (k.olay==="basladi"){ if (!acik) acik = {bas:k.ts, by:k.by}; } else if (acik){ kesintiler.push({...acik, bit:k.ts, jen:k.jen||"", by2:k.by}); acik = null; } });
   const geciken = ASANSOR.filter(a => !sonBakim[a.id] || gunOnce(sonBakim[a.id].ts) > BAKIM_GUN);
   const dusukYakit = jenler().filter(j => yakit[j.id] && yakit[j.id].seviye < YAKIT_UYARI);
-  return {K, sonBakim, arizalar, acikAriza, yakit, kesintiler: kesintiler.reverse(), devamEden: acik, geciken, dusukYakit, hid: hidHesap(K)};
+  return {K, sonBakim, arizalar, acikAriza, yakit, kesintiler: kesintiler.reverse(), devamEden: acik, geciken, dusukYakit, hid: hidHesap(K), yangin: yHesap(K)};
 }
 
 function tesisBaslat(){
@@ -1292,7 +1523,9 @@ function vTesis(){
   H.dusukYakit.forEach(j=>uyar.push(`<div class="t-uyari turuncu">⛽ <b>${esc(j.ad)}</b> yakıt %${H.yakit[j.id].seviye}</div>`));
   if (H.geciken.length) uyar.push(`<div class="t-uyari turuncu">🔧 <b>${H.geciken.length} asansörün</b> aylık bakımı gecikti ya da kaydı yok</div>`);
   if (H.hid.tamirde.length) uyar.push(`<div class="t-uyari turuncu">🔩 <b>${H.hid.tamirde.length} hidrofor pompası</b> tamirde</div>`);
-  const sek = {ozet:"Özet", asansor:"Asansörler", hidrofor:"Hidrofor", jen:"Jeneratörler", kesinti:"Kesintiler"};
+  if (H.yangin.gecti.length) uyar.push(`<div class="t-uyari kirmizi">🧯 <b>${H.yangin.gecti.length} yangın ekipmanının</b> kontrol süresi geçti</div>`);
+  if (H.yangin.yakin.length) uyar.push(`<div class="t-uyari turuncu">🧯 <b>${H.yangin.yakin.length} yangın ekipmanının</b> süresi ${Y_YAKLASAN} gün içinde doluyor</div>`);
+  const sek = {ozet:"Özet", asansor:"Asansörler", hidrofor:"Hidrofor", jen:"Jeneratörler", yangin:"🧯 Yangın", kesinti:"Kesintiler"};
   return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
       <h2 style="margin:0;font:600 22px/1.2 var(--display)">Tesis takip</h2>
       ${store.isTech() ? `<a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">← İş paneli</a>` : `<button class="pill-btn cikis-btn" data-act="cikis">Çıkış yap</button>`}</div>
@@ -1304,6 +1537,7 @@ function vTesis(){
         <button class="t-btn" data-t="form" data-v="bakim"><span>🔧</span>Bakım yapıldı</button>
         <button class="t-btn" data-t="form" data-v="yakit"><span>⛽</span>Yakıt kaydı</button>
         <button class="t-btn" data-t="sekme" data-v="hidrofor"><span>💧</span>Hidrofor</button>
+        <button class="t-btn" data-t="sekme" data-v="yangin"><span>🧯</span>Yangın ekipmanı</button>
         ${H.devamEden ? `<button class="t-btn yesil" data-t="form" data-v="kesinti-bitti"><span>💡</span>Elektrik geldi</button>`
                       : `<button class="t-btn" data-t="kesinti-basladi"><span>⚡</span>Elektrik kesildi</button>`}
       </div>
@@ -1315,6 +1549,7 @@ function vTesis(){
     : T.sekme==="asansor" ? `${tAcikArizalar(H)}${tAsansorIzgara(H)}`
     : T.sekme==="jen" ? `${tJenKartlar(H, false)}`
     : T.sekme==="hidrofor" ? tHidrofor(H)
+    : T.sekme==="yangin" ? tYangin(H)
     : `${tKesintiOzet(H, true)}`}
     ${T.sekme==="ozet" || T.sekme==="jen" ? tAyarlar() : ""}
     ${T.f ? tForm() : ""}
@@ -1532,7 +1767,8 @@ function tRapor(hangi){
 document.addEventListener("click", async e => {
   const b = e.target.closest("[data-t]"); if (!b) return;
   const t = b.dataset.t, v = b.dataset.v, id = b.dataset.id; tSync();
-  if (t==="sekme"){ T.sekme = v; render(); }
+  if (/^yf?[A-Z]/.test(t)){ await yTik(t, v, id, b); return; }
+  if (t==="sekme"){ T.sekme = v; T.yf = null; T.yd = null; render(); }
   else if (t==="kapat"){ T.f = null; T.detay = null; render(); }
   else if (t==="detay"){ T.detay = v; render(); }
   else if (t==="form"){
