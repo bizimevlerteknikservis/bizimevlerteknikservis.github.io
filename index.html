@@ -288,6 +288,7 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 #kontrolCerceve[hidden]{display:none}
 #kontrolCerceve iframe{width:100%;height:100%;border:0;display:block}
 .kc-geri{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:2;background:rgba(255,255,255,.95);color:#12324f;font:600 14px/1 var(--display,system-ui);padding:11px 18px;border-radius:999px;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.t-meta.kimlik{flex-direction:column;align-items:flex-start;gap:2px;font-size:12.5px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -788,7 +789,7 @@ function fis(a, panel){
       <span style="display:flex;gap:6px">${a.sample?'<span class="chip sample">Örnek</span>':""}<span class="chip" data-s="${a.status}">${panel && a.status==="bekliyor" ? "Yeni" : (DURUM[a.status]||a.status)}</span></span></div>
     <div class="t-when${a.status==="bekliyor"?" muted":""}">${ust}</div>
     ${a.src==="personel"
-      ? `<div class="t-meta"><span>📍 <b>${esc(yerAd(a))}</b></span></div>${panel?`<div class="t-meta"><span class="staff">👷 ${esc(a.rol||"Personel")} · <b>${esc(a.name)}</b></span></div>`:""}`
+      ? `<div class="t-meta"><span>📍 <b>${esc(yerAd(a))}</b></span></div>${panel?`<div class="t-meta"><span class="staff">👷 ${esc(a.rol||"Personel")} · <b>${esc(a.name)}</b></span></div>${kimlikSatir(a)}`:""}`
       : `<div class="t-meta"><span>Blok <b>${esc(a.block)}</b></span><span>Daire <b>${esc(a.flat)}</b></span>${panel?`<span><b>${esc(a.name)}</b></span>`:""}</div>`}
     ${a.desc?`<p class="t-desc">${esc(a.desc)}</p>`:""}
     ${panel && a.fotoSayi ? `<div class="actions"><button class="act foto" data-act="foto" data-id="${a.id}">📷 Fotoğrafı gör${a.fotoSayi>1?` (${a.fotoSayi})`:""}</button></div>` : ""}
@@ -835,6 +836,24 @@ function kurBanner(ad){
 /* Hangi uygulamanın içindeyiz? (aynı sayfa birden fazla uygulamada açılabiliyor) */
 const appDosya = () => (location.pathname.split("/").pop() || "index.html");
 const appAdi = vars => ({"devriye.html":"B1 Devriye","teknik.html":"B1 Teknik","personel.html":"B1 Personel"})[appDosya()] || vars;
+/* Personel bildirimi gerçekten o kişiden mi? (kod + aynı telefondan gelen diğer bildirimler) */
+const adSade = x => String(x||"").trim().toLocaleLowerCase("tr").replace(/\s+/g," ");
+function kimlikSatir(a){
+  if (!store.isTech()) return "";
+  let k1;
+  if (a.kod){
+    const sahip = KOD.liste.find(k=>k.id===a.kod);
+    k1 = !sahip ? `🔑 Kodla gönderildi (${esc(a.kod)})`
+      : adSade(sahip.ad) === adSade(a.name) ? `✅ Kendi koduyla gönderildi`
+      : `⚠️ Kod <b>${esc(sahip.ad)}</b> kişisine ait`;
+  } else k1 = `⚠️ Kodsuz gönderildi · isim elle seçildi/yazıldı`;
+  const ayni = (S.all||[]).filter(x=>x.src==="personel" && x.uid===a.uid && x.id!==a.id);
+  const adlar = [...new Set(ayni.map(x=>x.name).filter(n=>adSade(n)!==adSade(a.name)))];
+  const k2 = !ayni.length ? `📱 Bu telefondan ilk bildirim`
+    : adlar.length ? `📱 Bu telefondan başka isimlerle de bildirim var: <b>${adlar.map(esc).join(", ")}</b>`
+    : `📱 Aynı telefondan ${ayni.length} bildirim daha (hep bu isimle)`;
+  return `<div class="t-meta kimlik"><span>${k1}</span><span>${k2}</span></div>`;
+}
 function vPersonel(){
   const p = S.p;
   const geri = /(devriye|teknik)\.html$/.test(location.pathname) && (S.d.kim || store.isYetkili()) ? `<a class="pill-btn" href="#devriye" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Devriyeye dön</a>` : "";
