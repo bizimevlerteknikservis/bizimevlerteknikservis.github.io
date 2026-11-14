@@ -863,7 +863,8 @@ function kimlikSatir(a){
 }
 function vPersonel(){
   const p = S.p;
-  const geri = /(devriye|teknik)\.html$/.test(location.pathname) && (S.d.kim || store.isYetkili()) ? `<a class="pill-btn" href="#devriye" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Devriyeye dön</a>` : "";
+  const geri = appDosya()==="teknik.html" ? `<a class="pill-btn" href="#panel" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Menü</a>`
+    : appDosya()==="devriye.html" && S.d.kim ? `<a class="pill-btn" href="#devriye" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Devriyeye dön</a>` : "";
   // Devriye uygulamasında güvenlik kodu varsa arıza bildirimi için ayrıca kod istenmez
   if (!p.kod && S.d.kim && S.d.kim.kod && geri){ Object.assign(p, {kod:S.d.kim.kod, name:S.d.kim.ad, rol:"Güvenlik", kayitli:true, kimlikAc:false}); }
   return geri + vPersonelIc();
@@ -1007,7 +1008,6 @@ function vDevriyeIc(){
     : `<button class="cta ghost sorun-btn" data-act="dSorunAc">⚠️ Bu noktada sorun var</button>`}` : ""}
   <button class="scan-btn" data-act="dTara"><svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>QR Okut</button>
   <p class="hint" style="text-align:center;margin:8px 0 14px">Telefonun kendi kamerasıyla okutursanız da kaydedilir.</p>
-  <a class="cta ghost" href="#personel" style="display:block;text-align:center;text-decoration:none;margin-bottom:14px">📝 Arıza bildir (fotoğraflı)</a>
   ${!navigator.onLine ? `<p class="kuyruk">📵 İnternet yok. Okutmaya devam edin, hepsi telefonda saklanıyor ve internet gelince kendiliğinden gönderilecek.</p>` : ""}
   ${kuyruk ? `<p class="kuyruk">📶 ${kuyruk} okutma henüz gönderilmedi, otomatik tekrar denenecek.${S.d.hata?`<br><b>${esc(S.d.hata)}</b>`:""}</p>` : ""}
   <section class="step"><h2><span>🔁</span>Bu tur <em class="turnum">${Object.keys(tur).length}/21</em></h2>
@@ -1160,6 +1160,7 @@ function vPanel(){
   if (!store.isTech() && store.isYetkili && store.isYetkili()){
     return `<div class="card"><h2>Hoş geldiniz${store.kim ? ", " + esc(store.kim()) : ""}</h2><p class="hint">Daire arızaları sadece teknisyene açıktır. Yetkili olduğunuz bölümler:</p>
       <a class="cta" href="#devriye" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px">🛡️ Devriye (QR okut)</a>
+      <a class="cta" href="#personel" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px">📝 Arıza bildir (fotoğraflı)</a>
       <a class="cta" href="#tasinma" style="display:block;text-align:center;text-decoration:none">🚚 Taşınma & Tadilat</a>
       ${store.isTesis() ? `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏢 Tesis takip</a>` : `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🛗 Asansör arızası</a>`}
       <a class="cta" href="#kontrol" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🗺️ Canlı Kontrol Merkezi</a>
