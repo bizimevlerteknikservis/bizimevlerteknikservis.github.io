@@ -126,8 +126,8 @@ label.f.note-l{display:block;margin-top:4px}
 .scan video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .scan-frame{position:relative;width:min(70vw,300px);aspect-ratio:1;border:4px solid rgba(255,255,255,.95);border-radius:24px;box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
 .scan-msg{position:absolute;left:16px;right:16px;top:calc(24px + env(safe-area-inset-top,0px));text-align:center;color:#fff;font-weight:700;font-size:17px;margin:0;text-shadow:0 1px 4px rgba(0,0,0,.6)}
-.scan-bar{position:absolute;left:0;right:0;bottom:calc(28px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:12px}
-.scan-b{border:0;border-radius:999px;padding:16px 26px;font:700 17px var(--body);background:rgba(255,255,255,.92);color:#111}
+.scan-bar{position:absolute;left:0;right:0;bottom:calc(28px + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;justify-content:center;gap:10px;padding:0 12px}
+.scan-b{border:0;border-radius:999px;padding:14px 20px;font:700 16px var(--body);background:rgba(255,255,255,.92);color:#111}
 .scan-b[aria-pressed="true"]{background:#f6c445}
 .who small{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 .staff{background:#eef4ff;color:#244a8f;border-radius:8px;padding:3px 8px}
@@ -338,13 +338,15 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 </div></nav>
 <div id="toast" class="toast" role="status" hidden></div>
 <div id="scan" class="scan" hidden>
-  <video id="scanVideo" playsinline muted></video>
+  <video id="scanVideo" playsinline muted autoplay></video>
   <div class="scan-frame"></div>
   <p id="scanMsg" class="scan-msg">Kamera açılıyor…</p>
   <div class="scan-bar">
     <button id="scanFener" class="scan-b" aria-pressed="false" hidden onclick="fenerDegistir()">🔦 Fener</button>
+    <label class="scan-b" style="cursor:pointer">📷 Fotoğrafla okut<input type="file" id="scanFoto" accept="image/*" capture="environment" hidden onchange="fotoIleOku(this)"></label>
     <button class="scan-b" onclick="taramaKapat()">Kapat</button>
   </div>
+  <button id="scanTekrar" class="scan-b" hidden onclick="taramaKapat(true);taramaAc()" style="position:absolute;left:50%;top:58%;transform:translateX(-50%)">🔄 Tekrar dene</button>
 </div>
 
 <script>
@@ -1313,26 +1315,45 @@ async function sorunGonder(){
   d.sorunAc = false; d.sorunNot = "";
   toast(ok === true ? "Sorun bildirildi" : "Sorun telefona kaydedildi, internet gelince gönderilecek"); render();
 }
-/* Kamera ile okutma: Android Chrome'da yerleşik okuyucu, yoksa jsQR */
-const TARA = {stream:null, raf:0, det:null, fener:false};
+/* Kamera ile okutma: Android Chrome'da yerleşik okuyucu, yoksa jsQR.
+   iPhone'da (ana ekran uygulaması) art arda kamera açınca takılabildiği için:
+   kamera kapatılınca hemen bırakılmaz (90 sn tekrar kullanılır), 7 sn'de açılmazsa "Tekrar dene" ve "Fotoğrafla okut" çıkar. */
+const TARA = {stream:null, raf:0, det:null, fener:false, birak:0, deneme:0};
+const jsqrYukle = () => window.jsQR ? Promise.resolve() : new Promise(r => { const sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"; sc.onload = r; sc.onerror = r; document.head.appendChild(sc); });
+const zamanAsimi = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("zaman")), ms))]);
+const canli = () => TARA.stream && TARA.stream.getVideoTracks().some(t => t.readyState === "live");
 async function taramaAc(){
-  const kutu = $("#scan"); kutu.hidden = false; $("#scanMsg").textContent = "Kamera açılıyor…";
+  const kutu = $("#scan"); kutu.hidden = false; $("#scanMsg").textContent = "Kamera açılıyor…"; $("#scanTekrar").hidden = true;
+  clearTimeout(TARA.birak);
+  const v = $("#scanVideo");
   try {
-    TARA.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment", width:{ideal:1280}}, audio:false});
-  } catch(e){ $("#scanMsg").textContent = "Kameraya izin verilmedi. Tarayıcı ayarlarından kamera iznini açın ya da QR'ı telefonun kendi kamerasıyla okutun."; return; }
-  const v = $("#scanVideo"); v.srcObject = TARA.stream; await v.play().catch(()=>{});
-  const track = TARA.stream.getVideoTracks()[0];
-  const caps = track.getCapabilities ? track.getCapabilities() : {};
-  $("#scanFener").hidden = !caps.torch;
-  if ("BarcodeDetector" in window){ try { TARA.det = new BarcodeDetector({formats:["qr_code"]}); } catch(e){ TARA.det = null; } }
-  if (!TARA.det && !window.jsQR){
-    await new Promise(r => { const sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"; sc.onload = r; sc.onerror = r; document.head.appendChild(sc); });
+    if (!canli()){
+      if (TARA.stream){ TARA.stream.getTracks().forEach(t=>t.stop()); TARA.stream = null; }
+      v.srcObject = null;
+      TARA.stream = await zamanAsimi(navigator.mediaDevices.getUserMedia({video:{facingMode:"environment", width:{ideal:1280}}, audio:false}), 7000);
+    }
+    if (v.srcObject !== TARA.stream) v.srcObject = TARA.stream;
+    await zamanAsimi(v.play(), 5000).catch(()=>{});
+  } catch(e){
+    const izin = e && (e.name === "NotAllowedError" || e.name === "SecurityError");
+    $("#scanMsg").textContent = izin ? "Kameraya izin verilmedi. Aşağıdaki 📷 Fotoğrafla okut düğmesini kullanın." : "Kamera açılamadı. 🔄 Tekrar dene ya da 📷 Fotoğrafla okut'a basın.";
+    $("#scanTekrar").hidden = izin;
+    if (TARA.stream){ TARA.stream.getTracks().forEach(t=>t.stop()); TARA.stream = null; }
+    return;
   }
+  const track = TARA.stream.getVideoTracks()[0];
+  const caps = track && track.getCapabilities ? track.getCapabilities() : {};
+  $("#scanFener").hidden = !caps.torch;
+  if ("BarcodeDetector" in window && !TARA.det){ try { TARA.det = new BarcodeDetector({formats:["qr_code"]}); } catch(e){ TARA.det = null; } }
+  if (!TARA.det) await jsqrYukle();
   $("#scanMsg").textContent = "QR kodu çerçevenin içine getirin";
+  // görüntü 5 sn içinde gelmezse (iPhone takılması) uyar
+  const bas = Date.now();
   const cv = document.createElement("canvas"), cx = cv.getContext("2d", {willReadFrequently:true});
   let mesgul = false;
   const dongu = async () => {
-    if (!TARA.stream) return;
+    if (!TARA.stream || $("#scan").hidden) return;
+    if (v.readyState < 2 && Date.now() - bas > 5000){ $("#scanMsg").textContent = "Görüntü gelmedi. 🔄 Tekrar dene ya da 📷 Fotoğrafla okut'a basın."; $("#scanTekrar").hidden = false; }
     if (!mesgul && v.readyState >= 2){
       mesgul = true;
       let txt = null;
@@ -1355,10 +1376,37 @@ async function taramaAc(){
   };
   TARA.raf = requestAnimationFrame(dongu);
 }
-function taramaKapat(){
+function taramaKapat(hemen){
   cancelAnimationFrame(TARA.raf);
-  if (TARA.stream){ TARA.stream.getTracks().forEach(t=>t.stop()); TARA.stream = null; }
-  TARA.fener = false; $("#scan").hidden = true;
+  $("#scan").hidden = true; $("#scanTekrar").hidden = true;
+  if (TARA.fener){ const t = TARA.stream && TARA.stream.getVideoTracks()[0]; if (t) t.applyConstraints({advanced:[{torch:false}]}).catch(()=>{}); TARA.fener = false; }
+  const birak = () => { if (TARA.stream){ TARA.stream.getTracks().forEach(t=>t.stop()); TARA.stream = null; } const v = $("#scanVideo"); if (v) v.srcObject = null; };
+  clearTimeout(TARA.birak);
+  if (hemen) birak(); else TARA.birak = setTimeout(birak, 90000);   // sonraki noktada kamerayı yeniden istemeden kullan
+}
+document.addEventListener("visibilitychange", () => { if (document.hidden && TARA.stream && $("#scan").hidden){ clearTimeout(TARA.birak); TARA.stream.getTracks().forEach(t=>t.stop()); TARA.stream = null; } });
+/* Yedek: telefonun kendi kamerasıyla fotoğraf çek, fotoğraftaki QR'ı oku */
+async function fotoIleOku(inp){
+  const f = inp.files && inp.files[0]; inp.value = ""; if (!f) return;
+  $("#scanMsg").textContent = "Fotoğraf okunuyor…";
+  try {
+    const url = URL.createObjectURL(f);
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    let txt = null;
+    if ("BarcodeDetector" in window){ try { const d = TARA.det || new BarcodeDetector({formats:["qr_code"]}); const r = await d.detect(img); if (r[0]) txt = r[0].rawValue; } catch(e){} }
+    if (!txt){
+      await jsqrYukle();
+      for (const max of [1000, 1600, 700]){
+        const k = Math.min(1, max / Math.max(img.width, img.height)), w = Math.round(img.width*k), h = Math.round(img.height*k);
+        const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const cx = cv.getContext("2d"); cx.drawImage(img, 0, 0, w, h);
+        const r = window.jsQR && jsQR(cx.getImageData(0,0,w,h).data, w, h, {inversionAttempts:"attemptBoth"}); if (r){ txt = r.data; break; }
+      }
+    }
+    URL.revokeObjectURL(url);
+    const n = txt && qrCoz(txt);
+    if (n){ taramaKapat(); noktaOkut(n); return; }
+    $("#scanMsg").textContent = txt ? "Bu QR bir devriye noktasına ait değil" : "Fotoğrafta QR bulunamadı. Biraz daha yakından, net çekin.";
+  } catch(e){ $("#scanMsg").textContent = "Fotoğraf okunamadı, tekrar deneyin."; }
 }
 async function fenerDegistir(){
   const t = TARA.stream && TARA.stream.getVideoTracks()[0]; if (!t) return;
