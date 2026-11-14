@@ -930,8 +930,15 @@ function haftaSonu(plan, cmt){
   const tek = Math.abs(fark) % 2 === 1;
   return {cmt: new Date(cmtBul(cmt)), paz: new Date(cmtBul(cmt).getTime() + GUN_MS), cmtL: tek ? plan.paz : plan.cmt, pazL: tek ? plan.cmt : plan.paz};
 }
+function izinGecerli(v){
+  if (!v || !v.ts) return false;
+  const hs = v.hafta ? new Date(v.hafta) : cmtBul(new Date(v.ts));          // yayınlandığı hafta sonunun Cumartesisi
+  const bitis = new Date(hs.getTime() + 2*GUN_MS); bitis.setHours(0,0,0,0);   // Pazartesi 00:00
+  return Date.now() < bitis.getTime();
+}
 function izinKart(){
   izinBaslat();
+  if (!izinGecerli(IZN.v)) return "";
   const plan = izinPlan(IZN.v); if (!plan || (!plan.cmt.length && !plan.paz.length)) return "";
   const ben = adKok(S.p.name);
   const bu = haftaSonu(plan, new Date()), sonraki = haftaSonu(plan, new Date(cmtBul(new Date()).getTime() + 7*GUN_MS));
@@ -944,8 +951,7 @@ function izinKart(){
   return `<section class="step izin-k"><h2><span>📅</span>Hafta sonu çalışma listesi</h2>
     ${kutu("Bu hafta sonu", bu)}
     <details><summary>Bu hafta sonu tüm liste</summary>${liste(bu)}</details>
-    <details><summary>Gelecek hafta sonu (${gunAy(sonraki.cmt)}–${gunAy(sonraki.paz)})</summary>${kutu("Gelecek hafta sonu", sonraki)}${liste(sonraki)}</details>
-    <p class="hint" style="margin-top:8px">Liste her hafta kendiliğinden döner: Cumartesi çalışan, sonraki hafta Pazar çalışır.${IZN.v.not ? " · " + esc(IZN.v.not) : ""}</p>
+    ${IZN.v.not ? `<p class="hint" style="margin-top:8px">📝 ${esc(IZN.v.not)}</p>` : ""}
   </section>`;
 }
 /* ---------- Düzenleme ekranı (#calisma): teknisyen + tesis yetkilileri ---------- */
@@ -988,7 +994,8 @@ function vCalisma(){
       <h2 style="margin:0;font:600 22px/1.2 var(--display)">Temizlik çalışma listesi</h2>
       <a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">${store.isTech() ? "← İş paneli" : "← Menü"}</a></div>
     ${!(IZN.v && (IZN.v.cmt || (IZN.v.gunler && IZN.v.gunler.length))) ? `<div class="t-uyari turuncu" style="margin-bottom:12px">📋 Verdiğiniz liste hazır yüklendi (3–4 Ekim tablosu, bu hafta sonuna göre döndürüldü). Kontrol edin, <b>Kaydet ve yayınla</b>'ya basın. Basmadan personel görmez.</div>` : ""}
-    <div class="t-uyari mavi" style="margin-bottom:12px">🔁 Değiştirmezseniz liste <b>her hafta kendiliğinden döner</b>: bu Cumartesi çalışan gelecek hafta Pazar, Pazar çalışan Cumartesi çalışır. Personel kendi telefonunda görür.</div>
+    <div class="t-uyari mavi" style="margin-bottom:12px">📅 Yayınladığınız liste temizlikçilerin telefonunda <b>Pazar gece yarısına kadar</b> görünür, <b>Pazartesi kendiliğinden kalkar</b>. Her hafta Cuma akşamı tekrar yayınlayın. 🔁 Ekran her hafta günleri kendiliğinden döndürerek hazır getirir: Cumartesi çalışan Pazar'a, Pazar çalışan Cumartesi'ye geçer. Değişiklik yoksa sadece <b>Kaydet ve yayınla</b>'ya basmanız yeter.</div>
+    ${izinGecerli(IZN.v) ? `<div class="t-uyari yesil" style="margin-bottom:12px">✓ Bu hafta sonunun listesi yayında. Personel görüyor.</div>` : `<div class="t-uyari turuncu" style="margin-bottom:12px">⏳ Bu hafta sonu için liste <b>henüz yayınlanmadı</b>. Personel şu an liste görmüyor.</div>`}
     <section class="card"><h3 style="margin-bottom:8px">Bu hafta sonu · ${gunAy(cm)}–${gunAy(pz)}</h3>
       <div class="group-h">Cumartesi · ${gunAy(cm)}</div>${f.cmt.map((r,i)=>satir("cmt", r, i)).join("")}
       <button class="pill-btn" data-act="clEkle" data-v="cmt" style="margin:4px 0 10px">+ Kişi ekle</button>
@@ -998,7 +1005,7 @@ function vCalisma(){
       ${(()=>{ const c = f.cmt.map(r=>adKok(r[0])).filter(Boolean), z = f.paz.map(r=>adKok(r[0])).filter(Boolean); const iki = c.filter(x=>z.includes(x)); const bos = [...f.cmt, ...f.paz].filter(r=>r[0] && r[0]!=="__diger" && !String(r[1]||"").trim()).map(r=>r[0]);
         return (iki.length ? `<p class="err">⚠️ ${iki.map(esc).join(", ")} hem Cumartesi hem Pazar listesinde.</p>` : "") + (bos.length ? `<p class="err">⚠️ Bloğu seçilmemiş: ${bos.map(esc).join(", ")}</p>` : ""); })()}
       <button class="cta" data-act="clKaydet" style="margin-top:10px">📢 Kaydet ve yayınla</button>
-      <p class="hint" style="margin-top:8px">Gelecek hafta sonu (${gunAy(sc)}–${gunAy(sp)}) otomatik: Cumartesi → ${f.paz.filter(r=>r[0]).map(r=>esc(r[0])).join(", ") || "—"} · Pazar → ${f.cmt.filter(r=>r[0]).map(r=>esc(r[0])).join(", ") || "—"}</p>
+      <p class="hint" style="margin-top:8px">Gelecek hafta sonu (${gunAy(sc)}–${gunAy(sp)}) ekran hazır getirecek: Cumartesi → ${f.paz.filter(r=>r[0]).map(r=>esc(r[0])).join(", ") || "—"} · Pazar → ${f.cmt.filter(r=>r[0]).map(r=>esc(r[0])).join(", ") || "—"}</p>
     </section>
     <details class="card t-ayar" style="margin-top:14px"><summary><b>📋 Excel'den yapıştır</b> (bilgisayardan)</summary>
       <p class="hint">Excel'deki Cumartesi–Pazar tablosunu seçip kopyalayın, buraya yapıştırın, <b>Listeye aktar</b>'a basın. Sonra kontrol edip yayınlayın.</p>
@@ -2489,7 +2496,7 @@ document.addEventListener("click", async e => {
       CL.f.cmt = pl.cmt.map(x=>x.slice()); CL.f.paz = pl.paz.map(x=>x.slice()); toast("Listeye aktarıldı, kontrol edip yayınlayın"); CL.gen++; render(); return; }
     else if (act==="clKaydet"){ clSync(); const f = CL.f;
       const temiz = L => L.map(([a,b]) => [String(a||"").trim(), String(b||"").trim()]).filter(([a]) => a && a !== "__diger");
-      const v = {tip:"donusumlu", baz: cmtBul(new Date()).getTime(), cmt: temiz(f.cmt), paz: temiz(f.paz), not: (f.not||"").trim(), ts: Date.now(), by: store.kim ? store.kim() : "Teknisyen"};
+      const v = {tip:"donusumlu", baz: cmtBul(new Date()).getTime(), hafta: cmtBul(new Date()).getTime(), cmt: temiz(f.cmt), paz: temiz(f.paz), not: (f.not||"").trim(), ts: Date.now(), by: store.kim ? store.kim() : "Teknisyen"};
       if (!v.cmt.length && !v.paz.length){ toast("Listede kimse yok"); return; }
       try { await store.setIzin(v); IZN.v = v; toast("Liste yayınlandı"); } catch(e){ console.error(e); toast("Yayınlanamadı: " + (e.code||"")); }
       render(); return; }
