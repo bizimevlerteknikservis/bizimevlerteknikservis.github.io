@@ -312,6 +312,9 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .cl-k.acik{background:rgba(43,124,211,.06);border-radius:14px;padding:6px;margin:0 -6px 6px}
 .cl-bloklar{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:6px 0 4px}
 .cl-bloklar .pref{padding:10px 0;font-weight:800}
+.izin-s.bugun{background:#fff3e0;border-color:#e8952b}.izin-s.gecmis{opacity:.55}.izin-s small{color:var(--muted);font-weight:500}
+.gel-btn{display:block;width:100%;margin:0 0 14px;border:2px dashed #e5484d!important;color:#c0392b!important;font-weight:800}
+.gel-k{border:2px solid #e5484d}
 </style>
 </head>
 <body>
@@ -397,8 +400,9 @@ const ARIZALAR = {
 const BAHCIVAN = "Bahçıvan / Peyzaj";
 const ROLLER = ["Temizlik", BAHCIVAN, "Güvenlik","Yönetim","Diğer"];
 // Rol bazlı kategoriler: bahçıvan sadece peyzaj, malzeme talebi sadece temizlik
-const rolKat = (rol, k) => rol === BAHCIVAN ? k.id === "p_bahce" : (k.id !== "p_malzeme" || rol === "Temizlik");
+const rolKat = (rol, k) => k.gizli ? false : rol === BAHCIVAN ? k.id === "p_bahce" : (k.id !== "p_malzeme" || rol === "Temizlik");
 const PKAT = [
+  {id:"p_gelemiyorum", ad:"İşe gelemiyor", gizli:true, ic:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/><path d="M17 3l4 4M21 3l-4 4"/>'},
   {id:"p_isik", ad:"Aydınlatma", ic:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>'},
   {id:"p_kapi", ad:"Kapı / kilit", ic:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'},
   {id:"p_asansor", ad:"Asansör", ic:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="m9 9 3-3 3 3M9 15l3 3 3-3"/>'},
@@ -504,7 +508,7 @@ function telegramBildir(a){
   const tg = AYAR.telegram;
   if (!tg || !tg.token || !tg.chatId) return;
   const text = [
-    (a.cat==="p_malzeme" ? "📦 Malzeme talebi " : a.src==="personel" ? "🧹 Personel bildirimi " : "🔧 Yeni arıza bildirimi ") + fisNo(a),
+    (a.cat==="p_gelemiyorum" ? "🤒 İŞE GELEMİYOR " : a.cat==="p_malzeme" ? "📦 Malzeme talebi " : a.src==="personel" ? "🧹 Personel bildirimi " : "🔧 Yeni arıza bildirimi ") + fisNo(a),
     "⚠️ " + catOf(a.cat).ad + (a.desc ? ": " + a.desc : ""),
     "📍 " + yerAd(a),
     a.src==="personel" ? "👷 Personel · " + (a.rol||"") + " · " + a.name + (a.phone ? " · " + a.phone : "") + (a.kod ? " · 🔑 kodla" : " · ⚠️ kodsuz") : "👤 " + a.name + " · " + a.phone,
@@ -600,6 +604,9 @@ function DemoStore(){
     async setTesisAyar(p){ mem.tesisAyar = {...(mem.tesisAyar||{}), ...p}; save(); },
     listenDuyuru: cb => sub(() => cb(mem.duyuru || null)),
     listenIzin: cb => sub(() => cb(mem.izin || null)),
+    listenIzinler: cb => sub(() => cb(mem.izinler || null)),
+    async setIzinler(v){ mem.izinler = v; save(); },
+    listenGelemeyen: cb => sub(() => cb(mem.appts.filter(a => a.cat==="p_gelemiyorum"))),
     async setIzin(v){ mem.izin = v; save(); },
     async setDuyuru(v){ mem.duyuru = v; save(); },
     async logout(){ tech = false; save(); },
@@ -679,6 +686,9 @@ function FirebaseStore(cfg){
     // Firestore iç içe dizi kabul etmez: [ad, blok] çiftleri {ad, blok} nesnesi olarak saklanır
     listenIzin(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","izin"), s => cb(s.exists() ? izinOku(s.data()) : null), e => { console.warn("izin", e && e.code); cb(null); }); },
     async setIzin(v){ await fs.setDoc(fs.doc(db,"duyuru","izin"), izinYaz(v)); },
+    listenIzinler(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","izinler"), s => cb(s.exists() ? s.data() : null), e => { console.warn("izinler", e && e.code); cb(null); }); },
+    async setIzinler(v){ await fs.setDoc(fs.doc(db,"duyuru","izinler"), v); },
+    listenGelemeyen(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"appointments"), fs.where("src","==","personel"), fs.where("cat","==","p_gelemiyorum")), sn => cb(sn.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.warn("gelemeyen", e && e.code); cb([]); }); },
     async addFoto(aid, i, data, kod){
       await fs.setDoc(fs.doc(db, "foto", aid + "_" + i), {aid, i, data, uid: user.uid, ts: Date.now(), ...(kod ? {kod} : {})});
     },
@@ -955,6 +965,57 @@ function izinKart(){
     ${IZN.v.not ? `<p class="hint" style="margin-top:8px">📝 ${esc(IZN.v.not)}</p>` : ""}
   </section>`;
 }
+/* =================== YILLIK İZİN / RAPOR · İŞE GELEMİYORUM =================== */
+const YI = {v:null, un:null, gel:[], unG:null, f:null};
+const IZIN_TUR = {yillik:"🏖️ Yıllık izin", rapor:"🤒 Rapor (hasta)", mazeret:"📄 Mazeret izni", ucretsiz:"⏸️ Ücretsiz izin"};
+const ymdS = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const ymdTarih = x => { const [y,m,d] = String(x||"").split("-").map(Number); return y ? new Date(y, m-1, d, 12) : null; };
+const aralik = e => { const a = ymdTarih(e.bas), b = ymdTarih(e.bit) || a; return a ? (ymdS(a) === ymdS(b) ? gunAy(a) : `${gunAy(a)} – ${gunAy(b)}`) : ""; };
+function yiBaslat(){
+  if (!YI.un && store.listenIzinler) YI.un = store.listenIzinler(v => { YI.v = v; if (["personel","calisma"].includes(S.view)) setTimeout(render,0); });
+}
+function gelBaslat(){
+  if (!YI.unG && store.listenGelemeyen && (store.isTech() || store.isTesis() || (store.isYetkili && store.isYetkili()))) YI.unG = store.listenGelemeyen(L => { YI.gel = L; if (S.view==="calisma") setTimeout(render,0); });
+}
+const izinListe = () => (YI.v && Array.isArray(YI.v.liste)) ? YI.v.liste : [];
+/* personel ekranı: kendi izni + "bugün gelemiyorum" düğmesi */
+function izinBenKart(){
+  yiBaslat();
+  const ben = adKok(S.p.name), bugun = ymdS(new Date());
+  const benim = izinListe().filter(e => adKok(e.ad) === ben && (e.bit || e.bas) >= bugun).sort((a,b)=>a.bas.localeCompare(b.bas));
+  const g = S.gel || {};
+  if (g.ac) return `<section class="step gel-k"><h2><span>🤒</span>Bugün işe gelemiyorum</h2>
+      <p class="hint">Sebebi seçin. Teknisyene ve sorumlulara hemen bildirilir.</p>
+      <div class="prefs">${["Hastayım","Doktora gidiyorum","Raporluyum","Acil ailevi durum","Diğer"].map(x=>`<button class="pref" data-act="gelSebep" data-v="${esc(x)}" aria-pressed="${g.sebep===x}">${esc(x)}</button>`).join("")}</div>
+      <label class="f" style="margin-top:10px">Not (isteğe bağlı)<input id="gel_not" maxlength="200" value="${esc(g.not||"")}" placeholder="Örn. Yarın da gelemeyebilirim"></label>
+      ${g.hata ? `<p class="err">${esc(g.hata)}</p>` : ""}
+      <div class="grid2"><button class="cta ghost" data-act="gelKapat">Vazgeç</button><button class="cta danger" data-act="gelGonder">${S.sending ? "Gönderiliyor…" : "Bildir"}</button></div>
+    </section>`;
+  return `${benim.length ? `<section class="step izin-k"><h2><span>🏖️</span>İzinleriniz</h2><div class="izin-ben">${benim.map(e=>`<div><small>${esc(IZIN_TUR[e.tur]||"İzin")}</small><b>${aralik(e)}</b>${e.not?`<em>${esc(e.not)}</em>`:""}</div>`).join("")}</div></section>` : ""}
+    ${g.gonderildi ? `<div class="t-uyari yesil" style="margin:0 0 12px">✓ Bugün gelemeyeceğiniz bildirildi. Geçmiş olsun.</div>` : `<button class="cta ghost gel-btn" data-act="gelAc">🤒 Bugün işe gelemiyorum</button>`}`;
+}
+/* yönetim ekranı: izin listesi + bugün gelemeyenler */
+function yiPanel(isimler){
+  yiBaslat(); gelBaslat();
+  const bugun = ymdS(new Date()), f = YI.f || (YI.f = {ad:"", tur:"yillik", bas:bugun, bit:bugun, not:""});
+  const L = izinListe().slice().sort((a,b)=>a.bas.localeCompare(b.bas));
+  const aktif = L.filter(e => (e.bit||e.bas) >= ymdS(new Date(Date.now()-30*GUN_MS)));
+  const gel = (YI.gel||[]).filter(a => a.createdAt > Date.now() - 7*GUN_MS).sort((a,b)=>b.createdAt-a.createdAt);
+  return `<section class="card" style="margin-top:14px"><h3 style="margin-bottom:6px">🤒 İşe gelemeyeceğini bildirenler <small style="font-weight:500;color:var(--muted)">· son 7 gün</small></h3>
+      ${gel.length ? gel.map(a=>`<div class="izin-s${ymdS(new Date(a.createdAt))===bugun?" bugun":""}"><span><b>${esc(a.name)}</b> · ${esc(a.desc || (a.issues||[]).join(", "))}</span><b>${ymdS(new Date(a.createdAt))===bugun ? "Bugün" : gunAy(new Date(a.createdAt))} ${saatStr(a.createdAt)}</b></div>`).join("") : `<p class="hint">Bildirim yok.</p>`}
+    </section>
+    <section class="card" style="margin-top:14px"><h3 style="margin-bottom:6px">🏖️ Yıllık izin ve raporlar</h3>
+      <p class="hint">Eklediğiniz izni personel kendi telefonunda görür.</p>
+      ${aktif.length ? aktif.map((e,i)=>`<div class="izin-s${(e.bas<=bugun && (e.bit||e.bas)>=bugun)?" bugun":""}${(e.bit||e.bas)<bugun?" gecmis":""}"><span><b>${esc(e.ad)}</b> · ${esc(IZIN_TUR[e.tur]||"İzin")}${e.not?` <small>${esc(e.not)}</small>`:""}</span><span style="display:flex;gap:6px;align-items:center"><b>${aralik(e)}</b><button class="pill-btn cikis-btn" data-act="yiSil" data-id="${esc(e.id)}" style="padding:4px 10px">✕</button></span></div>`).join("") : `<p class="hint">Kayıtlı izin yok.</p>`}
+      <div class="group-h" style="margin-top:12px">İzin ekle</div>
+      <div class="grid2"><label class="f">Kişi<select id="yi_ad"><option value="">Seçin</option>${isimler.map(n=>`<option ${n===f.ad?"selected":""}>${esc(n)}</option>`).join("")}</select></label>
+        <label class="f">Tür<select id="yi_tur">${Object.entries(IZIN_TUR).map(([k,a])=>`<option value="${k}" ${f.tur===k?"selected":""}>${a}</option>`).join("")}</select></label></div>
+      <div class="grid2"><label class="f">Başlangıç<input type="date" id="yi_bas" value="${esc(f.bas)}"></label><label class="f">Bitiş<input type="date" id="yi_bit" value="${esc(f.bit)}"></label></div>
+      <label class="f">Not (isteğe bağlı)<input id="yi_not" maxlength="120" value="${esc(f.not)}" placeholder="Örn. İşbaşı 28 Kasım"></label>
+      <button class="cta" data-act="yiEkle">+ İzni kaydet</button>
+    </section>`;
+}
+function yiSync(){ const f = YI.f; if (!f) return; [["yi_ad","ad"],["yi_tur","tur"],["yi_bas","bas"],["yi_bit","bit"],["yi_not","not"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; }); }
 /* ---------- Düzenleme ekranı (#calisma): teknisyen + tesis yetkilileri ---------- */
 const CL = {f:null, gen:0, acik:null};
 const ciftYaz = L => (L||[]).map(r => Array.isArray(r) ? {ad: r[0] || "", blok: r[1] || ""} : r);
@@ -1017,6 +1078,7 @@ function vCalisma(){
       <textarea id="cl_yap" rows="6">${esc(f.yapistir)}</textarea>
       <button class="cta ghost" data-act="clAktar" style="margin-top:8px">Listeye aktar</button>
     </details>
+    ${yiPanel(isimler)}
     ${IZN.v && IZN.v.ts ? `<p class="hint" style="margin-top:10px">Son yayın: ${tarihSaat(IZN.v.ts)}${IZN.v.by ? " · " + esc(IZN.v.by) : ""}</p>` : ""}`;
 }
 function vPersonel(){
@@ -1049,7 +1111,7 @@ function vPersonelIc(){
         <label class="f">Ad soyad<input type="text" id="p_name" autocomplete="name" value="${esc(p.name)}"></label>
         <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
       </section>`;
-  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${p.kod || p.kayitli ? izinKart() : ""}
+  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${p.kod || p.kayitli ? izinKart() + izinBenKart() : ""}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.filter(k => rolKat(p.rol, k)).map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
     ${p.cat ? `<div class="issues" style="margin-top:6px">${PARIZA[p.cat].map(x => `<button class="iss" data-act="pIss" data-v="${esc(x)}" aria-pressed="${p.issues.includes(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
@@ -2384,7 +2446,8 @@ function render(){
 function syncForm(){
   const rk = document.getElementById("rolKart"); if (rk) S.rolAcik = rk.open;
   const kk = document.getElementById("kodKart"); if (kk) S.kodAcik = kk.open;
-  if (S.view === "calisma") clSync();
+  if (S.view === "calisma"){ clSync(); yiSync(); }
+  const gn = document.getElementById("gel_not"); if (gn && S.gel) S.gel.not = gn.value;
   const kg = document.getElementById("kodGir"); if (kg) S.kodTaslak = kg.value;
   [["kodAd","ad"],["kodRol","rol"],["kodVardiya","vardiya"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) KOD.form[k] = el.value; });
   const rl = document.getElementById("rolListe"); if (rl) S.rolTaslak = rl.value;
@@ -2490,6 +2553,29 @@ document.addEventListener("click", async e => {
       catch(e){ toast("Kaydedilemedi: " + (e.code||"")); }
       render(); return;
     }
+    else if (act==="gelAc"){ S.gel = {ac:true, sebep:"", not:""}; render(); return; }
+    else if (act==="gelKapat"){ S.gel = null; render(); return; }
+    else if (act==="gelSebep"){ syncForm(); S.gel.sebep = b.dataset.v; S.gel.hata = ""; render(); return; }
+    else if (act==="gelGonder"){ syncForm(); const g = S.gel, p = S.p;
+      if (!g.sebep){ g.hata = "Sebebi seçin"; render(); return; }
+      if (!p.name){ g.hata = "Önce kodunuzu girin"; render(); return; }
+      S.sending = true; render();
+      try { const a = await store.create({src:"personel", kod:p.kod, rol:p.rol, cat:"p_gelemiyorum", issues:[g.sebep], desc:[g.sebep, (g.not||"").trim()].filter(Boolean).join(" — "), name:p.name.trim(), phone:"", block:"", kat:"", alan:"İşe gelemiyor", flat:"", fotoSayi:0});
+        telegramBildir(a); S.gel = {gonderildi:true}; toast("Bildirildi"); }
+      catch(e){ console.error(e); g.hata = (e && e.code === "permission-denied") ? "Gönderilemedi: kodunuz geçersiz ya da pasif." : "Gönderilemedi, internet bağlantınızı kontrol edin."; }
+      S.sending = false; render(); return; }
+    else if (act==="yiEkle"){ syncForm(); const f = YI.f;
+      if (!f.ad){ toast("Kişiyi seçin"); return; } if (!f.bas){ toast("Başlangıç tarihini seçin"); return; }
+      const bit = f.bit && f.bit >= f.bas ? f.bit : f.bas;
+      const e = {id: "i" + Date.now().toString(36), ad: f.ad, tur: f.tur, bas: f.bas, bit, not: (f.not||"").trim(), by: store.kim ? store.kim() : "Teknisyen", ts: Date.now()};
+      const L = [...izinListe().filter(x => (x.bit||x.bas) >= ymdS(new Date(Date.now()-120*GUN_MS))), e];
+      try { await store.setIzinler({liste: L, ts: Date.now()}); YI.v = {liste: L}; YI.f = null; toast("İzin kaydedildi"); } catch(err){ console.error(err); toast("Kaydedilemedi: " + (err.code||"")); }
+      render(); return; }
+    else if (act==="yiSil"){
+      if (b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = "Sil?"; return; }
+      const L = izinListe().filter(x => x.id !== b.dataset.id);
+      try { await store.setIzinler({liste: L, ts: Date.now()}); YI.v = {liste: L}; toast("Silindi"); } catch(err){ toast("Silinemedi"); }
+      render(); return; }
     else if (act==="clEkle"){ clSync(); CL.f[b.dataset.v].push(["",""]); CL.acik = null; CL.gen++; render(); return; }
     else if (act==="clBlokAc"){ clSync(); const k = b.dataset.v + b.dataset.id; CL.acik = CL.acik === k ? null : k; render(); return; }
     else if (act==="clBlok"){ clSync(); const r = CL.f[b.dataset.v][+b.dataset.id]; const L = String(r[1]||"").split(/[-,\s]+/).filter(Boolean); const x = b.dataset.b; const i2 = L.indexOf(x); if (i2 < 0) L.push(x); else L.splice(i2,1);
