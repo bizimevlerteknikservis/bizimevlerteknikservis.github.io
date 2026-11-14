@@ -869,7 +869,7 @@ function vPersonel(){
   const geri = appDosya()==="teknik.html" ? `<a class="pill-btn" href="#panel" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Menü</a>`
     : appDosya()==="devriye.html" && S.d.kim ? `<a class="pill-btn" href="#devriye" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Devriyeye dön</a>` : "";
   // Devriye uygulamasında güvenlik kodu varsa arıza bildirimi için ayrıca kod istenmez
-  if (!p.kod && S.d.kim && S.d.kim.kod && geri){ Object.assign(p, {kod:S.d.kim.kod, name:S.d.kim.ad, rol:"Güvenlik", kayitli:true, kimlikAc:false}); }
+  if (!p.kod && S.d.kim && S.d.kim.kod && geri && !store.isTech()){ Object.assign(p, {kod:S.d.kim.kod, name:S.d.kim.ad, rol:"Güvenlik", kayitli:true, kimlikAc:false}); }
   return geri + vPersonelIc();
 }
 function vPersonelIc(){
