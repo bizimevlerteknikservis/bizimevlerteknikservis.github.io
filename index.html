@@ -2130,7 +2130,7 @@ function render(){
   syncForm();
   const keep = document.activeElement && document.activeElement.id;
   $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="personel" ? vPersonel() : S.view==="devriye" ? vDevriye() : vRandevu();
-  document.querySelector("nav.tabs").hidden = S.view==="personel" || S.view==="devriye";
+  document.querySelector("nav.tabs").hidden = S.view==="personel" || S.view==="devriye" || (appDosya()==="teknik.html" && !store.isTech());
   $("#ustYazi").textContent = S.view==="personel" ? "Bizimevler 1 · Personel" : S.view==="devriye" ? "Bizimevler 1 · Güvenlik" : (AYAR.ustYazi || "Teknik Servis");
   $("#siteName").textContent = S.view==="devriye" ? "Devriye" : (AYAR.baslik || AYAR.siteAdi);
   $("#heroSub").textContent = S.view==="randevularim" ? "Bildirimlerinin durumunu ve teknisyen notlarını buradan takip et."
@@ -2362,6 +2362,8 @@ function route(){
     return;
   }
   S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma"].includes(h) ? h : "randevu";
+  // B1 Teknik uygulamasında sakin arıza formu yok (amirler görmesin); teknisyen #randevu ile yine açabilir
+  if (appDosya()==="teknik.html" && (S.view==="randevu"||S.view==="randevularim") && !store.isTech()){ S.view = "panel"; history.replaceState(null, "", location.pathname + "#panel"); }
   if (S.view !== "tesis"){ T.f = null; T.detay = null; }
   // Linkte kod varsa (…devriye.html?kod=123456) otomatik gir, sonra adres çubuğundan sil
   const lk = new URLSearchParams(location.search).get("kod");
