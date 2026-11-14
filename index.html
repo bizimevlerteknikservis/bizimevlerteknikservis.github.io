@@ -295,6 +295,14 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .hizli-menu{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:0 0 14px}
 .hizli-menu a{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:14px;background:var(--card,#fff);border:1px solid var(--line,#e3e9f2);text-decoration:none;color:var(--ink);font-size:11.5px;font-weight:700;text-align:center;line-height:1.15}
 .hizli-menu a span{font-size:22px}
+.izin-k h2{margin-bottom:8px}
+.izin-ben{display:grid;gap:8px;margin:6px 0 10px}
+.izin-ben div{padding:14px 16px;border-radius:14px;background:#e8f7ee;border:2px solid #2fa36b;display:flex;flex-direction:column}
+.izin-ben small{font-size:13px;color:#2b6b4a;font-weight:700;letter-spacing:.02em}.izin-ben b{font-size:22px;color:#123d27}
+.izin-k summary{cursor:pointer;font-weight:700;margin:4px 0}
+.izin-gun{margin-top:10px}.izin-gb{font-size:13px;font-weight:800;color:var(--muted);letter-spacing:.04em;margin-bottom:6px}
+.izin-s{display:flex;justify-content:space-between;gap:10px;padding:9px 12px;border-radius:10px;background:var(--card,#fff);border:1px solid var(--line,#e3e9f2);margin-bottom:5px;font-size:15px}
+.izin-s.ben{background:#e8f7ee;border-color:#2fa36b;font-weight:700}
 </style>
 </head>
 <body>
@@ -582,6 +590,8 @@ function DemoStore(){
     async updateTesis(id, p){ const r = (mem.tesis||[]).find(x=>x.id===id); if (r){ Object.assign(r, p); save(); } },
     async setTesisAyar(p){ mem.tesisAyar = {...(mem.tesisAyar||{}), ...p}; save(); },
     listenDuyuru: cb => sub(() => cb(mem.duyuru || null)),
+    listenIzin: cb => sub(() => cb(mem.izin || null)),
+    async setIzin(v){ mem.izin = v; save(); },
     async setDuyuru(v){ mem.duyuru = v; save(); },
     async logout(){ tech = false; save(); },
     isTesis: () => tech,
@@ -657,6 +667,8 @@ function FirebaseStore(cfg){
     async setTesisAyar(p){ await fs.setDoc(fs.doc(db,"ayar","tesis"), p, {merge:true}); },
     listenDuyuru(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","devriye"), s => cb(s.exists() ? s.data() : null), e => { console.warn("duyuru", e && e.code); cb(null); }); },
     async setDuyuru(v){ await fs.setDoc(fs.doc(db,"duyuru","devriye"), v); },
+    listenIzin(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","izin"), s => cb(s.exists() ? s.data() : null), e => { console.warn("izin", e && e.code); cb(null); }); },
+    async setIzin(v){ await fs.setDoc(fs.doc(db,"duyuru","izin"), v); },
     async addFoto(aid, i, data, kod){
       await fs.setDoc(fs.doc(db, "foto", aid + "_" + i), {aid, i, data, uid: user.uid, ts: Date.now(), ...(kod ? {kod} : {})});
     },
@@ -864,6 +876,57 @@ function kimlikSatir(a){
     : `📱 Aynı telefondan ${ayni.length} bildirim daha (hep bu isimle)`;
   return `<div class="t-meta kimlik"><span>${k1}</span><span>${k2}</span></div>`;
 }
+/* =================== İZİN / HAFTA SONU ÇALIŞMA LİSTESİ =================== */
+/* Teknisyen Excel'den kopyalayıp yapıştırır; personel uygulamasında herkes görür, kendi satırı vurgulanır. */
+const IZN = {v:null, un:null};
+function izinBaslat(){ if (IZN.un || !store.listenIzin) return; IZN.un = store.listenIzin(v => { IZN.v = v; if (S.view==="personel" || S.view==="panel") setTimeout(render,0); }); }
+const TARIH_RE = /(\d{1,2})[./](\d{1,2})[./](\d{4})/;
+function izinCoz(metin){
+  const gunler = [];
+  let kol = null;   // sütun no → gün
+  for (const ham of String(metin||"").split(/\r?\n/)){
+    if (!ham.trim()) continue;
+    const hucre = ham.includes("\t") ? ham.split("\t").map(x=>x.trim()) : null;
+    if (TARIH_RE.test(ham)){
+      kol = {};
+      if (hucre) hucre.forEach((h,i)=>{ if (TARIH_RE.test(h)){ const g = {baslik:h, satir:[]}; gunler.push(g); kol[i] = g; } });
+      else { const g = {baslik:ham.trim(), satir:[]}; gunler.push(g); kol[0] = g; }
+      continue;
+    }
+    if (!kol) continue;
+    if (hucre){ for (const [i,g] of Object.entries(kol)){ const ad = hucre[+i], is = hucre[+i+1]; if (ad) g.satir.push([ad, is||""]); } }
+    else { const m = ham.trim().match(/^(.+?)\s+([A-Za-zÇĞİÖŞÜçğıöşü]?\d.*|[A-Z]\d.*)$/); const g = Object.values(kol)[0]; if (g) g.satir.push(m ? [m[1], m[2]] : [ham.trim(), ""]); }
+  }
+  return gunler.filter(g => g.satir.length);
+}
+const adKok = x => String(x||"").trim().split(/\s+/)[0].toLocaleUpperCase("tr");
+function izinKart(){
+  izinBaslat();
+  const v = IZN.v; if (!v || !v.gunler || !v.gunler.length) return "";
+  const ben = adKok(S.p.name);
+  const benim = []; v.gunler.forEach(g => g.satir.forEach(([ad, is]) => { if (ben && adKok(ad) === ben) benim.push([g.baslik, is]); }));
+  return `<section class="step izin-k"><h2><span>📅</span>${esc(v.baslik || "Çalışma listesi")}</h2>
+    ${benim.length ? `<div class="izin-ben">${benim.map(([g, is]) => `<div><small>${esc(g)} · Sizin göreviniz</small><b>${esc(is || "Görevlisiniz")}</b></div>`).join("")}</div>`
+      : ben ? `<p class="hint">Bu listede adınız yok.</p>` : ""}
+    <details${benim.length ? "" : " open"}><summary>Tüm liste</summary>
+      ${v.gunler.map(g => `<div class="izin-gun"><div class="izin-gb">${esc(g.baslik)}</div>${g.satir.map(([ad, is]) => `<div class="izin-s${ben && adKok(ad)===ben ? " ben" : ""}"><span>${esc(ad)}</span><b>${esc(is)}</b></div>`).join("")}</div>`).join("")}
+    </details>
+    <p class="hint" style="margin-top:8px">Yayınlandı: ${tarihSaat(v.ts)}${v.not ? " · " + esc(v.not) : ""}</p>
+  </section>`;
+}
+function izinPanel(){
+  izinBaslat();
+  const v = IZN.v, f = S.izinF || (S.izinF = {baslik: (v && v.baslik) || "Hafta sonu çalışma listesi", metin: (v && v.metin) || "", not: ""});
+  const on = izinCoz(f.metin);
+  return `<details class="card t-ayar" style="margin-top:14px" id="izinKart" ${S.izinAcik?"open":""}><summary><b>📅 İzin / hafta sonu listesi</b> · ${v && v.gunler ? v.gunler.length + " gün yayında" : "yayında değil"}</summary>
+    <p class="hint">Excel'deki tabloyu seçip kopyalayın, aşağıya yapıştırın. Personel uygulamasında herkes görür, kendi satırı vurgulanır.</p>
+    <label class="f">Başlık<input id="izinBaslik" maxlength="60" value="${esc(f.baslik)}"></label>
+    <label class="f">Liste<textarea id="izinMetin" rows="8" placeholder="03/10/2026 CUMARTESİ&#9;&#9;04/10/2026 PAZAR&#10;ŞÜKRAN&#9;A1-A2-A3-A4&#9;AYŞE&#9;F1-F2-C1-C2">${esc(f.metin)}</textarea></label>
+    <label class="f">Not (isteğe bağlı)<input id="izinNot" maxlength="120" value="${esc(f.not||"")}" placeholder="Örn. Değişiklik için amirinize haber verin"></label>
+    ${on.length ? `<div class="hint">Önizleme: ${on.map(g => `<b>${esc(g.baslik)}</b> (${g.satir.length} kişi)`).join(" · ")}</div>` : (f.metin ? `<p class="err">Tarih satırı bulunamadı. İlk satırda 03/10/2026 gibi bir tarih olmalı.</p>` : "")}
+    <div class="grid2" style="margin-top:10px"><button class="cta" data-act="izinYayinla">📢 Yayınla</button>${v && v.gunler ? `<button class="cta ghost cikis-btn" data-act="izinKaldir">Kaldır</button>` : ""}</div>
+  </details>`;
+}
 function vPersonel(){
   const p = S.p;
   const geri = appDosya()==="teknik.html" ? `<a class="pill-btn" href="#panel" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Menü</a>`
@@ -894,7 +957,7 @@ function vPersonelIc(){
         <label class="f">Ad soyad<input type="text" id="p_name" autocomplete="name" value="${esc(p.name)}"></label>
         <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
       </section>`;
-  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}
+  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${p.kod || p.kayitli ? izinKart() : ""}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.filter(k => rolKat(p.rol, k)).map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
     ${p.cat ? `<div class="issues" style="margin-top:6px">${PARIZA[p.cat].map(x => `<button class="iss" data-act="pIss" data-v="${esc(x)}" aria-pressed="${p.issues.includes(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
@@ -1220,7 +1283,7 @@ function vPanel(){
       <textarea id="rolTesis" rows="2" placeholder="ali@ornek.com">${esc(S.rolTesisTaslak ?? (S.rolTesis||[]).join("\n"))}</textarea>
       <button class="cta ghost" data-act="rolKaydet" style="margin-top:8px">Kaydet</button>
       <p class="hint">Sonra Firebase → Authentication → <b>Add user</b> ile bu e-postalara birer şifre tanımlayın.</p></details>
-    ${kodPanel()}`;
+    ${kodPanel()}${izinPanel()}`;
 }
 
 /* Küçük XLSX yazıcı (dış kütüphane gerektirmez) */
@@ -2227,6 +2290,7 @@ function render(){
 function syncForm(){
   const rk = document.getElementById("rolKart"); if (rk) S.rolAcik = rk.open;
   const kk = document.getElementById("kodKart"); if (kk) S.kodAcik = kk.open;
+  const ik = document.getElementById("izinKart"); if (ik){ S.izinAcik = ik.open; [["izinBaslik","baslik"],["izinMetin","metin"],["izinNot","not"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el && S.izinF) S.izinF[k] = el.value; }); }
   const kg = document.getElementById("kodGir"); if (kg) S.kodTaslak = kg.value;
   [["kodAd","ad"],["kodRol","rol"],["kodVardiya","vardiya"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) KOD.form[k] = el.value; });
   const rl = document.getElementById("rolListe"); if (rl) S.rolTaslak = rl.value;
@@ -2330,6 +2394,19 @@ document.addEventListener("click", async e => {
       const v = {...(DUY.v||{}), aktif:false, kaldiran: (S.d.kim && S.d.kim.ad) || (store.kim ? store.kim() : "Amir"), kalkis: Date.now()};
       try { await store.setDuyuru(v); DUY.v = v; toast("Devriye yeniden başladı"); tgGonder(`✅ Devriye yeniden başladı · ${v.kaldiran} · ${tarihSaat(v.kalkis)}`); }
       catch(e){ toast("Kaydedilemedi: " + (e.code||"")); }
+      render(); return;
+    }
+    else if (act==="izinYayinla"){
+      const f = S.izinF; f.baslik = ($("#izinBaslik")||{}).value || f.baslik; f.metin = ($("#izinMetin")||{}).value || ""; f.not = (($("#izinNot")||{}).value || "").trim();
+      const gunler = izinCoz(f.metin); S.izinAcik = true;
+      if (!gunler.length){ toast("Liste okunamadı: ilk satırda tarih olmalı"); render(); return; }
+      const v = {baslik:f.baslik.trim() || "Çalışma listesi", metin:f.metin, gunler, not:f.not, ts:Date.now(), by: store.kim ? store.kim() : "Teknisyen"};
+      try { await store.setIzin(v); IZN.v = v; toast(`Liste yayınlandı · ${gunler.length} gün`); } catch(e){ console.error(e); toast("Yayınlanamadı: " + (e.code||"")); }
+      render(); return;
+    }
+    else if (act==="izinKaldir"){
+      if (b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = "Emin misiniz? Tekrar basın"; return; }
+      try { await store.setIzin({gunler:[], ts:Date.now()}); IZN.v = null; toast("Liste kaldırıldı"); } catch(e){ toast("Kaldırılamadı"); }
       render(); return;
     }
     else if (act==="kodPaylas"){
