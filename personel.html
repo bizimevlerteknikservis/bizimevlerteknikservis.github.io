@@ -303,9 +303,15 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .izin-gun{margin-top:10px}.izin-gb{font-size:13px;font-weight:800;color:var(--muted);letter-spacing:.04em;margin-bottom:6px}
 .izin-s{display:flex;justify-content:space-between;gap:10px;padding:9px 12px;border-radius:10px;background:var(--card,#fff);border:1px solid var(--line,#e3e9f2);margin-bottom:5px;font-size:15px}
 .izin-s.ben{background:#e8f7ee;border-color:#2fa36b;font-weight:700}
-.cl-s{display:grid;grid-template-columns:.9fr 1.5fr 40px 40px;gap:6px;margin-bottom:6px;align-items:center}
+.cl-s{display:grid;grid-template-columns:1fr 1.25fr 40px 40px;gap:6px;margin-bottom:6px;align-items:center}
 .cl-s input{min-width:0;padding:10px 10px;font-size:15px}.cl-s .pill-btn{padding:8px 0;min-width:0;justify-content:center}
 .izin-ben b{display:block}.izin-ben .izin-blok{font:800 22px var(--display,system-ui);color:#123d27;margin-top:2px}.izin-ben em{font-style:normal;font-size:14px;color:#2b6b4a;margin-top:4px}
+.cl-s select{min-width:0;padding:10px 8px;font-size:15px;font-weight:700}
+.cl-blok{min-width:0;padding:10px 8px;border-radius:12px;border:1px solid var(--line,#d9e2ee);background:var(--card,#fff);font:700 14px var(--body,system-ui);color:var(--ink);text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.cl-blok i{font-style:normal;color:#2b7cd3}
+.cl-k.acik{background:rgba(43,124,211,.06);border-radius:14px;padding:6px;margin:0 -6px 6px}
+.cl-bloklar{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:6px 0 4px}
+.cl-bloklar .pref{padding:10px 0;font-weight:800}
 </style>
 </head>
 <body>
@@ -943,7 +949,8 @@ function izinKart(){
   </section>`;
 }
 /* ---------- Düzenleme ekranı (#calisma): teknisyen + tesis yetkilileri ---------- */
-const CL = {f:null, gen:0};
+const CL = {f:null, gen:0, acik:null};
+window.clIsim = el => { if (el.value === "__diger"){ clSync(); render(); setTimeout(()=>{ const i = document.getElementById(el.id); if (i) i.focus(); }, 50); } };
 /* Henüz liste yayınlanmadıysa düzenleme ekranına hazır gelen liste (3–4 Ekim 2026 tablosu) */
 const CALISMA_VARSAYILAN = {baz: new Date(2026, 9, 3, 12).getTime(),
   cmt: [["ŞÜKRAN","A1-A2-A3-A4"],["DURSUN","C1-C2-F1-B6"],["GÜNNUR","D1-D2-D3-D4-B5"],["SABRİYE","C3-C4-B3-B4"],["HATUN","A6-B2-A5-A7-F2"]],
@@ -956,7 +963,7 @@ function clYukle(){
 }
 function clSync(){
   const f = CL.f; if (!f) return;
-  ["cmt","paz"].forEach(g => f[g].forEach((r,i) => { const a = document.getElementById(`cl${CL.gen}_${g}_${i}_a`), b = document.getElementById(`cl${CL.gen}_${g}_${i}_b`); if (a) r[0] = a.value; if (b) r[1] = b.value; }));
+  ["cmt","paz"].forEach(g => f[g].forEach((r,i) => { const a = document.getElementById(`cl${CL.gen}_${g}_${i}_a`); if (a) r[0] = a.value; }));
   const y = document.getElementById("cl_yap"); if (y) f.yapistir = y.value;
   const n = document.getElementById("cl_not"); if (n) f.not = n.value;
 }
@@ -966,8 +973,17 @@ function vCalisma(){
   if (!IZN.geldi) return `<p class="hint" style="padding:30px;text-align:center">Liste yükleniyor…</p>`;
   if (!CL.f) clYukle();
   const f = CL.f, cm = cmtBul(new Date()), pz = new Date(cm.getTime() + GUN_MS), sc = new Date(cm.getTime() + 7*GUN_MS), sp = new Date(sc.getTime() + GUN_MS);
-  const satir = (g, r, i) => `<div class="cl-s"><input id="cl${CL.gen}_${g}_${i}_a" placeholder="Ad" value="${esc(r[0])}"><input id="cl${CL.gen}_${g}_${i}_b" placeholder="Bloklar (A1-A2…)" value="${esc(r[1])}">
-      <button class="pill-btn" data-act="clTasi" data-v="${g}" data-id="${i}" title="Diğer güne taşı">⇄</button><button class="pill-btn cikis-btn" data-act="clSil" data-v="${g}" data-id="${i}">✕</button></div>`;
+  // isim listesi: hazır liste + ekrandakiler + temizlik kodu olanlar
+  const isimler = [...new Set([...CALISMA_VARSAYILAN.cmt, ...CALISMA_VARSAYILAN.paz, ...f.cmt, ...f.paz].map(r=>r[0]).concat((KOD.liste||[]).filter(k=>k.tip==="personel" && k.rol==="Temizlik" && k.aktif!==false).map(k=>adKok(k.ad))).filter(Boolean).map(x=>x.toLocaleUpperCase("tr")))].sort((a,b)=>a.localeCompare(b,"tr"));
+  const satir = (g, r, i) => { const ac = CL.acik === g + i, bl = String(r[1]||"").split(/[-,\s]+/).filter(Boolean);
+    const diger = r[0] === "__diger" || (r[0] && !isimler.includes(r[0].toLocaleUpperCase("tr")));
+    return `<div class="cl-k${ac ? " acik" : ""}"><div class="cl-s">
+      ${diger ? `<input id="cl${CL.gen}_${g}_${i}_a" placeholder="İsim yazın" value="${r[0]==="__diger" ? "" : esc(r[0])}">`
+        : `<select id="cl${CL.gen}_${g}_${i}_a" onchange="clIsim(this)"><option value="">İsim seçin</option>${isimler.map(n=>`<option ${n===String(r[0]).toLocaleUpperCase("tr")?"selected":""}>${esc(n)}</option>`).join("")}<option value="__diger">✏️ Başka isim…</option></select>`}
+      <button class="cl-blok" data-act="clBlokAc" data-v="${g}" data-id="${i}">${bl.length ? esc(bl.join("-")) : "<i>Blok seçin ▾</i>"}</button>
+      <button class="pill-btn" data-act="clTasi" data-v="${g}" data-id="${i}" title="Diğer güne taşı">⇄</button><button class="pill-btn cikis-btn" data-act="clSil" data-v="${g}" data-id="${i}">✕</button></div>
+      ${ac ? `<div class="cl-bloklar">${AYAR.bloklar.map(b=>`<button class="pref" data-act="clBlok" data-v="${g}" data-id="${i}" data-b="${b}" aria-pressed="${bl.includes(b)}">${b}</button>`).join("")}<button class="cta" data-act="clBlokAc" data-v="${g}" data-id="${i}" style="grid-column:1/-1;margin-top:4px">Tamam</button></div>` : ""}
+    </div>`; };
   return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
       <h2 style="margin:0;font:600 22px/1.2 var(--display)">Temizlik çalışma listesi</h2>
       <a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">${store.isTech() ? "← İş paneli" : "← Menü"}</a></div>
@@ -979,6 +995,8 @@ function vCalisma(){
       <div class="group-h">Pazar · ${gunAy(pz)}</div>${f.paz.map((r,i)=>satir("paz", r, i)).join("")}
       <button class="pill-btn" data-act="clEkle" data-v="paz" style="margin-top:4px">+ Kişi ekle</button>
       <label class="f" style="margin-top:12px">Not (isteğe bağlı)<input id="cl_not" maxlength="120" value="${esc(f.not)}" placeholder="Örn. Değişiklik için amirinize haber verin"></label>
+      ${(()=>{ const c = f.cmt.map(r=>adKok(r[0])).filter(Boolean), z = f.paz.map(r=>adKok(r[0])).filter(Boolean); const iki = c.filter(x=>z.includes(x)); const bos = [...f.cmt, ...f.paz].filter(r=>r[0] && r[0]!=="__diger" && !String(r[1]||"").trim()).map(r=>r[0]);
+        return (iki.length ? `<p class="err">⚠️ ${iki.map(esc).join(", ")} hem Cumartesi hem Pazar listesinde.</p>` : "") + (bos.length ? `<p class="err">⚠️ Bloğu seçilmemiş: ${bos.map(esc).join(", ")}</p>` : ""); })()}
       <button class="cta" data-act="clKaydet" style="margin-top:10px">📢 Kaydet ve yayınla</button>
       <p class="hint" style="margin-top:8px">Gelecek hafta sonu (${gunAy(sc)}–${gunAy(sp)}) otomatik: Cumartesi → ${f.paz.filter(r=>r[0]).map(r=>esc(r[0])).join(", ") || "—"} · Pazar → ${f.cmt.filter(r=>r[0]).map(r=>esc(r[0])).join(", ") || "—"}</p>
     </section>
@@ -2460,14 +2478,17 @@ document.addEventListener("click", async e => {
       catch(e){ toast("Kaydedilemedi: " + (e.code||"")); }
       render(); return;
     }
-    else if (act==="clEkle"){ clSync(); CL.f[b.dataset.v].push(["",""]); CL.gen++; render(); return; }
-    else if (act==="clSil"){ clSync(); CL.f[b.dataset.v].splice(+b.dataset.id, 1); CL.gen++; render(); return; }
-    else if (act==="clTasi"){ clSync(); const g = b.dataset.v, o = g==="cmt" ? "paz" : "cmt"; const [r] = CL.f[g].splice(+b.dataset.id, 1); CL.f[o].push(r); CL.gen++; render(); return; }
+    else if (act==="clEkle"){ clSync(); CL.f[b.dataset.v].push(["",""]); CL.acik = null; CL.gen++; render(); return; }
+    else if (act==="clBlokAc"){ clSync(); const k = b.dataset.v + b.dataset.id; CL.acik = CL.acik === k ? null : k; render(); return; }
+    else if (act==="clBlok"){ clSync(); const r = CL.f[b.dataset.v][+b.dataset.id]; const L = String(r[1]||"").split(/[-,\s]+/).filter(Boolean); const x = b.dataset.b; const i2 = L.indexOf(x); if (i2 < 0) L.push(x); else L.splice(i2,1);
+      r[1] = AYAR.bloklar.filter(y => L.includes(y)).concat(L.filter(y => !AYAR.bloklar.includes(y))).join("-"); render(); return; }
+    else if (act==="clSil"){ clSync(); CL.acik = null; CL.f[b.dataset.v].splice(+b.dataset.id, 1); CL.gen++; render(); return; }
+    else if (act==="clTasi"){ clSync(); CL.acik = null; const g = b.dataset.v, o = g==="cmt" ? "paz" : "cmt"; const [r] = CL.f[g].splice(+b.dataset.id, 1); CL.f[o].push(r); CL.gen++; render(); return; }
     else if (act==="clAktar"){ clSync(); const pl = izinPlan({gunler: izinCoz(CL.f.yapistir)});
       if (!pl){ toast("Tablo okunamadı: ilk satırda Cumartesi ya da Pazar tarihi olmalı"); return; }
       CL.f.cmt = pl.cmt.map(x=>x.slice()); CL.f.paz = pl.paz.map(x=>x.slice()); toast("Listeye aktarıldı, kontrol edip yayınlayın"); CL.gen++; render(); return; }
     else if (act==="clKaydet"){ clSync(); const f = CL.f;
-      const temiz = L => L.map(([a,b]) => [String(a||"").trim(), String(b||"").trim()]).filter(([a]) => a);
+      const temiz = L => L.map(([a,b]) => [String(a||"").trim(), String(b||"").trim()]).filter(([a]) => a && a !== "__diger");
       const v = {tip:"donusumlu", baz: cmtBul(new Date()).getTime(), cmt: temiz(f.cmt), paz: temiz(f.paz), not: (f.not||"").trim(), ts: Date.now(), by: store.kim ? store.kim() : "Teknisyen"};
       if (!v.cmt.length && !v.paz.length){ toast("Listede kimse yok"); return; }
       try { await store.setIzin(v); IZN.v = v; toast("Liste yayınlandı"); } catch(e){ console.error(e); toast("Yayınlanamadı: " + (e.code||"")); }
