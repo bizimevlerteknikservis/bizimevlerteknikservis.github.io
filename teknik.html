@@ -832,9 +832,12 @@ function kurBanner(ad){
   const renk = ad==="B1 Arıza" ? "linear-gradient(140deg,#17588f,#2f8ad6)" : ad==="B1 Devriye" ? "linear-gradient(140deg,#0e203a,#214a80)" : "";
   return `<button class="kur-btn" data-act="kur" ${renk?`style="background:${renk}"`:""}>📲 <b>${ad}</b> uygulamasını telefona yükle<small>Bir kez dokunun, ana ekranda simgesi çıkar · arıza bildirmek tek dokunuş</small></button>`;
 }
+/* Hangi uygulamanın içindeyiz? (aynı sayfa birden fazla uygulamada açılabiliyor) */
+const appDosya = () => (location.pathname.split("/").pop() || "index.html");
+const appAdi = vars => ({"devriye.html":"B1 Devriye","teknik.html":"B1 Teknik","personel.html":"B1 Personel"})[appDosya()] || vars;
 function vPersonel(){
   const p = S.p;
-  const geri = /devriye\.html$/.test(location.pathname) ? `<a class="pill-btn" href="#devriye" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Devriyeye dön</a>` : "";
+  const geri = /(devriye|teknik)\.html$/.test(location.pathname) && (S.d.kim || store.isYetkili()) ? `<a class="pill-btn" href="#devriye" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Devriyeye dön</a>` : "";
   // Devriye uygulamasında güvenlik kodu varsa arıza bildirimi için ayrıca kod istenmez
   if (!p.kod && S.d.kim && S.d.kim.kod && geri){ Object.assign(p, {kod:S.d.kim.kod, name:S.d.kim.ad, rol:"Güvenlik", kayitli:true, kimlikAc:false}); }
   return geri + vPersonelIc();
@@ -850,7 +853,7 @@ function vPersonelIc(){
       <button class="cta" data-act="pYeni">Yeni bildirim yap</button>
     </div>${personelListe()}`;
   }
-  if (!p.kod && (S.kodZorunlu || p.kodGir)) return `${kurBanner(/devriye\.html$/.test(location.pathname) ? "B1 Devriye" : "B1 Personel")}${kodGirisEkrani("personel")}`;
+  if (!p.kod && (S.kodZorunlu || p.kodGir)) return `${kurBanner(appAdi("B1 Personel"))}${kodGirisEkrani("personel")}`;
   const kimlik = p.kod
     ? `<section class="step who"><div><small>Bildiren</small><b>${esc(p.name)}</b> · ${esc(p.rol)}</div><button class="pill-btn" data-act="kodCikis" data-v="personel">Kodu değiştir</button></section>`
     : p.kayitli && p.name && p.rol && !p.kimlikAc
@@ -861,7 +864,7 @@ function vPersonelIc(){
         <label class="f">Ad soyad<input type="text" id="p_name" autocomplete="name" value="${esc(p.name)}"></label>
         <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
       </section>`;
-  return `${kurBanner(/devriye\.html$/.test(location.pathname) ? "B1 Devriye" : "B1 Personel")}${kimlik}
+  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.filter(k => rolKat(p.rol, k)).map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
     ${p.cat ? `<div class="issues" style="margin-top:6px">${PARIZA[p.cat].map(x => `<button class="iss" data-act="pIss" data-v="${esc(x)}" aria-pressed="${p.issues.includes(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
@@ -906,12 +909,15 @@ function devHata(e){
 }
 function devKuyruk(){ return yerel("bz1-devriye-kuyruk") || []; }
 function vDevriye(){
+  return (appDosya()==="teknik.html" ? `<a class="pill-btn" href="#panel" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Menü</a>` : "") + vDevriyeIc();
+}
+function vDevriyeIc(){
   const d = S.d;
   if ((S.kodZorunlu || d.kodGir) && !(d.kim && d.kim.kod)){
-    return `${kurBanner("B1 Devriye")}${kodGirisEkrani("guvenlik")}`;
+    return `${kurBanner(appAdi("B1 Devriye"))}${kodGirisEkrani("guvenlik")}`;
   }
   if (d.kimAc || !d.kim){
-    return `${kurBanner("B1 Devriye")}<section class="step"><h2><span>🛡️</span>Adınızı seçin</h2>
+    return `${kurBanner(appAdi("B1 Devriye"))}<section class="step"><h2><span>🛡️</span>Adınızı seçin</h2>
       <p class="hint">Bir kez seçmeniz yeterli, telefon hatırlar. <button class="pill-btn" data-act="kodGirAc" data-v="guvenlik">🔑 Kodum var</button></p>
       ${VARDIYA.map(v=>`<div class="group-h" style="margin-top:6px">${v.ad}</div>
         <div class="prefs">${v.kisiler.map(([ad,amir])=>`<button class="pref" data-act="dKim" data-v="${esc(ad)}" data-vr="${esc(v.ad)}" aria-pressed="${d.kim&&d.kim.ad===ad}">${esc(ad)}${amir?' <small class="amir">Amir</small>':""}</button>`).join("")}</div>`).join("")}
@@ -1087,6 +1093,7 @@ function vRandevularim(){
 function vPanel(){
   if (!store.isTech() && store.isYetkili && store.isYetkili()){
     return `<div class="card"><h2>Hoş geldiniz${store.kim ? ", " + esc(store.kim()) : ""}</h2><p class="hint">Daire arızaları sadece teknisyene açıktır. Yetkili olduğunuz bölümler:</p>
+      <a class="cta" href="#devriye" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px">🛡️ Devriye (QR okut)</a>
       <a class="cta" href="#tasinma" style="display:block;text-align:center;text-decoration:none">🚚 Taşınma & Tadilat</a>
       ${store.isTesis() ? `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏢 Tesis takip</a>` : `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🛗 Asansör arızası</a>`}
       <a class="cta" href="#kontrol" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🗺️ Canlı Kontrol Merkezi</a>
