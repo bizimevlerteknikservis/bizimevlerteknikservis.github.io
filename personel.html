@@ -1551,7 +1551,7 @@ function vTesis(){
   const sek = {ozet:"Özet", asansor:"Asansörler", hidrofor:"Hidrofor", jen:"Jeneratörler", yangin:"🧯 Yangın", kesinti:"Kesintiler"};
   return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
       <h2 style="margin:0;font:600 22px/1.2 var(--display)">Tesis takip</h2>
-      ${store.isTech() ? `<a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">← İş paneli</a>` : `<button class="pill-btn cikis-btn" data-act="cikis">Çıkış yap</button>`}</div>
+      <a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">${store.isTech() ? "← İş paneli" : "← Menü"}</a></div>
     <div class="filters">${Object.entries(sek).map(([k,v])=>`<button class="pill-btn" data-t="sekme" data-v="${k}" aria-current="${T.sekme===k}">${v}</button>`).join("")}</div>
     ${T.sekme==="ozet" ? `
       ${uyar.length ? `<div class="t-uyarilar">${uyar.join("")}</div>` : `<div class="t-uyari yesil">✓ Her şey yolunda: açık arıza yok, elektrik var.</div>`}
@@ -1935,7 +1935,7 @@ function vTasinma(){
   const bugun = L.filter(k=>tasAktifBugun(k)), sonra = L.filter(k=>!tasAktifBugun(k) && k.bas > Date.now() && !k.bitti), geciken = L.filter(k=>k.tur==="tadilat" && !k.bitti && Date.now() > k.bit);
   return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
       <h2 style="margin:0;font:600 22px/1.2 var(--display)">Taşınma & Tadilat</h2>
-      ${store.isTech() ? `<a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">← İş paneli</a>` : `<button class="pill-btn cikis-btn" data-act="cikis">Çıkış yap</button>`}</div>
+      <a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">${store.isTech() ? "← İş paneli" : "← Menü"}</a></div>
     <div class="t-uyari" style="margin-bottom:14px">📋 <b>Kural:</b> Pazartesi–Cumartesi ${TAS_KURAL.bas}–${TAS_KURAL.bit} · <b>Pazar yasak</b></div>
     <section class="step"><h2><span>＋</span>Yeni kayıt</h2>
       <div class="prefs">${Object.entries(tasTur).map(([k,v])=>`<button class="pref" data-t="tsTur" data-v="${k}" aria-pressed="${f.tur===k}">${v}</button>`).join("")}</div>
