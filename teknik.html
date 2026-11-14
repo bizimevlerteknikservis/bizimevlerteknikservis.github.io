@@ -407,6 +407,7 @@ const ROLLER = ["Temizlik", BAHCIVAN, "Güvenlik","Yönetim","Diğer"];
 // Rol bazlı kategoriler: bahçıvan sadece peyzaj, malzeme talebi sadece temizlik
 const rolKat = (rol, k) => k.gizli ? false : rol === BAHCIVAN ? k.id === "p_bahce" : (k.id !== "p_malzeme" || rol === "Temizlik");
 const PKAT = [
+  {id:"p_tasinma", ad:"Taşınma / tadilat (güvenlik)", gizli:true, ic:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>'},
   {id:"p_gelemiyorum", ad:"İşe gelemiyor", gizli:true, ic:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/><path d="M17 3l4 4M21 3l-4 4"/>'},
   {id:"p_isik", ad:"Aydınlatma", ic:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z"/>'},
   {id:"p_kapi", ad:"Kapı / kilit", ic:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'},
@@ -513,7 +514,7 @@ function telegramBildir(a){
   const tg = AYAR.telegram;
   if (!tg || !tg.token || !tg.chatId) return;
   const text = [
-    (a.cat==="p_gelemiyorum" ? "🤒 İŞE GELEMİYOR " : a.cat==="p_malzeme" ? "📦 Malzeme talebi " : a.src==="personel" ? "🧹 Personel bildirimi " : "🔧 Yeni arıza bildirimi ") + fisNo(a),
+    (a.cat==="p_tasinma" ? "🚚 GÜVENLİK · TAŞINMA/TADİLAT " : a.cat==="p_gelemiyorum" ? "🤒 İŞE GELEMİYOR " : a.cat==="p_malzeme" ? "📦 Malzeme talebi " : a.src==="personel" ? "🧹 Personel bildirimi " : "🔧 Yeni arıza bildirimi ") + fisNo(a),
     "⚠️ " + catOf(a.cat).ad + (a.desc ? ": " + a.desc : ""),
     "📍 " + yerAd(a),
     a.src==="personel" ? "👷 Personel · " + (a.rol||"") + " · " + a.name + (a.phone ? " · " + a.phone : "") + (a.kod ? " · 🔑 kodla" : " · ⚠️ kodsuz") : "👤 " + a.name + " · " + a.phone,
@@ -1237,6 +1238,24 @@ function duyuruKontrol(){
 }
 /* Güvenlik uygulamasında iki bölüm: Devriye | Arıza bildir (aynı uygulama, aynı kod) */
 const guvSekme = akt => `<nav class="guv-sekme"><a href="#devriye" aria-current="${akt==="devriye"}">🛡️ Devriye</a><a href="#personel" aria-current="${akt==="ariza"}">📝 Arıza</a><a href="#gtasinma" aria-current="${akt==="tasinma"}">🚚 Taşınma</a></nav>`;
+/* güvenlik kapıda gördüğü taşınma / tadilatı bildirir (kayıtlı olsun olmasın) → teknisyen + yönetim */
+function gtForm(){
+  const f = S.gt;
+  if (!f) return `<button class="cta" data-act="gtAc" style="margin-bottom:14px">➕ Taşınma / tadilat bildir</button>`;
+  if (f.ok) return `<div class="t-uyari yesil" style="margin-bottom:14px">✓ Bildirildi. Teknisyen ve yönetim haberdar edildi. <button class="pill-btn" data-act="gtAc" style="margin-left:6px">Yeni bildirim</button></div>`;
+  return `<section class="step" style="border:2px solid #2b7cd3"><h2><span>🚚</span>Taşınma / tadilat bildir</h2>
+    <div class="prefs">${[["giris","🚚 Taşınma (giriş)"],["cikis","🚚 Taşınma (çıkış)"],["tadilat","🔨 Tadilat"]].map(([k,a])=>`<button class="pref" data-act="gtTur" data-v="${k}" aria-pressed="${f.tur===k}">${a}</button>`).join("")}</div>
+    <div class="prefs" style="margin-top:8px"><button class="pref" data-act="gtKayit" data-v="kayitsiz" aria-pressed="${f.kayit==="kayitsiz"}">⚠️ Listede yok</button><button class="pref" data-act="gtKayit" data-v="kayitli" aria-pressed="${f.kayit==="kayitli"}">✓ Listede var, geldi</button></div>
+    <div class="grid2" style="margin-top:10px"><label class="f">Blok<select id="gt_blok"><option value="">Seçin</option>${AYAR.bloklar.map(b=>`<option ${f.blok===b?"selected":""}>${b}</option>`).join("")}</select></label>
+      <label class="f">Daire no<input id="gt_daire" inputmode="numeric" maxlength="6" value="${esc(f.daire||"")}"></label></div>
+    <div class="grid2"><label class="f">Araç plakası<input id="gt_plaka" maxlength="15" value="${esc(f.plaka||"")}" placeholder="34 ABC 123"></label>
+      <label class="f">Firma (varsa)<input id="gt_firma" maxlength="40" value="${esc(f.firma||"")}"></label></div>
+    <label class="f">Not (isteğe bağlı)<input id="gt_not" maxlength="150" value="${esc(f.not||"")}" placeholder="Örn. Asansör kullanmak istiyorlar"></label>
+    ${f.hata ? `<p class="err">${esc(f.hata)}</p>` : ""}
+    <div class="grid2"><button class="cta ghost" data-act="gtKapat">Vazgeç</button><button class="cta" data-act="gtGonder">${S.sending ? "Gönderiliyor…" : "Bildir"}</button></div>
+  </section>`;
+}
+function gtSync(){ const f = S.gt; if (!f) return; [["gt_blok","blok"],["gt_daire","daire"],["gt_plaka","plaka"],["gt_firma","firma"],["gt_not","not"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; }); }
 /* güvenlik için taşınma / tadilat (sadece okuma): bugün + 7 gün */
 function vGuvTasinma(){
   tasBaslat();
@@ -1246,6 +1265,7 @@ function vGuvTasinma(){
   const sonra = L.filter(k => !tasAktifBugun(k) && k.bas >= g0.getTime() + GUN_MS && k.bas < g0.getTime() + 8*GUN_MS && !k.bitti);
   return `${S.d.kim ? guvSekme("tasinma") : ""}
     <div class="t-uyari mavi" style="margin-bottom:12px">📋 Taşınma ve tadilat Pazartesi–Cumartesi <b>10:00–17:00</b> arası yapılabilir, <b>Pazar yasak</b>. Listede olmayan araç ya da ekip gelirse <b>amire haber verin</b>.</div>
+    ${gtForm()}
     <div class="group-h">Bugün · ${bugun.length}</div>
     ${bugun.length ? `<div class="list">${bugun.map(k=>tasSatir(k,false)).join("")}</div>` : `<p class="hint">Bugün kayıtlı taşınma ya da tadilat yok.</p>`}
     <div class="group-h" style="margin-top:14px">Önümüzdeki 7 gün · ${sonra.length}</div>
@@ -2557,6 +2577,7 @@ function syncForm(){
   const kk = document.getElementById("kodKart"); if (kk) S.kodAcik = kk.open;
   if (S.view === "calisma") clSync();
   if (S.view === "izinler") yiSync();
+  if (S.view === "gtasinma") gtSync();
   const gn = document.getElementById("gel_not"); if (gn && S.gel) S.gel.not = gn.value;
   const kg = document.getElementById("kodGir"); if (kg) S.kodTaslak = kg.value;
   [["kodAd","ad"],["kodRol","rol"],["kodVardiya","vardiya"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) KOD.form[k] = el.value; });
@@ -2663,6 +2684,21 @@ document.addEventListener("click", async e => {
       catch(e){ toast("Kaydedilemedi: " + (e.code||"")); }
       render(); return;
     }
+    else if (act==="gtAc"){ S.gt = {tur:"", kayit:"kayitsiz"}; render(); return; }
+    else if (act==="gtKapat"){ S.gt = null; render(); return; }
+    else if (act==="gtTur"){ syncForm(); S.gt.tur = b.dataset.v; S.gt.hata = ""; render(); return; }
+    else if (act==="gtKayit"){ syncForm(); S.gt.kayit = b.dataset.v; render(); return; }
+    else if (act==="gtGonder"){ syncForm(); const f = S.gt, k = S.d.kim;
+      if (!f.tur){ f.hata = "Türü seçin"; render(); return; }
+      if (!f.blok){ f.hata = "Bloğu seçin"; render(); return; }
+      if (!k || !k.kod){ f.hata = "Önce güvenlik kodunuzu girin"; render(); return; }
+      const turAd = {giris:"Taşınma (giriş)", cikis:"Taşınma (çıkış)", tadilat:"Tadilat"}[f.tur];
+      const desc = [f.kayit==="kayitsiz" ? "⚠️ LİSTEDE YOK" : "Listede var, geldi", turAd, f.plaka ? "Plaka: " + f.plaka.trim().toLocaleUpperCase("tr") : "", f.firma ? "Firma: " + f.firma.trim() : "", (f.not||"").trim()].filter(Boolean).join(" · ").slice(0, 480);
+      S.sending = true; render();
+      try { const a = await store.create({src:"personel", kod:k.kod, rol:"Güvenlik", cat:"p_tasinma", issues:[turAd], desc, name:k.ad, phone:"", block:f.blok, kat: f.daire ? "Daire " + String(f.daire).trim() : "", alan:"", flat: String(f.daire||"").trim().slice(0,6), fotoSayi:0});
+        telegramBildir(a); S.gt = {ok:true}; toast("Bildirildi"); }
+      catch(e){ console.error(e); f.hata = (e && e.code === "permission-denied") ? "Gönderilemedi: kodunuz geçersiz ya da pasif." : "Gönderilemedi, internet bağlantınızı kontrol edin."; }
+      S.sending = false; render(); return; }
     else if (act==="gelAc"){ S.gel = {ac:true, sebep:"", not:""}; render(); return; }
     else if (act==="gelKapat"){ S.gel = null; render(); return; }
     else if (act==="gelSebep"){ syncForm(); S.gel.sebep = b.dataset.v; S.gel.hata = ""; render(); return; }
