@@ -939,6 +939,17 @@ const DUY = {v:null, un:null};
 const DUY_SEBEP = {yagmur:"🌧️ Yoğun yağmur", kar:"❄️ Kar / buzlanma", firtina:"💨 Fırtına", diger:"⚠️ Diğer"};
 function duyuruBaslat(){ if (DUY.un || !store.listenDuyuru) return; DUY.un = store.listenDuyuru(v => { DUY.v = v; if (S.view==="devriye") setTimeout(render,0); }); }
 const duyuruAktif = () => { const v = DUY.v; return !!(v && v.aktif && (!v.bitis || v.bitis > Date.now())); };
+const saatYaz = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function duyBitis(f){
+  if (f.sure === "sabah") return sonrakiSabah();
+  if (f.sure === "ozel"){
+    if (!/^\d\d:\d\d$/.test(f.saat||"")) return 0;
+    const [h,m] = f.saat.split(":").map(Number), d = new Date(); d.setHours(h,m,0,0);
+    if (d.getTime() <= Date.now()) d.setDate(d.getDate()+1);
+    return Math.min(d.getTime(), Date.now() + 12*36e5);
+  }
+  return Date.now() + (+f.sure||1)*36e5;
+}
 function sonrakiSabah(){ const d = new Date(); if (d.getHours() >= 7) d.setDate(d.getDate()+1); d.setHours(7,0,0,0); return d.getTime(); }
 function duyuruBanner(){
   if (!duyuruAktif()) return "";
@@ -949,13 +960,16 @@ function duyuruBanner(){
 }
 function duyuruKontrol(){
   if (!store.isYetkili || !store.isYetkili()) return "";
-  const f = S.duyF || (S.duyF = {sebep:"yagmur", not:""});
+  const f = S.duyF || (S.duyF = {sebep:"yagmur", not:"", sure:"1", saat:""});
   if (duyuruAktif()) return `<div class="card duyuru-k"><b>Devriye şu an iptal</b><p class="hint">Hava düzelince devriyeyi yeniden başlatın. Vardiyadaki herkesin ekranından uyarı kalkar.</p>
     <button class="cta" data-act="duyKaldir">✅ Devriyeyi yeniden başlat</button></div>`;
   return `<details class="card duyuru-k"${S.duyAc?" open":""}><summary><b>🌧️ Hava kötü: devriyeyi iptal et</b> <small>(amir)</small></summary>
     <div class="prefs" style="margin-top:8px">${Object.entries(DUY_SEBEP).map(([k,a])=>`<button class="pref" data-act="duySebep" data-v="${k}" aria-pressed="${f.sebep===k}">${a}</button>`).join("")}</div>
+    <div class="group-h" style="margin-top:10px">Ne kadar süre?</div>
+    <div class="prefs">${[["1","1 saat"],["2","2 saat"],["3","3 saat"],["sabah","Sabah 07:00"],["ozel","Saat seç"]].map(([k,a])=>`<button class="pref" data-act="duySure" data-v="${k}" aria-pressed="${f.sure===k}">${a}</button>`).join("")}</div>
+    ${f.sure==="ozel" ? `<label class="f" style="margin-top:8px">Devriye kaçta yeniden başlasın?<input type="time" id="duySaat" value="${esc(f.saat||"")}"></label>` : ""}
     <label class="f" style="margin-top:8px">Not (isteğe bağlı)<input id="duyNot" maxlength="120" value="${esc(f.not)}" placeholder="Örn. Kulübeden kamera ile takip edin"></label>
-    <button class="cta danger" data-act="duyIptal">Devriyeyi iptal et · sabah 07:00'ye kadar</button>
+    <button class="cta danger" data-act="duyIptal">Devriyeyi iptal et${duyBitis(f) ? " · " + saatYaz(duyBitis(f)) + " saatine kadar" : ""}</button>
     <p class="hint">Vardiyadaki herkesin devriye ekranında uyarı çıkar, Kontrol Merkezi'nde de görünür. İstediğiniz an yeniden başlatabilirsiniz.</p></details>`;
 }
 function vDevriye(){
@@ -2284,12 +2298,14 @@ document.addEventListener("click", async e => {
       const v2 = f.tip==="guvenlik" ? {ad, tip:"guvenlik", vardiya:f.vardiya, aktif:true, ts:Date.now()} : {ad, tip:"personel", rol:f.rol, aktif:true, ts:Date.now()};
       await store.setKod(id, v2); KOD.yeni = {id, ad}; KOD.form.ad = ""; const ka = $("#kodAd"); if (ka) ka.value = ""; S.kodAcik = true; toast("Kod oluşturuldu: " + id); render();
     }
-    else if (act==="duySebep"){ S.duyF.not = ($("#duyNot")||{}).value || ""; S.duyF.sebep = b.dataset.v; S.duyAc = true; render(); return; }
+    else if (act==="duySebep"||act==="duySure"){ S.duyF.not = ($("#duyNot")||{}).value || ""; const sa = $("#duySaat"); if (sa) S.duyF.saat = sa.value;
+      if (act==="duySebep") S.duyF.sebep = b.dataset.v; else S.duyF.sure = b.dataset.v; S.duyAc = true; render(); return; }
     else if (act==="duyIptal"){
-      const f = S.duyF; f.not = (($("#duyNot")||{}).value || "").trim();
-      const v = {aktif:true, sebep:f.sebep, not:f.not, by: (S.d.kim && S.d.kim.ad) || (store.kim ? store.kim() : "Amir"), ts: Date.now(), bitis: sonrakiSabah()};
+      const f = S.duyF; f.not = (($("#duyNot")||{}).value || "").trim(); const sa = $("#duySaat"); if (sa) f.saat = sa.value;
+      if (!duyBitis(f)){ toast("Bitiş saatini seçin"); return; }
+      const v = {aktif:true, sebep:f.sebep, not:f.not, by: (S.d.kim && S.d.kim.ad) || (store.kim ? store.kim() : "Amir"), ts: Date.now(), bitis: duyBitis(f)};
       try { await store.setDuyuru(v); DUY.v = v; S.duyAc = false; toast("Devriye iptal edildi, vardiyaya bildirildi");
-        tgGonder(`${DUY_SEBEP[v.sebep]} · DEVRİYE İPTAL\n${v.by} · ${tarihSaat(v.ts)}${v.not ? "\n" + v.not : ""}\nSabah 07:00'ye kadar`); }
+        tgGonder(`${DUY_SEBEP[v.sebep]} · DEVRİYE İPTAL\n${v.by} · ${tarihSaat(v.ts)}${v.not ? "\n" + v.not : ""}\nBitiş: ${saatYaz(v.bitis)}`); }
       catch(e){ console.error(e); toast("Kaydedilemedi: " + (e.code||"")); }
       render(); return;
     }
