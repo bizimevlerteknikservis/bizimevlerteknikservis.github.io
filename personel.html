@@ -962,6 +962,7 @@ function duyuruKontrol(){
   if (!store.isYetkili || !store.isYetkili()) return "";
   const f = S.duyF || (S.duyF = {sebep:"yagmur", not:"", sure:"1", saat:""});
   if (duyuruAktif()) return `<div class="card duyuru-k"><b>Devriye şu an iptal</b><p class="hint">Hava düzelince devriyeyi yeniden başlatın. Vardiyadaki herkesin ekranından uyarı kalkar.</p>
+    <button class="cta ghost" data-act="duyPaylas" style="margin-bottom:8px">📤 Vardiya WhatsApp grubuna gönder</button>
     <button class="cta" data-act="duyKaldir">✅ Devriyeyi yeniden başlat</button></div>`;
   return `<details class="card duyuru-k"${S.duyAc?" open":""}><summary><b>🌧️ Hava kötü: devriyeyi iptal et</b> <small>(amir)</small></summary>
     <div class="prefs" style="margin-top:8px">${Object.entries(DUY_SEBEP).map(([k,a])=>`<button class="pref" data-act="duySebep" data-v="${k}" aria-pressed="${f.sebep===k}">${a}</button>`).join("")}</div>
@@ -2308,6 +2309,11 @@ document.addEventListener("click", async e => {
         tgGonder(`${DUY_SEBEP[v.sebep]} · DEVRİYE İPTAL\n${v.by} · ${tarihSaat(v.ts)}${v.not ? "\n" + v.not : ""}\nBitiş: ${saatYaz(v.bitis)}`); }
       catch(e){ console.error(e); toast("Kaydedilemedi: " + (e.code||"")); }
       render(); return;
+    }
+    else if (act==="duyPaylas"){
+      const v = DUY.v || {}; const metin = `${DUY_SEBEP[v.sebep]||"⚠️"} nedeniyle DEVRİYE İPTAL\nBitiş: ${v.bitis ? saatYaz(v.bitis) : "-"}${v.not ? "\n" + v.not : ""}\n— ${v.by||"Amir"}\n\nSaat dolunca devriye normal devam eder.`;
+      if (navigator.share){ try { await navigator.share({text: metin}); } catch(e){} } else location.href = "https://wa.me/?text=" + encodeURIComponent(metin);
+      return;
     }
     else if (act==="duyKaldir"){
       const v = {...(DUY.v||{}), aktif:false, kaldiran: (S.d.kim && S.d.kim.ad) || (store.kim ? store.kim() : "Amir"), kalkis: Date.now()};
