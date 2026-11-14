@@ -484,7 +484,7 @@ function telegramBildir(a){
     (a.cat==="p_malzeme" ? "📦 Malzeme talebi " : a.src==="personel" ? "🧹 Personel bildirimi " : "🔧 Yeni arıza bildirimi ") + fisNo(a),
     "⚠️ " + catOf(a.cat).ad + (a.desc ? ": " + a.desc : ""),
     "📍 " + yerAd(a),
-    a.src==="personel" ? "👷 Personel · " + (a.rol||"") + " · " + a.name + (a.phone ? " · " + a.phone : "") : "👤 " + a.name + " · " + a.phone,
+    a.src==="personel" ? "👷 Personel · " + (a.rol||"") + " · " + a.name + (a.phone ? " · " + a.phone : "") + (a.kod ? " · 🔑 kodla" : " · ⚠️ kodsuz") : "👤 " + a.name + " · " + a.phone,
     "",
     "Panel: " + location.origin + location.pathname + "#panel"
   ].join("\n");
