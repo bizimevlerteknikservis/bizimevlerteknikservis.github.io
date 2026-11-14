@@ -315,6 +315,9 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .izin-s.bugun{background:#fff3e0;border-color:#e8952b}.izin-s.gecmis{opacity:.55}.izin-s small{color:var(--muted);font-weight:500}
 .gel-btn{display:block;width:100%;margin:0 0 14px;border:2px dashed #e5484d!important;color:#c0392b!important;font-weight:800}
 .gel-k{border:2px solid #e5484d}
+.guv-sekme{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px;margin:0 0 14px;border-radius:18px;background:var(--card,#fff);box-shadow:0 6px 20px rgba(16,40,80,.08)}
+.guv-sekme a{display:block;text-align:center;padding:14px 8px;border-radius:13px;text-decoration:none;font:800 17px var(--body,system-ui);color:var(--ink)}
+.guv-sekme a[aria-current="true"]{background:linear-gradient(140deg,var(--accent,#2b7cd3),var(--accent-2,#3b9be0));color:#fff}
 </style>
 </head>
 <body>
@@ -1122,7 +1125,7 @@ function vCalisma(){
 function vPersonel(){
   const p = S.p;
   const geri = appDosya()==="teknik.html" ? `<a class="pill-btn" href="#panel" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Menü</a>`
-    : appDosya()==="devriye.html" && S.d.kim ? `<a class="pill-btn" href="#devriye" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Devriyeye dön</a>` : "";
+    : appDosya()==="devriye.html" && S.d.kim ? guvSekme("ariza") : "";
   // Devriye uygulamasında güvenlik kodu varsa arıza bildirimi için ayrıca kod istenmez
   if (!p.kod && S.d.kim && S.d.kim.kod && geri && !store.isTech()){ Object.assign(p, {kod:S.d.kim.kod, name:S.d.kim.ad, rol:"Güvenlik", kayitli:true, kimlikAc:false}); }
   return geri + vPersonelIc();
@@ -1149,7 +1152,7 @@ function vPersonelIc(){
         <label class="f">Ad soyad<input type="text" id="p_name" autocomplete="name" value="${esc(p.name)}"></label>
         <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
       </section>`;
-  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${p.kod || p.kayitli ? izinKart() + izinBenKart() : ""}
+  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${(p.kod || p.kayitli) && appDosya()!=="devriye.html" ? (p.rol==="Temizlik" ? izinKart() : "") + izinBenKart() : ""}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.filter(k => rolKat(p.rol, k)).map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
     ${p.cat ? `<div class="issues" style="margin-top:6px">${PARIZA[p.cat].map(x => `<button class="iss" data-act="pIss" data-v="${esc(x)}" aria-pressed="${p.issues.includes(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
@@ -1232,9 +1235,13 @@ function duyuruKontrol(){
     <button class="cta danger" data-act="duyIptal">Devriyeyi iptal et${duyBitis(f) ? " · " + saatYaz(duyBitis(f)) + " saatine kadar" : ""}</button>
     <p class="hint">Vardiyadaki herkesin devriye ekranında uyarı çıkar, Kontrol Merkezi'nde de görünür. İstediğiniz an yeniden başlatabilirsiniz.</p></details>`;
 }
+/* Güvenlik uygulamasında iki bölüm: Devriye | Arıza bildir (aynı uygulama, aynı kod) */
+const guvSekme = akt => `<nav class="guv-sekme"><a href="#devriye" aria-current="${akt==="devriye"}">🛡️ Devriye</a><a href="#personel" aria-current="${akt==="ariza"}">📝 Arıza bildir</a></nav>`;
 function vDevriye(){
   duyuruBaslat();
-  return (appDosya()==="teknik.html" ? `<a class="pill-btn" href="#panel" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Menü</a>` : "") + duyuruBanner() + duyuruKontrol() + vDevriyeIc();
+  const ust = appDosya()==="teknik.html" ? `<a class="pill-btn" href="#panel" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Menü</a>`
+    : appDosya()==="devriye.html" && S.d.kim ? guvSekme("devriye") : "";
+  return ust + duyuruBanner() + duyuruKontrol() + vDevriyeIc();
 }
 function vDevriyeIc(){
   const d = S.d;
@@ -2513,12 +2520,13 @@ function render(){
   const keep = document.activeElement && document.activeElement.id;
   $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="calisma" ? vCalisma() : S.view==="izinler" ? vIzinler() : S.view==="personel" ? vPersonel() : S.view==="devriye" ? vDevriye() : vRandevu();
   document.querySelector("nav.tabs").hidden = S.view==="personel" || S.view==="devriye" || (appDosya()==="teknik.html" && !store.isTech());
-  $("#ustYazi").textContent = S.view==="personel" ? "Bizimevler 1 · Personel" : S.view==="devriye" ? "Bizimevler 1 · Güvenlik" : (AYAR.ustYazi || "Teknik Servis");
+  $("#ustYazi").textContent = S.view==="personel" && appDosya()==="devriye.html" ? "Bizimevler 1 · Güvenlik" : S.view==="personel" ? "Bizimevler 1 · Personel" : S.view==="devriye" ? "Bizimevler 1 · Güvenlik" : (AYAR.ustYazi || "Teknik Servis");
   $("#siteName").textContent = S.view==="devriye" ? "Devriye" : (AYAR.baslik || AYAR.siteAdi);
   $("#heroSub").textContent = S.view==="randevularim" ? "Bildirimlerinin durumunu ve teknisyen notlarını buradan takip et."
     : S.view==="panel" ? "Gelen arızaları gör, durumlarını güncelle."
     : S.view==="tesis" ? "Asansör, jeneratör, yakıt ve elektrik kesintisi takibi."
     : S.view==="tasinma" ? "Taşınma ve tadilat kayıtları · Pzt–Cmt 10:00–17:00, pazar yasak."
+    : S.view==="personel" && appDosya()==="devriye.html" ? "Devriyede gördüğün arızayı fotoğrafıyla bildir, teknisyene anında gitsin."
     : S.view==="personel" ? "Sahada gördüğün arızayı ya da ihtiyacın olan malzemeyi 15 saniyede bildir."
     : S.view==="devriye" ? "Noktaya geldiğinde QR'ı okut, turun kaydedilsin."
     : "Arızanı bildir, teknisyen en kısa sürede ilgilensin.";
