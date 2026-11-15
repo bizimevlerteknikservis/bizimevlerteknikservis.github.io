@@ -1214,6 +1214,7 @@ function sesCoz(ham, rol){
     if (puan > enP){ enP = puan; en = cat; }
   }
   if (/asans[öo]r/.test(t) && rol !== BAHCIVAN) en = "p_asansor";   // asansör geçiyorsa hep asansör
+  if (/fıskiye|sulama|çim|budama|ağaç|dal /.test(t)) en = "p_bahce";      // bahçe sözcükleri su/hasara baskın
   if (en){ o.cat = en; o.issues = Object.entries(SES_SOZ[en].i).filter(([, ks]) => ks.some(k => t.includes(k))).map(([ad]) => ad);
     if (en === "p_asansor" && o.issues.length > 1) o.issues = o.issues.filter(x => x !== "Asansör çalışmıyor");
     if (en === "p_isik" && !o.issues.length && /lamba|ampul|ışık/.test(t)) o.issues = ["Kat lambası yanmıyor"];
