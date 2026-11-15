@@ -127,6 +127,7 @@ label.f.note-l{display:block;margin-top:4px}
 .scan-frame{position:relative;width:min(70vw,300px);aspect-ratio:1;border:4px solid rgba(255,255,255,.95);border-radius:24px;box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
 .scan-msg{position:absolute;left:16px;right:16px;top:calc(24px + env(safe-area-inset-top,0px));text-align:center;color:#fff;font-weight:700;font-size:17px;margin:0;text-shadow:0 1px 4px rgba(0,0,0,.6)}
 .scan-bar{position:absolute;left:0;right:0;bottom:calc(28px + env(safe-area-inset-bottom,0px));display:flex;flex-wrap:wrap;justify-content:center;gap:10px;padding:0 12px}
+.scan-b[hidden]{display:none!important}
 .scan-b{border:0;border-radius:999px;padding:14px 20px;font:700 16px var(--body);background:rgba(255,255,255,.92);color:#111}
 .scan-b[aria-pressed="true"]{background:#f6c445}
 .who small{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
@@ -391,7 +392,7 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
   <p id="scanMsg" class="scan-msg">Kamera açılıyor…</p>
   <div class="scan-bar">
     <button id="scanFener" class="scan-b" aria-pressed="false" hidden onclick="fenerDegistir()">🔦 Fener</button>
-    <label class="scan-b" style="cursor:pointer">📷 Fotoğrafla okut<input type="file" id="scanFoto" accept="image/*" capture="environment" hidden onchange="fotoIleOku(this)"></label>
+    <label id="scanFotoB" class="scan-b" style="cursor:pointer" hidden>📷 Fotoğrafla okut<input type="file" id="scanFoto" accept="image/*" capture="environment" hidden onchange="fotoIleOku(this)"></label>
     <button class="scan-b" onclick="taramaKapat()">Kapat</button>
   </div>
   <button id="scanTekrar" class="scan-b" hidden onclick="taramaKapat(true);taramaAc()" style="position:absolute;left:50%;top:58%;transform:translateX(-50%)">🔄 Tekrar dene</button>
@@ -1805,7 +1806,7 @@ const jsqrYukle = () => window.jsQR ? Promise.resolve() : new Promise(r => { con
 const zamanAsimi = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("zaman")), ms))]);
 const canli = () => TARA.stream && TARA.stream.getVideoTracks().some(t => t.readyState === "live");
 async function taramaAc(){
-  const kutu = $("#scan"); kutu.hidden = false; $("#scanMsg").textContent = "Kamera açılıyor…"; $("#scanTekrar").hidden = true;
+  const kutu = $("#scan"); kutu.hidden = false; $("#scanMsg").textContent = "Kamera açılıyor…"; $("#scanTekrar").hidden = true; $("#scanFotoB").hidden = true;
   clearTimeout(TARA.birak);
   const v = $("#scanVideo");
   try {
@@ -1819,7 +1820,7 @@ async function taramaAc(){
   } catch(e){
     const izin = e && (e.name === "NotAllowedError" || e.name === "SecurityError");
     $("#scanMsg").textContent = izin ? "Kameraya izin verilmedi. Aşağıdaki 📷 Fotoğrafla okut düğmesini kullanın." : "Kamera açılamadı. 🔄 Tekrar dene ya da 📷 Fotoğrafla okut'a basın.";
-    $("#scanTekrar").hidden = izin;
+    $("#scanTekrar").hidden = izin; $("#scanFotoB").hidden = false;
     if (TARA.stream){ TARA.stream.getTracks().forEach(t=>t.stop()); TARA.stream = null; }
     return;
   }
@@ -1835,7 +1836,7 @@ async function taramaAc(){
   let mesgul = false;
   const dongu = async () => {
     if (!TARA.stream || $("#scan").hidden) return;
-    if (v.readyState < 2 && Date.now() - bas > 5000){ $("#scanMsg").textContent = "Görüntü gelmedi. 🔄 Tekrar dene ya da 📷 Fotoğrafla okut'a basın."; $("#scanTekrar").hidden = false; }
+    if (v.readyState < 2 && Date.now() - bas > 5000){ $("#scanMsg").textContent = "Görüntü gelmedi. 🔄 Tekrar dene ya da 📷 Fotoğrafla okut'a basın."; $("#scanTekrar").hidden = false; $("#scanFotoB").hidden = false; }
     if (!mesgul && v.readyState >= 2){
       mesgul = true;
       let txt = null;
