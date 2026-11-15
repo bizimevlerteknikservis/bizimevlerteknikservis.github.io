@@ -328,8 +328,8 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .izin-s.bugun{background:#fff3e0;border-color:#e8952b}.izin-s.gecmis{opacity:.55}.izin-s small{color:var(--muted);font-weight:500}
 .gel-btn{display:block;width:100%;margin:0 0 14px;border:2px dashed #e5484d!important;color:#c0392b!important;font-weight:800}
 .gel-k{border:2px solid #e5484d}
-.guv-sekme{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:6px;margin:0 0 14px;border-radius:18px;background:var(--card,#fff);box-shadow:0 6px 20px rgba(16,40,80,.08)}
-.guv-sekme a{display:block;text-align:center;padding:14px 4px;border-radius:13px;text-decoration:none;font:800 16px var(--body,system-ui);color:var(--ink)}
+.guv-sekme{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:6px;margin:0 0 14px;border-radius:18px;background:var(--card,#fff);box-shadow:0 6px 20px rgba(16,40,80,.08)}
+.guv-sekme a{display:block;text-align:center;padding:12px 2px;border-radius:13px;text-decoration:none;font:800 13.5px var(--body,system-ui);color:var(--ink)}
 .guv-sekme a[aria-current="true"]{background:linear-gradient(140deg,var(--accent,#2b7cd3),var(--accent-2,#3b9be0));color:#fff}
 .ses-k{border:2px solid #2b7cd3;background:linear-gradient(160deg,rgba(43,124,211,.07),transparent)}
 .ses-ust{display:flex;gap:16px;align-items:center}.ses-ust b{display:block;font-size:19px}.ses-ust small{color:var(--muted);font-size:14px;line-height:1.35;display:block;margin-top:3px}
@@ -1323,7 +1323,7 @@ function vPersonelIc(){
         <label class="f">Ad soyad<input type="text" id="p_name" autocomplete="name" value="${esc(p.name)}"></label>
         <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
       </section>`;
-  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${p.kod || p.kayitli ? gorevKart({ad:p.name, rol:p.rol}) : ""}${(p.kod || p.kayitli) && !["devriye.html","teknik.html"].includes(appDosya()) ? (p.rol==="Temizlik" ? izinKart() : "") + izinBenKart() : ""}
+  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${p.kod || p.kayitli ? gorevKart({ad:p.name, rol:p.rol}) : ""}${(p.kod || p.kayitli) && appDosya()!=="devriye.html" && !store.isYetkili() && !store.isTech() ? `<a class="cta ghost" href="kontrol.html" style="display:block;text-align:center;text-decoration:none;margin-bottom:12px">🗺️ Canlı arıza ekranı · sesli uyarı</a>` : ""}${(p.kod || p.kayitli) && !["devriye.html","teknik.html"].includes(appDosya()) ? (p.rol==="Temizlik" ? izinKart() : "") + izinBenKart() : ""}
   ${p.kod || p.kayitli ? sesKart() : ""}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.filter(k => rolKat(p.rol, k)).map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
@@ -1550,7 +1550,7 @@ function duyuruKontrol(){
     <p class="hint">Vardiyadaki herkesin devriye ekranında uyarı çıkar, Kontrol Merkezi'nde de görünür. İstediğiniz an yeniden başlatabilirsiniz.</p></details>`;
 }
 /* Güvenlik uygulamasında iki bölüm: Devriye | Arıza bildir (aynı uygulama, aynı kod) */
-const guvSekme = akt => `<nav class="guv-sekme"><a href="#devriye" aria-current="${akt==="devriye"}">🛡️ Devriye</a><a href="#personel" aria-current="${akt==="ariza"}">📝 Arıza</a><a href="#gtasinma" aria-current="${akt==="tasinma"}">🚚 Taşınma</a></nav>`;
+const guvSekme = akt => `<nav class="guv-sekme"><a href="#devriye" aria-current="${akt==="devriye"}">🛡️ Devriye</a><a href="#personel" aria-current="${akt==="ariza"}">📝 Arıza</a><a href="#gtasinma" aria-current="${akt==="tasinma"}">🚚 Taşınma</a><a href="kontrol.html">🗺️ Canlı</a></nav>`;
 /* güvenlik kapıda gördüğü taşınma / tadilatı bildirir (kayıtlı olsun olmasın) → teknisyen + yönetim */
 function gtForm(){
   const f = S.gt;

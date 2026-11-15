@@ -228,6 +228,9 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (prefers-reduced-motion:reduce){.nkt.yanip .cp-core{animation:yanip 1.4s ease-in-out infinite!important}}
 
+/* ============ Personel görünümü (sadece Arıza) ============ */
+html.personel .modes button[hidden]{display:none!important}
+.pgeri{display:block;padding:10px 16px;background:#0d1b2a;color:#fff;font:700 15px var(--display);text-decoration:none}
 /* ============ TV ekranı ============ */
 .tvakis{position:fixed;left:16px;right:16px;bottom:12px;height:58px;z-index:31;display:none;align-items:center;overflow:hidden;border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .tvakis{display:flex}
@@ -1250,6 +1253,40 @@ function afetPanel(){
 
 /* ============ Gerçek veriye bağlantı (yalnızca sitede, FB_CONFIG varsa) ============ */
 const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı / kilit",p_asansor:"Asansör",p_su:"Su / tesisat",p_hasar:"Kırık / hasar",p_bahce:"Bahçe / çevre",p_temiz:"Temizlik / koku",p_diger:"Diğer",p_tasinma:"Taşınma / tadilat",p_gelemiyorum:"İşe gelemiyor"};
+let ARZ_ONCEKI = null;
+function arizaVeri(snap){
+      const bugun = new Date(); bugun.setHours(0,0,0,0); const b0 = bugun.getTime(), sinir = Date.now() - 30*864e5;
+      const docs = snap.docs.map(d=>({id:d.id, ...d.data()})).filter(d => (d.createdAt||0) >= sinir && d.status!=="iptal");
+      const durum = {bekliyor:"yeni", onaylandi:"isleniyor", tamamlandi:"bitti"};
+      ARZ.list = docs.map(d => ({
+        id:d.id, b: d.block || null, alan: d.block ? null : (d.alan || "Diğer"),
+        yer: d.block ? `${d.block}${d.kat ? " · "+d.kat : ""}` : (d.alan || "Ortak alan"),
+        k: (PKAT_AD[d.cat] || "Arıza") + (d.desc ? ": " + d.desc : ""),
+        kim: [d.rol, d.name].filter(Boolean).join(" · "),
+        s: durum[d.status] || "yeni", t: d.createdAt || Date.now(), bitis: d.completedAt || null, foto: d.fotoSayi || 0
+      })).sort((x,y)=>y.t-x.t);
+      ARZ.gelen = docs.filter(d => (d.createdAt||0) >= b0).length;
+      const biten = docs.filter(d => d.status==="tamamlandi" && (d.completedAt||0) >= b0);
+      ARZ.cozulen = biten.length;
+      ARZ.sureler = biten.map(d => Math.max(1, Math.round((d.completedAt - d.createdAt)/60000)));
+      if (!ARZ.sureler.length) ARZ.sureler = [0];
+      // değişiklikleri efektle göster
+      const simdi = Object.fromEntries(ARZ.list.map(a=>[a.id,a.s]));
+      if (ARZ_ONCEKI){
+        ARZ.list.forEach(a => {
+          if (ARZ_ONCEKI[a.id] === a.s) return;
+          const [x,y] = B[a.b] ? ctr(B[a.b]) : (ALAN_POS[a.alan] || ALAN_POS["Diğer"]);
+          const tone = a.s==="yeni" ? "bad" : a.s==="isleniyor" ? "warn" : "ok";
+          const baslik = a.s==="yeni" ? "Yeni bildirim" : a.s==="isleniyor" ? "Teknisyen ilgileniyor" : "Çözüldü";
+          if (MODE==="gunduz") ripple(x,y,cssv("--"+tone));
+          ticker(`${a.s==="yeni"?"🔴":a.s==="isleniyor"?"🟠":"✅"} ${baslik} · ${a.yer} · ${a.k.split(":")[0]}`);
+          feed(tone, `${baslik} · ${a.yer}`, `${a.k.split(":")[0]}${a.kim?" · "+a.kim:""}`);
+          if (!(a.id in ARZ_ONCEKI) && a.s==="yeni") tvArizaUyari(a);
+        });
+      }
+      ARZ_ONCEKI = simdi;
+      if (MODE==="gunduz"){ arizaCiz(); arizaPanel(); }
+}
 async function canliBaslat(){
   const cfg = window.FB_CONFIG; if (!cfg) return;
   LIVE.on = true; ARZ.list = []; ARZ.gelen = 0; ARZ.cozulen = 0; ARZ.sureler = [];
@@ -1264,9 +1301,23 @@ async function canliBaslat(){
     try { await au.signInWithEmailAndPassword(auth, $("#lEmail").value.trim(), $("#lPass").value); }
     catch(_){ $("#loginErr").textContent = "E-posta veya şifre hatalı."; }
   };
-  let unsub = null, unsubD = null, onceki = null;
+  let unsub = null, unsubD = null;
   au.onAuthStateChanged(auth, async u => {
     if (unsub){ unsub(); unsub = null; } if (unsubD){ unsubD(); unsubD = null; }
+    // Personel (temizlik, bahçe, güvenlik): bu telefonda personel kodu kayıtlıysa sadece Arıza ekranı açılır (kodla anonim giriş)
+    const pkod = (() => { try { return JSON.parse(localStorage.getItem("bz1-kod-personel") || localStorage.getItem("bz1-kod-guvenlik") || localStorage.getItem("bz1-gorevli") || "null"); } catch(e){ return null; } })();
+    if ((!u || u.isAnonymous) && pkod && pkod.ad){
+      if (!u){ try { await au.signInAnonymously(auth); } catch(e){ console.error(e); giris.hidden = false; } return; }
+      window.ROL = "personel"; giris.hidden = true;
+      document.documentElement.classList.add("personel");
+      ["m-gece","m-tesis","m-afet"].forEach(id => { const b = document.getElementById(id); if (b) b.hidden = true; });
+      $("#edit").hidden = true; document.querySelector(".demo").textContent = `Canlı · ${String(pkod.ad).split(" ")[0]}`;
+      if (window.top === window && !document.querySelector(".pgeri")){ const geri = document.createElement("a"); geri.className = "pgeri"; geri.textContent = "← Uygulamaya dön";
+        geri.href = (localStorage.getItem("bz1-kod-guvenlik") || localStorage.getItem("bz1-gorevli")) ? "devriye.html#devriye" : "personel.html#personel"; document.body.prepend(geri); }
+      modAc("gunduz");
+      unsub = fs.onSnapshot(fs.query(fs.collection(db,"appointments"), fs.where("src","==","personel")), arizaVeri, e => { console.error(e); ticker(e.code==="permission-denied" ? "⚠️ Yetki yok: Firebase kurallarını güncelleyin" : "⚠️ Bağlantı sorunu"); });
+      return;
+    }
     if (!u || u.isAnonymous){ giris.hidden = false; return; }
     // Rol: teknisyen (tam yetki) ya da yönetim (sadece izleme; daire arızalarını görmez)
     let rol = izinli(u.email) ? "teknisyen" : null, neden = "Bu e-posta yönetim listesinde yok. Teknisyen panelindeki “Yönetim erişimi”ne ekleyip Kaydet’e basın.";
@@ -1306,39 +1357,7 @@ async function canliBaslat(){
       ilkKonum = false;
     }, e => console.error(e));
     const q = fs.query(fs.collection(db,"appointments"), fs.where("src","==","personel"));
-    unsub = fs.onSnapshot(q, snap => {
-      const bugun = new Date(); bugun.setHours(0,0,0,0); const b0 = bugun.getTime(), sinir = Date.now() - 30*864e5;
-      const docs = snap.docs.map(d=>({id:d.id, ...d.data()})).filter(d => (d.createdAt||0) >= sinir && d.status!=="iptal");
-      const durum = {bekliyor:"yeni", onaylandi:"isleniyor", tamamlandi:"bitti"};
-      ARZ.list = docs.map(d => ({
-        id:d.id, b: d.block || null, alan: d.block ? null : (d.alan || "Diğer"),
-        yer: d.block ? `${d.block}${d.kat ? " · "+d.kat : ""}` : (d.alan || "Ortak alan"),
-        k: (PKAT_AD[d.cat] || "Arıza") + (d.desc ? ": " + d.desc : ""),
-        kim: [d.rol, d.name].filter(Boolean).join(" · "),
-        s: durum[d.status] || "yeni", t: d.createdAt || Date.now(), bitis: d.completedAt || null, foto: d.fotoSayi || 0
-      })).sort((x,y)=>y.t-x.t);
-      ARZ.gelen = docs.filter(d => (d.createdAt||0) >= b0).length;
-      const biten = docs.filter(d => d.status==="tamamlandi" && (d.completedAt||0) >= b0);
-      ARZ.cozulen = biten.length;
-      ARZ.sureler = biten.map(d => Math.max(1, Math.round((d.completedAt - d.createdAt)/60000)));
-      if (!ARZ.sureler.length) ARZ.sureler = [0];
-      // değişiklikleri efektle göster
-      const simdi = Object.fromEntries(ARZ.list.map(a=>[a.id,a.s]));
-      if (onceki){
-        ARZ.list.forEach(a => {
-          if (onceki[a.id] === a.s) return;
-          const [x,y] = B[a.b] ? ctr(B[a.b]) : (ALAN_POS[a.alan] || ALAN_POS["Diğer"]);
-          const tone = a.s==="yeni" ? "bad" : a.s==="isleniyor" ? "warn" : "ok";
-          const baslik = a.s==="yeni" ? "Yeni bildirim" : a.s==="isleniyor" ? "Teknisyen ilgileniyor" : "Çözüldü";
-          if (MODE==="gunduz") ripple(x,y,cssv("--"+tone));
-          ticker(`${a.s==="yeni"?"🔴":a.s==="isleniyor"?"🟠":"✅"} ${baslik} · ${a.yer} · ${a.k.split(":")[0]}`);
-          feed(tone, `${baslik} · ${a.yer}`, `${a.k.split(":")[0]}${a.kim?" · "+a.kim:""}`);
-          if (!(a.id in onceki) && a.s==="yeni") tvArizaUyari(a);
-        });
-      }
-      onceki = simdi;
-      if (MODE==="gunduz"){ arizaCiz(); arizaPanel(); }
-    }, err => { console.error(err); ticker("Veriler okunamadı: " + err.code); });
+    unsub = fs.onSnapshot(q, arizaVeri, err => { console.error(err); ticker("Veriler okunamadı: " + err.code); });
     let ilkDev = true;
     const qd = fs.query(fs.collection(db,"devriye"), fs.where("ts",">=", Date.now() - 24*36e5));
     unsubD = fs.onSnapshot(qd, snap => {
@@ -1352,6 +1371,7 @@ async function canliBaslat(){
 
 /* ============ Mod geçişi ============ */
 function modAc(m){
+  if (window.ROL==="personel" && m!=="gunduz") m = "gunduz";
   MODE = m; temizle(); FEED = [];
   document.documentElement.setAttribute("data-mode", m);
   if (typeof temaUygula === "function") temaUygula(m);
@@ -1403,7 +1423,7 @@ const TV = {on:false, durak:0, sira:0, t:null, bas:0, sure:0, ses:null, kilit:nu
 const TV_AD = {gunduz:"Arıza", gece:"Devriye", tesis:"Tesis"};
 function tvSonYaz(t){ const e = $("#tvSon"); if (e) e.textContent = t; }
 function tvGeceMi(){ const h = new Date().getHours(); return h>=21 || h<7; }
-function tvPlan(){ return tvGeceMi() ? [["gece",40],["gunduz",20],["tesis",20]] : [["gunduz",30],["tesis",20],["gece",20]]; }
+function tvPlan(){ if (window.ROL==="personel") return [["gunduz",60]]; return tvGeceMi() ? [["gece",40],["gunduz",20],["tesis",20]] : [["gunduz",30],["tesis",20],["gece",20]]; }
 /* TV: gece 21–07 her ekran koyu; gündüz her ekran kendi temasında (Devriye koyu, Arıza/Tesis açık) */
 function tvTema(){ temaUygula(MODE); if (typeof temaIkon==="function") temaIkon(); }
 function tvBar(){
