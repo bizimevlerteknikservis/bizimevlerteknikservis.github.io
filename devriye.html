@@ -1872,6 +1872,8 @@ document.addEventListener("visibilitychange", () => { if (document.hidden && TAR
 /* Yedek: telefonun kendi kamerasıyla fotoğraf çek, fotoğraftaki QR'ı oku */
 async function fotoIleOku(inp){
   const f = inp.files && inp.files[0]; inp.value = ""; if (!f) return;
+  // Sadece az önce çekilmiş fotoğraf kabul edilir; galeriden eski fotoğraf okutulamaz
+  if (f.lastModified && Date.now() - f.lastModified > 3*6e4){ $("#scanMsg").textContent = "Galeriden fotoğraf okutulamaz. QR'ı şimdi, noktanın başında çekin."; return; }
   $("#scanMsg").textContent = "Fotoğraf okunuyor…";
   try {
     const url = URL.createObjectURL(f);

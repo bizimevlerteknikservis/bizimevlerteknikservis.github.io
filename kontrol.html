@@ -1006,6 +1006,8 @@ function devriyePanel(){
       : `<div class="row"><b>Son 3 saatte okutma yok</b><em>—</em></div>`;
     const atl = Object.entries(ATLA).sort((x,y)=>y[1].ts-x[1].ts);
     if (atl.length) ek += `<div class="card"><h2>⛔ Atlanan noktalar</h2><div class="rows">${atl.map(([id,o])=>`<div class="row"><div><b>${N[id].no}. ${esc(N[id].ad)}</b><small style="display:block;color:var(--muted);font-size:12.5px">${esc(o.gorevli)} · ${N[o.onceki].no} → ${N[o.simdiki].no} gitti</small></div><em>${saat(new Date(o.ts))}</em></div>`).join("")}</div><p class="note">Nokta okutulunca listeden kalkar.</p></div>`;
+    const sup = supheliOkutmalar(DEV.kayit).filter(o=>o.k.ts > Date.now() - 24*36e5);
+    if (sup.length) ek += `<div class="card" style="border-color:var(--bad)"><h2 style="color:var(--bad)">📍 Şüpheli okutmalar</h2><div class="rows">${sup.slice(0,6).map(o=>`<div class="row"><div><b>${esc(kisaAd(o.k.gorevli))} · ${o.tur==="ayni"?"aynı yerden":o.tur==="uzak"?"siteden uzak":"konumsuz"}</b><small style="display:block;color:var(--muted);font-size:12.5px">${esc(o.neden)}</small></div><em>${saat(new Date(o.k.ts))}</em></div>`).join("")}</div><p class="note">QR fotoğrafından ya da başka bir telefondan okutma belirtisi olabilir. Son 24 saat.</p></div>`;
     const sorunlar = DEV.sorun.slice(0,5);
     if (sorunlar.length) ek += `<div class="card"><h2>Bildirilen sorunlar</h2><div class="rows">${sorunlar.map(k=>`<div class="row"><div><b>${esc((N[k.nokta]?.no||"")+". "+(N[k.nokta]?.ad||"Nokta"))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${esc(k.not||"Sorun bildirildi")} · ${esc(k.gorevli)}</small></div><em>${saat(new Date(k.ts))}</em></div>`).join("")}</div></div>`;
   } else {
@@ -1105,6 +1107,7 @@ const XLSXW = (() => {
 const tarihStr = ms => { const d = new Date(ms); return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`; };
 const sureStr = ms => { const dk = Math.round(ms/6e4); return dk>=60 ? `${Math.floor(dk/60)} sa ${dk%60} dk` : `${dk} dk`; };
 function raporTablolar(kayit, a, b, baslik){
+  const SUP = supheliOkutmalar(kayit);
   kayit = kayit.filter(k=>k.ts>=a && k.ts<b).sort((x,y)=>x.ts-y.ts);
   const ok = kayit.filter(k=>k.tip!=="sorun"), sr = kayit.filter(k=>k.tip==="sorun");
   const atl = atlamalar(kayit), tr = turlar(kayit);
@@ -1142,7 +1145,8 @@ function raporTablolar(kayit, a, b, baslik){
     ["Ortalama tur süresi (dk)", (x => x.length ? Math.round(x.reduce((a,t)=>a+t.sureDk,0)/x.length) : "—")(tr.filter(t=>t.sayi===21))],
     ["Eksik kalan tur", tr.filter(t=>t.sayi<21).length],
     ["Atlanan nokta (sırayla giderken)", atl.reduce((t,o)=>t+o.atlanan.length,0)],
-    ["Hiç okutulmayan nokta", NOKTA.filter(n=>!tumSay[n.id]).map(n=>n.no).join(", ") || "Yok"], [],
+    ["Hiç okutulmayan nokta", NOKTA.filter(n=>!tumSay[n.id]).map(n=>n.no).join(", ") || "Yok"],
+    ["Şüpheli okutma (konum)", SUP.length || "Yok"], [],
     ["Vardiya", "Okutma"], ...Object.entries(vk).sort()
   ];
   const kayitlar = kayit.map(k=>[tarihStr(k.ts), saat(new Date(k.ts)), k.tip==="sorun"?"SORUN":"Okutma", N[k.nokta]?.no||"", N[k.nokta]?.ad||k.ad||"", k.gorevli||"", k.vardiya||"", k.not||"", k.konum?`https://maps.google.com/?q=${k.konum.lat},${k.konum.lng}`:""]);
@@ -1155,6 +1159,7 @@ function raporTablolar(kayit, a, b, baslik){
       ["Sorunlar", [["Tarih","Saat","No","Nokta","Görevli","Not"], ...sr.map(k=>[tarihStr(k.ts), saat(new Date(k.ts)), N[k.nokta]?.no||"", N[k.nokta]?.ad||"", k.gorevli||"", k.not||""])], [12,7,5,36,22,40]],
       ["Turlar", [["Tarih","Başlangıç","Bitiş","Görevli","Vardiya","Okutulan nokta","Süre (dk)","Durum"], ...tr.map(t=>[tarihStr(t.bas), saat(new Date(t.bas)), saat(new Date(t.son)), t.gorevli||"", t.vardiya||"", `${t.sayi}/21`, t.sureDk, t.durum])], [12,11,9,22,12,15,10,18]],
       ["Atlanan noktalar", [["Tarih","Saat","Görevli","Vardiya","Geçiş","Atlanan nokta(lar)","Sonradan okutuldu mu"], ...atl.map(o=>[tarihStr(o.ts), saat(new Date(o.ts)), o.gorevli||"", o.vardiya||"", `${N[o.onceki].no} → ${N[o.simdiki].no}`, o.atlanan.map(id=>`${N[id].no}. ${N[id].ad}`).join(", "), o.atlanan.every(id=>o.sonra(id)) ? "Evet" : "Hayır"])], [12,7,22,12,9,48,20]],
+      ["Şüpheli okutmalar", [["Tarih","Saat","Görevli","Vardiya","Tür","Açıklama","Konum"], ...SUP.map(o=>[tarihStr(o.k.ts), saat(new Date(o.k.ts)), o.k.gorevli||"", o.k.vardiya||"", o.tur==="ayni"?"Aynı yerden":o.tur==="uzak"?"Siteden uzak":"Konumsuz", o.neden, o.k.konum?`https://maps.google.com/?q=${o.k.konum.lat},${o.k.konum.lng}`:""])], [12,7,22,12,13,60,40]],
       ["Tüm kayıtlar", [["Tarih","Saat","Tür","No","Nokta","Görevli","Vardiya","Not","Konum"], ...kayitlar], [12,7,9,5,36,22,12,30,40]]
     ]};
 }
@@ -1177,6 +1182,32 @@ function sosTest(){
   const x=+m[1], y=+m[2];
   for (let i=0;i<4;i++) setTimeout(()=>ripple(x,y,cssv("--bad")), i*350);
   ticker(`🚨 SOS · ${g.ad} · konum işaretlendi`); feed("bad", `SOS · ${g.ad}`, "Test uyarısı · Telegram'a iletildi");
+}
+/* Şüpheli okutma: konum yok · siteden uzak · art arda noktalar aynı yerden okutulmuş */
+let SITE_K = null;   // duyuru/konum: site merkezi {lat,lng}
+const SUP_UZAK_M = 400, SUP_AYNI_M = 12, SUP_ARDISIK = 3;
+function mesafeM(a, b){ const R = 6371000, r = x => x*Math.PI/180, dLa = r(b.lat-a.lat), dLo = r(b.lng-a.lng); const h = Math.sin(dLa/2)**2 + Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLo/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
+const mYaz = m => m >= 1000 ? (m/1000).toFixed(1).replace(".",",") + " km" : Math.round(m) + " m";
+function supheliOkutmalar(kayit){
+  const ok = kayit.filter(k=>k.tip!=="sorun" && N[k.nokta]).sort((a,b)=>a.ts-b.ts), out = [];
+  // 1) siteden uzak
+  if (SITE_K && SITE_K.lat) ok.forEach(k=>{ if (k.konum && k.konum.lat){ const m = mesafeM(k.konum, SITE_K); if (m > SUP_UZAK_M) out.push({k, tur:"uzak", neden:`siteden ${mYaz(m)} uzakta okutuldu`}); } });
+  // 2) aynı yerden art arda (fotoğraf/ekran görüntüsünden okutma belirtisi)
+  const kisi = {}; ok.forEach(k=>(kisi[k.gorevli] ||= []).push(k));
+  Object.values(kisi).forEach(L=>{
+    let i = 0;
+    while (i < L.length){
+      const bas = L[i]; if (!bas.konum || !bas.konum.lat){ i++; continue; }
+      let j = i + 1; const noktalar = new Set([bas.nokta]);
+      while (j < L.length && L[j].konum && L[j].konum.lat && L[j].ts - L[j-1].ts < 15*6e4 && mesafeM(L[j].konum, bas.konum) <= Math.max(SUP_AYNI_M, Math.min(25, (bas.konum.acc||0)/2))){ noktalar.add(L[j].nokta); j++; }
+      if (noktalar.size >= SUP_ARDISIK){ const grup = L.slice(i, j); out.push({k:grup[grup.length-1], ilk:bas, tur:"ayni", sayi:noktalar.size, neden:`${noktalar.size} farklı nokta aynı yerden okutuldu (${grup.map(g=>N[g.nokta].no).join(", ")})`}); i = j; }
+      else i++;
+    }
+  });
+  // 3) konumsuz (görevli başına, gece başına tek satır)
+  const kz = {}; ok.forEach(k=>{ if (!k.konum){ const key = k.gorevli + "|" + geceBasi(k.ts); (kz[key] ||= []).push(k); } });
+  Object.values(kz).forEach(L=>{ if (L.length >= 3) out.push({k:L[L.length-1], ilk:L[0], tur:"konumsuz", sayi:L.length, neden:`${L.length} okutmada konum yok (telefon konumu kapalı)`}); });
+  return out.sort((a,b)=>b.k.ts-a.k.ts);
 }
 /* Canlı devriye kayıtları */
 function devriyeVeri(docs, yeniler){
@@ -1342,6 +1373,7 @@ async function canliBaslat(){
     fs.onSnapshot(fs.query(fs.collection(db,"tesis"), fs.where("ts",">=",Date.now()-45*864e5)), snap => tesisVeri(snap.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.error(e); TES.hata = e.code || "hata"; tesisSerit(); });
     tesisSerit();
     fs.onSnapshot(fs.doc(db,"duyuru","devriye"), s => { DUYK = s.exists() ? s.data() : null; tesisSerit(); }, e => console.warn("duyuru", e && e.code));
+    fs.onSnapshot(fs.doc(db,"duyuru","konum"), s => { SITE_K = s.exists() ? s.data() : null; if (MODE==="gece") devriyePanel(); }, e => console.warn("konum", e && e.code));
     fs.onSnapshot(fs.query(fs.collection(db,"tasinma"), fs.where("bit",">=",Date.now()-2*864e5)), snap => {
       const once = new Set(TAS.kayit.map(k=>k.id)), ilk = !TAS.yuklendi; TAS.yuklendi = true;
       TAS.kayit = snap.docs.map(d=>({id:d.id, ...d.data()}));
