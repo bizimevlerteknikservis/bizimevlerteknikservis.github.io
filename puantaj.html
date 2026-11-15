@@ -95,6 +95,10 @@ table.pt{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:10
 .c i.ms.supheli{background:#d63a35;height:4px}
 .iste{background:var(--okbg);color:var(--ok);border-radius:14px;padding:10px 14px;font-size:13.5px;margin-bottom:12px}
 .iste small{opacity:.75}
+.iste .ik{display:inline-flex;align-items:center;gap:6px;margin:4px 10px 0 0;white-space:nowrap}
+.kz{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 8px;background:#fff;color:var(--ok);text-decoration:none;border:1px solid currentColor}
+.kz.uzak{color:#c62828}.kz.yok{color:#b26a00}
+.pms{font-size:13px;line-height:1.9;margin-top:8px;padding-top:8px;border-top:1px solid var(--line,#e3e9f2)}
 .k-X{color:var(--ink)}
 .k-HT{color:var(--muted);background:var(--panel2)}
 .k-Yİ{background:#e3f2ff;color:#1b5ea8}.k-R{background:#fde7e7;color:#b4232a}.k-Mİ{background:#efe7fb;color:#6a3fb5}.k-Üİ{background:#eceff3;color:#4a5a6d}
@@ -298,16 +302,23 @@ function mesaiGun(k){
   const ekle = (d, o) => { const g = new Date(d); if (`${g.getFullYear()}-${pad(g.getMonth()+1)}` !== P.ay) return; (G[g.getDate()] ||= []).push(o); };
   const sup = r => !r.konum ? "konum alınamadı" : (msUzak(r) > 400 ? `siteden ${msUzak(r) >= 1000 ? (msUzak(r)/1000).toFixed(1).replace(".",",")+" km" : msUzak(r)+" m"} uzakta` : "");
   L.forEach(r => {
-    if (r.tip==="giris"){ if (acik) ekle(acik.ts, {giris:acik.ts, cikis:null, gs:sup(acik)}); acik = r; }
-    else { if (acik && r.ts - acik.ts <= 18*36e5){ ekle(acik.ts, {giris:acik.ts, cikis:r.ts, gs:sup(acik), cs:sup(r)}); acik = null; } else ekle(r.ts, {giris:null, cikis:r.ts, cs:sup(r)}); }
+    if (r.tip==="giris"){ if (acik) ekle(acik.ts, {giris:acik.ts, cikis:null, gs:sup(acik), gk:acik}); acik = r; }
+    else { if (acik && r.ts - acik.ts <= 18*36e5){ ekle(acik.ts, {giris:acik.ts, cikis:r.ts, gs:sup(acik), cs:sup(r), gk:acik, ck:r}); acik = null; } else ekle(r.ts, {giris:null, cikis:r.ts, cs:sup(r), ck:r}); }
   });
-  if (acik) ekle(acik.ts, {giris:acik.ts, cikis:null, acik: Date.now() - acik.ts < 18*36e5, gs:sup(acik)});
+  if (acik) ekle(acik.ts, {giris:acik.ts, cikis:null, acik: Date.now() - acik.ts < 18*36e5, gs:sup(acik), gk:acik});
   const ilk = L.length ? new Date(L[0].ts) : null;
   const sonuc = {G, ilk, var: L.length > 0}; MS_CACHE.set(key, sonuc); return sonuc;
 }
 function msUzak(r){ if (!r.konum) return null; const m = P.siteKonum; if (!m || !m.lat) return r.uzakM ?? 0;
   const R = 6371000, q = x => x*Math.PI/180, dLa = q(m.lat-r.konum.lat), dLo = q(m.lng-r.konum.lng); const h = Math.sin(dLa/2)**2 + Math.cos(q(r.konum.lat))*Math.cos(q(m.lat))*Math.sin(dLo/2)**2; return Math.round(2*R*Math.asin(Math.sqrt(h))); }
 const msSupheli = o => !!(o.gs || o.cs);
+/* Konum etiketi: dokununca Google Haritalar'da açılır */
+function msKonum(r){
+  if (!r) return "";
+  if (!r.konum || !r.konum.lat) return `<span class="kz yok">📍 konum yok</span>`;
+  const m = msUzak(r), uzak = m > 400, yaz = m >= 1000 ? (m/1000).toFixed(1).replace(".",",")+" km uzakta" : uzak ? m+" m uzakta" : "sitede";
+  return `<a class="kz${uzak?" uzak":""}" href="https://maps.google.com/?q=${r.konum.lat},${r.konum.lng}" target="_blank" rel="noopener">📍 ${yaz}</a>`;
+}
 const saatKisa = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const msDk = o => o.giris && o.cikis ? Math.round((o.cikis - o.giris)/6e4) : 0;
 const msMetin = L => (L||[]).map(o => `🕘 ${o.giris ? "Giriş " + saatKisa(o.giris) : "Giriş yok"} · ${o.cikis ? "Çıkış " + saatKisa(o.cikis) : (o.acik ? "hâlâ işte" : "çıkış yok")}${msDk(o) ? ` (${Math.floor(msDk(o)/60)} sa ${msDk(o)%60} dk)` : ""}${o.gs ? `\n⚠️ Giriş: ${o.gs}` : ""}${o.cs ? `\n⚠️ Çıkış: ${o.cs}` : ""}`).join("\n");
@@ -329,10 +340,10 @@ function ciz(){
   const adimH = (ok, baslik, kim) => `<div class="adim ${ok?"tamam":""}">${ok?"✓":"○"} <div>${baslik}<small>${ok?`${esc(ok.by)} · ${new Date(ok.ts).toLocaleString("tr-TR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}`:kim}</small></div></div>`;
   const desenYok = P.grup==="guvenlik" && !P.ayar.desenOnay;
   const simdiAy = P.ay === `${new Date().getFullYear()}-${pad(new Date().getMonth()+1)}`;
-  const iste = simdiAy ? L.map(([key,k]) => { const MSG = mesaiGun(k); const o = Object.values(MSG.G).flat().find(x=>x.acik); return o ? `${esc(k.ad.split(" ")[0])} <small>${saatKisa(o.giris)}</small>` : null; }).filter(Boolean) : [];
+  const iste = simdiAy ? L.map(([key,k]) => { const MSG = mesaiGun(k); const o = Object.values(MSG.G).flat().find(x=>x.acik); return o ? `<span class="ik">${esc(k.ad.split(" ")[0])} <small>${saatKisa(o.giris)}</small> ${msKonum(o.gk)}</span>` : null; }).filter(Boolean) : [];
   const msVar = L.some(([key,k]) => mesaiGun(k).var);
   $("#ust").innerHTML = `
-    ${simdiAy && msVar ? `<div class="iste">🟢 <b>Şu an işte (${iste.length}):</b> ${iste.length ? iste.join(" · ") : "kimse giriş yapmamış"}</div>` : ""}
+    ${simdiAy && msVar ? `<div class="iste">🟢 <b>Şu an işte (${iste.length}):</b> ${iste.length ? iste.join("") : "kimse giriş yapmamış"}</div>` : ""}
     ${desenYok ? `<div class="uyari">⚠️ Güvenlik vardiya düzeni örnek olarak dolduruldu (2 gündüz · 2 gece · 2 izin). Bir kez kendi düzeninize göre ayarlayın, sonraki aylar kendiliğinden dolar. <button class="btn" data-act="desen">Vardiya düzenini ayarla</button></div>` : ""}
     ${kil ? `<div class="uyari" style="background:var(--okbg);color:var(--ok)">🔒 Bu ay müdür onaylı, değişiklik kapalı. ${P.rol.tech||P.rol.tesis?`<button class="btn kirmizi" data-act="kilitAc">Kilidi aç</button>`:""}</div>` : ""}
     <div class="onay" style="margin-bottom:12px">
@@ -398,6 +409,7 @@ function popAc(td){
   pop.innerHTML = `<h4>${esc(k.ad)} · ${d.getDate()} ${AY[d.getMonth()]} ${GK[d.getDay()]}<small>${esc(o.neden)}${tatil(d)?" · "+tatil(d):""}</small></h4>
     <div class="kodlar">${Object.keys(KODLAR).map(c=>`<button class="k-${c}" data-kod="${c}" aria-pressed="${h.kod===c}" title="${KODLAR[c].ad}">${c}</button>`).join("")}</div>
     <button class="btn ikincil oto" data-kod="">↺ Otomatik (${o.kod})</button>
+    ${(mesaiGun(k).G[gi+1]||[]).map(m=>`<div class="pms">🕘 ${m.giris?`Giriş ${saatKisa(m.giris)} ${msKonum(m.gk)}`:"Giriş yok"}<br>🏁 ${m.cikis?`Çıkış ${saatKisa(m.cikis)} ${msKonum(m.ck)}`:m.acik?"hâlâ işte":"çıkış yok"}</div>`).join("")}
     <p>${Object.entries(KODLAR).map(([c,v])=>`${c}: ${v.ad}`).join(" · ")}</p>`;
   pop.hidden = false;
   const r = td.getBoundingClientRect(), w = 250, hh = pop.offsetHeight;
