@@ -2295,9 +2295,9 @@ function tesisBaslat(){
 let pAsIslenen = new Set();
 async function pAsAktar(){
   if (!store.setTesis || !(store.isTech() || store.isTesis() || store.isYetkili())) return;
-  const sinir = Date.now() - 7*864e5;
+  const sinir = Date.now() - 2*864e5;   // sadece son 2 gün; çözülmüş/iptal bildirimler aktarılmaz
   for (const ap of (T.pAs||[])){
-    if (!ap.block || ap.status==="iptal" || (ap.createdAt||0) < sinir || pAsIslenen.has(ap.id)) continue;
+    if (!ap.block || ap.status==="iptal" || ap.status==="tamamlandi" || (ap.createdAt||0) < sinir || pAsIslenen.has(ap.id)) continue;
     const bagli = T.kayit.some(k => k.tur==="ariza" && (k.id==="p_"+ap.id || (k.bildirenler||[]).includes(ap.id)));
     if (bagli){ pAsIslenen.add(ap.id); continue; }
     pAsIslenen.add(ap.id);
