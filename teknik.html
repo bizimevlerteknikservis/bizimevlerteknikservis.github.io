@@ -1821,7 +1821,6 @@ function vPanel(){
     return `<div class="card"><h2>Hoş geldiniz${store.kim ? ", " + esc(store.kim()) : ""}</h2><p class="hint">Daire arızaları sadece teknisyene açıktır. Yetkili olduğunuz bölümler:</p>
       <a class="cta" href="#devriye" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px">🛡️ Devriye (QR okut)</a>
       <a class="cta" href="#personel" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px">📝 Arıza bildir (fotoğraflı)</a>
-      <a class="cta" href="#tasinma" style="display:block;text-align:center;text-decoration:none">🚚 Taşınma & Tadilat</a>
       ${store.isTesis() ? `<a class="cta" href="#calisma" style="display:block;text-align:center;text-decoration:none;margin-top:10px">📅 Temizlik çalışma listesi</a><a class="cta" href="#izinler" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏖️ İzinler</a>` : ""}${store.isTesis() ? `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏢 Tesis takip</a>` : `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🛗 Asansör arızası</a>`}
       <a class="cta" href="#gorev" style="display:block;text-align:center;text-decoration:none;margin-top:10px">📌 Görev ver</a>
       <a class="cta" href="puantaj.html" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🗓️ Puantaj</a>
@@ -1860,7 +1859,6 @@ function vPanel(){
     <a href="#devriye"><span>🛡️</span>Devriye</a>
     <a href="#personel"><span>📝</span>Personel bildirimi</a>
     <a href="#tesis"><span>🏢</span>Tesis takip</a>
-    <a href="#tasinma"><span>🚚</span>Taşınma</a>
     <a href="#kontrol"><span>🗺️</span>Kontrol Merkezi</a>
     <a href="#calisma"><span>📅</span>Çalışma listesi</a>
     <a href="#izinler"><span>🏖️</span>İzinler</a>
