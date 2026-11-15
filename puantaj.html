@@ -90,6 +90,10 @@ table.pt{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:10
 .c i.qr{position:absolute;right:2px;top:2px;width:6px;height:6px;border-radius:50%;background:var(--ok)}
 .c i.gece{position:absolute;left:2px;top:1px;font-style:normal;font-size:8px;opacity:.7}
 .c.uyar span{box-shadow:inset 0 0 0 2px var(--bad);border-radius:4px}
+.c i.ms{position:absolute;left:4px;right:4px;bottom:2px;height:3px;border-radius:2px;background:#2b7cd3}
+.c i.ms.eksik{background:#d9851b}
+.iste{background:var(--okbg);color:var(--ok);border-radius:14px;padding:10px 14px;font-size:13.5px;margin-bottom:12px}
+.iste small{opacity:.75}
 .k-X{color:var(--ink)}
 .k-HT{color:var(--muted);background:var(--panel2)}
 .k-Yİ{background:#e3f2ff;color:#1b5ea8}.k-R{background:#fde7e7;color:#b4232a}.k-Mİ{background:#efe7fb;color:#6a3fb5}.k-Üİ{background:#eceff3;color:#4a5a6d}
@@ -211,7 +215,7 @@ const VARDIYA = [
 const DESEN_VARSAYILAN = {"1. Vardiya":{seq:"G,G,N,N,HT,HT", baz:"2026-11-01"}, "2. Vardiya":{seq:"G,G,N,N,HT,HT", baz:"2026-10-30"}, "3. Vardiya":{seq:"G,G,N,N,HT,HT", baz:"2026-10-28"}, "Joker":{seq:"G,G,G,G,G,HT,HT", baz:"2026-11-02"}};
 
 /* ================= durum ================= */
-const P = { ay:null, grup:"guvenlik", ayar:{kisiler:{}, desen:{}}, doc:{kisi:{}, onay:{}, kesin:{}}, izin:[], plan:null, qr:{}, rol:{tech:false, tesis:false, yon:false}, kim:"", ayarGeldi:false };
+const P = { ay:null, grup:"guvenlik", ayar:{kisiler:{}, desen:{}}, doc:{kisi:{}, onay:{}, kesin:{}}, izin:[], plan:null, qr:{}, mesai:[], rol:{tech:false, tesis:false, yon:false}, kim:"", ayarGeldi:false };
 let DB = null;
 const now = new Date(); P.ay = `${now.getFullYear()}-${pad(now.getMonth()+1)}`;
 const ayBilgi = () => { const [y,m] = P.ay.split("-").map(Number); const n = new Date(y, m, 0).getDate(); return {y, m, n, gunler: Array.from({length:n}, (_,i)=>new Date(y, m-1, i+1, 12))}; };
@@ -282,6 +286,25 @@ function hucre(key, k, d, gi){
   return el ? {kod:el, elle:true, neden:`Elle değiştirildi · otomatik: ${o.kod}`, gece:false, oto:o.kod} : {...o, elle:false};
 }
 const grupOf = k => k.grup==="guvenlik" ? "guvenlik" : "temizlik";
+/* Mesai (QR giriş/çıkış): kişinin kayıtlarını eşleştir, giriş-çıkış çiftlerini günlere dağıt */
+const msEslesir = (k, r) => k.grup==="guvenlik" ? anahtar(r.ad)===anahtar(k.ad) : (r.grup!=="guvenlik" && adKok(r.ad)===adKok(k.ad));
+const MS_CACHE = new Map();
+function mesaiGun(k){
+  const key = k.ad + "|" + P.mesai.length + "|" + P.ay; if (MS_CACHE.has(key)) return MS_CACHE.get(key);
+  const L = P.mesai.filter(r => msEslesir(k, r)).sort((a,b)=>a.ts-b.ts);
+  const G = {}; let acik = null;
+  const ekle = (d, o) => { const g = new Date(d); if (`${g.getFullYear()}-${pad(g.getMonth()+1)}` !== P.ay) return; (G[g.getDate()] ||= []).push(o); };
+  L.forEach(r => {
+    if (r.tip==="giris"){ if (acik) ekle(acik.ts, {giris:acik.ts, cikis:null}); acik = r; }
+    else { if (acik && r.ts - acik.ts <= 18*36e5){ ekle(acik.ts, {giris:acik.ts, cikis:r.ts}); acik = null; } else ekle(r.ts, {giris:null, cikis:r.ts}); }
+  });
+  if (acik) ekle(acik.ts, {giris:acik.ts, cikis:null, acik: Date.now() - acik.ts < 18*36e5});
+  const ilk = L.length ? new Date(L[0].ts) : null;
+  const sonuc = {G, ilk, var: L.length > 0}; MS_CACHE.set(key, sonuc); return sonuc;
+}
+const saatKisa = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const msDk = o => o.giris && o.cikis ? Math.round((o.cikis - o.giris)/6e4) : 0;
+const msMetin = L => (L||[]).map(o => `🕘 ${o.giris ? "Giriş " + saatKisa(o.giris) : "Giriş yok"} · ${o.cikis ? "Çıkış " + saatKisa(o.cikis) : (o.acik ? "hâlâ işte" : "çıkış yok")}${msDk(o) ? ` (${Math.floor(msDk(o)/60)} sa ${msDk(o)%60} dk)` : ""}`).join("\n");
 const qrGun = (k, gi) => ((P.qr[anahtar(k.ad)]||{})[gi+1]) || 0;
 const kilitli = g => !!(((P.doc.onay||{})[g]||{}).mudur);
 
@@ -299,7 +322,11 @@ function ciz(){
   const on = (P.doc.onay||{})[P.grup] || {};
   const adimH = (ok, baslik, kim) => `<div class="adim ${ok?"tamam":""}">${ok?"✓":"○"} <div>${baslik}<small>${ok?`${esc(ok.by)} · ${new Date(ok.ts).toLocaleString("tr-TR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}`:kim}</small></div></div>`;
   const desenYok = P.grup==="guvenlik" && !P.ayar.desenOnay;
+  const simdiAy = P.ay === `${new Date().getFullYear()}-${pad(new Date().getMonth()+1)}`;
+  const iste = simdiAy ? L.map(([key,k]) => { const MSG = mesaiGun(k); const o = Object.values(MSG.G).flat().find(x=>x.acik); return o ? `${esc(k.ad.split(" ")[0])} <small>${saatKisa(o.giris)}</small>` : null; }).filter(Boolean) : [];
+  const msVar = L.some(([key,k]) => mesaiGun(k).var);
   $("#ust").innerHTML = `
+    ${simdiAy && msVar ? `<div class="iste">🟢 <b>Şu an işte (${iste.length}):</b> ${iste.length ? iste.join(" · ") : "kimse giriş yapmamış"}</div>` : ""}
     ${desenYok ? `<div class="uyari">⚠️ Güvenlik vardiya düzeni örnek olarak dolduruldu (2 gündüz · 2 gece · 2 izin). Bir kez kendi düzeninize göre ayarlayın, sonraki aylar kendiliğinden dolar. <button class="btn" data-act="desen">Vardiya düzenini ayarla</button></div>` : ""}
     ${kil ? `<div class="uyari" style="background:var(--okbg);color:var(--ok)">🔒 Bu ay müdür onaylı, değişiklik kapalı. ${P.rol.tech||P.rol.tesis?`<button class="btn kirmizi" data-act="kilitAc">Kilidi aç</button>`:""}</div>` : ""}
     <div class="onay" style="margin-bottom:12px">
@@ -312,36 +339,42 @@ function ciz(){
   // tablo
   const bas = `<thead><tr><th class="ad">${L.length} kişi</th>${gunler.map((d,i)=>{ const t = tatil(d), yr = yarim(d), hs = d.getDay()===0||d.getDay()===6;
       return `<th class="${t?"tat":hs?"hs":""}${ymd(d)===bugun?" bugun":""}" title="${esc(t||yr||"")}"><b>${i+1}</b>${GK[d.getDay()]}${t?"<br>🇹🇷":yr?"<br>½":""}</th>`; }).join("")}
-      <th title="Çalışılan gün">Çalş</th><th>HT</th><th>Yİ</th><th>R</th><th title="Mazeret / ücretsiz izin">Mİ/Üİ</th><th>D</th><th title="Resmi tatilde çalıştığı gün">RT çlş</th><th title="Fazla mesai (saat)">FM sa</th>${P.grup==="guvenlik"?`<th title="QR okuttuğu gece sayısı">QR</th>`:""}<th>Not</th></tr></thead>`;
+      <th title="Çalışılan gün">Çalş</th><th>HT</th><th>Yİ</th><th>R</th><th title="Mazeret / ücretsiz izin">Mİ/Üİ</th><th>D</th><th title="Resmi tatilde çalıştığı gün">RT çlş</th><th title="QR giriş-çıkışa göre çalışılan saat">Saat</th><th title="Fazla mesai (saat)">FM sa</th>${P.grup==="guvenlik"?`<th title="QR okuttuğu gece sayısı">QR</th>`:""}<th>Not</th></tr></thead>`;
   let sonGrup = null; const sat = [];
   L.forEach(([key, k])=>{
     const etiket = P.grup==="guvenlik" ? k.vardiya || "Vardiyasız" : (k.grup==="bahce" ? "Bahçe" : k.grup==="diger" ? "Diğer" : "Temizlik");
-    if (etiket !== sonGrup){ sonGrup = etiket; sat.push(`<tr class="grup"><td class="ad">${esc(etiket)}</td><td colspan="${n + 9 + (P.grup==="guvenlik"?1:0)}"></td></tr>`); }
-    const T = {X:0, HT:0, "Yİ":0, R:0, MU:0, D:0, RTc:0, QR:0};
-    const hc = gunler.map((d,i)=>{ const h = hucre(key, k, d, i); const q = P.grup==="guvenlik" ? qrGun(k, i) : 0;
+    if (etiket !== sonGrup){ sonGrup = etiket; sat.push(`<tr class="grup"><td class="ad">${esc(etiket)}</td><td colspan="${n + 10 + (P.grup==="guvenlik"?1:0)}"></td></tr>`); }
+    const T = {X:0, HT:0, "Yİ":0, R:0, MU:0, D:0, RTc:0, QR:0, DK:0};
+    const MSG = mesaiGun(k);
+    const hc = gunler.map((d,i)=>{ const h = hucre(key, k, d, i); const q = P.grup==="guvenlik" ? qrGun(k, i) : 0; const ms = MSG.G[i+1]; if (ms) T.DK += ms.reduce((t,o)=>t+msDk(o),0);
       if (h.kod==="X") T.X++; if (h.kod==="HT") T.HT++; if (h.kod==="Yİ") T["Yİ"]++; if (h.kod==="R") T.R++; if (h.kod==="Mİ"||h.kod==="Üİ") T.MU++; if (h.kod==="D") T.D++;
       if (h.kod==="X" && tatil(d)) T.RTc++; if (q) T.QR++;
-      const uyar = q && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod);
+      const uyar = (q || (ms && ms.some(o=>o.giris))) && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod);
       const t = tatil(d), hs = d.getDay()===0||d.getDay()===6;
-      return `<td class="c k-${h.kod}${h.elle?" elle":""}${uyar?" uyar":""}${t?" tat":""}${ymd(d)===bugun?" bugun":""}" data-k="${esc(key)}" data-g="${i}" title="${esc(`${d.getDate()} ${AY[d.getMonth()]} · ${KODLAR[h.kod]?.ad||h.kod}\n${h.neden}${q?`\n✓ QR okuttu (${q})`:""}`)}">${h.gece&&h.kod==="X"?`<i class="gece">☾</i>`:""}${q?`<i class="qr"></i>`:""}<span>${h.kod}</span></td>`; }).join("");
+      return `<td class="c k-${h.kod}${h.elle?" elle":""}${uyar?" uyar":""}${t?" tat":""}${ymd(d)===bugun?" bugun":""}" data-k="${esc(key)}" data-g="${i}" title="${esc(`${d.getDate()} ${AY[d.getMonth()]} · ${KODLAR[h.kod]?.ad||h.kod}\n${h.neden}${q?`\n✓ QR okuttu (${q})`:""}${ms?`\n${msMetin(ms)}`:""}`)}">${h.gece&&h.kod==="X"?`<i class="gece">☾</i>`:""}${q?`<i class="qr"></i>`:""}${ms?`<i class="ms${ms.some(o=>!o.giris||(!o.cikis&&!o.acik))?" eksik":""}"></i>`:""}<span>${h.kod}</span></td>`; }).join("");
     const kd = ((P.doc.kisi||{})[key]) || {};
     const z = v => `<td class="top${v?"":" zero"}">${v}</td>`;
     sat.push(`<tr><td class="ad"><a data-kisi="${esc(key)}"><b>${esc(k.ad)}${k.amir?" ⭐":""}</b><small>${esc(k.grup==="guvenlik"?(k.vardiya||""):k.grup==="bahce"?"Bahçe":k.grup==="diger"?"Diğer":"Temizlik")}</small></a></td>${hc}
       ${z(T.X)}${z(T.HT)}${z(T["Yİ"])}${z(T.R)}${z(T.MU)}${z(T.D)}${z(T.RTc)}
+      <td class="top${T.DK?"":" zero"}" title="QR giriş-çıkışa göre toplam çalışma">${T.DK ? (T.DK/60).toFixed(1).replace(".",",") : "—"}</td>
       <td class="fm"><input inputmode="decimal" data-fm="${esc(key)}" value="${esc(kd.fm||"")}" ${kil?"disabled":""} placeholder="0"></td>${P.grup==="guvenlik"?z(T.QR):""}
       <td class="not"><input data-not="${esc(key)}" value="${esc(kd.not||"")}" ${kil?"disabled":""} maxlength="80"></td></tr>`);
   });
   $("#tw").innerHTML = L.length ? `<table class="pt">${bas}<tbody>${sat.join("")}</tbody></table>` : `<div style="padding:30px;text-align:center" class="mut">Bu grupta kişi yok. "＋ Kişi" ile ekleyin.</div>`;
   $("#lej").innerHTML = Object.entries(KODLAR).map(([k,v])=>`<span><b class="k-${k}">${k}</b>${v.ad}</span>`).join("") +
-    `<span>☾ Gece vardiyası</span>${P.grup==="guvenlik"?`<span><i style="width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block"></i> QR okuttu</span>`:""}<span><b style="text-decoration:underline">X</b> Elle değiştirildi</span><span>🇹🇷 Resmi tatil · ½ yarım gün</span>`;
+    `<span>☾ Gece vardiyası</span><span><i style="width:14px;height:4px;border-radius:2px;background:#2b7cd3;display:inline-block"></i> QR giriş-çıkış var</span><span><i style="width:14px;height:4px;border-radius:2px;background:#d9851b;display:inline-block"></i> Giriş/çıkış eksik</span>${P.grup==="guvenlik"?`<span><i style="width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block"></i> QR okuttu</span>`:""}<span><b style="text-decoration:underline">X</b> Elle değiştirildi</span><span>🇹🇷 Resmi tatil · ½ yarım gün</span>`;
   kontrolCiz(L, gunler);
 }
 function kontrolCiz(L, gunler){
   const M = [];
-  L.forEach(([key,k])=>gunler.forEach((d,i)=>{ const h = hucre(key, k, d, i);
+  const bugun0 = new Date(); bugun0.setHours(0,0,0,0);
+  L.forEach(([key,k])=>{ const MSG = mesaiGun(k); gunler.forEach((d,i)=>{ const h = hucre(key, k, d, i); const ms = MSG.G[i+1];
+    if (ms && ms.some(o=>o.giris) && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: puantajda <b>${h.kod}</b> ama <b>işe giriş yapmış</b> (${saatKisa(ms.find(o=>o.giris).giris)}). Çalıştıysa X yapın.`);
+    if (MSG.var && MSG.ilk && h.kod==="X" && !ms && d < bugun0 && d >= new Date(MSG.ilk).setHours(0,0,0,0)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: puantajda X ama <b>giriş kaydı yok</b>. Gelmediyse D, izinliyse ilgili kodu seçin.`);
+    if (ms && ms.some(o=>o.giris && !o.cikis && !o.acik)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: giriş ${saatKisa(ms.find(o=>o.giris&&!o.cikis).giris)} var, <b>çıkış okutulmamış</b>.`);
     if (P.grup==="guvenlik"){ const q = qrGun(k, i); if (q && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: puantajda <b>${h.kod}</b> ama o gece <b>QR okutmuş</b> (${q}). Çalıştıysa X yapın, fazla mesaiyse FM'e yazın.`); }
     if (h.elle && h.oto && ["Yİ","R","Mİ","Üİ"].includes(h.oto) && h.kod==="X") M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: İzinler'de <b>${h.oto}</b> görünüyor ama elle X yapılmış.`);
-  }));
+  }); });
   const izSay = P.izin.filter(e=>{ const {y,m} = ayBilgi(); const a = `${y}-${pad(m)}-01`, b = `${y}-${pad(m)}-31`; return e.bas <= b && (e.bit||e.bas) >= a; }).length;
   $("#kontrol").innerHTML = `<h2>Kontrol edilecekler</h2>${M.length ? `<ul class="kontrol">${M.slice(0,30).map(x=>`<li>${x}</li>`).join("")}</ul>` : `<p class="ok" style="margin:0;font-weight:600">✓ Çelişki yok.</p>`}
     <p class="mut" style="font-size:12.5px;margin:10px 0 0">Bu ay İzinler bölümünden ${izSay} kayıt otomatik işlendi. Hücrelerin üstüne gelince (telefonda dokununca) nereden geldiği yazar.</p>`;
@@ -440,17 +473,19 @@ const XLSXW = (() => {
 function excelYap(g = P.grup){
   const {y, m, gunler} = ayBilgi();
   const L = grupKisileri(g);
-  const baslik = ["Sıra","Ad Soyad", g==="guvenlik"?"Vardiya":"Görev", ...gunler.map((d,i)=>`${i+1} ${GK[d.getDay()]}`), "Çalışılan gün","Hafta tatili","Yıllık izin","Rapor","Mazeret izni","Ücretsiz izin","Devamsız","Resmi tatil (çalışmadı)","Resmi tatilde çalıştı","Fazla mesai (saat)","Not"];
+  const baslik = ["Sıra","Ad Soyad", g==="guvenlik"?"Vardiya":"Görev", ...gunler.map((d,i)=>`${i+1} ${GK[d.getDay()]}`), "Çalışılan gün","Hafta tatili","Yıllık izin","Rapor","Mazeret izni","Ücretsiz izin","Devamsız","Resmi tatil (çalışmadı)","Resmi tatilde çalıştı","QR mesai (saat)","Fazla mesai (saat)","Not"];
   const satirlar = [baslik];
   L.forEach(([key,k], si)=>{ const kodlar = gunler.map((d,i)=>hucre(key,k,d,i).kod); const say = c => kodlar.filter(x=>x===c).length; const kd = (P.doc.kisi||{})[key]||{};
-    satirlar.push([si+1, k.ad, g==="guvenlik" ? (k.vardiya||"") : (k.grup==="bahce"?"Bahçe":k.grup==="diger"?"Diğer":"Temizlik"), ...kodlar, say("X"), say("HT"), say("Yİ"), say("R"), say("Mİ"), say("Üİ"), say("D"), say("RT"), kodlar.filter((c,i)=>c==="X" && tatil(gunler[i])).length, parseFloat(String(kd.fm||"0").replace(",","."))||0, kd.not||""]); });
+    satirlar.push([si+1, k.ad, g==="guvenlik" ? (k.vardiya||"") : (k.grup==="bahce"?"Bahçe":k.grup==="diger"?"Diğer":"Temizlik"), ...kodlar, say("X"), say("HT"), say("Yİ"), say("R"), say("Mİ"), say("Üİ"), say("D"), say("RT"), kodlar.filter((c,i)=>c==="X" && tatil(gunler[i])).length, Math.round(Object.values(mesaiGun(k).G).flat().reduce((t,o)=>t+msDk(o),0)/6)/10, parseFloat(String(kd.fm||"0").replace(",","."))||0, kd.not||""]); });
   const on = (P.doc.onay||{})[g] || {};
   const bilgi = [["Bizimevler 1 Sitesi · Puantaj"], ["Dönem", `${AY[m-1]} ${y}`], ["Grup", g==="guvenlik"?"Güvenlik":"Temizlik & Bahçe"],
     ["Amir onayı", on.amir ? `${on.amir.by} · ${new Date(on.amir.ts).toLocaleString("tr-TR")}` : (g==="guvenlik"?"Yok":"—")],
     ["Müdür onayı", on.mudur ? `${on.mudur.by} · ${new Date(on.mudur.ts).toLocaleString("tr-TR")}` : "Yok (taslak)"], [""], ["Kod","Anlamı"], ...Object.entries(KODLAR).map(([c,v])=>[c, v.ad]),
     [""], ["Resmi tatiller", gunler.filter(d=>tatil(d)).map(d=>`${d.getDate()} ${AY[m-1]} ${tatil(d)}`).join(", ") || "Yok"]];
-  const gen = [5, 24, 12, ...gunler.map(()=>5), 9, 8, 8, 7, 9, 9, 8, 10, 10, 10, 24];
-  const blob = XLSXW([["Puantaj", satirlar, gen, 0], ["Bilgi", bilgi, [22, 60], -1]]);
+  const gen = [5, 24, 12, ...gunler.map(()=>5), 9, 8, 8, 7, 9, 9, 8, 10, 10, 10, 10, 24];
+  const gc = [["Ad Soyad","Tarih","Giriş","Çıkış","Süre (saat)","Not"]];
+  L.forEach(([key,k]) => { const G = mesaiGun(k).G; Object.keys(G).map(Number).sort((a,b)=>a-b).forEach(g => G[g].forEach(o => gc.push([k.ad, `${g} ${AY[m-1]} ${y}`, o.giris ? saatKisa(o.giris) : "", o.cikis ? saatKisa(o.cikis) : "", msDk(o) ? Math.round(msDk(o)/6)/10 : "", !o.giris ? "Giriş okutulmamış" : !o.cikis ? (o.acik ? "Hâlâ işte" : "Çıkış okutulmamış") : ""]))); });
+  const blob = XLSXW([["Puantaj", satirlar, gen, 0], ["Giriş-Çıkış", gc, [24, 16, 9, 9, 11, 22], 0], ["Bilgi", bilgi, [22, 60], -1]]);
   return {blob, ad:`puantaj-${y}-${pad(m)}-${g==="guvenlik"?"guvenlik":"temizlik"}.xlsx`};
 }
 function indir({blob, ad}){ const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = ad; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 3000); }
@@ -553,13 +588,14 @@ if (/teknik\.html|devriye\.html/.test(document.referrer)) $("#geri").href = docu
 /* ================= veri ================= */
 let ayUnsub = null, qrSira = 0;
 function ayDinle(){
-  if (ayUnsub) ayUnsub(); P.doc = {kisi:{}, onay:{}, kesin:{}}; P.qr = {}; ciz();
+  if (ayUnsub) ayUnsub(); P.doc = {kisi:{}, onay:{}, kesin:{}}; P.qr = {}; P.mesai = []; MS_CACHE.clear(); ciz();
   ayUnsub = DB.ayDinle(P.ay, v => { P.doc = {kisi:{}, onay:{}, kesin:{}, ...(v||{})}; if (!POP && !(document.activeElement && document.activeElement.dataset && (document.activeElement.dataset.fm || document.activeElement.dataset.not))) ciz(); });
   const {y, m} = ayBilgi(); const a = new Date(y, m-1, 1).getTime(), b = new Date(y, m, 1, 9).getTime(); const s = ++qrSira;
   if (gorurGrup("guvenlik")) DB.devriye(a, b).then(L => { if (s !== qrSira) return; const Q = {};
     L.forEach(r=>{ if (r.tip==="sorun") return; const d = new Date(r.ts), h = d.getHours(); if (h >= 8 && h < 19) return;
       if (h < 8) d.setDate(d.getDate()-1); if (d.getMonth() !== m-1) return; const key = anahtar(r.gorevli); (Q[key] ||= {}); Q[key][d.getDate()] = (Q[key][d.getDate()]||0) + 1; });
     P.qr = Q; ciz(); }).catch(err=>console.warn("devriye", err));
+  if (DB.mesai) DB.mesai(a - GUN, b + GUN).then(L => { if (s !== qrSira) return; P.mesai = L; MS_CACHE.clear(); ciz(); }).catch(err=>console.warn("mesai", err));
 }
 async function canli(){
   const cfg = window.FB_CONFIG, V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
@@ -573,7 +609,8 @@ async function canli(){
     async ayarYaz(v){ await fs.setDoc(fs.doc(db,"puantaj","ayar"), v, {merge:true}); },
     async ayYaz(ay, v){ await fs.setDoc(fs.doc(db,"puantaj",ay), v, {merge:true}); },
     async kilitAc(ay, g){ await fs.updateDoc(fs.doc(db,"puantaj",ay), {[`onay.${g}.mudur`]: fs.deleteField(), [`kesin.${g}`]: fs.deleteField(), son:{by:P.kim, ts:Date.now(), not:"kilit açıldı"}}); },
-    async devriye(a, b){ return (await fs.getDocs(fs.query(fs.collection(db,"devriye"), fs.where("ts",">=",a), fs.where("ts","<",b)))).docs.map(d=>d.data()); }
+    async devriye(a, b){ return (await fs.getDocs(fs.query(fs.collection(db,"devriye"), fs.where("ts",">=",a), fs.where("ts","<",b)))).docs.map(d=>d.data()); },
+    async mesai(a, b){ return (await fs.getDocs(fs.query(fs.collection(db,"mesai"), fs.where("ts",">=",a), fs.where("ts","<",b)))).docs.map(d=>d.data()); }
   };
   $("#girisForm").onsubmit = async e => { e.preventDefault(); $("#gHata").textContent = "";
     try { await au.signInWithEmailAndPassword(auth, $("#gEmail").value.trim(), $("#gSifre").value); } catch(_){ $("#gHata").textContent = "E-posta veya şifre hatalı."; } };
@@ -609,7 +646,12 @@ function bellek(){
     async ayYaz(ay, v){ mem.ay[ay] = birlestir({...(mem.ay[ay]||{})}, v); if (dinleyen.ay && dinleyen.ay[0]===ay) dinleyen.ay[1](mem.ay[ay]); },
     async kilitAc(ay, g){ const d = mem.ay[ay]; if (d.onay && d.onay[g]) delete d.onay[g].mudur; if (d.kesin) delete d.kesin[g]; dinleyen.ay[1](d); },
     async devriye(a, b){ const L = []; const gece = (g, ad, n=6) => { for (let i=0;i<n;i++) L.push({gorevli:ad, ts:new Date(t.getFullYear(), t.getMonth(), g, 22, i*7).getTime()}); };
-      gece(3,"Yalçın Akyol"); gece(4,"Yalçın Akyol"); gece(5,"Rüstem Eryüksel"); gece(12,"Cihan Yıldırım"); gece(7,"Tayfun Özdemir"); return L.filter(r=>r.ts>=a && r.ts<b); }
+      gece(3,"Yalçın Akyol"); gece(4,"Yalçın Akyol"); gece(5,"Rüstem Eryüksel"); gece(12,"Cihan Yıldırım"); gece(7,"Tayfun Özdemir"); return L.filter(r=>r.ts>=a && r.ts<b); },
+    async mesai(a, b){ const L = []; const sa = (g, h, dk=0) => new Date(t.getFullYear(), t.getMonth(), g, h, dk).getTime();
+      for (let g=1; g<=Math.min(t.getDate(), 28); g++){ const d = new Date(t.getFullYear(), t.getMonth(), g); if (d.getDay()>=1 && d.getDay()<=5 && g!==9){ L.push({ad:"AYŞE", grup:"temizlik", tip:"giris", ts:sa(g,7,50+(g%7))}); if (g!==t.getDate()) L.push({ad:"AYŞE", grup:"temizlik", tip:"cikis", ts:sa(g,16,30+(g%9))}); } }
+      L.push({ad:"Ali Vesek", grup:"guvenlik", tip:"giris", ts:sa(2,7,55)}); L.push({ad:"Ali Vesek", grup:"guvenlik", tip:"cikis", ts:sa(2,20,5)});
+      L.push({ad:"Ali Vesek", grup:"guvenlik", tip:"giris", ts:sa(5,19,50)});
+      return L.filter(r=>r.ts>=a && r.ts<b); }
   };
   P.rol = window.TEST_ROL || {tech:true, tesis:false, yon:false}; P.kim = "Test";
   $("#kimAd").textContent = "Test"; $("#giris").hidden = true; $("#app").hidden = false;

@@ -305,6 +305,18 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .karne-t th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#5f7591);padding:6px 4px;border-bottom:1px solid var(--line,#e3e9f2)}
 .karne-t td{padding:8px 4px;border-bottom:1px solid var(--line,#e3e9f2)}
 .karne-t tr.tk td{background:#fff7ea}.karne-t tr.kr td{background:#fdeaea}
+.mesai-kart{display:flex;align-items:center;gap:12px;justify-content:space-between;border:2px solid var(--line,#e3e9f2);border-radius:18px;padding:12px 14px;margin-bottom:12px;background:var(--card,#fff)}
+.mesai-kart.ic{border-color:#1e9d5b;background:#f1fbf5}
+.mesai-kart b{display:block;font-size:16px}.mesai-kart small{color:var(--muted,#5f7591);font-size:13px}
+.mesai-kart .cta{width:auto;flex:none;padding:12px 16px}
+.mesai-modal{position:fixed;inset:0;z-index:90;background:rgba(5,12,22,.6);display:grid;place-items:center;padding:16px}
+.mesai-modal[hidden]{display:none}
+.mesai-ic{background:var(--card,#fff);border-radius:24px;padding:22px;width:min(420px,100%);text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+.mesai-ic small{display:block;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted,#5f7591);font-size:12px}
+.mesai-ic h3{margin:6px 0 4px;font-size:22px}
+.mesai-saat{font:800 52px/1 var(--display,system-ui);letter-spacing:.02em;margin:6px 0}
+.mesai-ic .cta{padding:16px 10px;font-size:17px}
+.mesai-g:not(.ghost){background:#1e9d5b}.mesai-c:not(.ghost){background:#d9851b}
 .gv-kart{border:2px solid var(--accent,#2b7cd3);border-radius:18px;padding:14px;margin-bottom:12px;background:var(--card,#fff)}
 .gv-kart h2{margin:0 0 8px;font-size:16px}
 .gv{border-top:1px solid var(--line,#e3e9f2);padding:10px 0}
@@ -651,6 +663,8 @@ function DemoStore(){
     async setIzin(v){ mem.izin = v; save(); },
     async setDuyuru(v){ mem.duyuru = v; save(); },
     listenGorev: cb => sub(() => cb((mem.gorev ||= []).filter(g => g.ts > Date.now() - 10*864e5 || g.tur==="talimat"))),
+    async mesaiEkle(o){ (mem.mesai ||= []).push({id:"m"+Date.now().toString(36), uid:mem.uid, ...o}); save(); },
+    listenMesaiBen: cb => sub(() => cb((mem.mesai||[]).filter(m => m.uid===mem.uid && m.ts > Date.now() - 2*864e5))),
     async gorevEkle(o){ (mem.gorev ||= []).push({id:"g"+Date.now().toString(36)+Math.random().toString(36).slice(2,5), ...o}); save(); },
     async gorevGuncelle(id, p){ const g = (mem.gorev||[]).find(x=>x.id===id); if (g) for (const [k,v] of Object.entries(p)){ if (k.includes(".")){ const [a,b2] = k.split("."); (g[a] ||= {})[b2] = v; } else g[k] = v; } save(); },
     listenDizin: cb => sub(() => cb(mem.dizin || {liste: Object.values(mem.kodlar||{}).filter(k=>k.aktif!==false).map(k=>({ad:k.ad, rol:k.tip==="guvenlik"?"Güvenlik":k.rol}))})),
@@ -737,6 +751,8 @@ function FirebaseStore(cfg){
       const u2 = fs.onSnapshot(fs.query(fs.collection(db,"gorev"), fs.where("tur","==","talimat")), s => { A.tal = s.docs.map(d=>({id:d.id, ...d.data()})); ver(); }, e => { console.warn("talimat", e && e.code); });
       return () => { u1(); u2(); }; },
     async gorevEkle(o){ await fs.addDoc(fs.collection(db,"gorev"), {...o, uid:user.uid}); },
+    async mesaiEkle(o){ await fs.addDoc(fs.collection(db,"mesai"), {...o, uid:user.uid}); },
+    listenMesaiBen(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"mesai"), fs.where("uid","==",user.uid)), s => cb(s.docs.map(d=>({id:d.id, ...d.data()})).filter(m => m.ts > Date.now() - 2*864e5)), e => { console.warn("mesai", e && e.code); cb([]); }); },
     async gorevGuncelle(id, p){ await fs.updateDoc(fs.doc(db,"gorev",id), p); },
     listenDizin(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","personel"), s => cb(s.exists() ? s.data() : null), e => cb(null)); },
     async setDizin(v){ await fs.setDoc(fs.doc(db,"duyuru","personel"), v); },
@@ -1338,7 +1354,7 @@ function vPersonelIc(){
         <label class="f">Ad soyad<input type="text" id="p_name" autocomplete="name" value="${esc(p.name)}"></label>
         <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
       </section>`;
-  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${p.kod || p.kayitli ? gorevKart({ad:p.name, rol:p.rol}) : ""}${(p.kod || p.kayitli) && appDosya()!=="devriye.html" && !store.isYetkili() && !store.isTech() ? `<a class="cta ghost" href="kontrol.html" style="display:block;text-align:center;text-decoration:none;margin-bottom:12px">🗺️ Canlı arıza ekranı · sesli uyarı</a>` : ""}${(p.kod || p.kayitli) && !["devriye.html","teknik.html"].includes(appDosya()) ? (p.rol==="Temizlik" ? izinKart() : "") + izinBenKart() : ""}
+  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${p.kod ? mesaiKart() : ""}${p.kod || p.kayitli ? gorevKart({ad:p.name, rol:p.rol}) : ""}${(p.kod || p.kayitli) && appDosya()!=="devriye.html" && !store.isYetkili() && !store.isTech() ? `<a class="cta ghost" href="kontrol.html" style="display:block;text-align:center;text-decoration:none;margin-bottom:12px">🗺️ Canlı arıza ekranı · sesli uyarı</a>` : ""}${(p.kod || p.kayitli) && !["devriye.html","teknik.html"].includes(appDosya()) ? (p.rol==="Temizlik" ? izinKart() : "") + izinBenKart() : ""}
   ${p.kod || p.kayitli ? sesKart() : ""}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.filter(k => rolKat(p.rol, k)).map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
@@ -1384,6 +1400,48 @@ function devHata(e){
   S.d.hata = c.includes("permission") ? "Sunucu kaydı reddetti (Firebase kuralı yayınlanmamış olabilir)" : c ? "Hata: " + c : (navigator.onLine ? "Bağlantı hatası" : "İnternet yok");
 }
 function devKuyruk(){ return yerel("bz1-devriye-kuyruk") || []; }
+/* =================== MESAİ: QR ile işe giriş / çıkış (puantaja otomatik bağlanır) =================== */
+const MESAI_NOKTA = {"k-d9c97a":"Güvenlik kulübesi", "p-a24eaa":"Personel deposu"};
+const MS = {un:null, liste:[], bekleyen:null, kayit:false};
+function mesaiCoz(txt){ const m = String(txt||"").match(/[?&]mesai=([a-z]-[0-9a-f]{6})/i); return m && MESAI_NOKTA[m[1].toLowerCase()] ? m[1].toLowerCase() : null; }
+function mesaiBen(){
+  if (S.view==="devriye" && S.d && S.d.kim && S.d.kim.kod) return {ad:S.d.kim.ad, kod:S.d.kim.kod, grup:"guvenlik"};
+  if (S.p && S.p.kod && S.p.name) return {ad:S.p.name.trim(), kod:S.p.kod, grup: S.p.rol==="Güvenlik" ? "guvenlik" : S.p.rol===BAHCIVAN ? "bahce" : "temizlik"};
+  try { const g = JSON.parse(localStorage.getItem("bz1-kod-guvenlik") || localStorage.getItem("bz1-gorevli") || "null"); if (g && g.kod && g.ad) return {ad:g.ad, kod:g.kod, grup:"guvenlik"}; } catch(e){}
+  try { const k = JSON.parse(localStorage.getItem("bz1-kod-personel") || "null"); if (k && k.kod && k.ad) return {ad:k.ad, kod:k.kod, grup: k.rol==="Güvenlik" ? "guvenlik" : k.rol===BAHCIVAN ? "bahce" : "temizlik"}; } catch(e){}
+  return null;
+}
+function mesaiBaslat(){ if (!MS.un && store.listenMesaiBen) MS.un = store.listenMesaiBen(L => { MS.liste = L.sort((a,b)=>b.ts-a.ts); if (["personel","devriye"].includes(S.view)) setTimeout(render,0); }); }
+const mesaiSon = () => MS.liste[0] || null;
+const mesaiIcerde = () => { const s = mesaiSon(); return !!(s && s.tip==="giris" && Date.now() - s.ts < 18*36e5); };
+function mesaiKart(){
+  const ben = mesaiBen(); if (!ben) return ""; mesaiBaslat();
+  const s = mesaiSon(), ic = mesaiIcerde();
+  const durum = ic ? `🟢 İştesiniz · giriş ${saatYaz(s.ts)} (${sureYaz(Math.round((Date.now()-s.ts)/6e4))})` : s && s.tip==="cikis" && Date.now()-s.ts < 16*36e5 ? `⚪ Çıkış yaptınız · ${saatYaz(s.ts)}` : "⚪ Bugün henüz giriş yapmadınız";
+  return `<section class="mesai-kart${ic?" ic":""}"><div><b>🕘 Mesai</b><small>${durum}</small></div><button class="cta${ic?" ghost":""}" data-act="mesaiQr">${ic ? "Çıkış · QR okut" : "Giriş · QR okut"}</button></section>`;
+}
+function mesaiAc(nokta){
+  const ben = mesaiBen();
+  let d = document.getElementById("mesaiModal"); if (!d){ d = document.createElement("div"); d.id = "mesaiModal"; d.className = "mesai-modal"; document.body.appendChild(d); }
+  if (!ben){ d.innerHTML = `<div class="mesai-ic"><h3>🕘 Giriş / çıkış</h3><p>Önce personel kodunuzla uygulamaya girin, sonra QR'ı tekrar okutun.</p><button class="cta" data-act="mesaiKapat">Tamam</button></div>`; d.hidden = false; return; }
+  mesaiBaslat();
+  const ic = mesaiIcerde(), simdi = new Date();
+  d.innerHTML = `<div class="mesai-ic"><small>${esc(MESAI_NOKTA[nokta])}</small><h3>${esc(ben.ad)}</h3><div class="mesai-saat">${saatYaz(simdi.getTime())}</div>
+    <p class="hint" style="margin:0 0 12px">${simdi.toLocaleDateString("tr-TR",{weekday:"long", day:"numeric", month:"long"})}</p>
+    <div class="grid2"><button class="cta mesai-g${ic?" ghost":""}" data-act="mesaiKaydet" data-v="giris" data-n="${nokta}">✅ İşe giriş</button><button class="cta mesai-c${ic?"":" ghost"}" data-act="mesaiKaydet" data-v="cikis" data-n="${nokta}">🏁 Çıkış</button></div>
+    <button class="pill-btn" data-act="mesaiKapat" style="margin-top:10px">Vazgeç</button></div>`;
+  d.hidden = false;
+}
+async function mesaiKaydet(tip, nokta){
+  const ben = mesaiBen(); if (!ben || MS.kayit) return; MS.kayit = true;
+  const o = {ad:ben.ad, kod:ben.kod, grup:ben.grup, tip, nokta, ts:Date.now()};
+  const d = document.getElementById("mesaiModal");
+  try { await store.mesaiEkle(o); MS.liste.unshift(o);
+    if (d) d.innerHTML = `<div class="mesai-ic"><div style="font-size:54px">${tip==="giris"?"✅":"🏁"}</div><h3>${tip==="giris"?"Giriş kaydedildi":"Çıkış kaydedildi"}</h3><div class="mesai-saat">${saatYaz(o.ts)}</div><p>${tip==="giris"?"İyi çalışmalar!":"Emeğinize sağlık, iyi dinlenmeler."}</p><button class="cta" data-act="mesaiKapat">Tamam</button></div>`;
+    if (navigator.vibrate) navigator.vibrate(80); render(); }
+  catch(e){ console.error(e); toast(e && e.code==="permission-denied" ? "Kaydedilemedi: kodunuzla giriş yapın" : "Kaydedilemedi, internet bağlantısını kontrol edin"); }
+  MS.kayit = false;
+}
 /* =================== GÖREV VER (müdür/amir → personel) =================== */
 const GV = {un:null, liste:[], dizin:null, unD:null, f:{kime:"", yer:"", metin:"", tur:"gorev", bitis:"hafta", tarih:""}, filtre:"acik", sonEklenen:null};
 const talAktif = g => g.tur==="talimat" && g.durum!=="iptal" && (!g.bitis || g.bitis > Date.now());
@@ -1637,6 +1695,7 @@ function vDevriyeIc(){
         <div class="grid2"><button class="cta ghost" data-act="dSorunKapat">Vazgeç</button><button class="cta danger" data-act="dSorunGonder">Sorunu bildir</button></div>
       </section>`
     : `<button class="cta ghost sorun-btn" data-act="dSorunAc">⚠️ Bu noktada sorun var</button>`}` : ""}
+  ${mesaiKart()}
   ${gorevKart({ad:d.kim.ad, rol:"Güvenlik"})}
   ${izinGuvenlik(d.kim.ad)}
   <button class="scan-btn" data-act="dTara"><svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>QR Okut</button>
@@ -1778,6 +1837,8 @@ async function taramaAc(){
       } catch(e){}
       mesgul = false;
       if (txt){
+        const mz = mesaiCoz(txt);
+        if (mz){ taramaKapat(); mesaiAc(mz); return; }
         const n = qrCoz(txt);
         if (n){ taramaKapat(); noktaOkut(n); return; }
         $("#scanMsg").textContent = "Bu QR bir devriye noktasına ait değil";
@@ -3073,6 +3134,9 @@ document.addEventListener("click", async e => {
     else if (act==="pKimlik"){ syncForm(); S.p.kimlikAc = true; render(); }
     else if (act==="sesBas"){ syncForm(); sesBaslat(); return; }
     else if (act==="gvGonder"){ gvGonder(); return; }
+    else if (act==="mesaiQr"){ taramaAc(); return; }
+    else if (act==="mesaiKaydet"){ mesaiKaydet(v, b.dataset.n); return; }
+    else if (act==="mesaiKapat"){ const m = document.getElementById("mesaiModal"); if (m) m.hidden = true; return; }
     else if (act==="gvTur"){ gvSync(); GV.f.tur = v; GV.sonEklenen = null; render(); return; }
     else if (act==="gvOkudum"){ gvOkudum(v); return; }
     else if (act==="gvSes"){ gvSes(); return; }
@@ -3327,6 +3391,9 @@ function route(){
   // B1 Teknik uygulamasında sakin arıza formu yok (amirler görmesin); teknisyen #randevu ile yine açabilir
   if (appDosya()==="teknik.html" && (S.view==="randevu"||S.view==="randevularim") && !store.isTech()){ S.view = "panel"; history.replaceState(null, "", location.pathname + "#panel"); }
   if (S.view !== "tesis"){ T.f = null; T.detay = null; }
+  // Mesai QR'ı telefonun kendi kamerasıyla okutulduysa (…personel.html?mesai=…)
+  const mzl = mesaiCoz(location.search);
+  if (mzl){ history.replaceState(null, "", location.pathname + location.hash); setTimeout(() => mesaiAc(mzl), 600); }
   // Linkte kod varsa (…devriye.html?kod=123456) otomatik gir, sonra adres çubuğundan sil
   const lk = new URLSearchParams(location.search).get("kod");
   if (lk && (S.view === "personel" || S.view === "devriye") && store.kodOku){
