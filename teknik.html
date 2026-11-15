@@ -1173,6 +1173,19 @@ const SES_SOZ = {
 };
 const SAYI = {bir:1, iki:2, "üç":3, "dört":4, "beş":5, "altı":6, yedi:7, sekiz:8, dokuz:9, on:10, yirmi:20, otuz:30};
 const SIRA = {birinci:1, ikinci:2, "üçüncü":3, "dördüncü":4, "beşinci":5, "altıncı":6, yedinci:7, sekizinci:8, dokuzuncu:9, onuncu:10, yirminci:20, otuzuncu:30};
+/* "ce bir blok yedinci kat" → "C1 blok 7. kat": söylenen rakamları rakama, blok adlarını büyük harfe çevir */
+function sesNormal(ham){
+  let t = " " + String(ham||"").replace(/\s+/g," ").trim() + " ";
+  const HARF = {a:"A", b:"B", be:"B", c:"C", ce:"C", se:"C", si:"C", d:"D", de:"D", f:"F", fe:"F"};
+  const RAK = {bir:1, iki:2, "üç":3, "dört":4, "beş":5, "altı":6, yedi:7};
+  t = t.replace(/(\s)cebir(?=[\s.,'’]|blo)/gi, "$1C1");
+  t = t.replace(/(\s)(a|be|b|ce|c|se|si|de|d|fe|f)\s*-?\s*(bir|iki|üç|dört|beş|altı|yedi|[1-7])(?=[\s.,'’]|blo|da|de|ta|te|'|$)/gi, (m, bas, h, r) => {
+    const b = HARF[h.toLocaleLowerCase("tr")] + (/\d/.test(r) ? r : RAK[r.toLocaleLowerCase("tr")]);
+    return AYAR.bloklar.includes(b) ? bas + b : m; });
+  // sıra sayıları: "on birinci kat" → "11. kat"
+  t = t.replace(/(\s)(?:(on|yirmi)\s+)?(birinci|ikinci|üçüncü|dördüncü|beşinci|altıncı|yedinci|sekizinci|dokuzuncu|onuncu|yirminci|otuzuncu)(\s*kat)/gi, (m, bas, on, sira, kat) => bas + ((on ? SAYI[on.toLocaleLowerCase("tr")] : 0) + SIRA[sira.toLocaleLowerCase("tr")]) + "." + kat);
+  return t.trim();
+}
 function sesCoz(ham, rol){
   let t = " " + String(ham||"").toLocaleLowerCase("tr").replace(/[.,!?;:]/g," ").replace(/\s+/g," ") + " ";
   const o = {};
@@ -1208,6 +1221,7 @@ function sesCoz(ham, rol){
   return o;
 }
 function sesUygula(metin){
+  metin = sesNormal(metin); SES.metin = metin;
   const p = S.p, o = sesCoz(metin, p.rol);
   if (o.cat){ p.cat = o.cat; p.issues = o.issues.length ? o.issues : []; }
   if (p.rol === BAHCIVAN){ p.yerTip = "alan"; if (o.alan) p.alan = o.alan; }
