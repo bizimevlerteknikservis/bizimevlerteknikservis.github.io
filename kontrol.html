@@ -1380,7 +1380,7 @@ function koyuMu(){ const t = document.documentElement.getAttribute("data-tema");
 function temaIkon(){ const b = $("#temaBtn"); if (b) b.innerHTML = koyuMu() ? IKON_GUNES : IKON_AY; }
 /* Tema tercihi ekran başına saklanır: Devriye (gece) varsayılan koyu, Arıza/Tesis açık. Bir ekranda tema değiştirmek diğerlerini etkilemez. */
 const temaTercih = () => { try { return JSON.parse(localStorage.getItem("bz1-tema2") || "{}"); } catch(e){ return {}; } };
-function temaUygula(m){ if (document.documentElement.classList.contains("tv")) return; const t = temaTercih()[m]; if (t) document.documentElement.setAttribute("data-tema", t); else document.documentElement.removeAttribute("data-tema"); }
+function temaUygula(m){ if (document.documentElement.classList.contains("tv") && typeof tvGeceMi==="function" && tvGeceMi()){ document.documentElement.setAttribute("data-tema","koyu"); return; } const t = temaTercih()[m]; if (t) document.documentElement.setAttribute("data-tema", t); else document.documentElement.removeAttribute("data-tema"); }
 try { localStorage.removeItem("bz1-tema"); } catch(e){}
 $("#temaBtn").onclick = () => { const yeni = koyuMu() ? "acik" : "koyu"; const T = temaTercih(); const varsayilanKoyu = MODE==="gece" || MODE==="afet"; if ((yeni==="koyu") === varsayilanKoyu) delete T[MODE]; else T[MODE] = yeni; try { localStorage.setItem("bz1-tema2", JSON.stringify(T)); } catch(e){} temaUygula(MODE); temaIkon(); modAc(MODE); };
 /* Saat */
@@ -1401,7 +1401,8 @@ const TV_AD = {gunduz:"Arıza", gece:"Devriye", tesis:"Tesis"};
 function tvSonYaz(t){ const e = $("#tvSon"); if (e) e.textContent = t; }
 function tvGeceMi(){ const h = new Date().getHours(); return h>=21 || h<7; }
 function tvPlan(){ return tvGeceMi() ? [["gece",40],["gunduz",20],["tesis",20]] : [["gunduz",30],["tesis",20],["gece",20]]; }
-function tvTema(){ document.documentElement.setAttribute("data-tema", tvGeceMi() ? "koyu" : "acik"); if (typeof temaIkon==="function") temaIkon(); }
+/* TV: gece 21–07 her ekran koyu; gündüz her ekran kendi temasında (Devriye koyu, Arıza/Tesis açık) */
+function tvTema(){ temaUygula(MODE); if (typeof temaIkon==="function") temaIkon(); }
 function tvBar(){
   let b = $("#tvbar"); if (!b){ b = document.createElement("div"); b.id="tvbar"; b.className="tvbar"; b.innerHTML="<i></i><span></span>"; document.body.appendChild(b); }
   return b;
