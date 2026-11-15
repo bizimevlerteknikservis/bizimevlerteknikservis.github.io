@@ -230,9 +230,10 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 
 /* ============ TV ekranı ============ */
 .tvakis{position:fixed;left:16px;right:16px;bottom:12px;height:58px;z-index:31;display:none;align-items:center;overflow:hidden;border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.25)}
-html.tv .tvakis{display:flex}
-html.tv .app{padding-bottom:84px}
-@media (min-height:700px){html.tv .mapwrap svg.map{max-height:calc(100vh - 300px)}}
+.tvakis{display:flex}
+.app{padding-bottom:84px}
+.tvakis .son:empty{display:none}
+@media (min-height:700px){.mapwrap svg.map{max-height:calc(100vh - 300px)}}
 html.tv .tvbar{bottom:70px;left:16px;right:16px;height:4px;border-radius:2px}
 html.tv .tvbar span{display:none}
 .tvakis .son{flex:none;height:100%;display:flex;align-items:center;padding:0 18px;border-left:1px solid var(--line);font:700 15px var(--display);color:var(--muted);white-space:nowrap}
@@ -245,13 +246,12 @@ html.tv .tvbar span{display:none}
 .tvakis .serit b{color:var(--accent);margin-right:8px}
 .tvakis .serit u{text-decoration:none;color:var(--muted);margin:0 22px}
 @keyframes tvkay{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-@media (max-height:699px){.tvakis{height:42px;bottom:6px;left:8px;right:8px;border-radius:12px}.tvakis .bas{font-size:13px;padding:0 12px}.tvakis .serit{font-size:15px}.tvakis .son{display:none}html.tv .app{padding-bottom:56px}html.tv .tvbar{bottom:50px}}
+@media (max-height:699px), (max-width:600px){.tvakis{height:42px;bottom:6px;left:8px;right:8px;border-radius:12px}.tvakis .bas{font-size:13px;padding:0 12px}.tvakis .serit{font-size:15px}.tvakis .son{display:none}.app{padding-bottom:56px}html.tv .tvbar{bottom:50px}}
 
 .tvbasla{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(4,12,22,.86);color:#fff;text-align:center;padding:20px}
 .tvbasla button{font:800 34px/1.2 var(--display);padding:28px 48px;border-radius:24px;border:0;background:#2b7cd3;color:#fff;cursor:pointer;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .tvbasla p{margin-top:18px;font-size:18px;opacity:.75;max-width:640px}
 html.tv #edit, html.tv #cikisBtn, html.tv #temaBtn, html.tv #tvBtn, html.tv .editbar{display:none!important}
-html.tv .modes button{pointer-events:none}
 html.tv #panel{font-size:1.08em}
 .tvbar{position:fixed;left:0;right:0;bottom:0;height:5px;z-index:30;background:rgba(127,127,127,.18)}
 .tvbar i{display:block;height:100%;width:0;background:var(--accent)}
@@ -1401,7 +1401,7 @@ function tvBar(){
 function tvAdim(){
   clearTimeout(TV.t); if (!TV.on) return;
   const kalan = TV.durak - Date.now();
-  if (kalan > 0){ TV.t = setTimeout(tvAdim, kalan); const b = tvBar(); b.querySelector("span").textContent = "🔔 Uyarı gösteriliyor"; tvSonYaz("🔔 Uyarı gösteriliyor"); return; }
+  if (kalan > 0){ TV.t = setTimeout(tvAdim, kalan); const b = tvBar(); b.querySelector("span").textContent = TV.durakYazi; tvSonYaz(TV.durakYazi); return; }
   tvTema();
   const plan = tvPlan(); TV.sira = TV.sira % plan.length;
   const [m, sn] = plan[TV.sira]; const sonraki = plan[(TV.sira+1) % plan.length][0];
@@ -1451,7 +1451,7 @@ function tvUyari(o){
   if (!TV.on) return;
   tvGong(o.acil);
   setTimeout(()=>tvSoyle(o.soz, o.acil ? 2 : 1), o.acil ? 1400 : 1000);
-  TV.durak = Date.now() + 60000;
+  TV.durak = Date.now() + 60000; TV.durakYazi = "🔔 Uyarı gösteriliyor";
   if (o.mod && MODE !== o.mod) modAc(o.mod);
   tvAdim();
   let d = $("#tvUyari"); if (!d){ d = document.createElement("div"); d.id="tvUyari"; document.body.appendChild(d); }
@@ -1504,7 +1504,9 @@ function tvAkisCiz(){
   sr.innerHTML = `<span>${ic}</span><span>${ic}</span>`;
   requestAnimationFrame(()=>{ const w = sr.scrollWidth/2; sr.style.setProperty("--sure", Math.max(25, Math.round(w/90)) + "s"); });
 }
-setInterval(()=>{ if (TV.on) tvAkisCiz(); }, 30000);
+setInterval(tvAkisCiz, 30000); setTimeout(tvAkisCiz, 1500);
+/* TV modunda ekran düğmesine elle basılırsa otomatik geçiş 2 dk bekler */
+document.querySelectorAll(".modes button").forEach(b=>b.addEventListener("click", ()=>{ if (!TV.on) return; TV.durak = Date.now() + 120000; TV.durakYazi = "✋ Elle seçildi · 2 dk sonra otomatik devam"; TV.sira = (tvPlan().findIndex(x=>x[0]===b.dataset.mode)+1) || 0; tvAdim(); }));
 $("#tvBtn").onclick = tvBaslat;
 window.addEventListener("keydown", e => { if (TV.on && e.key==="t") tvUyari({ust:"DENEME", baslik:"🔔 Sesli uyarı denemesi", alt:"Ses geliyorsa sistem hazır", soz:"Bu bir deneme uyarısıdır. Ses geliyorsa sistem hazır."}); });
 if (/[?&]tv=1/.test(location.search)){
