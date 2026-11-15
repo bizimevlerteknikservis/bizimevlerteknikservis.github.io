@@ -638,9 +638,9 @@ function DemoStore(){
     listenGelemeyen: cb => sub(() => cb(mem.appts.filter(a => a.cat==="p_gelemiyorum"))),
     async setIzin(v){ mem.izin = v; save(); },
     async setDuyuru(v){ mem.duyuru = v; save(); },
-    listenGorev: cb => sub(() => cb((mem.gorev ||= []).filter(g => g.ts > Date.now() - 10*864e5))),
-    async gorevEkle(o){ (mem.gorev ||= []).push({id:"g"+Date.now().toString(36), ...o}); save(); },
-    async gorevGuncelle(id, p){ const g = (mem.gorev||[]).find(x=>x.id===id); if (g) Object.assign(g, p); save(); },
+    listenGorev: cb => sub(() => cb((mem.gorev ||= []).filter(g => g.ts > Date.now() - 10*864e5 || g.tur==="talimat"))),
+    async gorevEkle(o){ (mem.gorev ||= []).push({id:"g"+Date.now().toString(36)+Math.random().toString(36).slice(2,5), ...o}); save(); },
+    async gorevGuncelle(id, p){ const g = (mem.gorev||[]).find(x=>x.id===id); if (g) for (const [k,v] of Object.entries(p)){ if (k.includes(".")){ const [a,b2] = k.split("."); (g[a] ||= {})[b2] = v; } else g[k] = v; } save(); },
     listenDizin: cb => sub(() => cb(mem.dizin || {liste: Object.values(mem.kodlar||{}).filter(k=>k.aktif!==false).map(k=>({ad:k.ad, rol:k.tip==="guvenlik"?"Güvenlik":k.rol}))})),
     async setDizin(v){ mem.dizin = v; save(); },
     async logout(){ tech = false; save(); },
@@ -717,7 +717,11 @@ function FirebaseStore(cfg){
     async setTesisAyar(p){ await fs.setDoc(fs.doc(db,"ayar","tesis"), p, {merge:true}); },
     listenDuyuru(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","devriye"), s => cb(s.exists() ? s.data() : null), e => { console.warn("duyuru", e && e.code); cb(null); }); },
     async setDuyuru(v){ await fs.setDoc(fs.doc(db,"duyuru","devriye"), v); },
-    listenGorev(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"gorev"), fs.where("ts",">=",Date.now() - 10*864e5)), s => cb(s.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.warn("gorev", e && e.code); cb([]); }); },
+    listenGorev(cb){
+      const A = {son:[], tal:[]}; const ver = () => { const m = new Map(); [...A.son, ...A.tal].forEach(x=>m.set(x.id, x)); cb([...m.values()]); };
+      const u1 = fs.onSnapshot(fs.query(fs.collection(db,"gorev"), fs.where("ts",">=",Date.now() - 10*864e5)), s => { A.son = s.docs.map(d=>({id:d.id, ...d.data()})); ver(); }, e => { console.warn("gorev", e && e.code); });
+      const u2 = fs.onSnapshot(fs.query(fs.collection(db,"gorev"), fs.where("tur","==","talimat")), s => { A.tal = s.docs.map(d=>({id:d.id, ...d.data()})); ver(); }, e => { console.warn("talimat", e && e.code); });
+      return () => { u1(); u2(); }; },
     async gorevEkle(o){ await fs.addDoc(fs.collection(db,"gorev"), {...o, uid:user.uid}); },
     async gorevGuncelle(id, p){ await fs.updateDoc(fs.doc(db,"gorev",id), p); },
     listenDizin(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","personel"), s => cb(s.exists() ? s.data() : null), e => cb(null)); },
@@ -1365,7 +1369,10 @@ function devHata(e){
 }
 function devKuyruk(){ return yerel("bz1-devriye-kuyruk") || []; }
 /* =================== GÖREV VER (müdür/amir → personel) =================== */
-const GV = {un:null, liste:[], dizin:null, unD:null, f:{kime:"", yer:"", metin:""}, filtre:"acik", sonEklenen:null};
+const GV = {un:null, liste:[], dizin:null, unD:null, f:{kime:"", yer:"", metin:"", tur:"gorev", bitis:"hafta", tarih:""}, filtre:"acik", sonEklenen:null};
+const talAktif = g => g.tur==="talimat" && g.durum!=="iptal" && (!g.bitis || g.bitis > Date.now());
+const talBitisAd = g => !g.bitis ? "İptal edilene kadar geçerli" : `${gvSaat(g.bitis)} tarihine kadar geçerli`;
+const okuKey = ad => adSade(ad).replace(/[^a-z0-9çğıöşü]+/g,"_");
 const GV_GRUP = [["grup:Temizlik","🧹 Tüm temizlik"],["grup:"+BAHCIVAN,"🌿 Tüm bahçe"],["grup:Güvenlik","🛡️ Tüm güvenlik"]];
 const gvYetkili = () => store.isTech() || (store.isYetkili && store.isYetkili());
 /* Amirler sadece güvenliğe görev verir ve sadece güvenlik görevlerini görür; müdür, Ali ve teknisyen herkese */
@@ -1389,14 +1396,27 @@ const gvSaat = t => { const d = new Date(t), b = new Date(); return (d.toDateStr
 function gorevKart(ben){
   gorevBaslat();
   if (!ben || !ben.ad) return "";
-  const L = GV.liste.filter(g => gvBana(g, ben) && (g.durum!=="yapildi" || g.yapildiTs > Date.now() - 6*36e5));
-  if (!L.length) return "";
-  return `<section class="gv-kart"><h2>📌 Size verilen görevler</h2>${L.map(g=>`<div class="gv">
+  const T = GV.liste.filter(g => talAktif(g) && gvBana(g, ben)).sort((a,b)=>b.ts-a.ts);
+  const L = GV.liste.filter(g => g.tur!=="talimat" && gvBana(g, ben) && (g.durum!=="yapildi" || g.yapildiTs > Date.now() - 6*36e5));
+  const talH = T.length ? `<section class="gv-kart" style="border-color:#d9851b"><h2>📢 Talimatlar</h2>${T.map(g=>{ const okudu = (g.okuyan||{})[okuKey(ben.ad)];
+    return `<div class="gv">${g.yer?`<span class="gv-yer">📍 ${esc(g.yer)}</span>`:""}<b>${esc(g.metin)}</b>
+      <small>${esc(g.byAd||"Yönetim")} · ${gvSaat(g.ts)} · ${esc(talBitisAd(g))}</small>
+      ${okudu ? `<small style="color:#14703f;font-weight:700">✓ Okudunuz · ${saatYaz(okudu.ts)}</small>` : `<div class="gv-btn"><button class="cta" data-act="gvOkudum" data-v="${g.id}">👁️ Okudum, anladım</button></div>`}</div>`; }).join("")}</section>` : "";
+  if (!L.length) return talH;
+  return talH + `<section class="gv-kart"><h2>📌 Size verilen görevler</h2>${L.map(g=>`<div class="gv">
     ${g.yer?`<span class="gv-yer">📍 ${esc(g.yer)}</span>`:""}<b>${esc(g.metin)}</b>
     <small>${esc(g.byAd||"Yönetim")} · ${gvSaat(g.ts)}${g.kime.tip==="grup"?` · ${esc(gvKimeAd(g))}`:""}</small>
     ${g.durum==="yapildi" ? `<small style="color:#14703f;font-weight:700">✓ ${esc(g.yapildiAd||"")} yaptı · ${saatYaz(g.yapildiTs)}</small>` :
       `<div class="gv-btn">${g.durum==="yeni" ? `<button class="cta ghost" data-act="gvGordum" data-v="${g.id}">👍 Gördüm</button>` : `<span class="gv-durum gv-goruldu" style="align-self:center">Görüldü</span>`}<button class="cta" data-act="gvYaptim" data-v="${g.id}">✓ Yaptım</button></div>`}
   </div>`).join("")}</section>`;
+}
+async function gvOkudum(id){
+  const ben = S.view==="devriye" && S.d.kim ? {ad:S.d.kim.ad, kod:S.d.kim.kod} : {ad:S.p.name, kod:S.p.kod};
+  const g = GV.liste.find(x=>x.id===id); if (!g || !ben.ad) return;
+  const k = okuKey(ben.ad), v = {ad:ben.ad, ts:Date.now()};
+  g.okuyan = {...(g.okuyan||{}), [k]:v}; render();
+  try { await store.gorevGuncelle(id, {["okuyan." + k]: v, sonKod: ben.kod||""}); toast("✓ Okundu olarak iletildi"); }
+  catch(e){ console.error(e); toast(e && e.code==="permission-denied" ? "Kaydedilemedi: kodunuzla giriş yapın" : "Kaydedilemedi, tekrar deneyin"); }
 }
 async function gvPersonelGuncelle(id, durum){
   const ben = S.view==="devriye" && S.d.kim ? {ad:S.d.kim.ad, kod:S.d.kim.kod} : {ad:S.p.name, kod:S.p.kod};
@@ -1407,7 +1427,7 @@ async function gvPersonelGuncelle(id, durum){
     if (durum==="yapildi") tgGonder(`✅ Görev yapıldı · ${ben.ad}\n📍 ${g.yer||"-"} · ${g.metin}`); }
   catch(e){ console.error(e); toast(e && e.code==="permission-denied" ? "Kaydedilemedi: kodunuzla giriş yapın" : "Kaydedilemedi, tekrar deneyin"); }
 }
-function gvSync(){ const a = document.getElementById("gv_kime"), y = document.getElementById("gv_yer"), m = document.getElementById("gv_metin"); if (a) GV.f.kime = a.value; if (y) GV.f.yer = y.value; if (m) GV.f.metin = m.value; }
+function gvSync(){ const a = document.getElementById("gv_kime"), y = document.getElementById("gv_yer"), m = document.getElementById("gv_metin"), bt = document.getElementById("gv_bitis"), tr = document.getElementById("gv_tarih"); if (a) GV.f.kime = a.value; if (y) GV.f.yer = y.value; if (m) GV.f.metin = m.value; if (bt) GV.f.bitis = bt.value; if (tr) GV.f.tarih = tr.value; }
 function vGorev(){
   gorevBaslat();
   if (!gvYetkili()) return `<div class="card"><h2>Görev ver</h2><p class="hint">Bu bölüm müdür, amir ve teknisyen içindir.</p><a class="cta" href="#panel" style="display:block;text-align:center;text-decoration:none">Giriş</a></div>`;
@@ -1417,22 +1437,26 @@ function vGorev(){
   const kisiOpt = roller.map(r=>`<optgroup label="${esc(r)}">${dz.filter(k=>k.rol===r).map(k=>`<option value="kisi:${esc(k.ad)}|${esc(r)}" ${f.kime===`kisi:${k.ad}|${r}`?"selected":""}>${esc(k.ad)}</option>`).join("")}</optgroup>`).join("");
   const yerler = [...AYAR.bloklar.map(b=>b+" Blok"), "Ortak alan", "Otopark", "Bahçe", "Çocuk parkı", "Spor sahası", "Sosyal tesis", "Güvenlik kulübesi", "Teknik bina"];
   const goru = GV.liste.filter(g => !gvSadeceGuv() || g.kime.rol==="Güvenlik");
-  const acik = goru.filter(g=>g.durum==="yeni"||g.durum==="goruldu"), biten = goru.filter(g=>g.durum==="yapildi"||g.durum==="iptal");
+  const acik = goru.filter(g=>g.tur==="talimat" ? talAktif(g) : (g.durum==="yeni"||g.durum==="goruldu")), biten = goru.filter(g=>g.tur==="talimat" ? !talAktif(g) && g.ts > Date.now() - 10*864e5 : (g.durum==="yapildi"||g.durum==="iptal"));
   const L = GV.filtre==="acik" ? acik : biten;
   const son = GV.sonEklenen;
   return `<a class="pill-btn" href="#panel" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Menü</a>
-  <section class="step"><h2><span>📌</span>Görev ver</h2>
+  <section class="step"><h2><span>${f.tur==="talimat"?"📢":"📌"}</span>${f.tur==="talimat"?"Talimat ver":"Görev ver"}</h2>
+    <div class="prefs" style="margin-bottom:10px"><button class="pref" data-act="gvTur" data-v="gorev" aria-pressed="${f.tur!=="talimat"}">📌 Görev (yapılıp biter)</button><button class="pref" data-act="gvTur" data-v="talimat" aria-pressed="${f.tur==="talimat"}">📢 Talimat / bilgi (süreli)</button></div>
+    ${f.tur==="talimat" ? `<p class="hint" style="margin-top:0">Talimat seçilen süre boyunca her vardiyanın ekranında kalır. Herkes ayrı ayrı "Okudum" der, kimin okuduğunu görürsünüz.</p>` : ""}
     <label class="f">Kime<select id="gv_kime"><option value="">Seçin</option><optgroup label="Grup">${gruplar.map(([v,a])=>`<option value="${v}" ${f.kime===v?"selected":""}>${a}</option>`).join("")}</optgroup>${kisiOpt}</select></label>
     ${!dz.length ? `<p class="hint">Kişi listesi teknisyen panelinden yüklenir. Şimdilik grup seçebilirsiniz.</p>` : ""}
     <label class="f">Nerede (isteğe bağlı)<select id="gv_yer"><option value="">Seçin</option>${yerler.map(y=>`<option ${f.yer===y?"selected":""}>${esc(y)}</option>`).join("")}</select></label>
-    <label class="f">Ne yapılacak<textarea id="gv_metin" rows="3" maxlength="400" placeholder="Örn. 5. kat merdiven kirlenmiş, silinmesi lazım">${esc(f.metin)}</textarea></label>
+    ${f.tur==="talimat" ? `<label class="f">Ne zamana kadar geçerli<select id="gv_bitis">${[["bugun","Bugün gün sonuna kadar"],["3gun","3 gün"],["hafta","1 hafta"],["ay","1 ay"],["tarih","Tarih seç"],["suresiz","İptal edilene kadar"]].map(([v,a])=>`<option value="${v}" ${f.bitis===v?"selected":""}>${a}</option>`).join("")}</select></label>
+      ${f.bitis==="tarih" ? `<label class="f">Son gün<input type="date" id="gv_tarih" value="${esc(f.tarih)}"></label>` : ""}` : ""}
+    <label class="f">${f.tur==="talimat" ? "Talimat" : "Ne yapılacak"}<textarea id="gv_metin" rows="3" maxlength="400" placeholder="Örn. 5. kat merdiven kirlenmiş, silinmesi lazım">${esc(f.metin)}</textarea></label>
     ${SR ? `<button class="cta ghost" data-act="gvSes" style="margin-bottom:8px">${GV.dinliyor ? "⏹ Dinliyorum… bitince basın" : "🎙️ Söyleyerek yaz"}</button>` : ""}
-    <button class="cta" data-act="gvGonder" ${GV.gonderiyor?"disabled":""}>📌 Görevi gönder</button>
-    ${son ? `<div class="gv" style="margin-top:12px;background:#e6f6ed;border-radius:12px;padding:10px">✓ Görev gönderildi: <strong>${esc(gvKimeAd(son))}</strong>. Personel uygulamayı açınca en üstte görür.
+    <button class="cta" data-act="gvGonder" ${GV.gonderiyor?"disabled":""}>${f.tur==="talimat"?"📢 Talimatı gönder":"📌 Görevi gönder"}</button>
+    ${son ? `<div class="gv" style="margin-top:12px;background:#e6f6ed;border-radius:12px;padding:10px">✓ ${son.tur==="talimat"?"Talimat":"Görev"} gönderildi: <strong>${esc(gvKimeAd(son))}</strong>. Personel uygulamayı açınca en üstte görür.
       <button class="cta ghost" data-act="gvWa" style="margin-top:8px">📲 WhatsApp'tan da haber ver</button></div>` : ""}
   </section>
   <div class="prefs" style="margin:6px 0 10px"><button class="pref" data-act="gvFiltre" data-v="acik" aria-pressed="${GV.filtre==="acik"}">Açık (${acik.length})</button><button class="pref" data-act="gvFiltre" data-v="biten" aria-pressed="${GV.filtre==="biten"}">Biten (${biten.length})</button></div>
-  <div class="list">${L.length ? L.map(g=>`<div class="card gv" style="padding:12px;margin-bottom:8px">
+  <div class="list">${L.length ? L.map(g=> g.tur==="talimat" ? talKart(g) : `<div class="card gv" style="padding:12px;margin-bottom:8px">
     <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div>${g.yer?`<span class="gv-yer">📍 ${esc(g.yer)}</span>`:""}<b>${esc(g.metin)}</b></div><span class="gv-durum gv-${g.durum}">${gvDurumAd[g.durum]}</span></div>
     <small>👤 ${esc(gvKimeAd(g))} · veren ${esc(g.byAd||"")} · ${gvSaat(g.ts)}</small>
     ${g.gorulduTs?`<small>👍 ${esc(g.gorulduAd||"")} gördü · ${gvSaat(g.gorulduTs)}</small>`:""}
@@ -1440,8 +1464,22 @@ function vGorev(){
     ${g.durum==="yeni"||g.durum==="goruldu" ? `<div class="gv-btn"><button class="cta ghost" data-act="gvWa" data-v="${g.id}">📲 Hatırlat</button><button class="cta ghost" data-act="gvIptal" data-v="${g.id}">İptal</button></div>` : ""}
   </div>`).join("") : `<div class="empty"><strong>${GV.filtre==="acik"?"Açık görev yok":"Son 10 günde biten görev yok"}</strong></div>`}</div>`;
 }
+function talKart(g){
+  const ok = Object.values(g.okuyan||{}).sort((a,b)=>a.ts-b.ts);
+  const grup = g.kime.tip==="grup" ? (((GV.dizin && GV.dizin.liste) || []).filter(k=>k.rol===g.kime.rol)) : [{ad:g.kime.ad}];
+  const okumayan = grup.filter(k=>!(g.okuyan||{})[okuKey(k.ad)]);
+  const akt = talAktif(g);
+  return `<div class="card gv" style="padding:12px;margin-bottom:8px;border-left:4px solid #d9851b">
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><span class="gv-yer" style="background:#fdf1e1;color:#8a5200">📢 Talimat</span> ${g.yer?`<span class="gv-yer">📍 ${esc(g.yer)}</span>`:""}<b>${esc(g.metin)}</b></div><span class="gv-durum ${akt?"gv-goruldu":"gv-iptal"}">${akt?"Geçerli":g.durum==="iptal"?"Sonlandırıldı":"Süresi doldu"}</span></div>
+    <small>👤 ${esc(gvKimeAd(g))} · veren ${esc(g.byAd||"")} · ${gvSaat(g.ts)} · ${esc(talBitisAd(g))}</small>
+    <small style="color:#14703f;font-weight:700">👁️ ${ok.length} kişi okudu${ok.length?": "+ok.map(o=>`${esc(o.ad.split(" ")[0])} ${saatYaz(o.ts)}`).join(", "):""}</small>
+    ${grup.length && okumayan.length ? `<small style="color:#b4232a">Henüz okumayan: ${okumayan.map(k=>esc(k.ad.split(" ")[0])).join(", ")}</small>` : ""}
+    ${akt ? `<div class="gv-btn"><button class="cta ghost" data-act="gvWa" data-v="${g.id}">📲 WhatsApp</button><button class="cta ghost" data-act="gvIptal" data-v="${g.id}">Sonlandır</button></div>` : ""}
+  </div>`;
+}
+document.addEventListener("change", e => { if (e.target.id==="gv_bitis"){ gvSync(); render(); } });
 function gvWaMetin(g){ const link = location.origin + location.pathname.replace(/[^/]*$/, "") + (g.kime.rol==="Güvenlik" ? "devriye.html" : "personel.html");
-  return `📌 Görev${g.kime.tip==="kisi" ? " · " + g.kime.ad : ""}\n${g.yer ? "📍 " + g.yer + "\n" : ""}${g.metin}\n\nYapınca uygulamada "Yaptım"a basın: ${link}`; }
+  return `${g.tur==="talimat" ? "📢 Talimat" : "📌 Görev"}${g.kime.tip==="kisi" ? " · " + g.kime.ad : ""}\n${g.yer ? "📍 " + g.yer + "\n" : ""}${g.metin}\n\n${g.tur==="talimat" ? `${talBitisAd(g)}. Uygulamada "Okudum"a basın` : `Yapınca uygulamada "Yaptım"a basın`}: ${link}`; }
 function gvSes(){
   if (GV.dinliyor){ try { GV.r && GV.r.stop(); } catch(e){} GV.dinliyor = false; render(); return; }
   gvSync(); const r = new SR(); GV.r = r; r.lang = "tr-TR"; r.interimResults = false; r.continuous = false;
@@ -1461,9 +1499,13 @@ async function gvGonder(){
   if (!f.metin.trim()){ toast("Ne yapılacağını yazın"); return; }
   const [tip, deger] = f.kime.split(/:(.+)/);
   const kime = tip==="grup" ? {tip:"grup", rol:deger} : {tip:"kisi", ad:deger.split("|")[0], rol:deger.split("|")[1]||""};
-  const o = {kime, yer:f.yer, metin:f.metin.trim().slice(0,400), durum:"yeni", ts:Date.now(), byAd: store.isTech() ? "Teknisyen" : (store.kim ? store.kim() : "Yönetim")};
+  let bitis = null;
+  if (f.tur==="talimat"){ const g0 = new Date(); g0.setHours(23,59,0,0);
+    if (f.bitis==="bugun") bitis = g0.getTime(); else if (f.bitis==="3gun") bitis = g0.getTime() + 2*864e5; else if (f.bitis==="hafta") bitis = g0.getTime() + 6*864e5; else if (f.bitis==="ay") bitis = g0.getTime() + 29*864e5;
+    else if (f.bitis==="tarih"){ if (!f.tarih){ toast("Son günü seçin"); return; } const [y,m,d] = f.tarih.split("-").map(Number); bitis = new Date(y, m-1, d, 23, 59).getTime(); } }
+  const o = {...(f.tur==="talimat" ? {tur:"talimat", bitis, okuyan:{}} : {}), kime, yer:f.yer, metin:f.metin.trim().slice(0,400), durum:"yeni", ts:Date.now(), byAd: store.isTech() ? "Teknisyen" : (store.kim ? store.kim() : "Yönetim")};
   GV.gonderiyor = true; render();
-  try { await store.gorevEkle(o); GV.sonEklenen = o; GV.f = {kime:f.kime, yer:"", metin:""}; toast("📌 Görev gönderildi"); }
+  try { await store.gorevEkle(o); GV.sonEklenen = o; GV.f = {...f, yer:"", metin:""}; toast(f.tur==="talimat" ? "📢 Talimat gönderildi" : "📌 Görev gönderildi"); }
   catch(e){ console.error(e); toast(e && e.code==="permission-denied" ? "Yetki yok: Firebase kuralına görev bölümü eklenmeli" : "Gönderilemedi"); }
   GV.gonderiyor = false; render();
 }
@@ -2907,12 +2949,14 @@ document.addEventListener("click", async e => {
     else if (act==="pKimlik"){ syncForm(); S.p.kimlikAc = true; render(); }
     else if (act==="sesBas"){ syncForm(); sesBaslat(); return; }
     else if (act==="gvGonder"){ gvGonder(); return; }
+    else if (act==="gvTur"){ gvSync(); GV.f.tur = v; GV.sonEklenen = null; render(); return; }
+    else if (act==="gvOkudum"){ gvOkudum(v); return; }
     else if (act==="gvSes"){ gvSes(); return; }
     else if (act==="gvFiltre"){ gvSync(); GV.filtre = b.dataset.v; render(); return; }
     else if (act==="gvGordum"){ gvPersonelGuncelle(b.dataset.v, "goruldu"); return; }
     else if (act==="gvYaptim"){ gvPersonelGuncelle(b.dataset.v, "yapildi"); return; }
     else if (act==="gvWa"){ const g = b.dataset.v ? GV.liste.find(x=>x.id===b.dataset.v) : GV.sonEklenen; if (g) window.open("https://wa.me/?text=" + encodeURIComponent(gvWaMetin(g)), "_blank"); return; }
-    else if (act==="gvIptal"){ if (!confirm("Görev iptal edilsin mi?")) return; const id = b.dataset.v; const g = GV.liste.find(x=>x.id===id); if (g) g.durum = "iptal"; render(); store.gorevGuncelle(id, {durum:"iptal", iptalTs:Date.now()}).catch(e=>{ console.error(e); toast("İptal edilemedi"); }); return; }
+    else if (act==="gvIptal"){ if (!confirm("İptal edilsin / sonlandırılsın mı?")) return; const id = b.dataset.v; const g = GV.liste.find(x=>x.id===id); if (g) g.durum = "iptal"; render(); store.gorevGuncelle(id, {durum:"iptal", iptalTs:Date.now()}).catch(e=>{ console.error(e); toast("İptal edilemedi"); }); return; }
     else if (act==="sesYaziUygula"){ const m = (document.getElementById("sesYazi")||{}).value || ""; if (!m.trim()) return; syncForm(); SES.metin = m.trim(); SES.hata = ""; SES.klavye = false; sesUygula(SES.metin); render(); return; }
     else if (act==="sesDur"){ const r = SES.r; try { r && r.stop(); } catch(e){} setTimeout(() => { if (SES.r === r && SES.dinliyor) sesBitir(r); }, 1200); return; }
     else if (act==="pCat"){ syncForm(); if (S.p.cat !== v) S.p.issues = []; S.p.cat = v; render(); }
