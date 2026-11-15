@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0f2d52">
+<title>BİZKONTROL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>window.FB_CONFIG = {
+    apiKey: "AIzaSyAAtGK76Oanri1T9nCK4bm6dDJCLVzWp5c",
+    authDomain: "bizimevler-teknik-servis.firebaseapp.com",
+    projectId: "bizimevler-teknik-servis",
+    storageBucket: "bizimevler-teknik-servis.firebasestorage.app",
+    messagingSenderId: "947168663247",
+    appId: "1:947168663247:web:de355a52058ff2ce4109ba"
+  };
+window.FB_TEKNISYEN = ["teknisyenzeynel91@gmail.com"];</script>
+<style>
+:root{
+  --bg:#eef3f9; --panel:#ffffff; --panel2:#f5f8fc; --ink:#10233d; --muted:#5f7591; --line:#dde6f0;
+  --accent:#2b7cd3; --ok:#1e9d5b; --warn:#c77812; --bad:#d63a35;
+  --okbg:#e6f6ed; --warnbg:#fdf1e1; --badbg:#fdeaea; --accbg:#e7f0fb;
+  --ben:#17588f; --benink:#fff;
+  --shadow:0 8px 24px rgba(16,40,80,.07); color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#081320; --panel:#0f1f33; --panel2:#0b192a; --ink:#e4eef9; --muted:#8ea6bf; --line:#1d3350;
+  --accent:#5bb0ff; --ok:#36c47a; --warn:#f0a43a; --bad:#ff6b66;
+  --okbg:rgba(54,196,122,.14); --warnbg:rgba(240,164,58,.14); --badbg:rgba(255,107,102,.14); --accbg:rgba(91,176,255,.13);
+  --ben:#1f6fb8; --benink:#fff;
+  --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#081320; --panel:#0f1f33; --panel2:#0b192a; --ink:#e4eef9; --muted:#8ea6bf; --line:#1d3350;
+  --accent:#5bb0ff; --ok:#36c47a; --warn:#f0a43a; --bad:#ff6b66;
+  --okbg:rgba(54,196,122,.14); --warnbg:rgba(240,164,58,.14); --badbg:rgba(255,107,102,.14); --accbg:rgba(91,176,255,.13);
+  --ben:#1f6fb8; --benink:#fff;
+  --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+a{color:var(--accent)}
+
+/* yerleşim */
+.kabuk{display:grid;grid-template-columns:280px 1fr;height:100dvh;max-width:1280px;margin:0 auto}
+.yan{border-right:1px solid var(--line);background:var(--panel2);display:flex;flex-direction:column;min-height:0}
+.ana{display:flex;flex-direction:column;min-height:0;min-width:0}
+header.ust{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+.logo{width:42px;height:42px;border-radius:13px;background:linear-gradient(140deg,#0f2d52,#2f8ad6);display:grid;place-items:center;color:#fff;flex:none;font-weight:800;font-size:13px;letter-spacing:.02em;position:relative}
+.logo::after{content:"";position:absolute;right:-2px;bottom:-2px;width:12px;height:12px;border-radius:50%;background:var(--ok);border:2px solid var(--panel)}
+.marka small{display:block;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.marka h1{margin:0;font-size:19px;font-weight:800;letter-spacing:.01em}
+.marka h1 span{color:var(--accent)}
+.ust .sag{margin-left:auto;display:flex;gap:6px;align-items:center}
+.ibtn{border:1px solid var(--line);background:var(--panel);border-radius:11px;padding:7px 11px;cursor:pointer;font-weight:600;font-size:13.5px;text-decoration:none;color:var(--ink);white-space:nowrap}
+.ibtn:hover{border-color:var(--accent)}
+.gecmisBtn{display:none}
+
+.yan-ust{padding:14px;display:flex;flex-direction:column;gap:10px}
+.yeniBtn{border:0;border-radius:12px;padding:11px 14px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;text-align:left}
+.yan h3{margin:4px 14px 6px;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.liste{overflow:auto;padding:0 8px 14px;flex:1}
+.sohbetSatir{display:flex;align-items:center;gap:6px;border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--ink)}
+.sohbetSatir:hover{background:var(--accbg)}
+.sohbetSatir[aria-current="true"]{background:var(--accbg);font-weight:700}
+.sohbetSatir span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.sohbetSatir small{color:var(--muted);font-size:11.5px;white-space:nowrap}
+.sohbetSatir button{border:0;background:transparent;color:var(--muted);cursor:pointer;padding:2px 4px;border-radius:6px;opacity:0}
+.sohbetSatir:hover button,.sohbetSatir[aria-current="true"] button{opacity:1}
+.yan-alt{padding:12px 14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+
+/* sohbet */
+.akis{flex:1;overflow:auto;position:relative;padding:18px 16px 8px;scroll-behavior:smooth}
+.akis-ic{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.hosgeldin{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:var(--shadow)}
+.hosgeldin h2{margin:0 0 4px;font-size:21px}
+.hosgeldin p{margin:0 0 14px;color:var(--muted)}
+.raporBtn{display:flex;align-items:center;gap:12px;width:100%;border:0;border-radius:16px;padding:14px 16px;background:linear-gradient(120deg,#0f2d52,#2b7cd3);color:#fff;cursor:pointer;text-align:left;margin-bottom:14px}
+.raporBtn b{display:block;font-size:16px}.raporBtn small{opacity:.85}
+.raporBtn .ok{margin-left:auto;font-size:22px}
+.cipler{display:flex;flex-wrap:wrap;gap:8px}
+.cip{border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:8px 13px;cursor:pointer;font-size:13.5px;font-weight:600;text-align:left}
+.cip:hover{border-color:var(--accent);color:var(--accent)}
+
+.msj{display:flex;gap:10px;align-items:flex-start}
+.msj.ben{justify-content:flex-end}
+.msj.ben .balon{background:var(--ben);color:var(--benink);border-radius:18px 18px 4px 18px;padding:10px 14px;max-width:80%;white-space:pre-wrap}
+.msj .av{width:30px;height:30px;border-radius:10px;background:linear-gradient(140deg,#0f2d52,#2f8ad6);color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;flex:none;margin-top:2px}
+.cevap{background:var(--panel);border:1px solid var(--line);border-radius:4px 18px 18px 18px;padding:14px 16px;box-shadow:var(--shadow);min-width:0;flex:1;max-width:100%}
+.cevap h4{margin:0 0 4px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.cevap .oz{margin:0 0 10px;font-size:15.5px}
+.cevap .oz b{font-weight:800}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;margin:10px 0}
+.kpi{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.kpi strong{display:block;font-size:24px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12.5px;color:var(--muted)}
+.kpi.iyi strong{color:var(--ok)}.kpi.dikkat strong{color:var(--warn)}.kpi.kotu strong{color:var(--bad)}
+.blk{margin-top:12px}
+.blk h5{margin:0 0 6px;font-size:13.5px}
+.satirlar{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.satir{display:flex;gap:10px;align-items:baseline;padding:8px 12px;border-top:1px solid var(--line);font-size:14px}
+.satir:first-child{border-top:0}
+.satir .s1{flex:1;min-width:0}
+.satir .s1 small{display:block;color:var(--muted);font-size:12.5px}
+.satir em{font-style:normal;color:var(--muted);font-size:12.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.etk{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.etk.yeni{background:var(--badbg);color:var(--bad)}.etk.ilg{background:var(--warnbg);color:var(--warn)}.etk.tam{background:var(--okbg);color:var(--ok)}.etk.not{background:var(--accbg);color:var(--accent)}
+.cubuk{display:grid;grid-template-columns:64px 1fr 36px;gap:8px;align-items:center;padding:6px 12px;border-top:1px solid var(--line);font-size:14px}
+.cubuk:first-child{border-top:0}
+.cubuk i{display:block;height:10px;border-radius:5px;background:var(--accent);min-width:3px}
+.cubuk b{font-variant-numeric:tabular-nums;text-align:right}
+.uyarilar{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.uyarilar li{background:var(--warnbg);color:var(--ink);border-radius:10px;padding:8px 11px;font-size:14px}
+.uyarilar li.kotu{background:var(--badbg)}
+.uyarilar li.iyi{background:var(--okbg)}
+.kaynak{margin-top:12px;font-size:12px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.kaynak .bos{flex:1}
+.mini{border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:4px 9px;font-size:12.5px;font-weight:600;cursor:pointer}
+.mini:hover{border-color:var(--accent)}
+.bosVeri{color:var(--muted);font-size:14px;padding:4px 0}
+.anlamadim .cipler{margin-top:10px}
+
+/* yükleniyor */
+.yaz{display:inline-flex;gap:5px;align-items:center;padding:6px 2px}
+.yaz i{width:8px;height:8px;border-radius:50%;background:var(--accent);opacity:.35;animation:zipla 1s infinite}
+.yaz i:nth-child(2){animation-delay:.15s}.yaz i:nth-child(3){animation-delay:.3s}
+.yaz span{margin-left:8px;color:var(--muted);font-size:13px}
+@keyframes zipla{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-5px);opacity:1}}
+@media (prefers-reduced-motion:reduce){.yaz i{animation:none;opacity:.8}}
+
+/* giriş alanı */
+.altbar{border-top:1px solid var(--line);background:var(--panel);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+.altbar-ic{max-width:820px;margin:0 auto}
+.hizli{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+.hizli::-webkit-scrollbar{display:none}
+.hizli .cip{white-space:nowrap;padding:6px 11px;font-size:13px}
+.giris-satir{display:flex;gap:8px;align-items:flex-end;background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:6px 6px 6px 14px}
+.giris-satir:focus-within{border-color:var(--accent)}
+.giris-satir textarea{flex:1;border:0;background:transparent;resize:none;outline:0;max-height:140px;padding:8px 0;font-size:16px;line-height:1.4}
+.gonder{border:0;width:42px;height:42px;border-radius:12px;background:var(--accent);color:#fff;cursor:pointer;display:grid;place-items:center;flex:none}
+.gonder:disabled{opacity:.45;cursor:default}
+.gonder svg{width:20px;height:20px}
+.not-alt{font-size:11.5px;color:var(--muted);margin-top:6px;text-align:center}
+
+/* giriş ekranı */
+.girisKutu{max-width:380px;margin:12vh auto 0;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:var(--shadow)}
+.inp{width:100%;border:1px solid var(--line);background:var(--panel2);border-radius:12px;padding:11px 12px;margin-top:10px}
+.btn{border:0;border-radius:12px;padding:11px 16px;font-weight:700;cursor:pointer;background:var(--accent);color:#fff}
+.bad{color:var(--bad)}.mut{color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#10233d;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;z-index:50;box-shadow:var(--shadow)}
+
+/* mobil */
+@media (max-width:860px){
+  .kabuk{grid-template-columns:1fr}
+  .yan{position:fixed;inset:0 auto 0 0;width:min(320px,86vw);z-index:40;transform:translateX(-105%);transition:transform .2s;box-shadow:0 0 40px rgba(0,0,0,.3)}
+  .yan.acik{transform:none}
+  .perde{position:fixed;inset:0;background:rgba(5,12,22,.45);z-index:39}
+  .gecmisBtn{display:inline-block}
+  header.ust{padding:10px 12px}
+  .marka{min-width:0}
+  .marka small{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .marka h1{font-size:17px;white-space:nowrap}
+  .logo{width:36px;height:36px;border-radius:11px;font-size:11.5px}
+  header.ust{gap:9px}
+  .ust .sag{gap:4px}.ust .ibtn{padding:7px 9px}
+  .gyaz{display:none}
+  .not-alt{display:none}
+  .akis{padding:14px 12px 6px}
+  .altbar{padding:8px 12px calc(8px + env(safe-area-inset-bottom))}
+  .msj.ben .balon{max-width:88%}
+  .msj .av{display:none}
+  .cevap{border-radius:18px}
+}
+@media print{
+  .yan,.altbar,header.ust .sag,.kaynak button,.msj.ben,.hosgeldin{display:none!important}
+  .kabuk{display:block;height:auto}.akis{overflow:visible}.cevap{box-shadow:none;break-inside:avoid}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+<div class="girisKutu" id="giris" hidden>
+  <h2 style="margin:0 0 6px">BİZKONTROL</h2><p class="mut" style="margin:0">Yönetim asistanı. Teknisyen, müdür ve amir hesabıyla girilir.</p>
+  <form id="girisForm"><input class="inp" id="gEmail" type="email" placeholder="E-posta" autocomplete="username" required>
+  <input class="inp" id="gSifre" type="password" placeholder="Şifre" autocomplete="current-password" required>
+  <button class="btn" style="width:100%;margin-top:12px">Giriş</button><p class="bad" id="gHata" style="font-size:13px"></p></form>
+</div>
+
+<div class="kabuk" id="app" hidden>
+  <aside class="yan" id="yan">
+    <div class="yan-ust">
+      <button class="yeniBtn" data-act="yeni">＋ Yeni sohbet</button>
+    </div>
+    <h3>Önceki konuşmalar</h3>
+    <div class="liste" id="sohbetListe"></div>
+    <div class="yan-alt">Konuşmalar sadece bu cihazda saklanır.</div>
+  </aside>
+  <div class="perde" id="perde" hidden data-act="yanKapat"></div>
+  <main class="ana">
+    <header class="ust">
+      <button class="ibtn gecmisBtn" data-act="yanAc" aria-label="Önceki konuşmalar">☰</button>
+      <div class="logo" aria-hidden="true">BK</div>
+      <div class="marka"><small>Bizimevler 1 · <span id="kimAd"></span></small><h1>BİZKONTROL <span>AI</span></h1></div>
+      <div class="sag">
+        <button class="ibtn" data-act="yenile" title="Verileri yenile">↻</button>
+        <button class="ibtn" id="temaBtn" type="button" title="Tema">🌓</button>
+        <a class="ibtn" id="geri" href="index.html#panel">←<span class="gyaz"> Geri</span></a>
+      </div>
+    </header>
+    <div class="akis" id="akis"><div class="akis-ic" id="akisIc"></div></div>
+    <div class="altbar">
+      <div class="altbar-ic">
+        <div class="hizli" id="hizli"></div>
+        <form class="giris-satir" id="soruForm">
+          <textarea id="soru" rows="1" placeholder="Sorunuzu yazın… ör. Bu ay en çok arıza hangi blokta?" aria-label="Soru"></textarea>
+          <button class="gonder" id="gonder" aria-label="Gönder" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </form>
+        <div class="not-alt">Cevaplar sitenin canlı kayıtlarından hesaplanır · salt okunur, hiçbir kayıt değiştirilmez</div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* =====================================================================
+   BİZKONTROL — Aşama 1: doğrulanmış cevaplar (salt okunur)
+   Sadece aşağıdaki SORGU fonksiyonları veri okur; hiçbir yere yazmaz.
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,"0");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const GUN = 864e5, SA = 36e5;
+const AYLAR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+const GUNLER = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+const saat = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const tarih = t => { const d = new Date(t); return `${d.getDate()} ${AYLAR[d.getMonth()].slice(0,3)}`; };
+const tarihSaat = t => `${tarih(t)} ${saat(t)}`;
+const gunBas = (t = Date.now()) => { const d = new Date(t); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
+const sure = dk => dk < 60 ? `${dk} dk` : dk < 1440 ? `${Math.floor(dk/60)} sa${dk%60 ? " " + dk%60 + " dk" : ""}` : `${Math.floor(dk/1440)} gün${Math.floor(dk%1440/60) ? " " + Math.floor(dk%1440/60) + " sa" : ""}`;
+const kisa = ad => { const p = String(ad||"").trim().split(/\s+/); return p.length > 1 ? `${p[0]} ${p[p.length-1][0]}.` : (p[0] || "—"); };
+const norm = s => String(s||"").toLocaleLowerCase("tr").replace(/[çğıöşü]/g, c => ({"ç":"c","ğ":"g","ı":"i","ö":"o","ş":"s","ü":"u"}[c])).replace(/[^\w\s]/g," ").replace(/\s+/g," ").trim();
+function toast(m){ const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(()=>t.hidden = true, 2600); }
+
+const KAT_AD = {elektrik:"Elektrik", su:"Su tesisatı", kombi:"Kombi / ısıtma", kapi:"Kapı / kilit", asansor:"Asansör", diger:"Diğer",
+  p_isik:"Aydınlatma", p_kapi:"Kapı / kilit", p_asansor:"Asansör", p_su:"Su / tesisat", p_hasar:"Kırık / hasar", p_bahce:"Bahçe / peyzaj",
+  p_malzeme:"Malzeme talebi", p_temiz:"Temizlik / koku", p_diger:"Diğer", p_tasinma:"Taşınma / tadilat", p_gelemiyorum:"İşe gelemiyor", tesis_asansor:"Asansör"};
+const ARIZA_DISI = new Set(["p_tasinma","p_gelemiyorum","p_malzeme"]);
+const NOKTA_AD = {n01:"A1 Basket Sahası Köşesi",n02:"A1 – Final Arası Tel Örgü",n03:"A2 Önü Büyük Aydınlatma Direği",n04:"Boy Turnike Yanı Tel Örgü",n05:"A3 Arkası Tel Örgü",n06:"A4 Arkası Kamera Direği",n07:"A4 Önü Otopark Kepengi",n08:"C4 Arkası Kamelya",n09:"Mescit Camı",n10:"F1 Arkası Kamelya",n11:"F2 Karşısı Demir Kapı",n12:"F1 Önü Büyük Aydınlatma",n13:"F1 – C2 Arası Küçük Direk",n14:"C1 – C4 Arası Küçük Direk",n15:"Trafo Bölgesi",n16:"B3 Karşısı Büyük Aydınlatma",n17:"B3 – B4 Arası Küçük Direk",n18:"B6 Arkası Küçük Direk",n19:"B6 Önü Büyük Direk",n20:"Kuaför Merdiveni Büyük Direk",n21:"D3 Arkası Park Yapılamaz Tabelası"};
+const NNO = id => +String(id).slice(1);
+const TUR = {araDk:45, bas:21, bit:7, gece:10};   // devriye 21:00–07:00, saatte 1 tur (Kontrol Merkezi ile aynı)
+
+const B = {rol:{tech:false, tesis:false, yon:false}, kim:"", email:"", V:null, vTs:0, yukleniyor:null, sohbetler:[], aktif:null, mesgul:false};
+let DB = null;
+
+/* ======================= 1) VERİ: izin verilen okuma sorguları ======================= */
+// Sadece okuma. Rol ayrımı Firebase kurallarıyla da korunur: teknisyen olmayan daire arızalarını göremez.
+async function veriYukle(zorla){
+  if (!zorla && B.V && Date.now() - B.vTs < 90e3) return B.V;
+  if (B.yukleniyor) return B.yukleniyor;
+  B.yukleniyor = (async () => {
+    const simdi = Date.now(), d120 = simdi - 120*GUN;
+    const guvenli = (p, bos) => p.catch(e => { console.warn(e); (B.hatalar ||= []).push(e && e.code || String(e)); return bos; });
+    B.hatalar = [];
+    const [appts, tesis, devriye, mesai, gorev, izin] = await Promise.all([
+      guvenli(DB.arizalar(d120, B.rol.tech), []), guvenli(DB.tesis(d120), []), guvenli(DB.devriye(simdi - 9*GUN), []),
+      guvenli(DB.mesai(simdi - 3*GUN), []), guvenli(DB.gorev(simdi - 45*GUN), []), guvenli(DB.izinler(), [])
+    ]);
+    B.V = hazirla({appts, tesis, devriye, mesai, gorev, izin}); B.vTs = Date.now(); B.yukleniyor = null; return B.V;
+  })();
+  return B.yukleniyor;
+}
+
+/* Ham kayıtları tek tip "arıza" listesine çevirir. Personelin asansör bildirimi tesis kaydına dönüştüyse çift sayılmaz. */
+function hazirla(R){
+  const asTesis = R.tesis.filter(k => k.tur === "ariza");
+  const bagli = new Map(); asTesis.forEach(k => (k.bildirenler || []).forEach(id => bagli.set(id, k)));
+  const ariza = [];
+  R.appts.forEach(a => {
+    if (a.status === "iptal" || a.sample || ARIZA_DISI.has(a.cat)) return;
+    const t = bagli.get(a.id);
+    const durum = t ? (t.cozuldu ? "tamamlandi" : "onaylandi") : a.status;
+    ariza.push({id:a.id, ts:a.createdAt || 0, blok:(a.block || "").toUpperCase().trim(), kat:a.cat, katAd:KAT_AD[a.cat] || "Diğer",
+      kaynak:a.src === "personel" ? "personel" : "sakin", durum, bitti: t ? t.cozuldu || null : (a.completedAt || null),
+      yer: a.src === "personel" ? (a.alan || (a.block ? `${a.block} Blok${a.kat ? " · " + a.kat : ""}` : "Yer belirtilmedi")) : `${a.block} Blok · D.${a.flat || "?"}`,
+      ozet: [ ...(a.issues || []).filter(x => x !== "Diğer") ].join(", ") || String(a.desc || "").slice(0, 70), kim:a.src === "personel" ? a.name : "", tesisId: t ? t.id : null});
+  });
+  const temsil = new Set(ariza.filter(x => x.tesisId).map(x => x.tesisId));
+  asTesis.forEach(k => {
+    if (temsil.has(k.id)) return;
+    const blok = String(k.ekipman || "").split("-")[0].toUpperCase();
+    ariza.push({id:k.id, ts:k.ts || 0, blok, kat:"tesis_asansor", katAd:"Asansör", kaynak:"tesis", durum:k.cozuldu ? "tamamlandi" : "onaylandi", bitti:k.cozuldu || null,
+      yer:`${blok} Blok · Asansör ${String(k.ekipman || "").split("-")[1] || "?"}`, ozet:(k.mahsur ? "Mahsur kaldı · " : "") + (k.not || ""), kim:k.by || "", tesisId:k.id});
+  });
+  ariza.sort((a,b) => b.ts - a.ts);
+  const asansor = asTesis.map(k => ({...k, blok:String(k.ekipman || "").split("-")[0].toUpperCase()}));
+  // personelin tesis kaydına dönüşmemiş asansör bildirimleri ve sakinlerin asansör arızaları da asansör sayımına girer
+  ariza.filter(x => (x.kat === "p_asansor" || x.kat === "asansor") && !x.tesisId).forEach(x => asansor.push({id:x.id, ts:x.ts, ekipman:`${x.blok || "?"}-?`, blok:x.blok, cozuldu:x.durum === "tamamlandi" ? (x.bitti || x.ts) : null, not:x.ozet, kaynakAppt:true}));
+  const gelemeyen = R.appts.filter(a => a.cat === "p_gelemiyorum" && a.status !== "iptal");
+  const kesinti = R.tesis.filter(k => k.tur === "kesinti");
+  const gorev = R.gorev.filter(g => g.tur !== "talimat");
+  return {ariza, asansor, devriye:R.devriye, mesai:R.mesai, gorev, gelemeyen, kesinti, izin:R.izin, sayilar:{appts:R.appts.length, tesis:R.tesis.length, devriye:R.devriye.length, mesai:R.mesai.length, gorev:R.gorev.length}};
+}
+
+/* ======================= 2) GÜVENLİ SORGU FONKSİYONLARI ======================= */
+function donemBul(n, varsayilan){
+  const bugun = gunBas(), simdi = Date.now(), d = new Date();
+  if (/\bdun\b|\bdunku\b|\bdunden\b/.test(n)) return {a:bugun - GUN, b:bugun, ad:"Dün", cumle:"Dün"};
+  if (/gecen ay|onceki ay/.test(n)){ const a = new Date(d.getFullYear(), d.getMonth()-1, 1).getTime(); return {a, b:new Date(d.getFullYear(), d.getMonth(), 1).getTime(), ad:AYLAR[new Date(a).getMonth()], cumle:AYLAR[new Date(a).getMonth()] + " ayında"}; }
+  if (/bu ay|ay icinde|aylik|bu ayki|bu ayin/.test(n)) return {a:new Date(d.getFullYear(), d.getMonth(), 1).getTime(), b:simdi, ad:"Bu ay (" + AYLAR[d.getMonth()] + ")", cumle:"Bu ay"};
+  if (/bu hafta|haftalik|hafta icinde/.test(n)){ const g = (d.getDay() + 6) % 7; return {a:bugun - g*GUN, b:simdi, ad:"Bu hafta", cumle:"Bu hafta"}; }
+  if (/son 7|son yedi|son bir hafta|son hafta/.test(n)) return {a:bugun - 6*GUN, b:simdi, ad:"Son 7 gün", cumle:"Son 7 günde"};
+  if (/son 30|son otuz|son bir ay/.test(n)) return {a:bugun - 29*GUN, b:simdi, ad:"Son 30 gün", cumle:"Son 30 günde"};
+  if (/bugun|bu gun|bugunku/.test(n)) return {a:bugun, b:simdi, ad:"Bugün", cumle:"Bugün"};
+  return varsayilan === "ay" ? {a:new Date(d.getFullYear(), d.getMonth(), 1).getTime(), b:simdi, ad:"Bu ay (" + AYLAR[d.getMonth()] + ")", cumle:"Bu ay"} : {a:bugun, b:simdi, ad:"Bugün", cumle:"Bugün"};
+}
+const aralik = (L, D, f = x => x.ts) => L.filter(x => f(x) >= D.a && f(x) < D.b);
+const durumEtk = d => d === "bekliyor" ? `<span class="etk yeni">Yeni</span>` : d === "onaylandi" ? `<span class="etk ilg">İlgileniliyor</span>` : d === "tamamlandi" ? `<span class="etk tam">Çözüldü</span>` : `<span class="etk not">${esc(d)}</span>`;
+const kaynakAd = k => k === "sakin" ? "Daire" : k === "personel" ? "Personel" : "Asansör kaydı";
+const arizaSatir = (x, sag) => ({s1:`${esc(x.yer)} · ${esc(x.katAd)} ${durumEtk(x.durum)}`, alt:esc(x.ozet || "") + (x.kim ? ` · ${esc(kisa(x.kim))}` : ""), sag: sag || tarihSaat(x.ts)});
+function sayac(L, f){ const m = {}; L.forEach(x => { const k = f(x); if (k) m[k] = (m[k] || 0) + 1; }); return Object.entries(m).sort((a,b) => b[1] - a[1]); }
+
+// S1 / S6: açılan ve çözülen arızalar
+function qAcilan(V, D){
+  const L = aralik(V.ariza, D), coz = L.filter(x => x.durum === "tamamlandi").length;
+  const kat = sayac(L, x => x.katAd), kay = sayac(L, x => kaynakAd(x.kaynak));
+  return {baslik:`Açılan arızalar · ${D.ad}`,
+    oz: L.length ? `${D.cumle} <b>${L.length} arıza</b> açıldı. Bunların <b>${coz}</b> tanesi çözüldü, <b>${L.length - coz}</b> tanesi açık.` : `${D.cumle} açılan arıza kaydı yok.`,
+    kpi: L.length ? [[L.length, "Açılan"], [coz, "Çözüldü", "iyi"], [L.filter(x=>x.durum==="bekliyor").length, "Yeni (bakılmadı)", "kotu"], [L.filter(x=>x.durum==="onaylandi").length, "İlgileniliyor", "dikkat"]] : null,
+    bloklar:[ kat.length && {tip:"cubuk", baslik:"Türe göre", veri:kat}, kay.length > 1 && {tip:"cubuk", baslik:"Kaynağa göre", veri:kay},
+      L.length && {tip:"liste", baslik:"Kayıtlar", veri:L.slice(0, 12).map(x => arizaSatir(x)), fazla:L.length - 12} ].filter(Boolean),
+    sayi:L.length};
+}
+function qCozulen(V, D){
+  const L = V.ariza.filter(x => x.durum === "tamamlandi" && x.bitti && x.bitti >= D.a && x.bitti < D.b).sort((a,b) => b.bitti - a.bitti);
+  const sureler = L.map(x => Math.round((x.bitti - x.ts)/6e4)).filter(x => x >= 0);
+  const ort = sureler.length ? Math.round(sureler.reduce((a,b) => a + b, 0) / sureler.length) : null;
+  return {baslik:`Çözülen arızalar · ${D.ad}`,
+    oz: L.length ? `${D.cumle} <b>${L.length} arıza çözüldü.</b>${ort !== null ? ` Ortalama çözüm süresi <b>${sure(ort)}</b>.` : ""}` : `${D.cumle} çözülen arıza kaydı yok.`,
+    kpi: L.length ? [[L.length, "Çözülen", "iyi"], ...(ort !== null ? [[sure(ort), "Ort. çözüm süresi"]] : []), [L.filter(x => x.ts >= D.a).length, "Aynı dönem açılıp çözülen"]] : null,
+    bloklar:[ L.length && {tip:"liste", baslik:"Çözülenler", veri:L.slice(0, 12).map(x => arizaSatir(x, `${saat(x.bitti)} · ${sure(Math.max(0, Math.round((x.bitti - x.ts)/6e4)))}`)), fazla:L.length - 12} ].filter(Boolean),
+    sayi:L.length};
+}
+// S2 / S7: blok dağılımı
+function qBlok(V, D){
+  const L = aralik(V.ariza, D), bl = sayac(L.filter(x => x.blok), x => x.blok + " Blok"), yok = L.filter(x => !x.blok).length;
+  const ilk = bl[0];
+  let detay = null;
+  if (ilk){ const b = ilk[0].replace(" Blok",""); detay = {tip:"cubuk", baslik:`${ilk[0]}: türe göre`, veri:sayac(L.filter(x => x.blok === b), x => x.katAd)}; }
+  const esit = bl.filter(x => ilk && x[1] === ilk[1]).map(x => x[0]);
+  return {baslik:`Bloklara göre arızalar · ${D.ad}`,
+    oz: ilk ? (esit.length > 1 ? `${D.cumle} en çok arıza <b>${esit.map(x => x.replace(" Blok","")).join(", ")}</b> bloklarında (her birinde <b>${ilk[1]}</b>).` : `${D.cumle} en çok arıza <b>${ilk[0].replace(" Blok","")}</b> blokta: <b>${ilk[1]} arıza</b>. Toplam ${L.length} arıza içinde payı %${Math.round(ilk[1]/L.length*100)}.`) : `${D.cumle} blok bilgisi olan arıza kaydı yok.`,
+    bloklar:[ bl.length && {tip:"cubuk", baslik:"Blok sıralaması", veri:bl.slice(0, 12)}, detay ].filter(Boolean),
+    uyari: yok ? [[`${yok} arızada blok belirtilmemiş (ortak alan, bahçe vb.) — sıralamaya girmedi.`, ""]] : null,
+    sayi:L.length};
+}
+// S3: asansör arızaları
+function qAsansor(V, D){
+  const L = aralik(V.asansor, D).sort((a,b) => b.ts - a.ts);
+  const acik = V.asansor.filter(k => !k.cozuldu), mahsur = L.filter(k => k.mahsur).length;
+  const coz = L.filter(k => k.cozuldu).map(k => Math.round((k.cozuldu - k.ts)/6e4)).filter(x => x >= 0);
+  const ort = coz.length ? Math.round(coz.reduce((a,b) => a + b, 0)/coz.length) : null;
+  const asAd = e => { const [b, n] = String(e || "").split("-"); return `${b} Blok · ${n && n !== "?" ? n + ". asansör" : "asansör (no belirsiz)"}`; };
+  const enCok = sayac(L, k => asAd(k.ekipman));
+  return {baslik:`Asansör arızaları · ${D.ad}`,
+    oz: `${D.cumle} <b>${L.length} asansör arızası</b> kaydedildi.${mahsur ? ` <b>${mahsur}</b> tanesinde mahsur kalma var.` : ""} Şu an <b>${acik.length}</b> asansör arızası açık.`,
+    kpi:[[L.length, "Arıza"], [mahsur, "Mahsur", mahsur ? "kotu" : "iyi"], [acik.length, "Şu an açık", acik.length ? "dikkat" : "iyi"], ...(ort !== null ? [[sure(ort), "Ort. çözüm"]] : [])],
+    bloklar:[ enCok.length && {tip:"cubuk", baslik:"En çok arıza yapan asansörler", veri:enCok.slice(0, 8)},
+      acik.length && {tip:"liste", baslik:"Açık asansör arızaları", veri:acik.sort((a,b) => a.ts - b.ts).map(k => ({s1:`${esc(asAd(k.ekipman))}${k.mahsur ? ` <span class="etk yeni">Mahsur</span>` : ""}`, alt:esc(k.not || ""), sag:`${sure(Math.round((Date.now() - k.ts)/6e4))}dır açık`}))} ].filter(Boolean),
+    uyari: enCok[0] && enCok[0][1] >= 3 ? [[`${enCok[0][0]} bu dönemde ${enCok[0][1]} kez arıza yaptı — kronik, firmaya ayrıca bildirilmeli.`, "kotu"]] : null,
+    sayi:L.length};
+}
+// S4: devriye
+function geceBasi(ts = Date.now()){ const d = new Date(ts); if (d.getHours() < TUR.bas) d.setDate(d.getDate()-1); d.setHours(TUR.bas, 0, 0, 0); return d.getTime(); }
+const geceAd = g => { const a = new Date(g), b = new Date(g + GUN); return `${a.getDate()}–${b.getDate()} ${AYLAR[b.getMonth()].slice(0,3)}`; };
+function turlar(kayit){
+  const ok = kayit.filter(k => k.tip !== "sorun" && NOKTA_AD[k.nokta]).sort((a,b) => a.ts - b.ts);
+  const kisi = {}; ok.forEach(k => (kisi[k.gorevli] ||= []).push(k));
+  const out = [];
+  Object.values(kisi).forEach(liste => { let t = null;
+    liste.forEach((k, i) => { const onceki = liste[i-1], no = NNO(k.nokta), yon = t && t.yon, oNo = onceki ? NNO(onceki.nokta) : 0;
+      const sinir = yon === 1 ? no < oNo : yon === -1 ? no > oNo : false;
+      const yeni = !t || (k.ts - onceki.ts > TUR.araDk*6e4) || sinir || (t.set.has(k.nokta) && onceki.nokta !== k.nokta);
+      if (yeni){ t = {gorevli:k.gorevli, vardiya:k.vardiya, bas:k.ts, son:k.ts, set:new Set(), yon:0}; out.push(t); }
+      else if (!t.yon && no !== oNo) t.yon = ((no - oNo + 21) % 21) <= 10 ? 1 : -1;
+      t.set.add(k.nokta); t.son = k.ts; }); });
+  out.forEach(t => { t.sayi = t.set.size; t.sureDk = Math.round((t.son - t.bas)/6e4); t.eksik = Object.keys(NOKTA_AD).filter(id => !t.set.has(id)); });
+  return out;
+}
+function geceOzet(V, g){
+  const bit = g + TUR.gece*SA, simdi = Date.now(), K = V.devriye.filter(k => k.ts >= g && k.ts < bit);
+  const T = turlar(K).filter(t => t.sayi >= 3);   // 1-2 okutma tur sayılmaz
+  const saatSay = Math.max(0, Math.min(TUR.gece, Math.floor((Math.min(simdi, bit) - g)/SA)));
+  const bosSaat = []; for (let h = 0; h < saatSay; h++){ const a = g + h*SA; if (!T.some(t => t.bas >= a - 10*6e4 && t.bas < a + SA - 10*6e4)) bosSaat.push(saat(a) + "–" + saat(a + SA)); }
+  const kisi = {}; T.forEach(t => { const o = kisi[t.gorevli] ||= {ad:t.gorevli, vardiya:t.vardiya, tur:0, tam:0, eksik:[], hizli:0}; o.tur++; if (t.sayi === 21) o.tam++; else o.eksik.push(t); if (t.sayi === 21 && t.sureDk < 25) o.hizli++; });
+  const sorun = K.filter(k => k.tip === "sorun");
+  return {g, bit, devam: simdi < bit, T, saatSay, bosSaat, kisi:Object.values(kisi), sorun, okutma:K.filter(k => k.tip !== "sorun").length};
+}
+function qDevriye(V, n){
+  const haftalik = /hafta|son 7|gunluk|her gece|geceler/.test(n);
+  if (haftalik){
+    const ozet = []; let g = geceBasi(); if (Date.now() < g + TUR.gece*SA && Date.now() - g < 2*SA) g -= GUN;
+    for (let i = 0; i < 7; i++, g -= GUN) ozet.push(geceOzet(V, g));
+    const kisi = {}; ozet.forEach(o => o.kisi.forEach(k => { const x = kisi[k.ad] ||= {ad:k.ad, tur:0, tam:0, eksikTur:0, eksikNokta:0}; x.tur += k.tur; x.tam += k.tam; x.eksikTur += k.eksik.length; x.eksikNokta += k.eksik.reduce((a,t) => a + (21 - t.sayi), 0); }));
+    const L = Object.values(kisi).sort((a,b) => b.eksikTur - a.eksikTur);
+    const kotu = L.filter(x => x.eksikTur);
+    return {baslik:"Devriye · son 7 gece",
+      oz: kotu.length ? `Son 7 gecede turunu eksik bırakan: <b>${kotu.map(x => `${esc(kisa(x.ad))} (${x.eksikTur} eksik tur)`).join(", ")}</b>.` : `Son 7 gecede kayıtlı turların hepsi tam (21/21).`,
+      bloklar:[ {tip:"liste", baslik:"Gece gece", veri:ozet.map(o => ({s1:`${geceAd(o.g)}${o.devam ? " (sürüyor)" : ""}`, alt:`${o.T.length} tur · ${o.T.filter(t => t.sayi === 21).length} tam · ${o.bosSaat.length ? `${o.bosSaat.length} saat tursuz` : "her saat tur var"}`, sag:`${o.okutma} okutma`}))},
+        L.length && {tip:"liste", baslik:"Görevliler", veri:L.map(x => ({s1:esc(x.ad), alt:`${x.tur} tur · ${x.tam} tam · ${x.eksikTur} eksik (${x.eksikNokta} nokta)`, sag:x.eksikTur ? `<span class="etk yeni">Eksik</span>` : `<span class="etk tam">Tam</span>`}))} ].filter(Boolean)};
+  }
+  let g = geceBasi(); const simdi = Date.now();
+  if (simdi >= g + TUR.gece*SA) { /* son gece bitti, onu göster */ }
+  else if (simdi - g < SA && !/bu gece|simdi/.test(n)) g -= GUN;   // gece yeni başladıysa bir önceki tam geceyi göster
+  const o = geceOzet(V, g);
+  const kotu = o.kisi.filter(k => k.eksik.length);
+  const uyari = [];
+  if (o.bosSaat.length) uyari.push([`Hiç tur atılmayan saat${o.bosSaat.length > 1 ? "ler" : ""}: ${o.bosSaat.join(", ")}`, "kotu"]);
+  o.kisi.filter(k => k.hizli).forEach(k => uyari.push([`${kisa(k.ad)}: ${k.hizli} tur 25 dakikadan kısa sürdü (çok hızlı).`, ""]));
+  if (o.sorun.length) uyari.push([`${o.sorun.length} sorun bildirildi: ${o.sorun.slice(0, 3).map(s => `${NNO(s.nokta)}. nokta — ${s.not || "sorun"}`).join("; ")}`, ""]);
+  const tam = o.T.filter(t => t.sayi === 21).length;
+  return {baslik:`Devriye · ${geceAd(o.g)} gecesi${o.devam ? " (sürüyor)" : ""}`,
+    oz: !o.T.length ? `${geceAd(o.g)} gecesi için devriye kaydı yok.` : kotu.length ? `Devriyesini tamamlamayan: <b>${kotu.map(k => `${esc(kisa(k.ad))} (${k.eksik.length} eksik tur)`).join(", ")}</b>. Toplam ${o.T.length} turun ${tam} tanesi tam.` : `Tüm görevliler turlarını <b>tam</b> attı (${o.T.length} tur, hepsi 21/21).${o.bosSaat.length ? " Ancak bazı saatlerde tur yok." : ""}`,
+    kpi:[[`${tam}/${o.devam ? Math.max(o.saatSay, 1) : TUR.gece}`, "Tam tur", tam >= (o.devam ? o.saatSay : TUR.gece) ? "iyi" : "dikkat"], [o.T.length - tam, "Eksik tur", o.T.length - tam ? "kotu" : "iyi"], [o.bosSaat.length, "Tursuz saat", o.bosSaat.length ? "kotu" : "iyi"], [o.okutma, "QR okutma"]],
+    bloklar:[ o.kisi.length && {tip:"liste", baslik:"Görevliler", veri:o.kisi.map(k => ({s1:`${esc(k.ad)} ${k.eksik.length ? `<span class="etk yeni">${k.eksik.length} eksik</span>` : `<span class="etk tam">Tam</span>`}`,
+        alt:`${k.tur} tur · ${k.tam} tam${k.eksik.length ? " · eksik turlar: " + k.eksik.map(t => `${saat(t.bas)} (${t.sayi}/21, atlanan: ${t.eksik.slice(0, 6).map(NNO).join(", ")}${t.eksik.length > 6 ? "…" : ""})`).join("; ") : ""}`, sag:esc(k.vardiya || "")}))} ].filter(Boolean),
+    uyari: uyari.length ? uyari : null, sayi:o.T.length};
+}
+// S5: bekleyen işler
+function qBekleyen(V){
+  const L = V.ariza.filter(x => x.durum === "bekliyor" || x.durum === "onaylandi").sort((a,b) => a.ts - b.ts);
+  const yeni = L.filter(x => x.durum === "bekliyor"), ilg = L.filter(x => x.durum === "onaylandi");
+  const G = V.gorev.filter(g => g.durum === "yeni" || g.durum === "goruldu").sort((a,b) => a.ts - b.ts);
+  const yas = x => sure(Math.round((Date.now() - x.ts)/6e4));
+  const eski = L.filter(x => Date.now() - x.ts > 3*GUN);
+  return {baslik:"Teknik ekipte bekleyen işler",
+    oz: L.length ? `Şu an <b>${L.length} açık arıza</b> var: <b>${yeni.length}</b> tanesine henüz bakılmadı, <b>${ilg.length}</b> tanesiyle ilgileniliyor.${eski.length ? ` <b>${eski.length}</b> tanesi 3 günden eski.` : ""}${G.length ? ` Ayrıca <b>${G.length} açık görev</b> var.` : ""}` : `Açık arıza yok.${G.length ? ` <b>${G.length} açık görev</b> var.` : ""}`,
+    kpi:[[yeni.length, "Yeni (bakılmadı)", yeni.length ? "kotu" : "iyi"], [ilg.length, "İlgileniliyor", ilg.length ? "dikkat" : "iyi"], [eski.length, "3 günden eski", eski.length ? "kotu" : "iyi"], [G.length, "Açık görev"]],
+    bloklar:[ yeni.length && {tip:"liste", baslik:"Yeni — henüz bakılmadı (en eskiden)", veri:yeni.slice(0, 15).map(x => arizaSatir(x, yas(x))), fazla:yeni.length - 15},
+      ilg.length && {tip:"liste", baslik:"İlgileniliyor", veri:ilg.slice(0, 15).map(x => arizaSatir(x, yas(x))), fazla:ilg.length - 15},
+      G.length && {tip:"liste", baslik:"Açık görevler", veri:G.slice(0, 10).map(g => ({s1:`${esc(g.metin || "")}`, alt:`${esc(g.kime ? (g.kime.ad || g.kime.rol || "") : "")}${g.yer ? " · " + esc(g.yer) : ""} · veren: ${esc(g.byAd || "")} · ${g.durum === "goruldu" ? "görüldü" : "görülmedi"}`, sag:yas(g)})), fazla:G.length - 10} ].filter(Boolean),
+    sayi:L.length};
+}
+// S8: personel devam
+function qDevam(V){
+  const bugun = gunBas(), simdi = Date.now(), bugunStr = `${new Date().getFullYear()}-${pad(new Date().getMonth()+1)}-${pad(new Date().getDate())}`;
+  const kisi = {}; V.mesai.slice().sort((a,b) => a.ts - b.ts).forEach(r => { const k = (r.ad || "").trim(); if (!k) return; const o = kisi[k] ||= {ad:k, grup:r.grup, kayit:[]}; o.kayit.push(r); });
+  const iceride = [], cikti = [], uyari = [];
+  Object.values(kisi).forEach(o => {
+    const son = o.kayit[o.kayit.length - 1];
+    const bugunku = o.kayit.filter(r => r.ts >= bugun);
+    const gir = [...o.kayit].reverse().find(r => r.tip === "giris" && simdi - r.ts < 18*SA);
+    if (son.tip === "giris" && simdi - son.ts < 18*SA) iceride.push({o, gir:son});
+    else if (bugunku.length) cikti.push({o, gir:bugunku.find(r => r.tip === "giris") || gir, cik:[...bugunku].reverse().find(r => r.tip === "cikis")});
+    o.kayit.filter(r => r.ts >= bugun - 12*SA).forEach(r => { if (!r.konum) uyari.push([`${kisa(o.ad)} · ${r.tip === "giris" ? "giriş" : "çıkış"} ${saat(r.ts)}: konum alınamadı`, ""]); else if (r.uzakM > 400) uyari.push([`${kisa(o.ad)} · ${r.tip === "giris" ? "giriş" : "çıkış"} ${saat(r.ts)}: siteden ${r.uzakM >= 1000 ? (r.uzakM/1000).toFixed(1).replace(".", ",") + " km" : r.uzakM + " m"} uzakta`, "kotu"]); });
+  });
+  const gel = V.gelemeyen.filter(a => (a.createdAt || 0) >= bugun - 6*SA);
+  const izinli = (V.izin || []).filter(z => z.bas <= bugunStr && z.bit >= bugunStr);
+  const grupAd = g => g === "guvenlik" ? "Güvenlik" : g === "bahce" ? "Bahçe" : g === "temizlik" ? "Temizlik" : "";
+  return {baslik:`Personel devam durumu · ${new Date().getDate()} ${AYLAR[new Date().getMonth()]}`,
+    oz: `Şu an QR ile giriş yapmış <b>${iceride.length} kişi</b> işte.${cikti.length ? ` Bugün <b>${cikti.length}</b> kişi çıkış yaptı.` : ""}${gel.length ? ` <b>${gel.length}</b> kişi işe gelemeyeceğini bildirdi.` : ""}${izinli.length ? ` <b>${izinli.length}</b> kişi izinli.` : ""}`,
+    kpi:[[iceride.length, "Şu an işte", "iyi"], [cikti.length, "Bugün çıkış yaptı"], [gel.length, "Gelemeyen", gel.length ? "kotu" : ""], [izinli.length, "İzinli"]],
+    bloklar:[ iceride.length && {tip:"liste", baslik:"Şu an işte", veri:iceride.sort((a,b) => a.gir.ts - b.gir.ts).map(({o, gir}) => ({s1:esc(o.ad), alt:grupAd(o.grup), sag:`giriş ${gir.ts < bugun ? tarih(gir.ts) + " " : ""}${saat(gir.ts)} · ${sure(Math.round((simdi - gir.ts)/6e4))}`}))},
+      cikti.length && {tip:"liste", baslik:"Bugün çıkış yapanlar", veri:cikti.map(({o, gir, cik}) => ({s1:esc(o.ad), alt:grupAd(o.grup), sag:`${gir ? saat(gir.ts) : "?"} → ${cik ? saat(cik.ts) : "?"}`}))},
+      gel.length && {tip:"liste", baslik:"İşe gelemeyeceğini bildirenler", veri:gel.map(a => ({s1:esc(a.name || ""), alt:esc(a.desc || ""), sag:saat(a.createdAt)}))},
+      izinli.length && {tip:"liste", baslik:"Bugün izinli", veri:izinli.map(z => ({s1:esc(z.ad), alt:esc({yillik:"Yıllık izin", rapor:"Rapor", mazeret:"Mazeret izni", ucretsiz:"Ücretsiz izin"}[z.tur] || z.tur || "İzin"), sag:`${z.bas.slice(8)}.${z.bas.slice(5,7)} – ${z.bit.slice(8)}.${z.bit.slice(5,7)}`}))} ].filter(Boolean),
+    uyari: uyari.length ? uyari : null,
+    not: "Planlanan vardiyaya göre kimin gelmediği puantaj ekranında görünür; burada sadece QR giriş-çıkış kayıtları ve bildirimler var.",
+    sayi:iceride.length};
+}
+// S9: günlük yönetim raporu
+function qRapor(V){
+  const D = {a:gunBas(), b:Date.now(), ad:"Bugün", cumle:"Bugün"};
+  const ac = qAcilan(V, D), coz = qCozulen(V, D), bek = qBekleyen(V), as = qAsansor(V, donemBul("bu ay")), dv = qDevriye(V, ""), dm = qDevam(V);
+  const kes = V.kesinti.filter(k => k.ts >= D.a && k.olay === "basladi");
+  const asAcik = V.asansor.filter(k => !k.cozuldu);
+  const dikkat = [];
+  if (bek.kpi[0][0]) dikkat.push([`${bek.kpi[0][0]} arızaya henüz bakılmadı.`, "kotu"]);
+  if (bek.kpi[2][0]) dikkat.push([`${bek.kpi[2][0]} arıza 3 günden uzun süredir açık.`, "kotu"]);
+  if (asAcik.length) dikkat.push([`${asAcik.length} asansör arızası açık${asAcik.some(k => k.mahsur) ? " (mahsur kalma var)" : ""}.`, "kotu"]);
+  (dv.uyari || []).filter(u => u[1] === "kotu").forEach(u => dikkat.push(["Devriye: " + u[0], "kotu"]));
+  const eksikKisi = (dv.bloklar[0] && dv.bloklar[0].veri || []).filter(r => /eksik/.test(r.s1));
+  if (eksikKisi.length) dikkat.push([`Devriye: ${eksikKisi.length} görevlinin eksik turu var.`, ""]);
+  if (kes.length) dikkat.push([`Bugün ${kes.length} elektrik kesintisi kaydı var.`, ""]);
+  (dm.uyari || []).filter(u => u[1] === "kotu").forEach(u => dikkat.push(["Giriş-çıkış: " + u[0], "kotu"]));
+  if (!dikkat.length) dikkat.push(["Bugün dikkat gerektiren bir durum görünmüyor.", "iyi"]);
+  const g = new Date();
+  return {baslik:`Günlük yönetim raporu · ${g.getDate()} ${AYLAR[g.getMonth()]} ${g.getFullYear()} ${GUNLER[g.getDay()]}`,
+    oz:`Bugün <b>${ac.sayi} arıza</b> açıldı, <b>${coz.sayi}</b> arıza çözüldü. Şu an toplam <b>${bek.sayi} açık arıza</b> var. Devriye: ${dv.oz.replace(/<[^>]+>/g, "")} İşte olan personel: <b>${dm.sayi}</b>.`,
+    kpi:[[ac.sayi, "Bugün açılan"], [coz.sayi, "Bugün çözülen", "iyi"], [bek.sayi, "Açık arıza", bek.sayi ? "dikkat" : "iyi"], [asAcik.length, "Açık asansör", asAcik.length ? "kotu" : "iyi"], [dv.kpi ? dv.kpi[0][0] : "—", "Son gece tam tur"], [dm.sayi, "Şu an işte"]],
+    uyari:dikkat, uyariBaslik:"Dikkat edilecekler",
+    bloklar:[
+      {tip:"bolum", baslik:"🔧 Arızalar", alt:ac.oz + " " + coz.oz},
+      ...ac.bloklar.filter(b => b.tip === "cubuk").slice(0, 1),
+      {tip:"bolum", baslik:"⏳ Bekleyen işler", alt:bek.oz}, ...bek.bloklar.slice(0, 1).map(b => ({...b, veri:b.veri.slice(0, 5), fazla:Math.max(0, (b.fazla || 0) + b.veri.length - 5)})),
+      {tip:"bolum", baslik:"🛗 Asansörler", alt:as.oz},
+      {tip:"bolum", baslik:"🛡️ " + dv.baslik, alt:dv.oz}, ...(dv.bloklar || []),
+      {tip:"bolum", baslik:"👷 Personel", alt:dm.oz}, ...dm.bloklar.slice(0, 2)
+    ], rapor:true};
+}
+
+/* ======================= 3) SORU → SORGU EŞLEŞTİRME ======================= */
+const HAZIR = [
+  ["📋", "Bugünün genel yönetim raporunu hazırla"],
+  ["🔧", "Bugün kaç arıza açıldı?"],
+  ["✅", "Bugün kaç arıza çözüldü?"],
+  ["🏢", "Hangi blokta en çok arıza var?"],
+  ["🛗", "Bu ay kaç asansör arızası oldu?"],
+  ["🛡️", "Hangi güvenlik görevlisi devriyesini tamamlamadı?"],
+  ["⏳", "Teknik ekipte bekleyen işler neler?"],
+  ["👷", "Personel devam durumu nedir?"],
+  ["📅", "Bu hafta devriye nasıldı?"]
+];
+function niyet(soru){
+  const n = norm(soru);
+  const has = (...a) => a.some(x => n.includes(x));
+  if (has("rapor", "ozet", "genel durum", "gunun durumu", "brifing", "bugun neler oldu", "durum nedir", "nasil gidiyor")) return {f:"rapor"};
+  if (has("devriye", "nokta", "tur at", "turunu", "turlar", "bekci")) return {f:"devriye"};
+  if (has("devam", "kim iste", "kimler iste", "iste olan", "giris yap", "cikis yap", "mesai", "gelemey", "gelmeyen", "gelmedi", "izinli", "personel durum", "yoklama")) return {f:"devam"};
+  if (has("asansor") && !has("blok")) return {f:"asansor", d:donemBul(n, "ay")};
+  if (has("blok", "bina", "en cok ariza", "en fazla ariza", "en cok sorun")) return {f:"blok", d:donemBul(n, "ay")};
+  if (has("asansor")) return {f:"asansor", d:donemBul(n, "ay")};
+  if (has("cozul", "tamamlan", "biten", "bitti", "kapan", "halled", "giderild")) return {f:"cozulen", d:donemBul(n, "gun")};
+  if (has("bekleyen", "bekliyor", "acik is", "acik ariza", "yapilmayan", "yapilacak", "teknik ekip", "is listesi", "isler", "gorev")) return {f:"bekleyen"};
+  if (has("ariza", "sikayet", "bildirim", "kac kayit", "acildi", "acilan")) return {f:"acilan", d:donemBul(n, "gun")};
+  return null;
+}
+async function cevapla(soru){
+  const ni = niyet(soru);
+  if (!ni) return {anlamadim:true};
+  const V = await veriYukle();
+  const n = norm(soru);
+  const c = ni.f === "rapor" ? qRapor(V) : ni.f === "devriye" ? qDevriye(V, n) : ni.f === "devam" ? qDevam(V) : ni.f === "asansor" ? qAsansor(V, ni.d)
+    : ni.f === "blok" ? qBlok(V, ni.d) : ni.f === "cozulen" ? qCozulen(V, ni.d) : ni.f === "bekleyen" ? qBekleyen(V) : qAcilan(V, ni.d);
+  c.kaynakMetin = kaynakYaz(V, ni.f);
+  return c;
+}
+function kaynakYaz(V, f){
+  const s = V.sayilar, p = [];
+  if (["rapor","acilan","cozulen","blok","bekleyen","asansor"].includes(f)) p.push(`${s.appts} arıza bildirimi`, `${s.tesis} tesis kaydı`);
+  if (["rapor","devriye"].includes(f)) p.push(`${s.devriye} devriye okutması (9 gün)`);
+  if (["rapor","devam"].includes(f)) p.push(`${s.mesai} giriş-çıkış (3 gün)`);
+  if (["rapor","bekleyen"].includes(f)) p.push(`${s.gorev} görev`);
+  return `Kaynak: ${p.join(" · ")} · ${saat(B.vTs)} itibarıyla${B.rol.tech ? "" : " · daire arızaları hariç (yetki)"}${B.hatalar && B.hatalar.length ? " · bazı veriler okunamadı" : ""}`;
+}
+
+/* ======================= 4) ARAYÜZ ======================= */
+function cevapHTML(c, id){
+  if (c.anlamadim) return `<div class="cevap anlamadim"><p class="oz" style="margin:0">Bu soruyu henüz cevaplayamıyorum. Şu an arızalar, bloklar, asansörler, devriye, bekleyen işler, personel devamı ve günlük rapor hakkında soru sorabilirsiniz.</p><div class="cipler">${HAZIR.slice(0, 6).map(([e, s]) => `<button class="cip" data-soru="${esc(s)}">${e} ${esc(s)}</button>`).join("")}</div></div>`;
+  if (c.hata) return `<div class="cevap"><p class="oz" style="margin:0">⚠️ ${esc(c.hata)}</p></div>`;
+  const kpi = c.kpi ? `<div class="kpis">${c.kpi.map(([v, e, s]) => `<div class="kpi ${s || ""}"><strong>${esc(v)}</strong><span>${esc(e)}</span></div>`).join("")}</div>` : "";
+  const uy = c.uyari ? `${c.uyariBaslik ? `<div class="blk"><h5>${esc(c.uyariBaslik)}</h5>` : ""}<ul class="uyarilar">${c.uyari.map(([m, s]) => `<li class="${s}">${esc(m)}</li>`).join("")}</ul>${c.uyariBaslik ? "</div>" : ""}` : "";
+  const bl = (c.bloklar || []).map(b => {
+    if (b.tip === "bolum") return `<div class="blk" style="margin-top:16px"><h5 style="font-size:15px">${esc(b.baslik)}</h5><div style="font-size:14px">${b.alt}</div></div>`;
+    if (b.tip === "cubuk"){ const max = Math.max(...b.veri.map(x => x[1]), 1); return `<div class="blk"><h5>${esc(b.baslik)}</h5><div class="satirlar">${b.veri.map(([ad, s]) => `<div class="cubuk"><span>${esc(ad.replace(" Blok",""))}</span><i style="width:${Math.round(s/max*100)}%"></i><b>${s}</b></div>`).join("")}</div></div>`; }
+    if (b.tip === "liste") return `<div class="blk"><h5>${esc(b.baslik)}</h5><div class="satirlar">${b.veri.map(r => `<div class="satir"><div class="s1">${r.s1}${r.alt ? `<small>${r.alt}</small>` : ""}</div><em>${r.sag || ""}</em></div>`).join("")}${b.fazla > 0 ? `<div class="satir"><div class="s1 mut">+${b.fazla} kayıt daha</div></div>` : ""}</div></div>`;
+    return "";
+  }).join("");
+  return `<div class="cevap"><h4>${esc(c.baslik)}</h4><p class="oz">${c.oz}</p>${kpi}${c.rapor ? uy + bl : bl + uy}${c.not ? `<p class="mut" style="font-size:12.5px;margin:10px 0 0">${esc(c.not)}</p>` : ""}
+    <div class="kaynak"><span>${esc(c.kaynakMetin || "")}</span><span class="bos"></span><button class="mini" data-act="kopyala" data-id="${id}">📋 Kopyala</button>${navigator.share ? `<button class="mini" data-act="paylas" data-id="${id}">📤 Paylaş</button>` : ""}${c.rapor ? `<button class="mini" data-act="yazdir">🖨️ Yazdır / PDF</button>` : ""}</div></div>`;
+}
+function duzMetin(c){
+  const t = s => String(s || "").replace(/<br\s*\/?>/g, "\n").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  const L = [`BİZKONTROL · ${t(c.baslik)}`, "", t(c.oz)];
+  if (c.kpi) L.push("", c.kpi.map(([v, e]) => `${e}: ${v}`).join(" · "));
+  if (c.uyari) L.push("", ...(c.uyariBaslik ? [c.uyariBaslik + ":"] : []), ...c.uyari.map(([m]) => "• " + m));
+  (c.bloklar || []).forEach(b => {
+    if (b.tip === "bolum") L.push("", t(b.baslik), t(b.alt));
+    else if (b.tip === "cubuk") L.push("", t(b.baslik) + ":", ...b.veri.map(([a, s]) => `• ${a}: ${s}`));
+    else if (b.tip === "liste") L.push("", t(b.baslik) + ":", ...b.veri.map(r => `• ${t(r.s1)}${r.alt ? " — " + t(r.alt) : ""}${r.sag ? " (" + t(r.sag) + ")" : ""}`), ...(b.fazla > 0 ? [`• +${b.fazla} kayıt daha`] : []));
+  });
+  L.push("", t(c.kaynakMetin || ""));
+  return L.join("\n");
+}
+
+/* --- sohbet geçmişi (sadece bu cihazda) --- */
+const SKEY = () => "bk-sohbet-" + (B.email || "test");
+function sohbetYukle(){ try { B.sohbetler = JSON.parse(localStorage.getItem(SKEY()) || "[]"); } catch(e){ B.sohbetler = []; } }
+function sohbetKaydet(){ try { localStorage.setItem(SKEY(), JSON.stringify(B.sohbetler.slice(0, 40))); } catch(e){ try { B.sohbetler = B.sohbetler.slice(0, 15); localStorage.setItem(SKEY(), JSON.stringify(B.sohbetler)); } catch(_){} } }
+const aktifSohbet = () => B.sohbetler.find(s => s.id === B.aktif) || null;
+function yeniSohbet(){ B.aktif = null; ciz(); yanKapat(); $("#soru").focus(); }
+function listeCiz(){
+  const L = B.sohbetler;
+  $("#sohbetListe").innerHTML = L.length ? L.map(s => `<div class="sohbetSatir" data-act="ac" data-id="${s.id}" aria-current="${s.id === B.aktif}"><span>${esc(s.baslik)}</span><small>${tarih(s.ts)}</small><button data-act="sil" data-id="${s.id}" aria-label="Sil" title="Sil">✕</button></div>`).join("") : `<p class="mut" style="font-size:13px;padding:4px 8px">Henüz konuşma yok.</p>`;
+}
+function hosgeldinHTML(){
+  const h = new Date().getHours(), selam = h < 6 ? "İyi geceler" : h < 12 ? "Günaydın" : h < 18 ? "İyi günler" : "İyi akşamlar";
+  return `<div class="hosgeldin"><h2>${selam}${B.kim && B.kim !== "Test" ? ", " + esc(B.kim) : ""} 👋</h2><p>Sitenin canlı kayıtlarından arıza, asansör, devriye ve personel durumunu sorabilirsiniz.</p>
+    <button class="raporBtn" data-soru="${esc(HAZIR[0][1])}"><span style="font-size:26px">📋</span><span><b>Günlük yönetim raporu</b><small>Bugünün tüm özeti tek ekranda</small></span><span class="ok">→</span></button>
+    <div class="cipler">${HAZIR.slice(1).map(([e, s]) => `<button class="cip" data-soru="${esc(s)}">${e} ${esc(s)}</button>`).join("")}</div>
+    ${B.rol.tech ? "" : `<p class="mut" style="font-size:12.5px;margin:12px 0 0">Daire (sakin) arızaları yetki gereği sadece teknisyende görünür; cevaplarınızda personel ve asansör bildirimleri yer alır.</p>`}</div>`;
+}
+function ciz(){
+  const s = aktifSohbet();
+  const ic = $("#akisIc");
+  ic.innerHTML = !s ? hosgeldinHTML() : s.mesajlar.map((m, i) => m.rol === "ben" ? `<div class="msj ben"><div class="balon">${esc(m.metin)}</div></div>`
+    : `<div class="msj"><div class="av">BK</div>${m.c ? cevapHTML(m.c, s.id + ":" + i) : `<div class="cevap"><div class="yaz"><i></i><i></i><i></i><span>Kayıtlar inceleniyor…</span></div></div>`}</div>`).join("");
+  $("#hizli").innerHTML = s ? HAZIR.map(([e, q]) => `<button class="cip" data-soru="${esc(q)}">${e} ${esc(q.replace(/\?$/, ""))}</button>`).join("") : "";
+  listeCiz();
+  requestAnimationFrame(() => { const a = $("#akis"), m = ic.querySelectorAll(".msj.ben"); const son = m[m.length - 1];
+    if (son) a.scrollTop = Math.max(0, son.offsetTop - 8); else a.scrollTop = 0; });
+}
+async function sor(soru){
+  soru = String(soru || "").trim(); if (!soru || B.mesgul) return;
+  B.mesgul = true; $("#gonder").disabled = true;
+  let s = aktifSohbet();
+  if (!s){ s = {id:"s" + Date.now().toString(36), baslik:soru.slice(0, 60), ts:Date.now(), mesajlar:[]}; B.sohbetler.unshift(s); B.aktif = s.id; }
+  s.mesajlar.push({rol:"ben", metin:soru, ts:Date.now()});
+  const cev = {rol:"bk", ts:Date.now(), c:null}; s.mesajlar.push(cev); s.ts = Date.now();
+  B.sohbetler = [s, ...B.sohbetler.filter(x => x !== s)];
+  ciz();
+  const bas = Date.now();
+  try { cev.c = await cevapla(soru); }
+  catch(e){ console.error(e); cev.c = {hata:"Veriler okunamadı. İnternet bağlantısını kontrol edip tekrar deneyin."}; }
+  const bekle = 550 - (Date.now() - bas); if (bekle > 0) await new Promise(r => setTimeout(r, bekle));
+  sohbetKaydet(); B.mesgul = false; ciz(); girisAyar();
+}
+function cevapBul(id){ const [sid, i] = String(id).split(":"); const s = B.sohbetler.find(x => x.id === sid); return s && s.mesajlar[+i] && s.mesajlar[+i].c; }
+function yanAc(){ $("#yan").classList.add("acik"); $("#perde").hidden = false; }
+function yanKapat(){ $("#yan").classList.remove("acik"); $("#perde").hidden = true; }
+function girisAyar(){ const t = $("#soru"); t.style.height = "auto"; t.style.height = Math.min(140, t.scrollHeight) + "px"; $("#gonder").disabled = B.mesgul || !t.value.trim(); }
+
+document.addEventListener("click", async e => {
+  const q = e.target.closest("[data-soru]"); if (q){ sor(q.dataset.soru); return; }
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const a = b.dataset.act;
+  if (a === "sil"){ e.stopPropagation(); if (!confirm("Bu konuşma silinsin mi?")) return; B.sohbetler = B.sohbetler.filter(s => s.id !== b.dataset.id); if (B.aktif === b.dataset.id) B.aktif = null; sohbetKaydet(); ciz(); }
+  else if (a === "ac"){ B.aktif = b.dataset.id; ciz(); yanKapat(); }
+  else if (a === "yeni") yeniSohbet();
+  else if (a === "yanAc") yanAc();
+  else if (a === "yanKapat") yanKapat();
+  else if (a === "yenile"){ toast("Veriler yenileniyor…"); try { await veriYukle(true); toast("✓ Veriler güncellendi " + saat(B.vTs)); } catch(_){ toast("Yenilenemedi"); } }
+  else if (a === "kopyala"){ const c = cevapBul(b.dataset.id); if (!c) return; try { await navigator.clipboard.writeText(duzMetin(c)); toast("Kopyalandı — WhatsApp'a yapıştırabilirsiniz"); } catch(_){ toast("Kopyalanamadı"); } }
+  else if (a === "paylas"){ const c = cevapBul(b.dataset.id); if (!c) return; try { await navigator.share({title:"BİZKONTROL", text:duzMetin(c)}); } catch(_){} }
+  else if (a === "yazdir") print();
+});
+$("#soru").addEventListener("input", girisAyar);
+$("#soru").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing){ e.preventDefault(); $("#soruForm").requestSubmit(); } });
+$("#soruForm").addEventListener("submit", e => { e.preventDefault(); const t = $("#soru"); const v = t.value; t.value = ""; girisAyar(); sor(v); });
+$("#temaBtn").onclick = () => { const r = document.documentElement; const koyu = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; r.dataset.theme = koyu ? "light" : "dark"; try { localStorage.setItem("bk-tema", r.dataset.theme); } catch(_){} };
+try { const tm = localStorage.getItem("bk-tema"); if (tm) document.documentElement.dataset.theme = tm; } catch(_){}
+if (/teknik\.html|devriye\.html|personel\.html/.test(document.referrer)) $("#geri").href = document.referrer.replace(/#.*$/, "") + "#panel";
+
+function basla(){
+  $("#giris").hidden = true; $("#app").hidden = false;
+  sohbetYukle(); ciz(); veriYukle().catch(() => {});
+}
+
+/* ======================= 5) BAĞLANTI ======================= */
+async function canli(){
+  const cfg = window.FB_CONFIG, V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
+  const [app, fs, au] = await Promise.all([import(U + "firebase-app.js"), import(U + "firebase-firestore.js"), import(U + "firebase-auth.js")]);
+  const ap = app.initializeApp(cfg), db = fs.getFirestore(ap), auth = au.getAuth(ap);
+  const al = async q => (await fs.getDocs(q)).docs.map(d => ({id:d.id, ...d.data()}));
+  const C = n => fs.collection(db, n);
+  DB = {   // salt okunur: sadece getDocs / getDoc
+    arizalar: (a, tech) => tech ? al(fs.query(C("appointments"), fs.where("createdAt", ">=", a)))
+                                : al(fs.query(C("appointments"), fs.where("src", "==", "personel"))).then(L => L.filter(x => (x.createdAt || 0) >= a)),
+    tesis: a => al(fs.query(C("tesis"), fs.where("ts", ">=", a))),
+    devriye: a => al(fs.query(C("devriye"), fs.where("ts", ">=", a))),
+    mesai: a => al(fs.query(C("mesai"), fs.where("ts", ">=", a))),
+    gorev: a => al(fs.query(C("gorev"), fs.where("ts", ">=", a))),
+    izinler: async () => { const s = await fs.getDoc(fs.doc(db, "duyuru", "izinler")); return s.exists() ? (s.data().liste || []) : []; }
+  };
+  $("#girisForm").onsubmit = async e => { e.preventDefault(); $("#gHata").textContent = "";
+    try { await au.signInWithEmailAndPassword(auth, $("#gEmail").value.trim(), $("#gSifre").value); } catch(_){ $("#gHata").textContent = "E-posta veya şifre hatalı."; } };
+  let bas = false;
+  au.onAuthStateChanged(auth, async u => {
+    if (!u || u.isAnonymous){ $("#app").hidden = true; $("#giris").hidden = false; return; }
+    const em = (u.email || "").toLowerCase();
+    B.rol.tech = (window.FB_TEKNISYEN || []).map(x => x.toLowerCase()).includes(em);
+    let adlar = {};
+    try { const r = await fs.getDoc(fs.doc(db, "ayar", "roller")); const R = r.exists() ? r.data() : {}; const l = x => (x || []).map(s => String(s).toLowerCase().trim());
+      B.rol.tesis = l(R.tesis).includes(em); B.rol.yon = l(R.yonetim).includes(em); adlar = R.adlar || {}; } catch(e){ console.warn(e); }
+    if (!B.rol.tech && !B.rol.tesis && !B.rol.yon){ $("#app").hidden = true; $("#giris").hidden = false; $("#gHata").textContent = "Bu hesabın BİZKONTROL yetkisi yok."; return; }
+    B.email = em; B.kim = adlar[em] || (B.rol.tech ? "Zeynel" : "");
+    $("#kimAd").textContent = B.rol.tech ? "Teknisyen" : B.rol.tesis ? "Müdür" : "Amir";
+    if (bas) return; bas = true; basla();
+  });
+}
+/* Test için örnek veri (FB_CONFIG yoksa) */
+function bellek(){
+  const s = Date.now(), bg = gunBas(), r = n => Math.floor(Math.random()*n), sec = a => a[r(a.length)];
+  const BL = ["A1","A2","A3","A4","B1","B2","B3","B4","B5","B6","C1","C2","C3","C4","D1","D2","D3","F1","F2"];
+  const kat = ["elektrik","su","kombi","kapi","diger","p_isik","p_su","p_kapi","p_hasar","p_temiz"];
+  const appts = [];
+  for (let i = 0; i < 70; i++){ const ts = s - r(40*GUN), c = sec(kat), st = ts < s - 5*GUN ? (Math.random() < .88 ? "tamamlandi" : sec(["bekliyor","onaylandi"])) : sec(["bekliyor","onaylandi","tamamlandi"]);
+    appts.push({id:"a" + i, createdAt:ts, cat:c, src:c.startsWith("p_") ? "personel" : undefined, name:c.startsWith("p_") ? sec(["Ayşe Kaya","Rabia T.","Yusuf Nazlım"]) : "Sakin", block:Math.random() < .3 ? "B5" : sec(BL), flat:String(1 + r(20)), status:st, completedAt:st === "tamamlandi" ? ts + (1 + r(40))*SA : null, issues:[sec(["Sigorta atıyor","Su sızıntısı","Kilit bozuk","Lamba yanmıyor"])], desc:""}); }
+  [[2,"tamamlandi"],[5,"bekliyor"],[9,"onaylandi"],[3,"tamamlandi"]].forEach(([h, st], i) => appts.push({id:"t" + i, createdAt:bg + h*SA + 600e3, cat:sec(kat), block:sec(BL), flat:"3", status:st, completedAt:st === "tamamlandi" ? Math.min(s - 60e3, bg + (h + 2)*SA) : null, issues:["Priz çalışmıyor"], desc:""}));
+  appts.push({id:"g1", createdAt:bg + 6.5*SA, cat:"p_gelemiyorum", src:"personel", name:"Hatun D.", desc:"Rapor — hastayım", status:"bekliyor"});
+  const tesis = [];
+  for (let i = 0; i < 9; i++){ const ts = s - r(25*GUN); tesis.push({id:"x" + i, tur:"ariza", ekipman:sec(["B5-1","B5-2","A3-1","C2-2","B5-1"]), mahsur:Math.random() < .2, not:sec(["Kapı kapanmıyor","Katta durmuyor",""]), ts, cozuldu:Math.random() < .8 ? ts + (1 + r(20))*SA : null}); }
+  tesis.push({id:"k1", tur:"kesinti", olay:"basladi", ts:bg + 3*SA});
+  const devriye = [], G = [["Ali Vesek","1. Vardiya"],["Tayfun Özdemir","1. Vardiya"]];
+  for (let gn = 1; gn <= 8; gn++){ const g = geceBasi(s) - (gn - 1)*GUN; if (g > s) continue;
+    for (let h = 0; h < TUR.gece; h++){ const t0 = g + h*SA + 5*60e3; if (t0 + 50*60e3 > s) continue; if (gn === 1 && h === 5) continue; const [ad, v] = G[h % 2];
+      for (let n = 1; n <= 21; n++){ if ((gn === 1 && h === 3 && (n === 7 || n === 8 || n === 9)) || Math.random() < .004) continue; devriye.push({tip:"okutma", nokta:"n" + pad(n), gorevli:ad, vardiya:v, ts:t0 + n*2*60e3}); } } }
+  devriye.push({tip:"sorun", nokta:"n11", gorevli:"Ali Vesek", ts:geceBasi(s) + 2*SA, not:"Kapı açık bulundu"});
+  const mesai = [{ad:"Ayşe Kaya", grup:"temizlik", tip:"giris", ts:bg + 7.9*SA, konum:{lat:40.99, lng:28.71}, uzakM:30}, {ad:"Yusuf Nazlım", grup:"guvenlik", tip:"giris", ts:bg + 7.95*SA, konum:{lat:40.99, lng:28.71}, uzakM:15},
+    {ad:"Rabia Tunç", grup:"temizlik", tip:"giris", ts:bg + 8.1*SA, konum:null}, {ad:"Rabia Tunç", grup:"temizlik", tip:"cikis", ts:bg + 12*SA, konum:{lat:41.03, lng:28.75}, uzakM:4300},
+    {ad:"Ali Vesek", grup:"guvenlik", tip:"giris", ts:bg - 3*SA, konum:{lat:40.99, lng:28.71}, uzakM:20}, {ad:"Ali Vesek", grup:"guvenlik", tip:"cikis", ts:bg + 7.9*SA, konum:{lat:40.99, lng:28.71}, uzakM:20}].filter(x => x.ts < s);
+  const gorev = [{id:"gv1", metin:"B5 asansör kapısını kontrol edin", kime:{tip:"grup", rol:"Güvenlik"}, durum:"goruldu", ts:s - 5*SA, byAd:"Tuğrul"}, {id:"gv2", metin:"C2 merdivenleri temizlensin", kime:{tip:"kisi", ad:"Ayşe Kaya"}, durum:"yeni", ts:s - 26*SA, byAd:"Ali"}];
+  const t = new Date(), ys = g => `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(g)}`;
+  const izin = [{ad:"Cihan Yıldırım", grup:"guvenlik", tur:"yillik", bas:ys(Math.max(1, t.getDate()-2)), bit:ys(Math.min(28, t.getDate()+3))}];
+  const by = a => L => L.filter(x => (x.ts || x.createdAt) >= a);
+  DB = { arizalar: a => Promise.resolve(by(a)(appts)), tesis: a => Promise.resolve(by(a)(tesis)), devriye: a => Promise.resolve(by(a)(devriye)), mesai: a => Promise.resolve(by(a)(mesai)), gorev: a => Promise.resolve(by(a)(gorev)), izinler: () => Promise.resolve(izin) };
+  B.rol = window.TEST_ROL || {tech:true, tesis:false, yon:false}; B.kim = "Test"; B.email = "test";
+  $("#kimAd").textContent = "Test verisi"; basla();
+}
+if (window.FB_CONFIG) canli().catch(e => { console.error(e); $("#giris").hidden = false; $("#gHata").textContent = "Bağlantı kurulamadı, sayfayı yenileyin."; });
+else bellek();
+</script>
+</body>
+</html>
