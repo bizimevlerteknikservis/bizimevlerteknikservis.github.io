@@ -253,6 +253,13 @@ const KAT_AD = {elektrik:"Elektrik", su:"Su tesisatı", kombi:"Kombi / ısıtma"
 const ARIZA_DISI = new Set(["p_tasinma","p_gelemiyorum","p_malzeme"]);
 const NOKTA_AD = {n01:"A1 Basket Sahası Köşesi",n02:"A1 – Final Arası Tel Örgü",n03:"A2 Önü Büyük Aydınlatma Direği",n04:"Boy Turnike Yanı Tel Örgü",n05:"A3 Arkası Tel Örgü",n06:"A4 Arkası Kamera Direği",n07:"A4 Önü Otopark Kepengi",n08:"C4 Arkası Kamelya",n09:"Mescit Camı",n10:"F1 Arkası Kamelya",n11:"F2 Karşısı Demir Kapı",n12:"F1 Önü Büyük Aydınlatma",n13:"F1 – C2 Arası Küçük Direk",n14:"C1 – C4 Arası Küçük Direk",n15:"Trafo Bölgesi",n16:"B3 Karşısı Büyük Aydınlatma",n17:"B3 – B4 Arası Küçük Direk",n18:"B6 Arkası Küçük Direk",n19:"B6 Önü Büyük Direk",n20:"Kuaför Merdiveni Büyük Direk",n21:"D3 Arkası Park Yapılamaz Tabelası"};
 const NNO = id => +String(id).slice(1);
+const BLOKLAR = ["A1","A2","A3","A4","A5","A6","A7","B2","B3","B4","B5","B6","C1","C2","C3","C4","D1","D2","D3","D4","F1","F2"];
+const CIFT = [["C1","C2"],["C3","C4"],["D1","D2"],["D3","D4"],["F1","F2"]];
+const HIDRO = [...BLOKLAR.filter(b => !CIFT.flat().includes(b)).map(b => ({id:"H-" + b, ad:`${b} Blok`})), ...CIFT.map(([a, b]) => ({id:`H-${a}${b}`, ad:`${a}–${b} Blok`}))].sort((x, y) => x.ad.localeCompare(y.ad, "tr"));
+const ASANSOR = BLOKLAR.flatMap(b => [1, 2].map(n => ({id:`${b}-${n}`, ad:`${b} Blok · Asansör ${n}`})));
+const HID_BAKIM_GUN = 180, AS_BAKIM_GUN = 35;   // Tesis takip ile aynı sınırlar
+const hidAd = id => { const [u, p] = String(id || "").split(":"); const h = HIDRO.find(x => x.id === u), ad = h ? h.ad : u.replace("H-", "");
+  if (!p) return ad + " hidroforu"; return `${ad} · ${p[0] === "A" ? "alt zon" : "üst zon"} ${p[1] === "P" ? "pompa " + (+p.slice(2) || "") : "basınç tankı"}`; };
 const TUR = {araDk:45, bas:21, bit:7, gece:10};   // devriye 21:00–07:00, saatte 1 tur (Kontrol Merkezi ile aynı)
 
 const B = {rol:{tech:false, tesis:false, yon:false}, kim:"", email:"", V:null, vTs:0, yukleniyor:null, sohbetler:[], aktif:null, mesgul:false};
@@ -268,7 +275,7 @@ async function veriYukle(zorla){
     const guvenli = (p, bos) => p.catch(e => { console.warn(e); (B.hatalar ||= []).push(e && e.code || String(e)); return bos; });
     B.hatalar = [];
     const [appts, tesis, devriye, mesai, gorev, izin] = await Promise.all([
-      guvenli(DB.arizalar(d120, B.rol.tech), []), guvenli(DB.tesis(d120), []), guvenli(DB.devriye(simdi - 9*GUN), []),
+      guvenli(DB.arizalar(d120, B.rol.tech), []), guvenli(DB.tesis(simdi - 400*GUN), []), guvenli(DB.devriye(simdi - 9*GUN), []),
       guvenli(DB.mesai(simdi - 3*GUN), []), guvenli(DB.gorev(simdi - 45*GUN), []), guvenli(DB.izinler(), [])
     ]);
     B.V = hazirla({appts, tesis, devriye, mesai, gorev, izin}); B.vTs = Date.now(); B.yukleniyor = null; return B.V;
@@ -304,7 +311,7 @@ function hazirla(R){
   const gelemeyen = R.appts.filter(a => a.cat === "p_gelemiyorum" && a.status !== "iptal");
   const kesinti = R.tesis.filter(k => k.tur === "kesinti");
   const gorev = R.gorev.filter(g => g.tur !== "talimat");
-  return {ariza, asansor, devriye:R.devriye, mesai:R.mesai, gorev, gelemeyen, kesinti, izin:R.izin, sayilar:{appts:R.appts.length, tesis:R.tesis.length, devriye:R.devriye.length, mesai:R.mesai.length, gorev:R.gorev.length}};
+  return {ariza, asansor, tesis:R.tesis, devriye:R.devriye, mesai:R.mesai, gorev, gelemeyen, kesinti, izin:R.izin, sayilar:{appts:R.appts.length, tesis:R.tesis.length, devriye:R.devriye.length, mesai:R.mesai.length, gorev:R.gorev.length}};
 }
 
 /* ======================= 2) GÜVENLİ SORGU FONKSİYONLARI ======================= */
@@ -374,6 +381,48 @@ function qAsansor(V, D){
       acik.length && {tip:"liste", baslik:"Açık asansör arızaları", veri:acik.sort((a,b) => a.ts - b.ts).map(k => ({s1:`${esc(asAd(k.ekipman))}${k.mahsur ? ` <span class="etk yeni">Mahsur</span>` : ""}`, alt:esc(k.not || ""), sag:`${sure(Math.round((Date.now() - k.ts)/6e4))}dır açık`}))} ].filter(Boolean),
     uyari: enCok[0] && enCok[0][1] >= 3 ? [[`${enCok[0][0]} bu dönemde ${enCok[0][1]} kez arıza yaptı — kronik, firmaya ayrıca bildirilmeli.`, "kotu"]] : null,
     sayi:L.length};
+}
+// Hidrofor: pompa tamiri, tank değişimi, bakım
+function qHidrofor(V, D){
+  const K = V.tesis.slice().sort((a, b) => a.ts - b.ts), simdi = Date.now();
+  const pompaSon = {}; K.filter(k => k.tur === "pompa").forEach(k => { pompaSon[k.ekipman] = k; });
+  const tamirde = Object.values(pompaSon).filter(k => k.olay === "tamire").sort((a, b) => a.ts - b.ts);
+  const bakimSon = {}; K.filter(k => k.tur === "bakim").forEach(k => (k.ekipmanlar || []).forEach(id => { if (String(id).startsWith("H-")) bakimSon[id] = k; }));
+  const geciken = HIDRO.filter(h => !bakimSon[h.id] || simdi - bakimSon[h.id].ts > HID_BAKIM_GUN*GUN);
+  const donem = K.filter(k => k.ts >= D.a && k.ts < D.b && (k.tur === "pompa" || k.tur === "tank" || (k.tur === "bakim" && (k.ekipmanlar || []).some(x => String(x).startsWith("H-"))))).reverse();
+  const tamire = donem.filter(k => k.tur === "pompa" && k.olay === "tamire"), geldi = donem.filter(k => k.tur === "pompa" && k.olay !== "tamire");
+  const tank = donem.filter(k => k.tur === "tank"), bakim = donem.filter(k => k.tur === "bakim");
+  const bakimUnite = new Set(bakim.flatMap(k => (k.ekipmanlar || []).filter(x => String(x).startsWith("H-"))));
+  const tutar = donem.reduce((t, k) => t + (+k.tutar || 0), 0);
+  const kayitAd = k => k.tur === "pompa" ? (k.olay === "tamire" ? "Pompa tamire gitti" : "Pompa tamirden geldi") : k.tur === "tank" ? "Basınç tankı değişti" : "Hidrofor bakımı";
+  const kayitYer = k => k.tur === "bakim" ? (k.ekipmanlar || []).filter(x => String(x).startsWith("H-")).map(x => hidAd(x).replace(" hidroforu", "")).join(", ") : hidAd(k.ekipman);
+  const enCok = sayac(tamire, k => hidAd(String(k.ekipman).split(":")[0]).replace(" hidroforu", ""));
+  const uyari = [];
+  if (tamirde.length) uyari.push([`${tamirde.length} pompa şu an tamirde — o hidroforlar yedeksiz çalışıyor olabilir.`, "kotu"]);
+  if (geciken.length) uyari.push([`${geciken.length} hidroforun bakımı ${HID_BAKIM_GUN} günü geçti ya da hiç kayıt yok.`, ""]);
+  if (enCok[0] && enCok[0][1] >= 2) uyari.push([`${enCok[0][0]} hidroforundan bu dönemde ${enCok[0][1]} pompa tamire gitti.`, ""]);
+  return {baslik:`Hidrofor · ${D.ad}`,
+    oz:`${D.cumle} <b>${tamire.length}</b> pompa tamire gitti, <b>${geldi.length}</b> pompa tamirden geldi, <b>${tank.length}</b> basınç tankı değişti, <b>${bakimUnite.size}</b> hidroforun bakımı yapıldı. Şu an <b>${tamirde.length} pompa tamirde</b>${geciken.length ? `, <b>${geciken.length}</b> hidroforun bakımı gecikmiş` : ""}.`,
+    kpi:[[tamirde.length, "Şu an tamirde", tamirde.length ? "kotu" : "iyi"], [tamire.length, "Tamire giden"], [tank.length, "Tank değişimi"], [bakimUnite.size, "Bakım yapılan"], [geciken.length, "Bakımı geciken", geciken.length ? "dikkat" : "iyi"], ...(tutar ? [[tutar.toLocaleString("tr-TR") + " ₺", "Tutar"]] : [])],
+    bloklar:[ tamirde.length && {tip:"liste", baslik:"Tamirdeki pompalar", veri:tamirde.map(k => ({s1:esc(hidAd(k.ekipman)), alt:[k.firma, k.not].filter(Boolean).map(esc).join(" · "), sag:`${tarih(k.ts)} · ${sure(Math.round((simdi - k.ts)/6e4))}`}))},
+      donem.length && {tip:"liste", baslik:"Dönemdeki kayıtlar", veri:donem.slice(0, 12).map(k => ({s1:`${kayitAd(k)}`, alt:[kayitYer(k), k.firma, k.not, k.tutar ? (+k.tutar).toLocaleString("tr-TR") + " ₺" : ""].filter(Boolean).map(esc).join(" · "), sag:tarih(k.ts)})), fazla:donem.length - 12},
+      geciken.length && {tip:"liste", baslik:`Bakımı geciken hidroforlar (${HID_BAKIM_GUN} gün)`, veri:geciken.map(h => ({s1:esc(h.ad), alt:bakimSon[h.id] ? `son bakım ${tarih(bakimSon[h.id].ts)} ${new Date(bakimSon[h.id].ts).getFullYear()}` : "bakım kaydı yok", sag:bakimSon[h.id] ? Math.floor((simdi - bakimSon[h.id].ts)/GUN) + " gün" : "—"})), fazla:0} ].filter(Boolean),
+    uyari: uyari.length ? uyari : null, sayi:tamirde.length, tamirde, geciken};
+}
+// Bakım durumu: asansör (aylık) ve hidrofor (6 aylık)
+function qBakim(V){
+  const K = V.tesis.filter(k => k.tur === "bakim").sort((a, b) => a.ts - b.ts), simdi = Date.now();
+  const son = {}; K.forEach(k => (k.ekipmanlar || []).forEach(id => { son[id] = k; }));
+  const asGec = ASANSOR.filter(a => !son[a.id] || simdi - son[a.id].ts > AS_BAKIM_GUN*GUN);
+  const h = qHidrofor(V, donemBul("bu ay"));
+  const buAy = K.filter(k => k.ts >= donemBul("bu ay").a);
+  const asBuAy = new Set(buAy.flatMap(k => (k.ekipmanlar || []).filter(id => ASANSOR.some(a => a.id === id))));
+  return {baslik:"Bakım durumu",
+    oz:`Bu ay <b>${asBuAy.size}</b> asansörün bakımı yapıldı. Bakımı ${AS_BAKIM_GUN} günü geçen <b>${asGec.length}</b> asansör, ${HID_BAKIM_GUN} günü geçen <b>${h.geciken.length}</b> hidrofor var.${h.tamirde.length ? ` <b>${h.tamirde.length}</b> pompa tamirde.` : ""}`,
+    kpi:[[asBuAy.size, "Bu ay asansör bakımı"], [asGec.length, "Bakımı geciken asansör", asGec.length ? "dikkat" : "iyi"], [h.geciken.length, "Bakımı geciken hidrofor", h.geciken.length ? "dikkat" : "iyi"], [h.tamirde.length, "Tamirdeki pompa", h.tamirde.length ? "kotu" : "iyi"]],
+    bloklar:[ asGec.length && {tip:"liste", baslik:`Bakımı geciken asansörler (${AS_BAKIM_GUN} gün)`, veri:asGec.slice(0, 15).map(a => ({s1:esc(a.ad), alt:son[a.id] ? `son bakım ${tarih(son[a.id].ts)}` : "bakım kaydı yok", sag:son[a.id] ? Math.floor((simdi - son[a.id].ts)/GUN) + " gün" : "—"})), fazla:asGec.length - 15},
+      ...h.bloklar.filter(b => /geciken|Tamirdeki/.test(b.baslik)) ].filter(Boolean),
+    sayi:asGec.length + h.geciken.length};
 }
 // S4: devriye
 function geceBasi(ts = Date.now()){ const d = new Date(ts); if (d.getHours() < TUR.bas) d.setDate(d.getDate()-1); d.setHours(TUR.bas, 0, 0, 0); return d.getTime(); }
@@ -479,6 +528,7 @@ function qRapor(V){
   const ac = qAcilan(V, D), coz = qCozulen(V, D), bek = qBekleyen(V), as = qAsansor(V, donemBul("bu ay")), dv = qDevriye(V, ""), dm = qDevam(V);
   const kes = V.kesinti.filter(k => k.ts >= D.a && k.olay === "basladi");
   const asAcik = V.asansor.filter(k => !k.cozuldu);
+  const hd = qHidrofor(V, D);
   const dikkat = [];
   if (bek.kpi[0][0]) dikkat.push([`${bek.kpi[0][0]} arızaya henüz bakılmadı.`, "kotu"]);
   if (bek.kpi[2][0]) dikkat.push([`${bek.kpi[2][0]} arıza 3 günden uzun süredir açık.`, "kotu"]);
@@ -486,6 +536,8 @@ function qRapor(V){
   (dv.uyari || []).filter(u => u[1] === "kotu").forEach(u => dikkat.push(["Devriye: " + u[0], "kotu"]));
   const eksikKisi = (dv.bloklar[0] && dv.bloklar[0].veri || []).filter(r => /eksik/.test(r.s1));
   if (eksikKisi.length) dikkat.push([`Devriye: ${eksikKisi.length} görevlinin eksik turu var.`, ""]);
+  if (hd.tamirde.length) dikkat.push([`${hd.tamirde.length} hidrofor pompası tamirde (${hd.tamirde.map(k => hidAd(k.ekipman)).slice(0, 3).join("; ")}).`, "kotu"]);
+  if (hd.geciken.length) dikkat.push([`${hd.geciken.length} hidroforun bakımı gecikmiş.`, ""]);
   if (kes.length) dikkat.push([`Bugün ${kes.length} elektrik kesintisi kaydı var.`, ""]);
   (dm.uyari || []).filter(u => u[1] === "kotu").forEach(u => dikkat.push(["Giriş-çıkış: " + u[0], "kotu"]));
   if (!dikkat.length) dikkat.push(["Bugün dikkat gerektiren bir durum görünmüyor.", "iyi"]);
@@ -499,6 +551,7 @@ function qRapor(V){
       ...ac.bloklar.filter(b => b.tip === "cubuk").slice(0, 1),
       {tip:"bolum", baslik:"⏳ Bekleyen işler", alt:bek.oz}, ...bek.bloklar.slice(0, 1).map(b => ({...b, veri:b.veri.slice(0, 5), fazla:Math.max(0, (b.fazla || 0) + b.veri.length - 5)})),
       {tip:"bolum", baslik:"🛗 Asansörler", alt:as.oz},
+      {tip:"bolum", baslik:"🚰 Hidrofor", alt:hd.oz}, ...hd.bloklar.filter(b => /Tamirdeki/.test(b.baslik)),
       {tip:"bolum", baslik:"🛡️ " + dv.baslik, alt:dv.oz}, ...(dv.bloklar || []),
       {tip:"bolum", baslik:"👷 Personel", alt:dm.oz}, ...dm.bloklar.slice(0, 2)
     ], rapor:true};
@@ -513,6 +566,8 @@ const HAZIR = [
   ["🛗", "Bu ay kaç asansör arızası oldu?"],
   ["🛡️", "Hangi güvenlik görevlisi devriyesini tamamlamadı?"],
   ["⏳", "Teknik ekipte bekleyen işler neler?"],
+  ["🚰", "Bu ay hidrofor bakım ve arızaları"],
+  ["🧰", "Bakımı geciken var mı?"],
   ["👷", "Personel devam durumu nedir?"],
   ["📅", "Bu hafta devriye nasıldı?"]
 ];
@@ -520,6 +575,8 @@ function niyet(soru){
   const n = norm(soru);
   const has = (...a) => a.some(x => n.includes(x));
   if (has("rapor", "ozet", "genel durum", "gunun durumu", "brifing", "bugun neler oldu", "durum nedir", "nasil gidiyor")) return {f:"rapor"};
+  if (has("hidrofor", "hidrafor", "hidroför", "pompa", "basinc tank", "tank degis", "su deposu")) return {f:"hidrofor", d:donemBul(n, "ay")};
+  if (has("bakim") && !has("asansor ariza")) return {f:"bakim"};
   if (has("devriye", "nokta", "tur at", "turunu", "turlar", "bekci")) return {f:"devriye"};
   if (has("devam", "kim iste", "kimler iste", "iste olan", "giris yap", "cikis yap", "mesai", "gelemey", "gelmeyen", "gelmedi", "izinli", "personel durum", "yoklama")) return {f:"devam"};
   if (has("asansor") && !has("blok")) return {f:"asansor", d:donemBul(n, "ay")};
@@ -536,13 +593,14 @@ async function cevapla(soru){
   const V = await veriYukle();
   const n = norm(soru);
   const c = ni.f === "rapor" ? qRapor(V) : ni.f === "devriye" ? qDevriye(V, n) : ni.f === "devam" ? qDevam(V) : ni.f === "asansor" ? qAsansor(V, ni.d)
-    : ni.f === "blok" ? qBlok(V, ni.d) : ni.f === "cozulen" ? qCozulen(V, ni.d) : ni.f === "bekleyen" ? qBekleyen(V) : qAcilan(V, ni.d);
+    : ni.f === "blok" ? qBlok(V, ni.d) : ni.f === "cozulen" ? qCozulen(V, ni.d) : ni.f === "bekleyen" ? qBekleyen(V) : ni.f === "hidrofor" ? qHidrofor(V, ni.d) : ni.f === "bakim" ? qBakim(V) : qAcilan(V, ni.d);
   c.kaynakMetin = kaynakYaz(V, ni.f);
   return c;
 }
 function kaynakYaz(V, f){
   const s = V.sayilar, p = [];
   if (["rapor","acilan","cozulen","blok","bekleyen","asansor"].includes(f)) p.push(`${s.appts} arıza bildirimi`, `${s.tesis} tesis kaydı`);
+  if (["hidrofor","bakim"].includes(f)) p.push(`${s.tesis} tesis kaydı (son 400 gün)`);
   if (["rapor","devriye"].includes(f)) p.push(`${s.devriye} devriye okutması (9 gün)`);
   if (["rapor","devam"].includes(f)) p.push(`${s.mesai} giriş-çıkış (3 gün)`);
   if (["rapor","bekleyen"].includes(f)) p.push(`${s.gorev} görev`);
@@ -696,6 +754,11 @@ function bellek(){
   const tesis = [];
   for (let i = 0; i < 9; i++){ const ts = s - r(25*GUN); tesis.push({id:"x" + i, tur:"ariza", ekipman:sec(["B5-1","B5-2","A3-1","C2-2","B5-1"]), mahsur:Math.random() < .2, not:sec(["Kapı kapanmıyor","Katta durmuyor",""]), ts, cozuldu:Math.random() < .8 ? ts + (1 + r(20))*SA : null}); }
   tesis.push({id:"k1", tur:"kesinti", olay:"basladi", ts:bg + 3*SA});
+  tesis.push({id:"h1", tur:"pompa", olay:"tamire", ekipman:"H-B5:AP2", firma:"Akın Pompa", not:"Salmastra kaçırıyor", ts:s - 4*GUN},
+    {id:"h2", tur:"pompa", olay:"tamire", ekipman:"H-A3:UP1", firma:"Akın Pompa", ts:s - 12*GUN}, {id:"h3", tur:"pompa", olay:"geldi", ekipman:"H-A3:UP1", ts:s - 6*GUN},
+    {id:"h4", tur:"tank", ekipman:"H-C1C2:AT", not:"Membran patlak", tutar:4200, ts:s - 9*GUN},
+    {id:"h5", tur:"bakim", ekipmanlar:HIDRO.slice(0, 14).map(h => h.id), firma:"Akın Pompa", ts:s - 40*GUN},
+    {id:"h6", tur:"bakim", ekipmanlar:ASANSOR.slice(0, 36).map(a => a.id), firma:"Omak", ts:s - 10*GUN});
   const devriye = [], G = [["Ali Vesek","1. Vardiya"],["Tayfun Özdemir","1. Vardiya"]];
   for (let gn = 1; gn <= 8; gn++){ const g = geceBasi(s) - (gn - 1)*GUN; if (g > s) continue;
     for (let h = 0; h < TUR.gece; h++){ const t0 = g + h*SA + 5*60e3; if (t0 + 50*60e3 > s) continue; if (gn === 1 && h === 5) continue; const [ad, v] = G[h % 2];
