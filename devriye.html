@@ -486,7 +486,7 @@ const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
 const parseYmd = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const catOf = id => KATEGORI.find(k => k.id === id) || PKAT.find(k => k.id === id) || KATEGORI[KATEGORI.length-1];
-const yerAd = a => a.src==="personel" ? (a.alan ? a.alan : `${a.block} Blok${a.kat ? " · " + a.kat : ""}`) : `${a.block} Blok, Daire ${a.flat}`;
+const yerAd = a => a.src==="personel" ? (a.alan ? a.alan : a.block ? `${a.block} Blok${a.kat ? " · " + a.kat : ""}` : "Yer belirtilmedi") : `${a.block} Blok, Daire ${a.flat}`;
 const fisNo = a => "TS-" + (a.createdAt || 0).toString(36).slice(-5).toUpperCase();
 function gunEtiketi(s){
   const d = parseYmd(s), bugun = ymd(new Date()), yarin = ymd(new Date(Date.now()+864e5));
@@ -879,8 +879,8 @@ function personelHazir(){
   const p = S.p;
   const sesli = !!SES.sonuc;   // sesle bildirildiyse kat ve arıza maddesi zorunlu değil (söylenen cümle nota yazıldı)
   const ariza = (p.issues.length && (!(p.issues.length===1 && /^Diğer/.test(p.issues[0])) || p.desc.trim())) || (sesli && p.desc.trim());
-  const yer = p.yerTip==="blok" ? !!p.block : !!p.alan;   // kat her zaman isteğe bağlı
-  return !!(p.name.trim() && p.rol && p.cat && ariza && yer);
+  // blok/alan ve kat her zaman isteğe bağlı (sesli ya da yazılı)
+  return !!(p.name.trim() && p.rol && p.cat && ariza);
 }
 /* Tek dokunuşla "uygulamayı yükle" (Android Chrome) */
 let KUR = null;
@@ -1288,10 +1288,10 @@ function vPersonelIc(){
       <button class="pref" data-act="pYer" data-v="alan" aria-pressed="${p.yerTip==="alan"}">Ortak alanda</button>
     </div>`}
     ${p.yerTip==="blok" ? `<div class="grid2">
-        <label class="f">Blok<select id="p_block"><option value="">Seçin</option>${AYAR.bloklar.map(b => `<option ${p.block===b?"selected":""}>${esc(b)}</option>`).join("")}</select></label>
+        <label class="f">Blok (isteğe bağlı)<select id="p_block"><option value="">Seçin</option>${AYAR.bloklar.map(b => `<option ${p.block===b?"selected":""}>${esc(b)}</option>`).join("")}</select></label>
         <label class="f">Kat (isteğe bağlı)<select id="p_kat"><option value="">Seçin</option>${KATLAR.map(k => `<option ${p.kat===k?"selected":""}>${k}</option>`).join("")}</select></label>
       </div>`
-    : `<label class="f">Alan<select id="p_alan"><option value="">Seçin</option>${ALANLAR.map(x => `<option ${p.alan===x?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`}
+    : `<label class="f">Alan (isteğe bağlı)<select id="p_alan"><option value="">Seçin</option>${ALANLAR.map(x => `<option ${p.alan===x?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`}
     <label class="f note-l" for="p_desc">Kısa not <span>${p.issues.length===1&&/^Diğer/.test(p.issues[0])?"(gerekli)":"(isteğe bağlı)"}</span></label>
     <textarea id="p_desc" maxlength="300" placeholder="${p.cat==="p_malzeme" ? "Örn. 2 rulo büyük boy çöp poşeti, 1 adet çöp kovası" : "Örn. Merdiven tarafındaki lamba, iki gündür yanmıyor."}">${esc(p.desc)}</textarea>
     <div class="foto-alan">
