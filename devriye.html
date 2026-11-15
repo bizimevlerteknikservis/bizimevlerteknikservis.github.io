@@ -1401,7 +1401,7 @@ function devHata(e){
 }
 function devKuyruk(){ return yerel("bz1-devriye-kuyruk") || []; }
 /* =================== MESAİ: QR ile işe giriş / çıkış (puantaja otomatik bağlanır) =================== */
-const MESAI_NOKTA = {"k-d9c97a":"Güvenlik kulübesi", "p-a24eaa":"Personel deposu"};
+const MESAI_NOKTA = {"k-d9c97a":"Güvenlik kulübesi", "p-a24eaa":"Kat görevlisi · Bahçıvan"};
 const MS = {un:null, liste:[], bekleyen:null, kayit:false};
 function mesaiCoz(txt){ const m = String(txt||"").match(/[?&]mesai=([a-z]-[0-9a-f]{6})/i); return m && MESAI_NOKTA[m[1].toLowerCase()] ? m[1].toLowerCase() : null; }
 function mesaiBen(){
