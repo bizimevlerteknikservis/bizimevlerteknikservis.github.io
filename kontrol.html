@@ -228,6 +228,24 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (prefers-reduced-motion:reduce){.nkt.yanip .cp-core{animation:yanip 1.4s ease-in-out infinite!important}}
 
+
+/* ============ Gece tekrarı (film gibi izle) ============ */
+.gt-ust{position:absolute;left:14px;top:58px;z-index:6;background:rgba(6,16,30,.82);color:#fff;border-radius:16px;padding:10px 16px;pointer-events:none;backdrop-filter:blur(4px)}
+.gt-ust small{display:block;font:700 11px var(--display);letter-spacing:.16em;opacity:.75}
+.gt-ust b{display:block;font:800 40px/1 var(--display);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.gt-ust em{display:block;font-style:normal;font:600 12.5px var(--body);opacity:.8;margin-top:4px}
+.gt-bar{position:absolute;left:14px;right:14px;bottom:14px;z-index:6;display:flex;align-items:center;gap:10px;background:rgba(6,16,30,.86);border-radius:16px;padding:10px 12px;color:#fff;backdrop-filter:blur(4px)}
+.gt-bar button{flex:none;border:0;border-radius:12px;background:#2b7cd3;color:#fff;font:800 15px var(--display);padding:9px 14px;cursor:pointer}
+.gt-bar button.gt-k{background:rgba(255,255,255,.14)}
+.gt-bar select{flex:none;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font:600 13px var(--body);padding:7px 6px}
+.gt-bar select option{color:#000}
+.gt-iz{flex:1;min-width:60px;position:relative;height:30px;display:flex;align-items:center}
+.gt-iz input{width:100%;accent-color:#5bb8ff;position:relative;z-index:2;background:transparent}
+.gt-iz .gt-isaret{position:absolute;top:2px;width:3px;height:8px;border-radius:2px;background:#ff6b6b;z-index:1;pointer-events:none}
+.gt-iz .gt-saatler{position:absolute;left:0;right:0;bottom:-6px;display:flex;justify-content:space-between;font:600 10px var(--body);opacity:.6;pointer-events:none}
+html.gt-acik .legend{visibility:hidden}
+html.gt-acik .tvbar{display:none}
+.gt-log li{font-size:13px}
 /* ============ TV ekranı ============ */
 .tvakis{position:fixed;left:16px;right:16px;bottom:12px;height:58px;z-index:31;display:none;align-items:center;overflow:hidden;border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .tvakis{display:flex}
@@ -799,6 +817,7 @@ document.addEventListener("click", async e => {
 /* ============ GECE: Devriye ============ */
 const DEV = { kur:false, gorevli:[], tur:3, turHedef:6, kayit:[], sorun:[] };
 function devriyeBaslat(){
+  if (GT.on) return;
   const now = Date.now();
   if (!LIVE.on && !DEV.kur){
     NOKTA.forEach(n=>n.son = now - (5+Math.random()*70)*6e4);
@@ -847,6 +866,7 @@ const GOREV_DK = 60;   // son okutması bu kadar dakikadan eskiyse haritada gös
 const CG = {};
 const kisaAd = ad => { const p = String(ad||"").trim().split(/\s+/); return p.length>1 ? `${p[0]} ${p[p.length-1][0]}.` : p[0]||"Görevli"; };
 function canliGorevli(yeniler){
+  if (GT.on) return;
   if (!LIVE.on || MODE!=="gece") return;
   if (!L.cg || !L.cg.isConnected){ L.cg = el("g",{},L.over); Object.keys(CG).forEach(k=>delete CG[k]); }
   const son = {}, once = {};
@@ -965,6 +985,7 @@ const nRenk = n => {
 const YANIP_SN = 120;   // yeni okutulan nokta kaç saniye yeşil yanıp sönsün
 let yanipT = 0;
 function devriyeRenk(){
+  if (GT.on) return;
   let enYakin = Infinity;
   NOKTA.forEach(n=>{
     const c = cssv(nRenk(n)); n.dot.style.fill = c; n.halo.style.fill = c;
@@ -979,6 +1000,7 @@ function devriyeRenk(){
   clearTimeout(yanipT); if (enYakin < Infinity) yanipT = setTimeout(()=>{ if (MODE==="gece") devriyeRenk(); }, enYakin + 50);
 }
 function devriyePanel(){
+  if (GT.on) return;
   const sirali = [...NOKTA].sort((a,b)=>(a.son||0)-(b.son||0));
   const kirmizi = NOKTA.filter(n=>nRenk(n)==="--bad" || nRenk(n)==="--muted");
   const yuzde = Math.round((NOKTA.length - kirmizi.length)/NOKTA.length*100);
@@ -1020,6 +1042,10 @@ function devriyePanel(){
     <div class="card"><h2>Görevdekiler</h2><div class="rows">${gorev}</div></div>
     <div class="card"><h2>En uzun süredir uğranmayan</h2><div class="rows">${sirali.slice(0,5).map(n=>{const dk=n.son?dkOnce(n.son):null;return `<div class="row"><b>${n.no}. ${esc(n.ad)}</b><span class="pill" style="background:${cssv(nRenk(n))}">${dk===null?"okutulmadı":dk>=60?Math.floor(dk/60)+" sa "+(dk%60)+" dk":dk+" dk"}</span></div>`}).join("")}</div>
       ${LIVE.on?"":`<button class="act sos" id="sos" style="margin-top:12px">SOS testini başlat</button>`}</div>
+    <div class="card"><h2>🎬 Geceyi film gibi izle</h2>
+      <select id="gtGece" class="rsel">${gtGeceler().map(([v,ad])=>`<option value="${v}"${GT.sec==v?" selected":""}>${ad}</option>`).join("")}</select>
+      <button class="act" id="gtBtn" style="margin-top:10px">▶ Oynat</button>
+      <p class="note">21:00–07:00 arası 30 saniyede haritada akar: görevliler noktadan noktaya yürür, okutulan nokta yeşil yanar, atlanan kırmızı.</p></div>
     <div class="card"><h2>Devriye raporu</h2>
       <select id="raporDonem" class="rsel">${["songece","hafta","ay","gecenay","bugun","dun"].map(v=>`<option value="${v}"${RAPOR_SEC===v?" selected":""}>${raporDonem(v)[2]}</option>`).join("")}</select>
       <button class="act" id="raporBtn" style="margin-top:10px">📥 Excel indir</button>
@@ -1027,6 +1053,8 @@ function devriyePanel(){
     <div class="card"><h2>Canlı akış</h2><ul class="feed" id="feed">${feedHTML()}</ul></div>`;
   const sb = $("#sos"); if (sb) sb.onclick = sosTest;
   $("#raporBtn").onclick = raporIndir;
+  $("#gtBtn").onclick = () => gtAc(+$("#gtGece").value);
+  $("#gtGece").onchange = e => { GT.sec = +e.target.value; };
   $("#raporDonem").onchange = e => { RAPOR_SEC = e.target.value; };
 }
 /* ============ Devriye raporu (Excel) ============ */
@@ -1052,6 +1080,137 @@ function demoKayit(a, b){
     if (Math.random()<.08){ const n = NOKTA[Math.floor(Math.random()*21)]; out.push({tip:"sorun", nokta:n.id, ad:n.ad, gorevli:g, vardiya:v, ts:t+30*6e4, not:"Kapı açık bulundu"}); }
   }
   return out;
+}
+
+/* ============ Gece tekrarı: bir geceyi 30 sn'de haritada oynat ============ */
+const GT = {on:false, sec:0, kayit:[], a:0, b:0, T:0, oyn:false, sure:30, raf:0, son:0, cizT:0, g:{}, atl:[], tur:[], oncekiT:0};
+function gtGeceler(){
+  const g0 = geceBasi(); if (!GT.sec) GT.sec = g0;
+  return Array.from({length:7}, (_,i)=>{ const b = g0 - i*864e5; return [b, (i===0 ? (devriyeSaati() ? "Bu gece · " : "Son gece · ") : i===1 ? "Önceki gece · " : "") + geceAd(b)]; });
+}
+async function gtAc(bas){
+  const btn = $("#gtBtn"); if (btn){ btn.disabled = true; btn.textContent = "Yükleniyor…"; }
+  const a = bas, b = Math.min(bas + TUR.gece*36e5, Date.now());
+  let kayit = [];
+  try { kayit = RAPOR_CEK ? await RAPOR_CEK(a, b) : demoKayit(a, b); }
+  catch(e){ console.error(e); ticker("Kayıtlar okunamadı: " + (e.code||e.message)); if (btn){ btn.disabled = false; btn.textContent = "▶ Oynat"; } return; }
+  kayit = kayit.filter(k=>N[k.nokta]).sort((x,y)=>x.ts-y.ts);
+  if (!kayit.filter(k=>k.tip!=="sorun").length){ ticker("Bu gece için okutma kaydı yok"); if (btn){ btn.disabled = false; btn.textContent = "▶ Oynat"; } return; }
+  GT.on = true; GT.kayit = kayit; GT.a = a; GT.b = bas + TUR.gece*36e5; GT.T = a; GT.oncekiT = a; GT.g = {}; GT.oyn = true;
+  GT.ok = kayit.filter(k=>k.tip!=="sorun");
+  GT.atl = atlamalar(kayit); GT.tur = turlar(kayit);
+  if (TV.on){ TV.durak = Date.now() + 864e5; TV.durakYazi = "🎬 Gece tekrarı oynatılıyor"; tvAdim(); }
+  temizle(); document.documentElement.classList.add("gt-acik");
+  NOKTA.forEach(n=>{ n.g.classList.remove("yanip","atlandi"); });
+  $("#mapTitle").textContent = "🎬 Gece tekrarı"; $("#mapSub").textContent = geceAd(bas) + " · " + GT.ok.length + " okutma";
+  gtArayuz(); gtPanel(true); GT.son = performance.now(); GT.raf = requestAnimationFrame(gtAdim);
+}
+function gtKapat(){
+  GT.on = false; GT.oyn = false; cancelAnimationFrame(GT.raf);
+  document.documentElement.classList.remove("gt-acik");
+  document.querySelectorAll(".gt-ust,.gt-bar").forEach(e=>e.remove());
+  modAc("gece");
+  if (TV.on){ TV.durak = Date.now() + 120000; TV.durakYazi = "✋ Ekran kullanılıyor · 2 dk sonra otomatik devam"; tvAdim(); }
+}
+const gtSaat = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function gtArayuz(){
+  const w = document.querySelector(".mapwrap");
+  document.querySelectorAll(".gt-ust,.gt-bar").forEach(e=>e.remove());
+  const u = document.createElement("div"); u.className = "gt-ust"; u.innerHTML = `<small>GECE TEKRARI · ${esc(geceAd(GT.a))}</small><b id="gtSaat">21:00</b><em id="gtOzet"></em>`;
+  const bar = document.createElement("div"); bar.className = "gt-bar";
+  const span = GT.b - GT.a;
+  const isaret = GT.atl.map(o=>`<i class="gt-isaret" style="left:${((o.ts-GT.a)/span*100).toFixed(2)}%"></i>`).join("");
+  bar.innerHTML = `<button type="button" id="gtOyn">❚❚</button>
+    <div class="gt-iz">${isaret}<input type="range" id="gtIz" min="0" max="1000" value="0" aria-label="Zaman"><div class="gt-saatler"><span>21:00</span><span>00:00</span><span>03:00</span><span>07:00</span></div></div>
+    <select id="gtHiz" aria-label="Süre"><option value="30">30 sn</option><option value="60">1 dk</option><option value="120">2 dk</option></select>
+    <button type="button" class="gt-k" id="gtKapat">✕</button>`;
+  w.appendChild(u); w.appendChild(bar);
+  $("#gtHiz").value = String(GT.sure);
+  $("#gtOyn").onclick = () => { if (GT.T >= GT.b){ GT.T = GT.a; GT.oncekiT = GT.a; } GT.oyn = !GT.oyn; $("#gtOyn").textContent = GT.oyn ? "❚❚" : "▶"; GT.son = performance.now(); };
+  $("#gtIz").oninput = e => { GT.T = GT.a + (+e.target.value/1000) * span; GT.oncekiT = GT.T; gtCiz(true); };
+  $("#gtHiz").onchange = e => { GT.sure = +e.target.value; };
+  $("#gtKapat").onclick = gtKapat;
+}
+function gtAdim(now){
+  if (!GT.on) return;
+  const dt = Math.min(.1, (now - GT.son)/1000); GT.son = now;
+  if (GT.oyn){
+    GT.T = Math.min(GT.b, GT.T + dt * (GT.b - GT.a) / GT.sure);
+    if (GT.T >= GT.b){ GT.oyn = false; const o = $("#gtOyn"); if (o) o.textContent = "↺"; }
+  }
+  gtCiz(false);
+  GT.raf = requestAnimationFrame(gtAdim);
+}
+function gtCiz(atla){
+  const T = GT.T, span = GT.b - GT.a;
+  const iz = $("#gtIz"); if (iz && document.activeElement !== iz) iz.value = Math.round((T-GT.a)/span*1000);
+  const sa = $("#gtSaat"); if (sa) sa.textContent = gtSaat(T);
+  // noktalar
+  const son = {}; GT.ok.forEach(k=>{ if (k.ts <= T) son[k.nokta] = k.ts; });
+  const acikAtl = {}; GT.atl.forEach(o=>{ if (o.ts <= T) o.atlanan.forEach(id=>{ if (!GT.ok.some(x=>x.nokta===id && x.ts > o.ts && x.ts <= T)) acikAtl[id] = o; }); });
+  const yesil = cssv("--ok"), gri = cssv("--muted"), kirmizi = cssv("--bad");
+  NOKTA.forEach(n=>{
+    const t = son[n.id], atl = !!acikAtl[n.id], yeni = t && (T - t) < 6*6e4;
+    const c = atl ? kirmizi : t ? cssv(renkDk((T - t)/6e4)) : gri;
+    n.dot.style.fill = c; n.halo.style.fill = c;
+    n.halo.style.display = (atl || yeni) ? "" : "none";
+  });
+  // geçilen olaylar: dalga efekti
+  if (!atla && T > GT.oncekiT){
+    GT.ok.forEach(k=>{ if (k.ts > GT.oncekiT && k.ts <= T){ const n = N[k.nokta]; ripple(n.x, n.y, yesil); } });
+    GT.atl.forEach(o=>{ if (o.ts > GT.oncekiT && o.ts <= T) o.atlanan.forEach(id=>{ const n = N[id]; for (let i=0;i<3;i++) setTimeout(()=>ripple(n.x,n.y,kirmizi), i*250); }); });
+    GT.kayit.forEach(k=>{ if (k.tip==="sorun" && k.ts > GT.oncekiT && k.ts <= T){ const n = N[k.nokta]; ripple(n.x,n.y,cssv("--warn")); } });
+  }
+  GT.oncekiT = T;
+  // görevliler
+  const kisi = {}; GT.ok.forEach(k=>(kisi[k.gorevli] ||= []).push(k));
+  Object.entries(kisi).forEach(([ad, K])=>{
+    let i = -1; for (let j=0;j<K.length;j++){ if (K[j].ts <= T) i = j; else break; }
+    let g = GT.g[ad];
+    const gorun = i >= 0 && (T - K[i].ts < 15*6e4 || (K[i+1] && K[i+1].ts - K[i].ts <= ATLA_ARA_DK*6e4));
+    if (!gorun){ if (g) g.node.style.display = "none", g.trail.style.display = "none"; return; }
+    if (!g){
+      g = GT.g[ad] = {};
+      g.trail = el("path",{fill:"none",stroke:"var(--accent)","stroke-width":2.5,"stroke-dasharray":"4 6",opacity:.6},L.over);
+      g.node = el("g",{class:"guard"},L.over);
+      el("circle",{r:16,fill:"var(--accent)",opacity:.2},g.node);
+      el("circle",{r:8,fill:"var(--accent)",stroke:"var(--panel)","stroke-width":3},g.node);
+      el("text",{class:"gname",y:-14},g.node).textContent = kisaAd(ad);
+    }
+    g.node.style.display = ""; g.trail.style.display = "";
+    const a = N[K[i].nokta], b = K[i+1] && (K[i+1].ts - K[i].ts <= ATLA_ARA_DK*6e4) ? N[K[i+1].nokta] : null;
+    let x = a.x, y = a.y;
+    if (b){ const f = Math.min(1, (T - K[i].ts) / (K[i+1].ts - K[i].ts)); x = a.x + (b.x-a.x)*f; y = a.y + (b.y-a.y)*f; }
+    g.node.setAttribute("transform", `translate(${x} ${y})`);
+    const iz2 = K.slice(Math.max(0,i-3), i+1).map(k=>N[k.nokta]);
+    g.trail.setAttribute("d", iz2.map((n,k)=>`${k?"L":"M"}${n.x} ${n.y}`).join(" ") + ` L${x} ${y}`);
+  });
+  // özet (saniyede birkaç kez yeter)
+  if (performance.now() - GT.cizT > 250 || atla){ GT.cizT = performance.now(); gtPanel(false); }
+}
+function gtPanel(ilk){
+  const T = GT.T;
+  const okS = GT.ok.filter(k=>k.ts <= T).length;
+  const turS = GT.tur.filter(t=>t.son <= T && t.sayi >= 18).length;
+  const atlS = GT.atl.filter(o=>o.ts <= T).reduce((s,o)=>s+o.atlanan.length,0);
+  const sorS = GT.kayit.filter(k=>k.tip==="sorun" && k.ts <= T).length;
+  const oz = $("#gtOzet"); if (oz) oz.textContent = `${okS} okutma · ${turS} tur · ${atlS} atlanan`;
+  const olay = [];
+  GT.tur.forEach(t=>{ if (t.bas <= T) olay.push({ts:t.bas, tone:"ok", b:`${kisaAd(t.gorevli)} tura başladı`, s:`${t.ilkNo}. noktadan`}); if (t.son <= T && t.sayi >= 18) olay.push({ts:t.son, tone:"ok", b:`${kisaAd(t.gorevli)} turu bitirdi`, s:`${t.sayi}/21 nokta · ${t.sureDk} dk`}); });
+  GT.atl.forEach(o=>{ if (o.ts <= T) olay.push({ts:o.ts, tone:"bad", b:`${o.atlanan.map(id=>N[id].no).join(", ")}. nokta atlandı`, s:`${kisaAd(o.gorevli)} · ${N[o.onceki].no} → ${N[o.simdiki].no}`}); });
+  GT.kayit.forEach(k=>{ if (k.tip==="sorun" && k.ts <= T) olay.push({ts:k.ts, tone:"warn", b:`Sorun · ${N[k.nokta].no}. ${N[k.nokta].ad}`, s:`${k.not||""} · ${kisaAd(k.gorevli)}`}); });
+  olay.sort((x,y)=>y.ts-x.ts);
+  const html = `
+    <div class="card"><h2>🎬 Gece tekrarı · ${esc(geceAd(GT.a))}</h2>
+      <div class="kpis">
+        <div class="kpi"><strong>${okS}</strong><span>Okutma</span></div>
+        <div class="kpi"><strong style="color:var(--ok)">${turS}</strong><span>Tamamlanan tur</span></div>
+        <div class="kpi"><strong style="color:${atlS?"var(--bad)":"var(--ok)"}">${atlS}</strong><span>Atlanan nokta</span></div>
+        <div class="kpi"><strong style="color:${sorS?"var(--warn)":"var(--ok)"}">${sorS}</strong><span>Bildirilen sorun</span></div>
+      </div>
+      <p class="note">Çizgideki kırmızı işaretler atlanan noktaların saatini gösterir. Kaydırarak istediğiniz saate gidebilirsiniz.</p></div>
+    <div class="card"><h2>Gece boyunca</h2><ul class="feed gt-log">${olay.slice(0,12).map(o=>`<li><i class="dot" style="background:${cssv("--"+o.tone)}"></i><div><b>${esc(o.b)}</b><small>${esc(o.s)}</small></div><time>${gtSaat(o.ts)}</time></li>`).join("") || `<li><i class="dot" style="background:var(--muted)"></i><div><b>Henüz olay yok</b><small>Oynatınca burada akar</small></div><time>--:--</time></li>`}</ul></div>`;
+  if (ilk || $("#panel").dataset.gt !== html.length + "|" + okS + "|" + olay.length){ $("#panel").innerHTML = html; $("#panel").dataset.gt = html.length + "|" + okS + "|" + olay.length; }
 }
 /* Küçük XLSX yazıcı (dış kütüphane gerektirmez) */
 const XLSXW = (() => {
@@ -1352,6 +1511,7 @@ async function canliBaslat(){
 
 /* ============ Mod geçişi ============ */
 function modAc(m){
+  if (GT.on){ GT.on = false; GT.oyn = false; cancelAnimationFrame(GT.raf); document.documentElement.classList.remove("gt-acik"); document.querySelectorAll(".gt-ust,.gt-bar").forEach(e=>e.remove()); }
   MODE = m; temizle(); FEED = [];
   document.documentElement.setAttribute("data-mode", m);
   if (typeof temaIkon === "function") setTimeout(temaIkon, 0);
