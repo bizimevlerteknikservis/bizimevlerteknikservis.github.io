@@ -1368,6 +1368,8 @@ function devKuyruk(){ return yerel("bz1-devriye-kuyruk") || []; }
 const GV = {un:null, liste:[], dizin:null, unD:null, f:{kime:"", yer:"", metin:""}, filtre:"acik", sonEklenen:null};
 const GV_GRUP = [["grup:Temizlik","🧹 Tüm temizlik"],["grup:"+BAHCIVAN,"🌿 Tüm bahçe"],["grup:Güvenlik","🛡️ Tüm güvenlik"]];
 const gvYetkili = () => store.isTech() || (store.isYetkili && store.isYetkili());
+/* Amirler sadece güvenliğe görev verir ve sadece güvenlik görevlerini görür; müdür, Ali ve teknisyen herkese */
+const gvSadeceGuv = () => !store.isTech() && !(store.isTesis && store.isTesis());
 function gorevBaslat(){
   if (!GV.un && store.listenGorev) GV.un = store.listenGorev(L => { GV.liste = L.sort((a,b)=>b.ts-a.ts); if (["personel","devriye","gorev"].includes(S.view)) setTimeout(render,0); });
   if (!GV.unD && store.listenDizin) GV.unD = store.listenDizin(v => { GV.dizin = v; if (S.view==="gorev") setTimeout(render,0); });
@@ -1409,16 +1411,18 @@ function gvSync(){ const a = document.getElementById("gv_kime"), y = document.ge
 function vGorev(){
   gorevBaslat();
   if (!gvYetkili()) return `<div class="card"><h2>Görev ver</h2><p class="hint">Bu bölüm müdür, amir ve teknisyen içindir.</p><a class="cta" href="#panel" style="display:block;text-align:center;text-decoration:none">Giriş</a></div>`;
-  const f = GV.f, dz = (GV.dizin && GV.dizin.liste) || [];
+  const f = GV.f, dz = ((GV.dizin && GV.dizin.liste) || []).filter(k => !gvSadeceGuv() || k.rol==="Güvenlik");
+  const gruplar = GV_GRUP.filter(([v]) => !gvSadeceGuv() || v==="grup:Güvenlik");
   const roller = [...new Set(dz.map(k=>k.rol))];
   const kisiOpt = roller.map(r=>`<optgroup label="${esc(r)}">${dz.filter(k=>k.rol===r).map(k=>`<option value="kisi:${esc(k.ad)}|${esc(r)}" ${f.kime===`kisi:${k.ad}|${r}`?"selected":""}>${esc(k.ad)}</option>`).join("")}</optgroup>`).join("");
   const yerler = [...AYAR.bloklar.map(b=>b+" Blok"), "Ortak alan", "Otopark", "Bahçe", "Çocuk parkı", "Spor sahası", "Sosyal tesis", "Güvenlik kulübesi", "Teknik bina"];
-  const acik = GV.liste.filter(g=>g.durum==="yeni"||g.durum==="goruldu"), biten = GV.liste.filter(g=>g.durum==="yapildi"||g.durum==="iptal");
+  const goru = GV.liste.filter(g => !gvSadeceGuv() || g.kime.rol==="Güvenlik");
+  const acik = goru.filter(g=>g.durum==="yeni"||g.durum==="goruldu"), biten = goru.filter(g=>g.durum==="yapildi"||g.durum==="iptal");
   const L = GV.filtre==="acik" ? acik : biten;
   const son = GV.sonEklenen;
   return `<a class="pill-btn" href="#panel" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Menü</a>
   <section class="step"><h2><span>📌</span>Görev ver</h2>
-    <label class="f">Kime<select id="gv_kime"><option value="">Seçin</option><optgroup label="Grup">${GV_GRUP.map(([v,a])=>`<option value="${v}" ${f.kime===v?"selected":""}>${a}</option>`).join("")}</optgroup>${kisiOpt}</select></label>
+    <label class="f">Kime<select id="gv_kime"><option value="">Seçin</option><optgroup label="Grup">${gruplar.map(([v,a])=>`<option value="${v}" ${f.kime===v?"selected":""}>${a}</option>`).join("")}</optgroup>${kisiOpt}</select></label>
     ${!dz.length ? `<p class="hint">Kişi listesi teknisyen panelinden yüklenir. Şimdilik grup seçebilirsiniz.</p>` : ""}
     <label class="f">Nerede (isteğe bağlı)<select id="gv_yer"><option value="">Seçin</option>${yerler.map(y=>`<option ${f.yer===y?"selected":""}>${esc(y)}</option>`).join("")}</select></label>
     <label class="f">Ne yapılacak<textarea id="gv_metin" rows="3" maxlength="400" placeholder="Örn. 5. kat merdiven kirlenmiş, silinmesi lazım">${esc(f.metin)}</textarea></label>
@@ -1453,6 +1457,7 @@ function gvSes(){
 async function gvGonder(){
   gvSync(); const f = GV.f;
   if (!f.kime){ toast("Kime gideceğini seçin"); return; }
+  if (gvSadeceGuv() && !/Güvenlik$/.test(f.kime)){ toast("Amirler sadece güvenliğe görev verebilir"); return; }
   if (!f.metin.trim()){ toast("Ne yapılacağını yazın"); return; }
   const [tip, deger] = f.kime.split(/:(.+)/);
   const kime = tip==="grup" ? {tip:"grup", rol:deger} : {tip:"kisi", ad:deger.split("|")[0], rol:deger.split("|")[1]||""};
