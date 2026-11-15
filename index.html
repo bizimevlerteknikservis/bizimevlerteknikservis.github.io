@@ -295,6 +295,16 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .hizli-menu{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 14px}
 .hizli-menu a{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:14px;background:var(--card,#fff);border:1px solid var(--line,#e3e9f2);text-decoration:none;color:var(--ink);font-size:11.5px;font-weight:700;text-align:center;line-height:1.15}
 .hizli-menu a span{font-size:22px}
+.karne-k{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:6px 0 10px}
+.karne-k div{background:var(--bg,#f4f7fb);border-radius:14px;padding:10px 12px}
+.karne-k b{display:block;font:800 22px/1.15 var(--display,system-ui)}
+.karne-k span{font-size:12.5px;color:var(--muted,#5f7591);font-weight:600}
+.karne-k em{display:block;font-style:normal;font-size:12px;color:var(--muted,#5f7591);margin-top:2px}
+.karne-k .yesil{color:#1e9d5b}.karne-k .turuncu{color:#d9851b}.karne-k .kirmizi{color:#d63a35}
+.karne-t{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0}
+.karne-t th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#5f7591);padding:6px 4px;border-bottom:1px solid var(--line,#e3e9f2)}
+.karne-t td{padding:8px 4px;border-bottom:1px solid var(--line,#e3e9f2)}
+.karne-t tr.tk td{background:#fff7ea}.karne-t tr.kr td{background:#fdeaea}
 .gv-kart{border:2px solid var(--accent,#2b7cd3);border-radius:18px;padding:14px;margin-bottom:12px;background:var(--card,#fff)}
 .gv-kart h2{margin:0 0 8px;font-size:16px}
 .gv{border-top:1px solid var(--line,#e3e9f2);padding:10px 0}
@@ -627,6 +637,8 @@ function DemoStore(){
     async addFoto(aid, i, data){ (mem.foto ||= {})[aid] ||= []; mem.foto[aid][i] = data; try { save(); } catch(e){} },
     async getFoto(aid){ return ((mem.foto || {})[aid] || []).filter(Boolean); },
     listenTesis: cb => sub(() => cb((mem.tesis || []).slice())),
+    listenPersonelAsansor: cb => sub(() => cb((mem.appts||[]).filter(a=>a.src==="personel" && a.cat==="p_asansor"))),
+    async setTesis(id, v){ mem.tesis ||= []; const k = mem.tesis.find(x=>x.id===id); if (k){ for (const [a,b] of Object.entries(v)) k[a] = (b && b.__ekle) ? [...new Set([...(k[a]||[]), ...b.__ekle])] : b; } else mem.tesis.push({id, ...Object.fromEntries(Object.entries(v).map(([a,b])=>[a, b && b.__ekle ? b.__ekle : b]))}); save(); },
     listenTesisAyar: cb => sub(() => cb(mem.tesisAyar || {})),
     async addTesis(r){ const id = "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,5); (mem.tesis ||= []).push({...r, id, uid: mem.uid}); save(); return id; },
     async updateTesis(id, p){ const r = (mem.tesis||[]).find(x=>x.id===id); if (r){ Object.assign(r, p); save(); } },
@@ -701,6 +713,8 @@ function FirebaseStore(cfg){
     },
     async cancelMine(a){ await fs.updateDoc(fs.doc(db,"appointments",a.id), {status:"iptal"}); },
     async update(a, patch){ await fs.updateDoc(fs.doc(db,"appointments",a.id), patch); },
+    listenPersonelAsansor(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"appointments"), fs.where("src","==","personel"), fs.where("cat","==","p_asansor")), s => cb(s.docs.map(d=>({id:d.id, ...d.data()}))), e => console.warn("personel asansör", e && e.code)); },
+    async setTesis(id, v){ const o = {}; for (const [a,b] of Object.entries(v)) o[a] = (b && b.__ekle) ? fs.arrayUnion(...b.__ekle) : b; if (v.tur) o.uid = user.uid; await fs.setDoc(fs.doc(db,"tesis",id), o, {merge:true}); },
     listenTesis(cb){
       const q = fs.query(fs.collection(db,"tesis"), fs.where("ts",">=",Date.now()-400*864e5));
       return fs.onSnapshot(q, s => cb(s.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.error(e); toast("Tesis kayıtları okunamadı: " + e.code); });
@@ -1252,6 +1266,7 @@ function sesUygula(metin){
   if (p.rol === BAHCIVAN){ p.yerTip = "alan"; if (o.alan) p.alan = o.alan; }
   else if (o.block){ p.yerTip = "blok"; p.block = o.block; p.kat = o.kat || ""; }
   else if (o.alan){ p.yerTip = "alan"; p.alan = o.alan; }
+  { const an = metin.match(/asans[öo]r\s*(1|2|bir|iki)\b|(1|2|bir|iki)\s*(?:numaral[ıi]|nolu|no'?lu)?\s*asans[öo]r/i); if (an){ const x = (an[1]||an[2]).toLowerCase(); p.asNo = x==="bir"||x==="1" ? "1" : "2"; } }
   const m = metin.trim(); p.desc = (m.charAt(0).toLocaleUpperCase("tr") + m.slice(1)).slice(0, 300);
   SES.sonuc = o;
   // render önce formdaki eski değerleri okur; onları da güncelle ki seçim geri dönmesin
@@ -1339,6 +1354,7 @@ function vPersonelIc(){
         <label class="f">Kat (isteğe bağlı)<select id="p_kat"><option value="">Seçin</option>${KATLAR.map(k => `<option ${p.kat===k?"selected":""}>${k}</option>`).join("")}</select></label>
       </div>`
     : `<label class="f">Alan (isteğe bağlı)<select id="p_alan"><option value="">Seçin</option>${ALANLAR.map(x => `<option ${p.alan===x?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`}
+    ${p.cat==="p_asansor" && p.yerTip==="blok" ? `<div class="f" style="margin-bottom:10px"><span style="font-size:13px;font-weight:600;color:var(--muted)">Hangi asansör?</span><div class="prefs" style="margin-top:6px">${[["1","Asansör 1"],["2","Asansör 2"],["","Bilmiyorum"]].map(([v2,a2])=>`<button class="pref" data-act="pAsNo" data-v="${v2}" aria-pressed="${(p.asNo||"")===v2}">${a2}</button>`).join("")}</div></div>` : ""}
     <label class="f note-l" for="p_desc">Kısa not <span>${p.issues.length===1&&/^Diğer/.test(p.issues[0])?"(gerekli)":"(isteğe bağlı)"}</span></label>
     <textarea id="p_desc" maxlength="300" placeholder="${p.cat==="p_malzeme" ? "Örn. 2 rulo büyük boy çöp poşeti, 1 adet çöp kovası" : "Örn. Merdiven tarafındaki lamba, iki gündür yanmıyor."}">${esc(p.desc)}</textarea>
     <div class="foto-alan">
@@ -1942,9 +1958,9 @@ const JEN_VARSAYILAN = [
 const BAKIM_GUN = 35;        // asansör aylık bakım; 35 günü geçerse gecikmiş
 const YAKIT_UYARI = 30;      // % altı uyarı
 const ETIKET = {yesil:["Yeşil","#22a55b"], mavi:["Mavi","#2f7fd6"], sari:["Sarı","#e3b11b"], kirmizi:["Kırmızı","#d64040"]};
-const T = { kayit:[], ayar:{}, un:null, unA:null, sekme:"ozet", f:null, detay:null };
+const T = { kayit:[], ayar:{}, un:null, unA:null, sekme:"ozet", f:null, detay:null, karneAy:"bu" };
 const jenler = () => JEN_VARSAYILAN.map(j => ({...j, ...((T.ayar.jen||{})[j.id]||{})}));
-const asAd = id => (ASANSOR.find(a=>a.id===id)||{ad:id}).ad;
+const asAd = id => (ASANSOR.find(a=>a.id===id)||{ad: /-\?$/.test(id||"") ? `${id.split("-")[0]} Blok · Asansör (no belirsiz)` : id}).ad;
 const jenAd = id => (jenler().find(j=>j.id===id)||{ad:id}).ad;
 const ekAd = id => id && id[0]==="J" ? jenAd(id) : id && id.startsWith("H-") ? hidAd(id) : asAd(id);
 /* ---------- Hidrofor: tekli blok 2+2 pompa, çiftli blok 3+3 pompa; her birinde alt/üst zon basınç tankı ---------- */
@@ -2270,10 +2286,31 @@ function tesisBaslat(){
   if (T.basladi || !store.isAsansor()) return;
   T.basladi = true;
   const ciz = () => { if (S.view==="tesis") setTimeout(render, 0); };
-  T.un = store.listenTesis(list => { T.kayit = list; ciz(); });
+  T.un = store.listenTesis(list => { T.kayit = list; T.kayitGeldi = true; pAsAktar(); ciz(); });
   T.unA = store.listenTesisAyar(a => { T.ayar = a || {}; ciz(); });
+  if (store.listenPersonelAsansor) T.unP = store.listenPersonelAsansor(L => { T.pAs = L; T.kayitGeldi && pAsAktar(); });
 }
-function tesisDurdur(){ if (T.un) T.un(); if (T.unA) T.unA(); T.un = T.unA = null; T.basladi = false; T.kayit = []; }
+/* Temizlik, güvenlik, bahçe ve amirlerin personel formundan bildirdiği asansör arızaları asansör takibine (ve karneye) otomatik işlenir.
+   Aynı asansörde açık arıza varsa ona "bildirenler" olarak eklenir; yoksa yeni arıza kaydı açılır (kimlik: p_<bildirim no>, iki kez açılmaz). */
+let pAsIslenen = new Set();
+async function pAsAktar(){
+  if (!store.setTesis || !(store.isTech() || store.isTesis() || store.isYetkili())) return;
+  const sinir = Date.now() - 7*864e5;
+  for (const ap of (T.pAs||[])){
+    if (!ap.block || ap.status==="iptal" || (ap.createdAt||0) < sinir || pAsIslenen.has(ap.id)) continue;
+    const bagli = T.kayit.some(k => k.tur==="ariza" && (k.id==="p_"+ap.id || (k.bildirenler||[]).includes(ap.id)));
+    if (bagli){ pAsIslenen.add(ap.id); continue; }
+    pAsIslenen.add(ap.id);
+    const ekip = ap.asNo ? `${ap.block}-${ap.asNo}` : `${ap.block}-?`;
+    const acik = T.kayit.filter(k => k.tur==="ariza" && !k.cozuldu && (k.ekipman===ekip || (!ap.asNo && k.ekipman.startsWith(ap.block+"-")) || (k.ekipman===`${ap.block}-?`))).sort((a,b)=>b.ts-a.ts)[0];
+    const kim = [ap.name, ap.rol].filter(Boolean).join(" · ");
+    try {
+      if (acik) await store.setTesis(acik.id, {bildirenler:{__ekle:[ap.id]}, bildirenAd:{__ekle:[kim]}});
+      else await store.setTesis("p_"+ap.id, {tur:"ariza", ekipman:ekip, mahsur:false, not:[...(ap.issues||[]), ap.desc].filter(Boolean).join(" · ").slice(0,200), by:kim, kaynak:"personel", bildirenler:[ap.id], bildirenAd:[kim], ts:ap.createdAt||Date.now()});
+    } catch(e){ console.warn("asansör aktarım", e); pAsIslenen.delete(ap.id); }
+  }
+}
+function tesisDurdur(){ if (T.un) T.un(); if (T.unA) T.unA(); if (T.unP) T.unP(); T.un = T.unA = T.unP = null; T.basladi = false; T.kayit = []; }
 
 function vTesis(){
   if (!store.isAsansor()) return vPanel();
@@ -2284,6 +2321,7 @@ function vTesis(){
   if (H.devamEden) uyar.push(`<div class="t-uyari kirmizi">⚡ <b>Elektrik kesik</b> · ${sureYaz(Math.round((Date.now()-H.devamEden.bas)/6e4))} oldu</div>`);
   if (H.acikAriza.length) uyar.push(`<div class="t-uyari kirmizi">🛗 <b>${H.acikAriza.length} asansör arızalı</b>${H.acikAriza.some(a=>a.mahsur&&!a.geldi)?" · içeride mahsur kalan var!":""}</div>`);
   H.dusukYakit.forEach(j=>uyar.push(`<div class="t-uyari turuncu">⛽ <b>${esc(j.ad)}</b> yakıt %${H.yakit[j.id].seviye}</div>`));
+  kronikler().forEach(([id,n]) => uyar.push(`<div class="t-uyari kirmizi">♻️ <b>Kronik arıza:</b> ${esc(asAd(id))} ${KRONIK_GUN} günde ${n}. kez arızalandı</div>`));
   if (H.geciken.length) uyar.push(`<div class="t-uyari turuncu">🔧 <b>${H.geciken.length} asansörün</b> aylık bakımı gecikti ya da kaydı yok</div>`);
   if (H.hid.tamirde.length) uyar.push(`<div class="t-uyari turuncu">🔩 <b>${H.hid.tamirde.length} hidrofor pompası</b> tamirde</div>`);
   if (H.yangin.gecti.length) uyar.push(`<div class="t-uyari kirmizi">🧯 <b>${H.yangin.gecti.length} yangın ekipmanının</b> kontrol süresi geçti</div>`);
@@ -2309,7 +2347,7 @@ function vTesis(){
       ${tKesintiOzet(H)}
       <div class="card"><h2>Aylık rapor</h2><p class="hint">Asansör arızaları, bakımlar, yakıt ve kesintiler. Yönetime sunmak için.</p>
         <div class="grid2"><button class="cta ghost" data-t="rapor" data-v="bu">📥 Bu ay</button><button class="cta ghost" data-t="rapor" data-v="gecen">📥 Geçen ay</button></div></div>`
-    : T.sekme==="asansor" ? `${tAcikArizalar(H)}${tAsansorIzgara(H)}`
+    : T.sekme==="asansor" ? `${tAcikArizalar(H)}${tKarne()}${tAsansorIzgara(H)}`
     : T.sekme==="jen" ? `${tJenKartlar(H, false)}`
     : T.sekme==="hidrofor" ? tHidrofor(H)
     : T.sekme==="yangin" ? tYangin(H)
@@ -2317,6 +2355,82 @@ function vTesis(){
     ${T.sekme==="ozet" || T.sekme==="jen" ? tAyarlar() : ""}
     ${T.f ? tForm() : ""}
     ${T.detay ? tDetay(H) : ""}`;
+}
+
+
+/* ---------- Asansör firması karnesi + kronik arıza ---------- */
+const KRONIK_ESIK = 3, KRONIK_GUN = 30;
+const firmaAd = () => (T.ayar && T.ayar.firma) || "Omak";
+function kronikSay(ekipman, ts = Date.now()){ return T.kayit.filter(k => k.tur==="ariza" && k.ekipman===ekipman && k.ts <= ts && k.ts > ts - KRONIK_GUN*864e5).length; }
+function kronikler(){ const say = {}; T.kayit.filter(k => k.tur==="ariza" && k.ts > Date.now() - KRONIK_GUN*864e5).forEach(k => { say[k.ekipman] = (say[k.ekipman]||0) + 1; });
+  return Object.entries(say).filter(([,n]) => n >= KRONIK_ESIK).sort((a,b) => b[1]-a[1]); }
+function karneHesap(hangi){
+  const d = new Date(); d.setDate(1); d.setHours(0,0,0,0); if (hangi==="gecen") d.setMonth(d.getMonth()-1);
+  const a = d.getTime(), e = new Date(d.getFullYear(), d.getMonth()+1, 1).getTime(), son = Math.min(e, Date.now());
+  const ayAd = d.toLocaleDateString("tr-TR",{month:"long",year:"numeric"});
+  const tum = T.kayit.filter(k => k.tur==="ariza");
+  const ar = tum.filter(k => k.ts >= a && k.ts < e).sort((x,y)=>x.ts-y.ts);
+  const ortu = tum.filter(k => k.ts < son && (k.cozuldu||Date.now()) > a);          // ay içinde arızalı kaldığı süre (önceki aydan devredenler dahil)
+  const dk = x => Math.round(x/6e4);
+  const gelis = ar.filter(k=>k.geldi).map(k=>dk(k.geldi-(k.bildirildi||k.ts)));
+  const bildirme = ar.filter(k=>k.bildirildi).map(k=>dk(k.bildirildi-k.ts));
+  const cozum = ar.filter(k=>k.cozuldu).map(k=>dk(k.cozuldu-k.ts));
+  const ort = L => L.length ? Math.round(L.reduce((s,v)=>s+v,0)/L.length) : null;
+  const asan = {};
+  ortu.forEach(k => { const o = asan[k.ekipman] ||= {id:k.ekipman, sayi:0, dk:0, gelis:[], mahsur:0, acik:false};
+    o.dk += dk(Math.min(k.cozuldu||Date.now(), son) - Math.max(k.ts, a)); if (!k.cozuldu) o.acik = true; });
+  ar.forEach(k => { const o = asan[k.ekipman]; o.sayi++; if (k.mahsur) o.mahsur++; if (k.geldi) o.gelis.push(dk(k.geldi-(k.bildirildi||k.ts))); });
+  const L = Object.values(asan).sort((x,y)=>y.sayi-x.sayi || y.dk-x.dk);
+  const toplamDk = L.reduce((s,o)=>s+o.dk,0), kapasiteDk = ASANSOR.length * Math.max(1, dk(son - a));
+  return {a, e, ayAd, ar, L, gelisOrt:ort(gelis), gelisMax: gelis.length ? Math.max(...gelis) : null, gelisSay: gelis.length, bekleyenGelis: ar.filter(k=>k.bildirildi && !k.geldi).length,
+    bildirmeOrt: ort(bildirme), cozumOrt: ort(cozum), mahsur: ar.filter(k=>k.mahsur).length, toplamDk, calisma: 100 - toplamDk/kapasiteDk*100,
+    tekrar: L.filter(o=>o.sayi>=2), kronik: kronikler()};
+}
+function tKarne(){
+  const R = karneHesap(T.karneAy), F = firmaAd();
+  const s = dkx => dkx===null ? "—" : sureYaz(dkx);
+  const renkGelis = R.gelisOrt===null ? "" : R.gelisOrt <= 120 ? "yesil" : R.gelisOrt <= 360 ? "turuncu" : "kirmizi";
+  return `<div class="card karne"><h2 style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">📋 ${esc(F)} karnesi
+      <span class="prefs" style="margin:0"><button class="pref" data-t="karneAy" data-v="bu" aria-pressed="${T.karneAy==="bu"}">Bu ay</button><button class="pref" data-t="karneAy" data-v="gecen" aria-pressed="${T.karneAy==="gecen"}">Geçen ay</button></span></h2>
+    <p class="hint" style="margin-top:0">${esc(R.ayAd)} · ${ASANSOR.length} asansör</p>
+    <div class="karne-k">
+      <div><b>${R.ar.length}</b><span>Arıza</span>${R.mahsur?`<em class="kirmizi">${R.mahsur} mahsur</em>`:""}</div>
+      <div><b class="${renkGelis}">${s(R.gelisOrt)}</b><span>Ort. geliş süresi</span>${R.gelisMax!==null?`<em>en uzun ${sureYaz(R.gelisMax)}</em>`:""}</div>
+      <div><b>${R.toplamDk ? sureYaz(R.toplamDk) : "0 dk"}</b><span>Toplam arızalı kalma</span></div>
+      <div><b class="${R.calisma>=99?"yesil":R.calisma>=97?"turuncu":"kirmizi"}">%${R.calisma.toFixed(1)}</b><span>Çalışır durumda</span></div>
+    </div>
+    ${R.bekleyenGelis ? `<div class="t-uyari turuncu">⏳ ${R.bekleyenGelis} arızaya ${esc(F)} henüz gelmedi</div>` : ""}
+    ${R.kronik.length ? `<div class="t-uyari kirmizi">♻️ <b>Kronik arıza:</b> ${R.kronik.map(([id,n])=>`${esc(asAd(id))} (${KRONIK_GUN} günde ${n} kez)`).join(" · ")}</div>` : ""}
+    ${R.L.length ? `<div class="tblwrap" style="overflow-x:auto"><table class="karne-t"><thead><tr><th>Asansör</th><th>Arıza</th><th>Arızalı kaldı</th><th>Ort. geliş</th></tr></thead><tbody>
+      ${R.L.map(o=>`<tr class="${o.sayi>=KRONIK_ESIK?"kr":o.sayi>=2?"tk":""}"><td><b>${esc(asAd(o.id))}</b>${o.acik?` <span class="chip" data-s="bekliyor">açık</span>`:""}${o.mahsur?` 🚨`:""}</td><td>${o.sayi}${o.sayi>=2?` <small>${o.sayi>=KRONIK_ESIK?"♻️":"↻"}</small>`:""}</td><td>${sureYaz(o.dk)}</td><td>${o.gelis.length?sureYaz(Math.round(o.gelis.reduce((a,b)=>a+b,0)/o.gelis.length)):"—"}</td></tr>`).join("")}
+    </tbody></table></div>` : `<div class="t-uyari yesil">✓ Bu dönemde asansör arızası yok</div>`}
+    <p class="hint">Geliş süresi: "${esc(F)}'a bildirildi"den "Servis geldi"ye kadar. Doğru ölçülmesi için arıza adımlarını zamanında işaretleyin.${R.bildirmeOrt!==null?` Bizim firmaya bildirme süremiz ortalama ${sureYaz(R.bildirmeOrt)}.`:""}</p>
+    <div class="grid2"><button class="cta ghost" data-t="karnePaylas">📲 Özeti paylaş</button><button class="cta ghost" data-t="karneExcel">⬇ Excel</button></div>
+  </div>`;
+}
+function karneMetin(){
+  const R = karneHesap(T.karneAy), F = firmaAd();
+  return [`🛗 ${F} asansör karnesi · ${R.ayAd}`, `Bizimevler 1 Sitesi · ${ASANSOR.length} asansör`, ``,
+    `• Arıza: ${R.ar.length}${R.mahsur?` (${R.mahsur} mahsur kalma)`:""}`,
+    `• Ortalama geliş süresi: ${R.gelisOrt===null?"—":sureYaz(R.gelisOrt)}${R.gelisMax!==null?` (en uzun ${sureYaz(R.gelisMax)})`:""}`,
+    `• Toplam arızalı kalma: ${sureYaz(R.toplamDk)}`, `• Çalışır durumda: %${R.calisma.toFixed(1)}`,
+    R.tekrar.length ? `• Tekrarlayan: ${R.tekrar.map(o=>`${asAd(o.id)} ${o.sayi} kez`).join(", ")}` : "",
+    R.kronik.length ? `♻️ Kronik (${KRONIK_GUN} gün): ${R.kronik.map(([id,n])=>`${asAd(id)} ${n} kez`).join(", ")}` : ""].filter(x=>x!=="").join("\n");
+}
+function karneExcel(){
+  const R = karneHesap(T.karneAy), F = firmaAd(), d = new Date(R.a);
+  const ozet = [[`${F} asansör karnesi · Bizimevler 1 Sitesi`],[],["Dönem", R.ayAd],["Oluşturulma", tarihSaat(Date.now())],[],
+    ["Arıza sayısı", R.ar.length],["Mahsur kalma", R.mahsur],["Ortalama geliş süresi (dk)", R.gelisOrt ?? ""],["En uzun geliş (dk)", R.gelisMax ?? ""],
+    ["Ortalama çözüm süresi (dk)", R.cozumOrt ?? ""],["Toplam arızalı kalma (dk)", R.toplamDk],["Çalışır durumda (%)", Number(R.calisma.toFixed(2))],[],
+    ["Kronik arızalar (30 gün)", R.kronik.map(([id,n])=>`${asAd(id)} (${n})`).join(", ") || "Yok"]];
+  const blob = XLSXW([
+    ["Özet", ozet, [32,50], -1],
+    ["Asansör bazında", [["Asansör","Arıza","Arızalı kalma (dk)","Ort. geliş (dk)","Mahsur"], ...R.L.map(o=>[asAd(o.id), o.sayi, o.dk, o.gelis.length?Math.round(o.gelis.reduce((a,b)=>a+b,0)/o.gelis.length):"", o.mahsur])], [26,8,18,14,8], 0],
+    ["Arızalar", [["Açıldı","Asansör","Mahsur","Not","Firmaya bildirildi","Servis geldi","Geliş (dk)","Çözüldü","Arızalı kalma (dk)"], ...R.ar.map(k=>[tarihSaat(k.ts), asAd(k.ekipman), k.mahsur?"Evet":"", k.not||"", k.bildirildi?tarihSaat(k.bildirildi):"", k.geldi?tarihSaat(k.geldi):"", k.geldi?Math.round((k.geldi-(k.bildirildi||k.ts))/6e4):"", k.cozuldu?tarihSaat(k.cozuldu):"Açık", Math.round(((k.cozuldu||Date.now())-k.ts)/6e4)])], [13,22,8,30,16,13,10,13,16], 0]
+  ]);
+  const u = URL.createObjectURL(blob), l = document.createElement("a");
+  l.href = u; l.download = `asansor-karnesi-${d.getFullYear()}-${pad(d.getMonth()+1)}.xlsx`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(u), 5000);
+  toast("Karne indirildi");
 }
 
 /* Amirler (yönetim): sadece asansör arızası açar ve adımlarını günceller */
@@ -2328,7 +2442,7 @@ function vAsansorAmir(){
       <a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">← Geri</a></div>
     ${H.acikAriza.length ? `<div class="t-uyari kirmizi">🛗 <b>${H.acikAriza.length} asansör arızalı</b>${H.acikAriza.some(a=>a.mahsur&&!a.geldi)?" · içeride mahsur kalan var!":""}</div>` : ""}
     <button class="cta danger" data-t="form" data-v="ariza" style="margin-bottom:14px">🛗 Asansör arızası bildir</button>
-    ${tAcikArizalar(H)}${tAsansorIzgara(H)}
+    ${tAcikArizalar(H)}${tKarne()}${tAsansorIzgara(H)}
     ${T.f && T.f.tip==="ariza" ? tForm() : ""}
     ${T.detay ? tDetay(H) : ""}`;
 }
@@ -2341,6 +2455,9 @@ function tAcikArizalar(H){
     return `<article class="ticket" data-s="${a.geldi?"onaylandi":"bekliyor"}">
       <div class="t-head"><span class="t-no">${esc(asAd(a.ekipman))}</span><span class="chip" data-s="bekliyor">${sureYaz(dk)}</span></div>
       ${a.mahsur ? `<div class="t-uyari kirmizi" style="margin:0">🚨 İçeride mahsur kalan var</div>` : ""}
+      ${a.kaynak==="personel" || (a.bildirenAd||[]).length ? `<p class="t-desc" style="margin:4px 0">📣 Bildiren: ${esc((a.bildirenAd||[a.by]).join(", "))}</p>` : ""}
+      ${/-\?$/.test(a.ekipman) ? `<div style="margin:6px 0;display:flex;gap:6px;align-items:center;flex-wrap:wrap">Hangi asansör? <button class="pill-btn" data-t="asNoSec" data-id="${a.id}" data-v="${esc(a.ekipman.split("-")[0])}-1">1</button><button class="pill-btn" data-t="asNoSec" data-id="${a.id}" data-v="${esc(a.ekipman.split("-")[0])}-2">2</button></div>` : ""}
+      ${kronikSay(a.ekipman, a.ts) >= KRONIK_ESIK ? `<div class="t-uyari kirmizi" style="margin:6px 0 0">♻️ Kronik: ${KRONIK_GUN} günde ${kronikSay(a.ekipman, a.ts)}. arıza</div>` : kronikSay(a.ekipman, a.ts) === 2 ? `<div class="t-uyari turuncu" style="margin:6px 0 0">↻ ${KRONIK_GUN} gün içinde 2. arıza</div>` : ""}
       ${a.not ? `<p class="t-desc">${esc(a.not)}</p>` : ""}
       <div class="t-adim">
         <span class="${a.ts?"ok":""}">Açıldı ${tarihSaat(a.ts)}</span>
@@ -2490,7 +2607,7 @@ async function tKaydet(){
   try {
     const id = await store.addTesis({...rec, ts: Date.now()});
     if (f.foto) try { await store.addFoto(id, 0, f.foto); } catch(e){ console.error(e); }
-    if (rec.tur==="ariza") tgGonder([`🛗 ASANSÖR ARIZASI`, `📍 ${asAd(rec.ekipman)}`, rec.mahsur?"🚨 İçeride mahsur kalan var!":"", rec.not?`📝 ${rec.not}`:"", `🕒 ${saatStr(Date.now())}`].filter(Boolean).join("\n"));
+    if (rec.tur==="ariza") tgGonder([`🛗 ASANSÖR ARIZASI`, `📍 ${asAd(rec.ekipman)}`, rec.mahsur?"🚨 İçeride mahsur kalan var!":"", (kronikSay(rec.ekipman)+1) >= KRONIK_ESIK ? `♻️ Kronik: ${KRONIK_GUN} günde ${kronikSay(rec.ekipman)+1}. arıza` : "", rec.not?`📝 ${rec.not}`:"", `🕒 ${saatStr(Date.now())}`].filter(Boolean).join("\n"));
     if (rec.tur==="yakit" && rec.seviye < YAKIT_UYARI) tgGonder(`⛽ Yakıt düşük: ${jenAd(rec.ekipman)} %${rec.seviye}`);
     if (rec.tur==="kesinti") tgGonder(`💡 Elektrik geldi${rec.jen==="evet"?" · jeneratör çalıştı":rec.jen==="hayir"?" · jeneratör ÇALIŞMADI":""}\n🕒 ${saatStr(Date.now())}`);
     toast("Kaydedildi"); T.f = null;
@@ -2545,6 +2662,10 @@ document.addEventListener("click", async e => {
   const t = b.dataset.t, v = b.dataset.v, id = b.dataset.id; tSync();
   if (/^yf?[A-Z]/.test(t)){ await yTik(t, v, id, b); return; }
   if (t==="sekme"){ T.sekme = v; T.yf = null; T.yd = null; render(); }
+  else if (t==="karneAy"){ T.karneAy = v; render(); }
+  else if (t==="karnePaylas"){ const m = karneMetin(); if (navigator.share) navigator.share({text:m}).catch(()=>{}); else window.open("https://wa.me/?text=" + encodeURIComponent(m), "_blank"); }
+  else if (t==="karneExcel"){ karneExcel(); }
+  else if (t==="asNoSec"){ const k = T.kayit.find(x=>x.id===id); if (k) k.ekipman = v; render(); try { await store.setTesis(id, {ekipman:v}); } catch(e2){ console.error(e2); toast("Kaydedilemedi"); } }
   else if (t==="kapat"){ T.f = null; T.detay = null; render(); }
   else if (t==="detay"){ T.detay = v; render(); }
   else if (t==="form"){
@@ -2959,6 +3080,7 @@ document.addEventListener("click", async e => {
     else if (act==="sesYaziUygula"){ const m = (document.getElementById("sesYazi")||{}).value || ""; if (!m.trim()) return; syncForm(); SES.metin = m.trim(); SES.hata = ""; SES.klavye = false; sesUygula(SES.metin); render(); return; }
     else if (act==="sesDur"){ const r = SES.r; try { r && r.stop(); } catch(e){} setTimeout(() => { if (SES.r === r && SES.dinliyor) sesBitir(r); }, 1200); return; }
     else if (act==="pCat"){ syncForm(); if (S.p.cat !== v) S.p.issues = []; S.p.cat = v; render(); }
+    else if (act==="pAsNo"){ syncForm(); S.p.asNo = v; render(); }
     else if (act==="pIss"){ syncForm(); const L = S.p.issues; const i = L.indexOf(v); i < 0 ? L.push(v) : L.splice(i,1); render(); }
     else if (act==="pYer"){ syncForm(); S.p.yerTip = v; render(); }
     else if (act==="pYeni"){ S.pSent = null; SES.sonuc = null; SES.metin = ""; Object.assign(S.p, {cat:S.p.rol===BAHCIVAN?"p_bahce":null, issues:[], desc:"", foto:[]}); render(); scrollTo(0,0); }
@@ -3108,7 +3230,7 @@ document.addEventListener("click", async e => {
         const blokIci = p.yerTip==="blok";
         const fotolar = p.foto.slice();
         S.pSent = await store.create({src:"personel", kod:p.kod, rol:p.rol, cat:p.cat, issues:p.issues.slice(), desc:aciklama, name:p.name.trim(), phone:"",
-          block: blokIci ? p.block : "", kat: blokIci ? p.kat : "", alan: blokIci ? "" : p.alan, flat:"", fotoSayi: fotolar.length});
+          block: blokIci ? p.block : "", kat: blokIci ? p.kat : "", alan: blokIci ? "" : p.alan, flat:"", fotoSayi: fotolar.length, ...(p.cat==="p_asansor" && blokIci && p.asNo ? {asNo:p.asNo} : {})});
         telegramBildir(S.pSent); SES.sonuc = null; SES.metin = "";
         for (let i = 0; i < fotolar.length; i++){
           try { await store.addFoto(S.pSent.id, i, fotolar[i], p.kod); } catch(e){ console.error(e); toast("Fotoğraf gönderilemedi"); }
