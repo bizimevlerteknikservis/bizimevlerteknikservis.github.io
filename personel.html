@@ -318,6 +318,16 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .guv-sekme{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:6px;margin:0 0 14px;border-radius:18px;background:var(--card,#fff);box-shadow:0 6px 20px rgba(16,40,80,.08)}
 .guv-sekme a{display:block;text-align:center;padding:14px 4px;border-radius:13px;text-decoration:none;font:800 16px var(--body,system-ui);color:var(--ink)}
 .guv-sekme a[aria-current="true"]{background:linear-gradient(140deg,var(--accent,#2b7cd3),var(--accent-2,#3b9be0));color:#fff}
+.ses-k{border:2px solid #2b7cd3;background:linear-gradient(160deg,rgba(43,124,211,.07),transparent)}
+.ses-ust{display:flex;gap:16px;align-items:center}.ses-ust b{display:block;font-size:19px}.ses-ust small{color:var(--muted);font-size:14px;line-height:1.35;display:block;margin-top:3px}
+.ses-btn{flex:none;width:76px;height:76px;border-radius:50%;border:0;background:linear-gradient(140deg,#2b7cd3,#3b9be0);color:#fff;font-size:34px;box-shadow:0 10px 26px rgba(43,124,211,.45);cursor:pointer;position:relative}
+.ses-k.dinle{text-align:center;border-color:#e5484d}
+.ses-btn.aktif{width:110px;height:110px;font-size:46px;background:linear-gradient(140deg,#e5484d,#ff6b6b);box-shadow:0 0 0 0 rgba(229,72,77,.6);animation:sesNabiz 1.2s infinite;margin:6px auto 10px;display:block}
+@keyframes sesNabiz{0%{box-shadow:0 0 0 0 rgba(229,72,77,.55)}100%{box-shadow:0 0 0 26px rgba(229,72,77,0)}}
+.ses-canli{font:700 20px var(--display,system-ui);min-height:30px;margin:4px 0}
+.ses-sonuc{margin-top:12px;padding:12px;border-radius:14px;background:var(--card,#fff);border:1px solid var(--line,#e3e9f2)}.ses-sonuc p{font-weight:700;margin:4px 0 8px}
+.ses-cip{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.ses-cip span{padding:6px 12px;border-radius:999px;background:#e8f7ee;border:1px solid #2fa36b;font-size:14px;font-weight:700;color:#14532d}
+.ses-cip span.yok{background:#fff3e0;border-color:#e8952b;color:#7a4200}
 </style>
 </head>
 <body>
@@ -1131,6 +1141,106 @@ function vPersonel(){
   if (!p.kod && S.d.kim && S.d.kim.kod && geri && !store.isTech()){ Object.assign(p, {kod:S.d.kim.kod, name:S.d.kim.ad, rol:"Güvenlik", kayitli:true, kimlikAc:false}); }
   return geri + vPersonelIc();
 }
+/* =================== SESLİ ARIZA BİLDİRİMİ =================== */
+/* Chrome'un ses tanıması (tr-TR): "C1 blok üçüncü kat merdiven lambası yanmıyor" → kategori, arıza, blok, kat */
+const SES = {r:null, dinliyor:false, metin:"", ara:"", sonuc:null, hata:""};
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const SES_SOZ = {
+  p_isik: {k:["lamba","ampul","ışık","isik","aydınlatma","otomatik","priz","sigorta","pano","elektrik","karanlık"], i:{
+    "Kat lambası yanmıyor":["kat lamba","koridor","kat ışı"], "Merdiven otomatiği çalışmıyor":["otomatik","merdiven ışı","merdiven lamba","merdiven"],
+    "Giriş / dış aydınlatma yanmıyor":["giriş","dış","kapı önü","bina önü"], "Otopark lambası yanmıyor":["otopark"], "Acil çıkış lambası arızalı":["acil"], "Pano / priz arızası":["priz","pano","sigorta","kablo"]}},
+  p_kapi: {k:["kapı","kapi","kilit","kol","menteşe","hidrolik","bariyer","kart","anahtar"], i:{
+    "Kapı kolu kopmuş":["kolu","kol "], "Bina giriş kapısı kapanmıyor":["kapanmıyor","açık kalıyor"], "Kapı hidroliği bozuk":["hidrolik","çarpıyor","sert"],
+    "Yangın kapısı arızalı":["yangın kapı"], "Kilit / kart okuyucu bozuk":["kilit","kart","şifre","anahtar"], "Otopark kapısı / bariyer arızalı":["bariyer","otopark kapı"]}},
+  p_asansor: {k:["asansör","asansor"], i:{
+    "Asansör kapısı arızalı":["kapı","kapısı"], "Katta düzgün durmuyor":["düzgün durmuyor","hizada","basamak","yamuk"], "Asansör ışığı / butonu bozuk":["ışı","buton","düğme"],
+    "Asansörde ses / sarsıntı":["ses","sarsıntı","titri","sallan","gürültü"], "Asansör çalışmıyor":["çalışmıyor","durdu","bozuk","gelmiyor","arızalı"]}},
+  p_su: {k:["su ","suyu","sızıntı","sızdır","kaçak","kaçağı","akıyor","damlıyor","gider","tıka","rögar","lavabo","musluk","hortum","basınç","hidrofor","yağmur","birik"], i:{
+    "Su kaçağı / sızıntı":["kaçak","kaçağı","sızıntı","sızdır","akıyor","damlıyor"], "Gider / rögar tıkalı":["gider","tıka","rögar","lağım"], "Musluk / hortum bozuk":["musluk","hortum","batarya"],
+    "Hidrofor / su basıncı sorunu":["basınç","hidrofor","su yok","su gelmiyor"], "Yağmur suyu birikiyor":["yağmur","birik","göllen"]}},
+  p_hasar: {k:["kırık","kırıl","cam","korkuluk","tırabzan","karo","fayans","zemin","duvar","tavan","sıva","çatlak","tabela","levha","hasar","düşmüş","yıkıl"], i:{
+    "Kırık cam":["cam"], "Korkuluk / tırabzan gevşek":["korkuluk","tırabzan","trabzan"], "Zemin / karo kırık":["karo","fayans","zemin","mermer"],
+    "Duvar / tavan hasarı":["duvar","tavan","sıva","çatlak"], "Tabela / levha düşmüş":["tabela","levha"]}},
+  p_bahce: {k:["bahçe","çim","ağaç","dal","sulama","fıskiye","budama","ilaç","bitki","çiçek","oyun park","bank","çit"], i:{
+    "Sulama sistemi / fıskiye arızalı":["sulama","fıskiye"], "Ağaç / dal tehlikeli":["dal","devril","tehlike"], "Budama gerekiyor":["budama","budan"],
+    "Çim / bitki kurudu":["kurudu","kurumuş","sarardı"], "İlaçlama gerekiyor":["ilaç"], "Oyun parkı hasarlı":["oyun park","salıncak","kaydırak"], "Bank / çöp kutusu kırık":["bank","çöp kutu"], "Çit / tel örgü hasarlı":["çit","tel örgü"]}},
+  p_malzeme: {k:["lazım","bitti","ihtiyaç","poşet","deterjan","çamaşır suyu","eldiven","paspas","mop","süpürge","faraş","kova","bez","tuvalet kağıdı","havlu","istiyorum","gerekiyor"], i:{
+    "Çöp poşeti":["poşet"], "Çöp kovası / kutusu (kırık)":["çöp kova","çöp kutu"], "Deterjan / temizlik ilacı":["deterjan","temizlik ilac","sabun"], "Çamaşır suyu / dezenfektan":["çamaşır suyu","dezenfektan","kireç"],
+    "Paspas / mop":["paspas","mop"], "Süpürge / faraş":["süpürge","faraş"], "Kova":["kova"], "Eldiven":["eldiven"], "Bez / cam sileceği":["bez","cam silec"], "Tuvalet kağıdı / kağıt havlu":["tuvalet kağıd","havlu","peçete"], "Ampul":["ampul"]}},
+  p_temiz: {k:["koku","kokuyor","çöp oda","konteyner","haşere","fare","böcek","hamam böceği","rutubet","küf","nem","kirli","pis"], i:{
+    "Çöp odası / konteyner sorunu":["çöp oda","konteyner"], "Kötü koku":["koku","kokuyor"], "Haşere / fare görüldü":["haşere","fare","böcek","sıçan"], "Rutubet / küf":["rutubet","küf","nem"]}}
+};
+const SAYI = {bir:1, iki:2, "üç":3, "dört":4, "beş":5, "altı":6, yedi:7, sekiz:8, dokuz:9, on:10, yirmi:20, otuz:30};
+const SIRA = {birinci:1, ikinci:2, "üçüncü":3, "dördüncü":4, "beşinci":5, "altıncı":6, yedinci:7, sekizinci:8, dokuzuncu:9, onuncu:10, yirminci:20, otuzuncu:30};
+function sesCoz(ham, rol){
+  let t = " " + String(ham||"").toLocaleLowerCase("tr").replace(/[.,!?;:]/g," ").replace(/\s+/g," ") + " ";
+  const o = {};
+  // blok: "c1", "c 1", "ce bir", "c bir"
+  const harf = "(a|be|b|ce|c|de|d|fe|f)", rakam = "(\\d|bir|iki|üç|dört|beş|altı|yedi)";
+  const m = t.match(new RegExp(" " + harf + "\\s*-?\\s*" + rakam + "(?=\\s|blo|'|$)"));
+  if (m){ const h = m[1][0].toUpperCase(), r = /\d/.test(m[2]) ? m[2] : SAYI[m[2]]; const b = h + r; if (AYAR.bloklar.includes(b)) o.block = b; }
+  // kat
+  let kat = null; const km = t.match(/(\d{1,2})\s*\.?\s*(?:ncı|nci|ncü|ncu|ıncı|inci|üncü|uncu)?\s*kat/);
+  if (km) kat = +km[1];
+  else { const sm = t.match(/(?:(on|yirmi)\s+)?(birinci|ikinci|üçüncü|dördüncü|beşinci|altıncı|yedinci|sekizinci|dokuzuncu|onuncu|yirminci|otuzuncu)\s*kat/); if (sm) kat = (sm[1] ? SAYI[sm[1]] : 0) + SIRA[sm[2]]; }
+  if (kat) o.kat = `${kat}. kat`;
+  else if (/zemin/.test(t)) o.kat = "Zemin kat";
+  else if (/bodrum/.test(t)) o.kat = "Bodrum -1";
+  else if (/çatı/.test(t)) o.kat = "Çatı";
+  // ortak alan (blok söylenmediyse)
+  const ALAN_SOZ = [["Otopark",["otopark"]],["Çocuk parkı",["çocuk park","oyun park"]],["Yüzme havuzu",["havuz"]],["Spor sahası / kort",["spor","kort","halı saha","basket"]],["Sosyal tesis",["sosyal tesis"]],["Site girişi / güvenlik",["site giriş","kulübe","nizamiye"]],["Teknik bina / kazan",["teknik bina","kazan dairesi","kazan"]],["Çöp alanı",["çöp alan"]],["Yürüyüş yolları",["yürüyüş","yol"]],["Bahçe / peyzaj",["bahçe"]]];
+  if (!o.block){ const a = ALAN_SOZ.find(([, k]) => k.some(x => t.includes(x))); if (a) o.alan = a[0]; }
+  // kategori + arızalar
+  let en = null, enP = 0;
+  for (const [cat, d] of Object.entries(SES_SOZ)){
+    if (cat === "p_malzeme" && rol !== "Temizlik") continue;
+    if (rol === BAHCIVAN && cat !== "p_bahce") continue;
+    let puan = d.k.filter(k => t.includes(k)).length;
+    for (const ks of Object.values(d.i)) if (ks.some(k => t.includes(k))) puan += .5;
+    if (puan > enP){ enP = puan; en = cat; }
+  }
+  if (/asans[öo]r/.test(t) && rol !== BAHCIVAN) en = "p_asansor";   // asansör geçiyorsa hep asansör
+  if (en){ o.cat = en; o.issues = Object.entries(SES_SOZ[en].i).filter(([, ks]) => ks.some(k => t.includes(k))).map(([ad]) => ad);
+    if (en === "p_asansor" && o.issues.length > 1) o.issues = o.issues.filter(x => x !== "Asansör çalışmıyor");
+    if (en === "p_isik" && !o.issues.length && /lamba|ampul|ışık/.test(t)) o.issues = ["Kat lambası yanmıyor"];
+    o.issues = o.issues.slice(0, 3); }
+  return o;
+}
+function sesUygula(metin){
+  const p = S.p, o = sesCoz(metin, p.rol);
+  if (o.cat){ p.cat = o.cat; p.issues = o.issues.length ? o.issues : []; }
+  if (p.rol === BAHCIVAN){ p.yerTip = "alan"; if (o.alan) p.alan = o.alan; }
+  else if (o.block){ p.yerTip = "blok"; p.block = o.block; p.kat = o.kat || ""; }
+  else if (o.alan){ p.yerTip = "alan"; p.alan = o.alan; }
+  const m = metin.trim(); p.desc = (m.charAt(0).toLocaleUpperCase("tr") + m.slice(1)).slice(0, 300);
+  SES.sonuc = o;
+  // render önce formdaki eski değerleri okur; onları da güncelle ki seçim geri dönmesin
+  [["p_block","block"],["p_kat","kat"],["p_alan","alan"],["p_desc","desc"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) el.value = p[k] || ""; });
+}
+function sesBaslat(){
+  if (!SR){ SES.hata = "Bu telefonda sesli bildirim desteklenmiyor. Chrome ile açın."; render(); return; }
+  try { if (SES.r) SES.r.abort(); } catch(e){}
+  const r = new SR(); SES.r = r; r.lang = "tr-TR"; r.interimResults = true; r.continuous = false; r.maxAlternatives = 1;
+  SES.dinliyor = true; SES.metin = ""; SES.ara = ""; SES.hata = ""; SES.sonuc = null; render();
+  r.onresult = e => { let son = "", ara = ""; for (const x of e.results){ if (x.isFinal) son += x[0].transcript + " "; else ara += x[0].transcript; } if (son) SES.metin = (SES.metin + " " + son).trim(); SES.ara = ara; const el = document.getElementById("sesCanli"); if (el) el.textContent = (SES.metin + " " + SES.ara).trim() || "Dinliyorum…"; };
+  r.onerror = e => { SES.hata = e.error === "not-allowed" || e.error === "service-not-allowed" ? "Mikrofon izni verilmedi. Telefon ayarlarından Chrome'a mikrofon izni verin." : e.error === "no-speech" ? "Ses duyulmadı, tekrar deneyin." : e.error === "network" ? "İnternet bağlantısı gerekiyor." : ""; };
+  r.onend = () => { SES.dinliyor = false; const m = (SES.metin || SES.ara || "").trim(); if (m){ SES.metin = m; sesUygula(m); } render(); };
+  try { r.start(); } catch(e){ SES.dinliyor = false; SES.hata = "Mikrofon açılamadı."; render(); }
+}
+function sesKart(){
+  if (!SR) return "";
+  const o = SES.sonuc, p = S.p;
+  if (SES.dinliyor) return `<section class="step ses-k dinle"><button class="ses-btn aktif" data-act="sesDur"><span class="ses-dalga"></span>🎙️</button>
+      <p class="ses-canli" id="sesCanli">${esc((SES.metin + " " + SES.ara).trim() || "Dinliyorum… konuşun")}</p><p class="hint">Bitince susun ya da mikrofona tekrar basın.</p></section>`;
+  return `<section class="step ses-k"><div class="ses-ust"><button class="ses-btn" data-act="sesBas">🎙️</button>
+      <div><b>Konuşarak bildirin</b><small>Mikrofona basın, sorunu söyleyin. Örnek: <i>“C1 blok üçüncü kat merdiven lambası yanmıyor”</i></small></div></div>
+    ${SES.hata ? `<p class="err">${esc(SES.hata)}</p>` : ""}
+    ${o ? `<div class="ses-sonuc"><small>Anladığım:</small><p>“${esc(SES.metin)}”</p>
+      <div class="ses-cip">${o.cat ? `<span>${esc(catOf(o.cat).ad)}</span>` : `<span class="yok">Arıza türü anlaşılmadı</span>`}${(o.issues||[]).map(x=>`<span>${esc(x)}</span>`).join("")}
+        ${p.yerTip==="blok" && p.block ? `<span>📍 ${esc(p.block)} Blok${p.kat?" · "+esc(p.kat):""}</span>` : p.alan ? `<span>📍 ${esc(p.alan)}</span>` : `<span class="yok">Yer anlaşılmadı</span>`}</div>
+      <small>Aşağıdan kontrol edin, eksik olanı seçin, isterseniz fotoğraf ekleyip gönderin.</small></div>` : ""}
+  </section>`;
+}
 function vPersonelIc(){
   const p = S.p;
   if (S.pSent){
@@ -1154,6 +1264,7 @@ function vPersonelIc(){
         <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
       </section>`;
   return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${(p.kod || p.kayitli) && appDosya()!=="devriye.html" ? (p.rol==="Temizlik" ? izinKart() : "") + izinBenKart() : ""}
+  ${p.kod || p.kayitli ? sesKart() : ""}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.filter(k => rolKat(p.rol, k)).map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
     ${p.cat ? `<div class="issues" style="margin-top:6px">${PARIZA[p.cat].map(x => `<button class="iss" data-act="pIss" data-v="${esc(x)}" aria-pressed="${p.issues.includes(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
@@ -2627,6 +2738,8 @@ document.addEventListener("click", async e => {
       if (v === BAHCIVAN && !S.p.cat){ S.p.cat = "p_bahce"; S.p.issues = []; }   // tek kategori: otomatik seç
       render(); }
     else if (act==="pKimlik"){ syncForm(); S.p.kimlikAc = true; render(); }
+    else if (act==="sesBas"){ syncForm(); sesBaslat(); return; }
+    else if (act==="sesDur"){ try { SES.r && SES.r.stop(); } catch(e){} return; }
     else if (act==="pCat"){ syncForm(); if (S.p.cat !== v) S.p.issues = []; S.p.cat = v; render(); }
     else if (act==="pIss"){ syncForm(); const L = S.p.issues; const i = L.indexOf(v); i < 0 ? L.push(v) : L.splice(i,1); render(); }
     else if (act==="pYer"){ syncForm(); S.p.yerTip = v; render(); }
