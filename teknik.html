@@ -879,7 +879,7 @@ function personelHazir(){
   const p = S.p;
   const sesli = !!SES.sonuc;   // sesle bildirildiyse kat ve arıza maddesi zorunlu değil (söylenen cümle nota yazıldı)
   const ariza = (p.issues.length && (!(p.issues.length===1 && /^Diğer/.test(p.issues[0])) || p.desc.trim())) || (sesli && p.desc.trim());
-  const yer = p.yerTip==="blok" ? (p.block && (p.kat || p.cat==="p_malzeme" || sesli)) : !!p.alan;
+  const yer = p.yerTip==="blok" ? !!p.block : !!p.alan;   // kat her zaman isteğe bağlı
   return !!(p.name.trim() && p.rol && p.cat && ariza && yer);
 }
 /* Tek dokunuşla "uygulamayı yükle" (Android Chrome) */
@@ -1292,7 +1292,7 @@ function vPersonelIc(){
     </div>`}
     ${p.yerTip==="blok" ? `<div class="grid2">
         <label class="f">Blok<select id="p_block"><option value="">Seçin</option>${AYAR.bloklar.map(b => `<option ${p.block===b?"selected":""}>${esc(b)}</option>`).join("")}</select></label>
-        <label class="f">Kat${p.cat==="p_malzeme" || SES.sonuc ?" (isteğe bağlı)":""}<select id="p_kat"><option value="">Seçin</option>${KATLAR.map(k => `<option ${p.kat===k?"selected":""}>${k}</option>`).join("")}</select></label>
+        <label class="f">Kat (isteğe bağlı)<select id="p_kat"><option value="">Seçin</option>${KATLAR.map(k => `<option ${p.kat===k?"selected":""}>${k}</option>`).join("")}</select></label>
       </div>`
     : `<label class="f">Alan<select id="p_alan"><option value="">Seçin</option>${ALANLAR.map(x => `<option ${p.alan===x?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`}
     <label class="f note-l" for="p_desc">Kısa not <span>${p.issues.length===1&&/^Diğer/.test(p.issues[0])?"(gerekli)":"(isteğe bağlı)"}</span></label>
