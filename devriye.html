@@ -1398,8 +1398,9 @@ function gorevBaslat(){
   if (!GV.unD && store.listenDizin) GV.unD = store.listenDizin(v => { GV.dizin = v; if (S.view==="gorev") setTimeout(render,0); });
 }
 /* Teknisyen kod listesinden isim dizinini (kod numarası olmadan) yayınlar; amir ve müdür buradan kişi seçer */
+const dizinListe = () => (KOD.liste||[]).filter(k=>k.aktif!==false && k.ad).map(k=>({ad:k.ad, rol:k.tip==="guvenlik" ? "Güvenlik" : (k.rol||"Diğer")})).sort((a,b)=>a.rol.localeCompare(b.rol,"tr") || a.ad.localeCompare(b.ad,"tr"));
 function dizinYayinla(){
-  if (!store.isTech() || !store.setDizin || !KOD.liste) return;
+  if (!store.isTech() || !store.setDizin || !KOD.yuklendi || !KOD.liste.length) return;
   const liste = KOD.liste.filter(k=>k.aktif!==false && k.ad).map(k=>({ad:k.ad, rol:k.tip==="guvenlik" ? "Güvenlik" : (k.rol||"Diğer")})).sort((a,b)=>a.rol.localeCompare(b.rol,"tr") || a.ad.localeCompare(b.ad,"tr"));
   const j = JSON.stringify(liste); if (j === GV.dizinJ) return; GV.dizinJ = j;
   if (GV.dizin && JSON.stringify(GV.dizin.liste||[]) === j) return;
@@ -1447,7 +1448,9 @@ function gvSync(){ const a = document.getElementById("gv_kime"), y = document.ge
 function vGorev(){
   gorevBaslat();
   if (!gvYetkili()) return `<div class="card"><h2>Görev ver</h2><p class="hint">Bu bölüm müdür, amir ve teknisyen içindir.</p><a class="cta" href="#panel" style="display:block;text-align:center;text-decoration:none">Giriş</a></div>`;
-  const f = GV.f, dz = ((GV.dizin && GV.dizin.liste) || []).filter(k => !gvSadeceGuv() || k.rol==="Güvenlik");
+  if (store.isTech()){ kodBaslat(); if (KOD.yuklendi) setTimeout(dizinYayinla, 500); }
+  const ham = (GV.dizin && GV.dizin.liste && GV.dizin.liste.length) ? GV.dizin.liste : (store.isTech() ? dizinListe() : []);
+  const f = GV.f, dz = ham.filter(k => !gvSadeceGuv() || k.rol==="Güvenlik");
   const gruplar = GV_GRUP.filter(([v]) => !gvSadeceGuv() || v==="grup:Güvenlik");
   const roller = [...new Set(dz.map(k=>k.rol))];
   const kisiOpt = roller.map(r=>`<optgroup label="${esc(r)}">${dz.filter(k=>k.rol===r).map(k=>`<option value="kisi:${esc(k.ad)}|${esc(r)}" ${f.kime===`kisi:${k.ad}|${r}`?"selected":""}>${esc(k.ad)}</option>`).join("")}</optgroup>`).join("");
@@ -1461,7 +1464,7 @@ function vGorev(){
     <div class="prefs" style="margin-bottom:10px"><button class="pref" data-act="gvTur" data-v="gorev" aria-pressed="${f.tur!=="talimat"}">📌 Görev (yapılıp biter)</button><button class="pref" data-act="gvTur" data-v="talimat" aria-pressed="${f.tur==="talimat"}">📢 Talimat / bilgi (süreli)</button></div>
     ${f.tur==="talimat" ? `<p class="hint" style="margin-top:0">Talimat seçilen süre boyunca her vardiyanın ekranında kalır. Herkes ayrı ayrı "Okudum" der, kimin okuduğunu görürsünüz.</p>` : ""}
     <label class="f">Kime<select id="gv_kime"><option value="">Seçin</option><optgroup label="Grup">${gruplar.map(([v,a])=>`<option value="${v}" ${f.kime===v?"selected":""}>${a}</option>`).join("")}</optgroup>${kisiOpt}</select></label>
-    ${!dz.length ? `<p class="hint">Kişi listesi teknisyen panelinden yüklenir. Şimdilik grup seçebilirsiniz.</p>` : ""}
+    ${!dz.length ? `<p class="hint">Kişi listesi henüz gelmedi. Teknisyen paneli bir kez açılınca personel isimleri buraya gelir; şimdilik grup seçebilirsiniz.</p>` : `<p class="hint" style="margin-top:-4px">Listede grupların altında kişiler var: Temizlik, Güvenlik, Bahçe başlıkları altında isimler.</p>`}
     <label class="f">Nerede (isteğe bağlı)<select id="gv_yer"><option value="">Seçin</option>${yerler.map(y=>`<option ${f.yer===y?"selected":""}>${esc(y)}</option>`).join("")}</select></label>
     ${f.tur==="talimat" ? `<label class="f">Ne zamana kadar geçerli<select id="gv_bitis">${[["bugun","Bugün gün sonuna kadar"],["3gun","3 gün"],["hafta","1 hafta"],["ay","1 ay"],["tarih","Tarih seç"],["suresiz","İptal edilene kadar"]].map(([v,a])=>`<option value="${v}" ${f.bitis===v?"selected":""}>${a}</option>`).join("")}</select></label>
       ${f.bitis==="tarih" ? `<label class="f">Son gün<input type="date" id="gv_tarih" value="${esc(f.tarih)}"></label>` : ""}` : ""}
@@ -2985,7 +2988,7 @@ async function yeniKod(){
 }
 function kodBaslat(){
   if (KOD.un || !store.isTech() || !store.listenKod) return;
-  KOD.un = store.listenKod(L => { KOD.liste = L.filter(k=>/^\d{6}$/.test(k.id)); gorevBaslat(); setTimeout(dizinYayinla, 1500); const z = L.find(k=>k.id==="zorunlu"); S.kodZorunlu = !!(z && z.aktif); if (S.view==="panel") setTimeout(render,0); });
+  KOD.un = store.listenKod(L => { KOD.liste = L.filter(k=>/^\d{6}$/.test(k.id)); KOD.yuklendi = true; gorevBaslat(); setTimeout(dizinYayinla, 1500); const z = L.find(k=>k.id==="zorunlu"); S.kodZorunlu = !!(z && z.aktif); if (S.view==="panel") setTimeout(render,0); });
 }
 
 function render(){
