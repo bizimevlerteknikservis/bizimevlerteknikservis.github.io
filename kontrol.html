@@ -266,7 +266,10 @@ html.tv #panel{font-size:1.08em}
 .tvuyari em{display:block;font-style:normal;font:600 clamp(18px,2vw,28px)/1.3 var(--display);margin-top:12px;opacity:.95}
 @keyframes tvnab{50%{box-shadow:0 30px 120px rgba(0,0,0,.6),0 0 0 26px rgba(255,255,255,.08)}}
 </style>
-<style>[hidden]{display:none!important}</style>
+<style>[hidden]{display:none!important}
+/* Yazıya dokununca Chrome "Dokunarak ara" (Google) penceresi açılmasın */
+html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text}</style>
 </head>
 <body>
 <script>window.FB_CONFIG = {
