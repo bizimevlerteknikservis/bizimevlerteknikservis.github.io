@@ -1,0 +1,924 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Site Kasa · Muhasebe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>window.FB_CONFIG = {
+    apiKey: "AIzaSyAAtGK76Oanri1T9nCK4bm6dDJCLVzWp5c",
+    authDomain: "bizimevler-teknik-servis.firebaseapp.com",
+    projectId: "bizimevler-teknik-servis",
+    storageBucket: "bizimevler-teknik-servis.firebasestorage.app",
+    messagingSenderId: "947168663247",
+    appId: "1:947168663247:web:de355a52058ff2ce4109ba"
+  };
+window.FB_TEKNISYEN = ["teknisyenzeynel91@gmail.com"];</script>
+<style>
+:root{
+  --bg:#eef3f9; --panel:#ffffff; --panel2:#f5f8fc; --ink:#10233d; --muted:#5f7591; --line:#dde6f0;
+  --accent:#2b7cd3; --ok:#1e9d5b; --warn:#d9851b; --bad:#d63a35;
+  --okbg:#e6f6ed; --warnbg:#fdf1e1; --badbg:#fdeaea; --accbg:#e7f0fb;
+  --shadow:0 8px 24px rgba(16,40,80,.07); --r:18px; color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#081320; --panel:#0f1f33; --panel2:#0b192a; --ink:#e4eef9; --muted:#8ea6bf; --line:#1d3350;
+  --accent:#5bb0ff; --ok:#36c47a; --warn:#f0a43a; --bad:#ff6b66;
+  --okbg:rgba(54,196,122,.14); --warnbg:rgba(240,164,58,.14); --badbg:rgba(255,107,102,.14); --accbg:rgba(91,176,255,.13);
+  --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#081320; --panel:#0f1f33; --panel2:#0b192a; --ink:#e4eef9; --muted:#8ea6bf; --line:#1d3350;
+  --accent:#5bb0ff; --ok:#36c47a; --warn:#f0a43a; --bad:#ff6b66;
+  --okbg:rgba(54,196,122,.14); --warnbg:rgba(240,164,58,.14); --badbg:rgba(255,107,102,.14); --accbg:rgba(91,176,255,.13);
+  --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+[hidden]{display:none!important}
+.app{max-width:1280px;margin:0 auto;padding:16px 16px 40px}
+header.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.logo{width:48px;height:48px;border-radius:14px;background:linear-gradient(140deg,#2b7cd3,#59aef5);display:grid;place-items:center;color:#fff;flex:none}
+.logo svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.brand small{display:block;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.brand h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.01em}
+.top .sag{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.durum{font-size:11.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border:1.5px dashed var(--line);padding:6px 10px;border-radius:999px}
+.ibtn{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:8px 12px;cursor:pointer;font-weight:600;font-size:13.5px;text-decoration:none;color:var(--ink)}
+.ibtn:hover{border-color:var(--accent)}
+nav.tabs{display:flex;gap:6px;overflow-x:auto;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:16px;margin-bottom:16px;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{flex:none;border:0;background:transparent;padding:10px 14px;border-radius:12px;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{background:var(--accent);color:#fff}
+.grid{display:grid;gap:14px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g32{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
+@media (max-width:900px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3,.g2,.g32{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);min-width:0}
+.card h2{margin:0 0 12px;font-size:12.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h2 .r{margin-left:auto;letter-spacing:0;text-transform:none;font-weight:600}
+.kpi b{display:block;font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi span{font-size:13px;color:var(--muted);font-weight:600}
+.kpi em{display:inline-block;font-style:normal;font-size:12px;font-weight:700;margin-top:6px;padding:3px 8px;border-radius:999px}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}.acc{color:var(--accent)}.mut{color:var(--muted)}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.p-ok{background:var(--okbg);color:var(--ok)}.p-warn{background:var(--warnbg);color:var(--warn)}.p-bad{background:var(--badbg);color:var(--bad)}.p-acc{background:var(--accbg);color:var(--accent)}.p-mut{background:var(--panel2);color:var(--muted)}
+.note{font-size:13px;color:var(--muted);margin:10px 0 0}
+.meter{height:10px;border-radius:6px;background:var(--panel2);overflow:hidden;border:1px solid var(--line)}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,var(--ok),#5fd395);border-radius:6px}
+.bloklar{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
+.blok{border-radius:14px;padding:12px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;text-align:left}
+.blok b{display:block;font-size:20px;font-weight:800}
+.blok span{font-size:12.5px;color:var(--muted);font-weight:600}
+.blok .meter{margin-top:8px;height:6px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line)}
+.tbl td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl tr.tik{cursor:pointer}.tbl tr.tik:hover td{background:var(--panel2)}
+.tbl tr.iptal td{opacity:.5;text-decoration:line-through}
+.tblwrap{overflow-x:auto;margin:0 -6px}
+.arac{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.inp,.sel,textarea.inp{border:1px solid var(--line);background:var(--panel2);border-radius:12px;padding:9px 12px;min-width:0}
+textarea.inp{width:100%;min-height:150px;font:13px/1.4 ui-monospace,Menlo,monospace}
+.arac .inp.ara{flex:1;min-width:160px}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.form label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted)}
+.form label .inp,.form label .sel{color:var(--ink);font-weight:500}
+.form .tam{grid-column:1/-1}
+@media (max-width:560px){.form{grid-template-columns:1fr}}
+.seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:3px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:7px 12px;border-radius:9px;font-weight:700;font-size:13px;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.btn{border:0;border-radius:12px;padding:10px 16px;font-weight:700;cursor:pointer;background:var(--accent);color:#fff;font-size:14px}
+.btn.ikincil{background:var(--accbg);color:var(--accent)}
+.btn.yesil{background:var(--ok)}
+.btn.kirmizi{background:var(--badbg);color:var(--bad)}
+.btn.kucuk{padding:6px 10px;font-size:12.5px;border-radius:10px}
+.btn:disabled{opacity:.5;cursor:default}
+.bnk tr.eslesti td{background:var(--okbg)}
+.bnk tr.bak td{background:var(--warnbg)}
+.bnk tr.disi td{opacity:.6}
+.adim{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.adim>div{flex:1;min-width:150px;background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px}
+.adim b{display:block;font-size:22px;font-weight:800}
+.adim span{font-size:12.5px;color:var(--muted);font-weight:600}
+.bag{margin-top:6px}
+.bag a{font-size:12.5px;color:var(--accent);font-weight:600;cursor:pointer}
+.bagli{margin:6px 0 0;padding:8px 10px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);font-size:12.5px}
+.bagli div{padding:3px 0}
+.lej{display:flex;flex-direction:column;gap:8px}
+.lej div{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600}
+.lej i{width:12px;height:12px;border-radius:4px;flex:none}
+.lej span{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted)}
+.satir{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:13.5px}
+.satir:first-of-type{border-top:0}
+.secli{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:6px}
+.secli label{display:flex;gap:8px;align-items:flex-start;padding:7px 6px;border-radius:8px;font-size:13px;cursor:pointer}
+.secli label:hover{background:var(--panel2)}
+.bos{text-align:center;padding:30px 16px;color:var(--muted)}
+.bos b{display:block;font-size:18px;color:var(--ink);margin-bottom:6px}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(5,12,22,.55);display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto}
+.mic{background:var(--panel);border-radius:22px;width:min(760px,100%);padding:20px;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+.mic .bas{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.mic .bas h3{margin:0;font-size:19px}
+.mic .bas button{margin-left:auto}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;opacity:0;transition:.3s;z-index:60;pointer-events:none;max-width:90vw}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.giris{max-width:380px;margin:12vh auto;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:var(--shadow)}
+.giris h2{margin:0 0 6px}
+.giris input{width:100%;margin-top:10px}
+.yazdir{display:none}
+@media print{
+  body{background:#fff;color:#000}
+  .app,.modal,.toast,.giris{display:none!important}
+  .yazdir{display:block;font:12px/1.45 Inter,system-ui,sans-serif;color:#000}
+  .yazdir h1{font-size:20px;margin:0 0 4px}.yazdir h2{font-size:14px;margin:18px 0 6px;border-bottom:1px solid #999;padding-bottom:3px}
+  .yazdir table{width:100%;border-collapse:collapse}.yazdir td,.yazdir th{border-bottom:1px solid #ddd;padding:4px 6px;text-align:left}
+  .yazdir .num{text-align:right}
+  .yazdir .makbuz{border:1px solid #000;padding:16px;max-width:520px}
+}
+.gizle-mob{}
+@media (max-width:640px){.gizle-mob{display:none}.card{padding:14px}.kpi b{font-size:24px}.brand h1{font-size:19px}}
+</style>
+</head>
+<body>
+<div class="giris" id="giris" hidden>
+  <h2>Muhasebe</h2><p class="mut" style="margin:0">Sadece teknisyen hesabıyla girilir.</p>
+  <form id="girisForm"><input class="inp" id="gEmail" type="email" placeholder="E-posta" autocomplete="username" required>
+  <input class="inp" id="gSifre" type="password" placeholder="Şifre" autocomplete="current-password" required>
+  <button class="btn" style="width:100%;margin-top:12px">Giriş</button><p class="bad" id="gHata" style="font-size:13px"></p></form>
+</div>
+<div class="app" id="app" hidden>
+  <header class="top">
+    <div class="logo"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h3"/></svg></div>
+    <div class="brand"><small id="siteAd">Site</small><h1>Aidat ve Muhasebe</h1></div>
+    <div class="sag">
+      <span class="durum" id="durum">Bağlanıyor…</span>
+      <a class="ibtn" href="index.html#panel">← Panel</a>
+      <button class="ibtn" id="temaBtn" type="button">🌓</button>
+    </div>
+  </header>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <main id="main"></main>
+</div>
+<div class="modal" id="modal" hidden><div class="mic" id="mic"></div></div>
+<div class="toast" id="toast"></div>
+<div class="yazdir" id="yazdir"></div>
+
+<script type="module">
+/* =====================================================================
+   Bizimevler · Muhasebe (gerçek veri)
+   Veri: Firestore  muhasebe/ayar (doc)
+                    muhasebe/veri/daireler/{blok-no}  { blok,no,ad,tel,m2,aidat,kiraci,not, har:[hareket] }
+                    muhasebe/veri/giderler/{id}       { t,kat,aciklama,tutar,belge,bag:[],iptal }
+   Hareket tipleri: devir (açılış bakiyesi, + borç / − alacak), tah (aidat), ode (ödeme), duz (ek borç + / indirim −)
+   Kayıtlar silinmez; yanlış kayıt "iptal" işaretlenir (kim, ne zaman, neden).
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const tl = n => (Math.round(n||0)).toLocaleString("tr-TR") + " ₺";
+const tl2 = n => (n||0).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2}) + " ₺";
+const AY = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+const GUN = 864e5;
+const pad = n => String(n).padStart(2,"0");
+const tarih = t => { const d = new Date(t); return `${d.getDate()} ${AY[d.getMonth()].slice(0,3)} ${d.getFullYear()}`; };
+const kTarih = t => { const d = new Date(t); return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${String(d.getFullYear()).slice(2)}`; };
+const isoGun = t => { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const gunTs = s => { const [y,m,g] = String(s).split("-").map(Number); return new Date(y, m-1, g, 12).getTime(); };
+const ayKey = t => { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth()+1)}`; };
+const ayAd = k => { const [y,m] = k.split("-").map(Number); return `${AY[m-1]} ${y}`; };
+const yeniId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const sayi = v => { if (typeof v === "number") return v; let s = String(v||"").replace(/[^\d,.\-]/g,""); if (!s) return NaN;
+  if (s.includes(",") && s.includes(".")) s = s.lastIndexOf(",") > s.lastIndexOf(".") ? s.replace(/\./g,"").replace(",",".") : s.replace(/,/g,"");
+  else if (s.includes(",")) s = s.replace(",","."); else if ((s.match(/\./g)||[]).length > 1 || /\.\d{3}$/.test(s)) s = s.replace(/\./g,"");
+  return parseFloat(s); };
+function toast(m){ const t = $("#toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(()=>t.classList.remove("on"), 2800); }
+const NOW = () => Date.now();
+
+const GKAT = {
+  personel:{ad:"Personel maaşları", renk:"#2b7cd3", k:/MAAS|MAAŞ|SGK|UCRET|ÜCRET|PERSONEL/}, elektrik:{ad:"Ortak alan elektrik", renk:"#f0a43a", k:/ELEKTR|ENERJISA|ENERJİSA|CK BO|AYEDAS|AYEDAŞ|BEDAŞ|BEDAS/},
+  su:{ad:"Su", renk:"#3fb6c9", k:/İSKİ|ISKI|\bSU\b/}, dogalgaz:{ad:"Doğalgaz", renk:"#5c7cfa", k:/IGDAS|İGDAŞ|DOGALGAZ|DOĞALGAZ/},
+  asansor:{ad:"Asansör bakım ve arıza", renk:"#7b61ff", k:/ASANS|OMAK/}, jenerator:{ad:"Jeneratör yakıt ve bakım", renk:"#e0645c", k:/MAZOT|AKARYAKIT|OPET|SHELL|PETROL|JENERAT/},
+  hidrofor:{ad:"Hidrofor ve tesisat", renk:"#2fa77a", k:/HIDROFOR|HİDROFOR|POMPA|TESISAT|TESİSAT/}, bahce:{ad:"Bahçe ve peyzaj", renk:"#7cb342", k:/PEYZAJ|BAHCE|BAHÇE|FIDAN|FİDAN/},
+  temizlik:{ad:"Temizlik malzemesi", renk:"#a07cc5", k:/TEMIZLIK|TEMİZLİK|DETERJAN/}, yangin:{ad:"Yangın güvenliği", renk:"#d63a35", k:/YANGIN|TUP|TÜP/},
+  sigorta:{ad:"Sigorta", renk:"#8a9bb0", k:/SIGORTA|SİGORTA|POLIÇE|POLİÇE/}, banka:{ad:"Banka masrafı", renk:"#9aa5b1", k:/MASRAF|KOMISYON|KOMİSYON|ISLETIM|İŞLETİM|EFT UCRET/},
+  onarim:{ad:"Bakım onarım (diğer)", renk:"#c28a3a", k:/ONARIM|TAMIR|TAMİR|BOYA|MALZEME/}, diger:{ad:"Diğer", renk:"#b0b8c4", k:null}
+};
+const katBul = acik => { const a = String(acik).toLocaleUpperCase("tr"); for (const [k,v] of Object.entries(GKAT)) if (v.k && v.k.test(a)) return k; return "diger"; };
+
+/* ================= durum ================= */
+const ST = { ayar:{siteAd:"Bizimevler 1 Sitesi", iban:"", banka:"", vadeGun:10, gecikme:5, devir:0, devirT:null, butce:{}}, daire:[], gider:[], yuklendi:{d:false,g:false,a:false}, kim:"" };
+let DB = null;   // veri katmanı (Firestore ya da test için bellek)
+
+/* ================= bakiye hesabı ================= */
+/* Ödemeler en eski borca düşülür. Gecikme tazminatı (KMK md.20): vadesinden sonra ödenmeyen tutara aylık oran, gün hesabıyla. */
+function hesap(d, simdi = NOW()){
+  const H = (d.har||[]).filter(h=>!h.iptal);
+  const borc = [], ode = [];
+  H.forEach(h=>{
+    if (h.tip==="tah") borc.push({...h, vade:h.vade||h.t});
+    else if ((h.tip==="devir" || h.tip==="duz") && h.tutar > 0) borc.push({...h, vade:h.vade||h.t});
+    else if ((h.tip==="devir" || h.tip==="duz") && h.tutar < 0) ode.push({...h, tutar:-h.tutar});
+    else if (h.tip==="ode") ode.push(h);
+  });
+  borc.sort((a,b)=>a.vade-b.vade); ode.sort((a,b)=>a.t-b.t);
+  const B = borc.map(b=>({...b, kalan:b.tutar, gec:0}));
+  const oran = (ST.ayar.gecikme||0)/100;
+  let fazla = 0;
+  ode.forEach(o=>{ let p = o.tutar;
+    for (const b of B){ if (p <= 0.001) break; if (b.kalan <= 0.001) continue;
+      const x = Math.min(p, b.kalan);
+      if (b.tip==="tah" && o.t > b.vade) b.gec += x * oran * ((o.t - b.vade)/GUN/30);
+      b.kalan -= x; p -= x; }
+    fazla += Math.max(0,p); });
+  B.forEach(b=>{ if (b.tip==="tah" && b.kalan > 0.001 && simdi > b.vade) b.gec += b.kalan * oran * ((simdi - b.vade)/GUN/30); b.gec = Math.round(b.gec); });
+  const anapara = B.reduce((s,b)=>s+Math.max(0,b.kalan),0) - fazla;
+  const gec = B.reduce((s,b)=>s+b.gec,0);
+  const gecikmis = B.filter(b=>b.kalan>0.001 && simdi > b.vade);
+  const gecTah = gecikmis.filter(b=>b.tip==="tah").length;
+  return {B, anapara, gec, toplam: anapara + gec, gecikmisAy: gecTah, gecikmisVar: gecikmis.length>0, fazla};
+}
+const durumEt = h => h.toplam <= 0.5 ? (h.toplam < -0.5 ? ["Alacaklı","p-acc"] : ["Borcu yok","p-ok"]) : !h.gecikmisVar ? ["Vadesi gelmedi","p-acc"] : h.gecikmisAy <= 1 ? ["Gecikmede","p-warn"] : [`${h.gecikmisAy} ay gecikme`,"p-bad"];
+const daireAd = d => `${d.blok} / ${d.no}`;
+const sirala = (a,b) => a.blok.localeCompare(b.blok,"tr",{numeric:true}) || String(a.no).localeCompare(String(b.no),"tr",{numeric:true});
+
+function ozet(){
+  const H = ST.daire.map(d=>({d, h:hesap(d)}));
+  const buAy = ayKey(NOW());
+  let ayTah = 0, ayOde = 0;
+  H.forEach(({d,h})=>h.B.filter(b=>b.tip==="tah" && b.ay===buAy).forEach(b=>{ ayTah += b.tutar; ayOde += b.tutar - Math.max(0,b.kalan); }));
+  const bas = ST.ayar.devirT || 0;
+  const tahsilat = ST.daire.reduce((s,d)=>s+(d.har||[]).filter(h=>!h.iptal && h.tip==="ode" && h.t>=bas).reduce((x,h)=>x+h.tutar,0),0);
+  const gider = ST.gider.filter(g=>!g.iptal && g.t>=bas).reduce((s,g)=>s+g.tutar,0);
+  const alacak = H.reduce((s,{h})=>s+Math.max(0,h.toplam),0);
+  return {H, buAy, ayTah, ayOde, oran: ayTah ? ayOde/ayTah : null, tahsilat, gider, kasa:(ST.ayar.devir||0) + tahsilat - gider, alacak, borclu:H.filter(({h})=>h.gecikmisVar && h.toplam>0.5)};
+}
+function aylikGelirGider(n=6){
+  const out = []; const d0 = new Date(); d0.setDate(1); d0.setHours(0,0,0,0);
+  for (let i=n-1;i>=0;i--){ const a = new Date(d0.getFullYear(), d0.getMonth()-i, 1).getTime(), b = new Date(d0.getFullYear(), d0.getMonth()-i+1, 1).getTime();
+    const gelir = ST.daire.reduce((s,d)=>s+(d.har||[]).filter(h=>!h.iptal && h.tip==="ode" && h.t>=a && h.t<b).reduce((x,h)=>x+h.tutar,0),0);
+    const gider = ST.gider.filter(g=>!g.iptal && g.t>=a && g.t<b).reduce((s,g)=>s+g.tutar,0);
+    out.push({a, kisa:AY[new Date(a).getMonth()].slice(0,3), ad:`${AY[new Date(a).getMonth()]} ${new Date(a).getFullYear()}`, gelir, gider}); }
+  return out;
+}
+
+/* ================= sekmeler ================= */
+const SEKME = [["kasa","📊 Kasa"],["daire","🏠 Daireler"],["banka","🏦 Banka"],["gider","🧾 Giderler"],["rapor","📄 Raporlar"],["ayar","⚙️ Ayarlar"]];
+let AKTIF = "kasa";
+function sekmeler(){ $("#tabs").innerHTML = SEKME.map(([k,ad])=>`<button role="tab" aria-selected="${k===AKTIF}" data-tab="${k}">${ad}</button>`).join(""); }
+function git(k){ AKTIF = k; sekmeler(); ciz(); scrollTo({top:0}); try { history.replaceState(null,"","#"+k); } catch(e){} }
+$("#tabs").onclick = e => { const b = e.target.closest("[data-tab]"); if (b) git(b.dataset.tab); };
+let cizT = 0;
+function ciz(){ if (!$("#modal").hidden && MODAL_YENILE){ MODAL_YENILE(); }
+  if (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && $("#main").contains(document.activeElement) && AKTIF!=="kasa") return;   // yazarken sayfayı yenileme
+  ({kasa:vKasa, daire:vDaire, banka:vBanka, gider:vGider, rapor:vRapor, ayar:vAyar})[AKTIF](); }
+const cizGec = () => { clearTimeout(cizT); cizT = setTimeout(ciz, 60); };
+
+/* ---------- KASA ---------- */
+function vKasa(){
+  if (!ST.daire.length){
+    $("#main").innerHTML = `<div class="card bos"><b>Muhasebeye hoş geldiniz</b>Başlamak için iki adım:<br><br>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button class="btn" data-git="ayar">1 · Ayarlar: IBAN ve kasa devri</button><button class="btn" data-act="iceAktar">2 · Daire listesini yükle</button></div>
+      <p class="note">Daire listesini Bulut Pro'dan Excel olarak alıp buraya yapıştırabilirsiniz. Her dairenin şu anki bakiyesini de "devir" olarak girerseniz iki sistem aynı yerden başlar.</p></div>`;
+    return;
+  }
+  const o = ozet(), gg = aylikGelirGider();
+  const mx = Math.max(1, ...gg.map(x=>Math.max(x.gelir,x.gider))) * 1.1;
+  const W = 640, H = 230, bw = 36, adimX = W / gg.length;
+  const bar = gg.map((x,i)=>{ const cx = i*adimX + adimX/2, hg = x.gelir/mx*(H-40), hd = x.gider/mx*(H-40);
+    return `<rect x="${cx-bw-3}" y="${H-24-hg}" width="${bw}" height="${hg}" rx="6" fill="var(--ok)"><title>Gelir ${tl(x.gelir)}</title></rect>
+      <rect x="${cx+3}" y="${H-24-hd}" width="${bw}" height="${hd}" rx="6" fill="var(--warn)"><title>Gider ${tl(x.gider)}</title></rect>
+      <text x="${cx}" y="${H-6}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--muted)">${x.kisa}</text>`; }).join("");
+  const bloklar = [...new Set(ST.daire.map(d=>d.blok))].sort((a,b)=>a.localeCompare(b,"tr",{numeric:true}));
+  const blokOran = bloklar.map(b=>{ const L = o.H.filter(x=>x.d.blok===b); let t=0, od=0;
+    L.forEach(({h})=>h.B.filter(x=>x.tip==="tah" && x.ay===o.buAy).forEach(x=>{ t+=x.tutar; od+=x.tutar-Math.max(0,x.kalan); }));
+    return {b, oran: t ? od/t : null, borclu: L.filter(x=>x.h.gecikmisVar && x.h.toplam>0.5).length, borc: L.reduce((s,x)=>s+Math.max(0,x.h.toplam),0)}; });
+  const renk = r => r===null ? "var(--muted)" : r >= .85 ? "var(--ok)" : r >= .65 ? "var(--warn)" : "var(--bad)";
+  const enCok = [...o.borclu].sort((a,b)=>b.h.toplam-a.h.toplam).slice(0,6);
+  const gecT = o.H.reduce((s,{h})=>s+h.gec,0);
+  $("#main").innerHTML = `
+  <div class="grid g4">
+    <div class="card kpi"><span>Kasadaki para</span><b>${tl(o.kasa)}</b><em class="p-acc">${ST.ayar.devirT?`${kTarih(ST.ayar.devirT)} devrinden beri`:"Devir girilmedi"}</em></div>
+    <div class="card kpi"><span>${ayAd(o.buAy)} tahsilatı</span>${o.oran===null?`<b class="mut">—</b><em class="p-mut">Bu ayın aidatı oluşturulmadı</em>`:`<b class="${o.oran>=.85?"ok":o.oran>=.65?"warn":"bad"}">%${Math.round(o.oran*100)}</b><div class="meter" style="margin-top:8px"><i style="width:${o.oran*100}%"></i></div>`}</div>
+    <div class="card kpi"><span>Toplam alacak</span><b class="bad">${tl(o.alacak)}</b><em class="p-bad">${o.borclu.length} daire gecikmede</em></div>
+    <div class="card kpi"><span>Gecikme tazminatı</span><b class="warn">${tl(gecT)}</b><em class="p-warn">${ST.ayar.gecikme?`aylık %${ST.ayar.gecikme} · KMK md.20`:"Kapalı"}</em></div>
+  </div>
+  <div class="grid g32" style="margin-top:14px">
+    <div class="card"><h2>Gelir ve gider · son 6 ay <span class="r"><span class="pill p-ok">● Gelir</span> <span class="pill p-warn">● Gider</span></span></h2>
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="Aylık gelir gider">${bar}</svg>
+      <p class="note">Bu ay gelir ${tl(gg[gg.length-1].gelir)}, gider ${tl(gg[gg.length-1].gider)}.</p></div>
+    <div class="card"><h2>En yüksek borçlar <span class="r"><a href="#" data-git="daire" style="color:var(--accent);font-size:13px">Tümü →</a></span></h2>
+      ${enCok.length?`<table class="tbl"><tbody>${enCok.map(({d,h})=>`<tr class="tik" data-daire="${d.id}"><td><b>${esc(daireAd(d))}</b><div style="font-size:12.5px;color:var(--muted)">${esc(d.ad||"")}</div></td>
+        <td><span class="pill ${durumEt(h)[1]}">${durumEt(h)[0]}</span></td><td class="num"><b>${tl(h.toplam)}</b></td></tr>`).join("")}</tbody></table>
+      <button class="btn ikincil" style="margin-top:12px;width:100%" data-act="topluHatir">📲 Gecikenlere hatırlatma (${o.borclu.length})</button>`:`<div class="bos"><b>🎉</b>Geciken daire yok</div>`}</div>
+  </div>
+  <div class="card" style="margin-top:14px"><h2>Blok blok · ${ayAd(o.buAy)}</h2>
+    <div class="bloklar">${blokOran.map(x=>`<button class="blok" data-blok="${esc(x.b)}" style="border-color:${renk(x.oran)}"><b style="color:${renk(x.oran)}">${x.oran===null?"—":"%"+Math.round(x.oran*100)}</b><span>${esc(x.b)} · ${x.borclu} gecikmede</span><div class="meter"><i style="width:${(x.oran||0)*100}%;background:${renk(x.oran)}"></i></div></button>`).join("")}</div></div>`;
+}
+
+/* ---------- DAİRELER ---------- */
+let DF = {ara:"", blok:"", filtre:"hepsi"};
+function vDaire(){
+  const o = ozet();
+  let L = o.H;
+  if (DF.blok) L = L.filter(x=>x.d.blok===DF.blok);
+  if (DF.filtre==="borclu") L = L.filter(x=>x.h.gecikmisVar && x.h.toplam>0.5).sort((a,b)=>b.h.toplam-a.h.toplam);
+  if (DF.filtre==="temiz") L = L.filter(x=>x.h.toplam<=0.5);
+  if (DF.ara){ const q = DF.ara.toLocaleLowerCase("tr").replace(/\s+/g," ").trim(); L = L.filter(x=>(`${x.d.blok} ${x.d.no} ${x.d.blok}/${x.d.no} ${x.d.blok}-${x.d.no} ${x.d.ad||""} ${x.d.tel||""}`).toLocaleLowerCase("tr").includes(q)); }
+  if (DF.filtre!=="borclu") L = [...L].sort((a,b)=>sirala(a.d,b.d));
+  const top = L.reduce((s,x)=>s+x.h.toplam,0);
+  const bloklar = [...new Set(ST.daire.map(d=>d.blok))].sort((a,b)=>a.localeCompare(b,"tr",{numeric:true}));
+  const buAy = ayKey(NOW()), sonrakiAy = ayKey(new Date(new Date().getFullYear(), new Date().getMonth()+1, 1));
+  $("#main").innerHTML = `
+  <div class="card">
+    <div class="arac">
+      <input class="inp ara" id="ara" placeholder="Daire ya da isim ara · örn. B2 14, Yılmaz" value="${esc(DF.ara)}">
+      <select id="blokSec" class="sel"><option value="">Tüm bloklar</option>${bloklar.map(b=>`<option ${DF.blok===b?"selected":""}>${esc(b)}</option>`).join("")}</select>
+      <div class="seg">${[["hepsi","Hepsi"],["borclu","Gecikenler"],["temiz","Borcu yok"]].map(([k,a])=>`<button aria-pressed="${DF.filtre===k}" data-filtre="${k}">${a}</button>`).join("")}</div>
+      <button class="btn ikincil" data-act="iceAktar">＋ Daire ekle / içe aktar</button>
+    </div>
+    <p class="note" style="margin:0 0 10px">${L.length} daire · toplam bakiye <b>${tl(top)}</b></p>
+    ${ST.daire.length ? `<div class="tblwrap"><table class="tbl"><thead><tr><th>Daire</th><th>Malik / sakin</th><th class="gizle-mob">Aylık aidat</th><th>Durum</th><th class="num">Bakiye</th></tr></thead><tbody>
+    ${L.slice(0,400).map(({d,h})=>`<tr class="tik" data-daire="${d.id}"><td><b>${esc(daireAd(d))}</b></td><td>${esc(d.ad||"—")}${d.kiraci?` <span class="pill p-acc">Kiracı</span>`:""}</td>
+      <td class="gizle-mob">${d.aidat?tl(d.aidat):`<span class="mut">—</span>`}</td><td><span class="pill ${durumEt(h)[1]}">${durumEt(h)[0]}</span></td><td class="num"><b class="${h.toplam>0.5?(h.gecikmisVar?"bad":""):"ok"}">${tl(h.toplam)}</b></td></tr>`).join("")}
+    </tbody></table></div>${L.length>400?`<p class="note">İlk 400 daire gösteriliyor, aramayla daraltın.</p>`:""}` : `<div class="bos"><b>Henüz daire yok</b>"Daire ekle / içe aktar" ile listeyi yükleyin.</div>`}
+  </div>
+  ${ST.daire.length ? `<div class="card" style="margin-top:14px"><h2>Aylık aidatları oluştur</h2>
+    <div class="arac"><select id="tahAy" class="sel">${[buAy, sonrakiAy].map(k=>`<option value="${k}">${ayAd(k)}</option>`).join("")}</select>
+      <span class="note" style="margin:0" id="tahOn"></span></div>
+    <button class="btn" data-act="tahakkuk">Aidatları oluştur</button>
+    <p class="note">Her dairenin kartındaki "aylık aidat" tutarı yazılır. Aynı ay iki kez yazılmaz. Vade ayın ${ST.ayar.vadeGun||10}'u.</p></div>` : ""}`;
+  tahOnizle();
+}
+function tahOnizle(){ const e = $("#tahOn"), s = $("#tahAy"); if (!e || !s) return; const k = s.value;
+  const yaz = ST.daire.filter(d=>d.aidat>0 && !(d.har||[]).some(h=>!h.iptal && h.tip==="tah" && h.ay===k));
+  const yok = ST.daire.filter(d=>!(d.aidat>0)).length;
+  e.innerHTML = yaz.length ? `${yaz.length} daireye toplam <b>${tl(yaz.reduce((s,d)=>s+d.aidat,0))}</b> yazılacak${yok?` · ${yok} dairenin aidat tutarı boş`:""}` : `${ayAd(k)} aidatları zaten oluşturulmuş${yok?` · ${yok} dairenin aidat tutarı boş`:""}`; }
+
+let MODAL_YENILE = null;
+function modal(html, yenile){ $("#mic").innerHTML = html; $("#modal").hidden = false; MODAL_YENILE = yenile || null; }
+function kapat(){ $("#modal").hidden = true; MODAL_YENILE = null; }
+$("#modal").addEventListener("mousedown", e => { if (e.target.id === "modal") kapat(); });
+
+const HTIP = {devir:"Devir", tah:"Aidat", ode:"Ödeme", duz:"Düzeltme"};
+function daireModal(id){
+  const d = ST.daire.find(x=>x.id===id); if (!d){ kapat(); return; }
+  const h = hesap(d);
+  const hareket = [...(d.har||[])].sort((a,b)=>(a.t-b.t) || (a.ts-b.ts));
+  const gecMap = {}; h.B.forEach(b=>{ if (b.id) gecMap[b.id] = b.gec; });
+  let bak = 0;
+  const satir = hareket.map(x=>{
+    const borc = !x.iptal && ((x.tip==="tah") || ((x.tip==="devir"||x.tip==="duz") && x.tutar>0)) ? x.tutar : 0;
+    const alacak = !x.iptal && (x.tip==="ode" ? x.tutar : ((x.tip==="devir"||x.tip==="duz") && x.tutar<0) ? -x.tutar : 0);
+    bak += borc - alacak;
+    return `<tr class="${x.iptal?"iptal":""}"><td>${kTarih(x.t)}</td><td><span class="pill p-mut">${HTIP[x.tip]||x.tip}</span> ${esc(x.acik||"")}${x.kanal?` <span class="mut" style="font-size:12px">· ${esc(x.kanal)}</span>`:""}
+      ${gecMap[x.id]?`<div style="font-size:12px;color:var(--warn)">+ ${tl(gecMap[x.id])} gecikme tazminatı</div>`:""}
+      ${x.iptal?`<div style="font-size:12px;color:var(--bad);text-decoration:none">İptal: ${esc(x.iptalNot||"")} · ${kTarih(x.iptalTs)}</div>`:""}</td>
+      <td class="num">${x.tip!=="ode"&&!(x.tutar<0)?tl(Math.abs(x.tutar)):""}</td><td class="num ok">${x.tip==="ode"||x.tutar<0?tl(Math.abs(x.tutar)):""}</td><td class="num">${x.iptal?"":tl(bak)}</td>
+      <td style="white-space:nowrap">${!x.iptal&&x.tip==="ode"?`<a href="#" data-makbuz="${d.id}|${x.id}" style="color:var(--accent);font-size:12.5px;font-weight:700">Makbuz</a> `:""}${!x.iptal?`<a href="#" data-iptal="${d.id}|${x.id}" style="color:var(--bad);font-size:12.5px;font-weight:700">İptal</a>`:""}</td></tr>`; }).join("");
+  modal(`<div class="bas"><h3>${esc(d.blok)} Blok · Daire ${esc(d.no)}</h3><button class="ibtn" data-act="kapat">✕</button></div>
+    <p style="margin:0 0 12px;color:var(--muted)">${esc(d.ad||"İsim girilmedi")}${d.kiraci?" · kiracı oturuyor":""}${d.tel?` · ${esc(d.tel)}`:""} · aylık ${d.aidat?tl(d.aidat):"—"} <a href="#" data-duzenle="${d.id}" style="color:var(--accent);font-weight:700">Düzenle</a></p>
+    <div class="grid g2" style="margin-bottom:12px">
+      <div class="card kpi" style="box-shadow:none"><span>Güncel bakiye</span><b class="${h.toplam>0.5?"bad":"ok"}">${tl(h.toplam)}</b><em class="${durumEt(h)[1]}">${durumEt(h)[0]}</em></div>
+      <div class="card kpi" style="box-shadow:none"><span>İçindeki gecikme tazminatı</span><b class="warn">${tl(h.gec)}</b><em class="p-warn">${ST.ayar.gecikme?`aylık %${ST.ayar.gecikme} · gün hesabıyla`:"kapalı"}</em></div>
+    </div>
+    ${hareket.length?`<div class="tblwrap"><table class="tbl"><thead><tr><th>Tarih</th><th>Açıklama</th><th class="num">Borç</th><th class="num">Ödeme</th><th class="num">Bakiye</th><th></th></tr></thead><tbody>${satir}</tbody></table></div>`:`<p class="mut">Henüz hareket yok.</p>`}
+    <div class="arac" style="margin:14px 0 0">
+      <button class="btn yesil" data-act="odemeForm" data-id="${d.id}">+ Ödeme gir</button>
+      <button class="btn ikincil" data-act="duzForm" data-id="${d.id}">± Borç / indirim</button>
+      ${h.toplam>0.5?`<button class="btn ikincil" data-hatir="${d.id}">📲 Hatırlat</button>`:""}
+    </div>`, ()=>daireModal(id));
+}
+function hareketForm(id, tip){
+  const d = ST.daire.find(x=>x.id===id), h = hesap(d);
+  const ode = tip==="ode";
+  modal(`<div class="bas"><h3>${ode?"Ödeme gir":"Borç ya da indirim ekle"} · ${esc(daireAd(d))}</h3><button class="ibtn" data-daire="${d.id}">← Geri</button></div>
+    <form class="form" id="hForm">
+      <label>Tutar (₺)<input class="inp" id="hTutar" inputmode="decimal" required value="${ode && h.toplam>0 ? String(Math.round(h.toplam)) : ""}" placeholder="${ode?"":"Borç için 500, indirim için -500"}"></label>
+      <label>Tarih<input class="inp" id="hTarih" type="date" value="${isoGun(NOW())}" required></label>
+      ${ode?`<label>Kanal<select class="sel" id="hKanal"><option>Havale/EFT</option><option>Elden</option><option>Kredi kartı</option><option>Diğer</option></select></label>`:""}
+      <label class="${ode?"":"tam"}">Açıklama<input class="inp" id="hAcik" maxlength="120" placeholder="${ode?"Örn. Kasım aidatı":"Örn. Yakıt farkı, çatı onarımı payı"}"></label>
+      <div class="tam"><button class="btn ${ode?"yesil":""}" type="submit">Kaydet</button></div>
+    </form>`);
+  $("#hForm").onsubmit = async e => { e.preventDefault();
+    const tutar = sayi($("#hTutar").value); if (!tutar || isNaN(tutar) || (ode && tutar <= 0)){ toast("Tutarı kontrol edin"); return; }
+    const kayit = {id:yeniId(), tip, tutar, t:gunTs($("#hTarih").value), acik:$("#hAcik").value.trim(), ts:NOW(), by:ST.kim};
+    if (ode) kayit.kanal = $("#hKanal").value;
+    if (tip==="duz" && tutar > 0) kayit.vade = kayit.t;
+    try { await DB.hareketEkle(d.id, [kayit]); toast(ode ? `✓ ${tl(tutar)} ödeme işlendi` : "✓ Kaydedildi"); daireModal(d.id); } catch(err){ hata(err); }
+  };
+}
+function iptalForm(did, hid){
+  const d = ST.daire.find(x=>x.id===did), x = (d.har||[]).find(h=>h.id===hid);
+  modal(`<div class="bas"><h3>Kaydı iptal et</h3><button class="ibtn" data-daire="${d.id}">← Geri</button></div>
+    <p>${esc(daireAd(d))} · ${HTIP[x.tip]} · ${kTarih(x.t)} · <b>${tl(Math.abs(x.tutar))}</b> ${esc(x.acik||"")}</p>
+    <p class="note">Kayıt silinmez, üstü çizili olarak kalır. Kimin ne zaman neden iptal ettiği görünür.</p>
+    <form id="iForm" class="form"><label class="tam">Neden<input class="inp" id="iNot" required maxlength="120" placeholder="Örn. Yanlış daireye işlendi"></label>
+    <div class="tam"><button class="btn kirmizi" type="submit">İptal et</button></div></form>`);
+  $("#iForm").onsubmit = async e => { e.preventDefault();
+    try { await DB.hareketIptal(did, hid, $("#iNot").value.trim()); toast("Kayıt iptal edildi"); daireModal(did); } catch(err){ hata(err); } };
+}
+function daireDuzenle(id){
+  const d = id ? ST.daire.find(x=>x.id===id) : {blok:"", no:"", ad:"", tel:"", aidat:"", m2:"", kiraci:false, not:""};
+  modal(`<div class="bas"><h3>${id?`${esc(daireAd(d))} · düzenle`:"Yeni daire"}</h3><button class="ibtn" ${id?`data-daire="${id}"`:`data-act="kapat"`}>${id?"← Geri":"✕"}</button></div>
+    <form class="form" id="dForm">
+      <label>Blok<input class="inp" id="dBlok" required value="${esc(d.blok)}" ${id?"disabled":""} list="blokList"></label>
+      <label>Daire no<input class="inp" id="dNo" required value="${esc(d.no)}" ${id?"disabled":""}></label>
+      <label class="tam">Malik / sakin adı<input class="inp" id="dAd" value="${esc(d.ad||"")}" maxlength="80"></label>
+      <label>Telefon<input class="inp" id="dTel" value="${esc(d.tel||"")}" inputmode="tel" maxlength="20" placeholder="05xx xxx xx xx"></label>
+      <label>Aylık aidat (₺)<input class="inp" id="dAidat" value="${esc(d.aidat||"")}" inputmode="decimal"></label>
+      <label>m² (isteğe bağlı)<input class="inp" id="dM2" value="${esc(d.m2||"")}" inputmode="decimal"></label>
+      <label style="flex-direction:row;align-items:center;gap:8px;margin-top:22px"><input type="checkbox" id="dKiraci" ${d.kiraci?"checked":""}> Kiracı oturuyor</label>
+      <label class="tam">Not<input class="inp" id="dNot" value="${esc(d.not||"")}" maxlength="200"></label>
+      <div class="tam" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="submit">Kaydet</button>
+        ${id && !(d.har||[]).some(h=>!h.iptal && h.tip!=="devir") ? `<button class="btn kirmizi" type="button" data-sil="${id}">Daireyi sil</button>` : ""}</div>
+    </form><datalist id="blokList">${[...new Set(ST.daire.map(x=>x.blok))].map(b=>`<option value="${esc(b)}">`).join("")}</datalist>`);
+  $("#dForm").onsubmit = async e => { e.preventDefault();
+    const blok = (id ? d.blok : $("#dBlok").value).trim().toLocaleUpperCase("tr"), no = String(id ? d.no : $("#dNo").value).trim().toLocaleUpperCase("tr");
+    if (!blok || !no){ toast("Blok ve daire no gerekli"); return; }
+    const yeni = {blok, no, ad:$("#dAd").value.trim(), tel:$("#dTel").value.trim(), aidat:sayi($("#dAidat").value)||0, m2:sayi($("#dM2").value)||0, kiraci:$("#dKiraci").checked, not:$("#dNot").value.trim()};
+    const did = id || daireId(blok, no);
+    if (!id && ST.daire.some(x=>x.id===did)){ toast("Bu daire zaten var"); return; }
+    try { await DB.daireYaz([{id:did, ...yeni}]); toast("✓ Kaydedildi"); daireModal(did); } catch(err){ hata(err); } };
+}
+const daireId = (blok, no) => `${blok}-${no}`.replace(/[\/\s#?.]+/g,"").toLocaleUpperCase("tr");
+
+/* İçe aktarma: Excel'den yapıştır ya da CSV */
+const BASLIK = { blok:/^blok|^bina/i, no:/daire|^no$|kap[ıi] ?no|^d\.? ?no/i, ad:/ad|isim|malik|sakin|unvan/i, tel:/tel|gsm|cep/i, m2:/m2|m²|metrekare|brüt|net/i, aidat:/aidat|tutar/i, devir:/devir|bakiye|borç|borc/i };
+function tabloOku(metin){
+  const satirlar = metin.replace(/\r/g,"").split("\n").filter(s=>s.trim());
+  if (!satirlar.length) return [];
+  const ayir = satirlar[0].includes("\t") ? "\t" : satirlar[0].split(";").length > 1 ? ";" : ",";
+  return satirlar.map(s=>s.split(ayir).map(x=>x.replace(/^"|"$/g,"").trim()));
+}
+function daireCoz(metin){
+  const T = tabloOku(metin); if (!T.length) return {L:[], kolon:null};
+  let kolon = null, veri = T;
+  const bas = T[0].map(x=>x.toLocaleLowerCase("tr"));
+  if (bas.some(x=>/blok|daire|ad|isim|aidat/.test(x)) && !bas.some(x=>/^\d+$/.test(x))){
+    kolon = {}; Object.entries(BASLIK).forEach(([k,re])=>{ const i = bas.findIndex((x,j)=>re.test(x) && !Object.values(kolon).includes(j)); if (i>=0) kolon[k] = i; });
+    veri = T.slice(1);
+  } else kolon = {blok:0, no:1, ad:2, tel:3, m2:4, aidat:5, devir:6};
+  const L = []; const hatali = [];
+  veri.forEach((r,i)=>{
+    let blok = r[kolon.blok] ?? "", no = r[kolon.no] ?? "";
+    if (kolon.blok===undefined || (!no && blok)){ const m = String(blok||no).match(/^([A-ZÇĞİÖŞÜa-zçğıöşü]+\s*\d*)\s*[-\/ ]\s*(\w+)$/); if (m){ blok = m[1]; no = m[2]; } }
+    blok = String(blok).trim().toLocaleUpperCase("tr").replace(/\s*BLOK$/,""); no = String(no).trim().toLocaleUpperCase("tr");
+    if (!blok || !no){ hatali.push(i+1); return; }
+    L.push({id:daireId(blok,no), blok, no, ad:(r[kolon.ad]||"").trim(), tel:(r[kolon.tel]||"").trim(), m2:sayi(r[kolon.m2])||0, aidat:sayi(r[kolon.aidat])||0, devir: kolon.devir!==undefined ? sayi(r[kolon.devir]) : NaN});
+  });
+  return {L, kolon, hatali};
+}
+function iceAktarModal(sekme = "yapistir"){
+  modal(`<div class="bas"><h3>Daire ekle / içe aktar</h3><button class="ibtn" data-act="kapat">✕</button></div>
+    <div class="seg" style="margin-bottom:12px">${[["yapistir","Excel'den yapıştır"],["hizli","Blok için hızlı oluştur"],["tek","Tek daire"]].map(([k,a])=>`<button aria-pressed="${sekme===k}" data-ice="${k}">${a}</button>`).join("")}</div>
+    ${sekme==="yapistir" ? `
+      <p style="margin:0 0 8px">Excel'de (ya da Bulut Pro'dan aldığınız listede) satırları seçip kopyalayın, buraya yapıştırın. İlk satır başlıksa sütunları kendisi tanır:</p>
+      <p class="note" style="margin:0 0 8px"><b>Blok · Daire · Ad Soyad · Telefon · m² · Aylık aidat · Devir bakiye</b> (devir: bugünkü borç, alacaklıysa eksi). Sadece Blok ve Daire zorunlu.</p>
+      <textarea class="inp" id="iceMetin" placeholder="Blok	Daire	Ad Soyad	Telefon	m2	Aidat	Devir
+A1	1	Ayşe Yılmaz	05321234567	125	2750	0
+A1	2	Mehmet Kaya		110	2420	5420"></textarea>
+      <div class="arac" style="margin-top:8px"><label class="ibtn" style="cursor:pointer">📄 CSV dosyası seç<input type="file" id="iceDosya" accept=".csv,.txt,text/csv" hidden></label>
+        <label class="form" style="display:flex;flex-direction:row;gap:6px;align-items:center;font-size:13px;font-weight:600">Devir tarihi <input class="inp" type="date" id="iceDevirT" value="${isoGun(ST.ayar.devirT||NOW())}"></label></div>
+      <div id="iceOn"></div>` :
+    sekme==="hizli" ? `
+      <form class="form" id="hzForm"><label>Blok<input class="inp" id="hzBlok" required placeholder="A1"></label><label>Daire sayısı<input class="inp" id="hzSayi" type="number" min="1" max="300" required value="40"></label>
+        <label>İlk daire no<input class="inp" id="hzIlk" type="number" value="1"></label><label>Aylık aidat (₺)<input class="inp" id="hzAidat" inputmode="decimal" placeholder="Boş bırakılabilir"></label>
+        <div class="tam"><button class="btn" type="submit">Daireleri oluştur</button><p class="note">İsimleri ve tutarları sonra tek tek ya da yapıştırarak güncelleyebilirsiniz. Var olan daireler değişmez.</p></div></form>` : `<div id="tekYer"></div>`}`);
+  if (sekme==="tek"){ daireDuzenle(null); return; }
+  if (sekme==="yapistir"){
+    const on = () => iceOnizle();
+    $("#iceMetin").addEventListener("input", on);
+    $("#iceDosya").addEventListener("change", async e => { const f = e.target.files[0]; if (!f) return; let m = await f.text(); if (m.includes("\uFFFD")){ const b = await f.arrayBuffer(); m = new TextDecoder("windows-1254").decode(b); } $("#iceMetin").value = m; on(); });
+  }
+  if (sekme==="hizli") $("#hzForm").onsubmit = async e => { e.preventDefault();
+    const blok = $("#hzBlok").value.trim().toLocaleUpperCase("tr").replace(/\s*BLOK$/,""), n = +$("#hzSayi").value, ilk = +$("#hzIlk").value || 1, aidat = sayi($("#hzAidat").value)||0;
+    const L = []; for (let i=0;i<n;i++){ const no = String(ilk+i), id = daireId(blok,no); if (!ST.daire.some(d=>d.id===id)) L.push({id, blok, no, ad:"", tel:"", m2:0, aidat, kiraci:false, not:""}); }
+    if (!L.length){ toast("Bu daireler zaten var"); return; }
+    try { await DB.daireYaz(L); toast(`✓ ${L.length} daire oluşturuldu`); kapat(); DF.blok = blok; git("daire"); } catch(err){ hata(err); } };
+}
+let ICE = null;
+function iceOnizle(){
+  const r = daireCoz($("#iceMetin").value); ICE = r;
+  const yeni = r.L.filter(x=>!ST.daire.some(d=>d.id===x.id)).length, guncel = r.L.length - yeni;
+  const devirli = r.L.filter(x=>!isNaN(x.devir) && x.devir!==0).length;
+  $("#iceOn").innerHTML = r.L.length ? `
+    <div class="adim" style="margin-top:12px"><div><b>${r.L.length}</b><span>Satır okundu</span></div><div><b class="ok">${yeni}</b><span>Yeni daire</span></div><div><b class="acc">${guncel}</b><span>Var olan güncellenecek</span></div><div><b class="warn">${devirli}</b><span>Devir bakiyesi var</span></div></div>
+    ${r.hatali && r.hatali.length ? `<p class="bad" style="font-size:13px">${r.hatali.length} satır okunamadı (blok/daire yok): ${r.hatali.slice(0,10).join(", ")}${r.hatali.length>10?"…":""}</p>`:""}
+    <div class="tblwrap" style="max-height:220px;overflow:auto"><table class="tbl"><thead><tr><th>Daire</th><th>Ad</th><th class="num">Aidat</th><th class="num">Devir</th></tr></thead><tbody>${r.L.slice(0,50).map(x=>`<tr><td>${esc(x.blok)} / ${esc(x.no)}</td><td>${esc(x.ad)}</td><td class="num">${x.aidat?tl(x.aidat):""}</td><td class="num">${isNaN(x.devir)?"":tl(x.devir)}</td></tr>`).join("")}</tbody></table></div>
+    <button class="btn" style="margin-top:12px" data-act="iceKaydet">✓ ${r.L.length} daireyi kaydet</button>
+    <p class="note">Var olan dairelerde ad, telefon, m² ve aidat güncellenir. Devir sadece daha önce devir girilmemiş dairelere yazılır.</p>` : (($("#iceMetin").value||"").trim() ? `<p class="bad">Okunabilir satır bulunamadı. İlk iki sütun Blok ve Daire olmalı.</p>` : "");
+}
+async function iceKaydet(){
+  if (!ICE || !ICE.L.length) return;
+  const devT = gunTs($("#iceDevirT").value || isoGun(NOW()));
+  const yaz = [], har = [];
+  ICE.L.forEach(x=>{ const var_ = ST.daire.find(d=>d.id===x.id);
+    const o = {id:x.id, blok:x.blok, no:x.no};
+    if (x.ad || !var_) o.ad = x.ad; if (x.tel || !var_) o.tel = x.tel; if (x.m2 || !var_) o.m2 = x.m2; if (x.aidat || !var_) o.aidat = x.aidat;
+    if (!var_){ o.kiraci = false; o.not = ""; }
+    yaz.push(o);
+    if (!isNaN(x.devir) && x.devir !== 0 && !(var_ && (var_.har||[]).some(h=>!h.iptal && h.tip==="devir")))
+      har.push([x.id, {id:yeniId(), tip:"devir", tutar:x.devir, t:devT, vade:devT, acik:"Açılış bakiyesi (devir)", ts:NOW(), by:ST.kim}]);
+  });
+  const btn = document.querySelector('[data-act="iceKaydet"]'); if (btn){ btn.disabled = true; btn.textContent = "Kaydediliyor…"; }
+  try { await DB.daireYaz(yaz); if (har.length) await DB.topluHareket(har); toast(`✓ ${yaz.length} daire kaydedildi${har.length?`, ${har.length} devir`:""}`); kapat(); ICE = null; git("daire"); }
+  catch(err){ hata(err); if (btn){ btn.disabled = false; btn.textContent = "Tekrar dene"; } }
+}
+function hatirMetin(d){ const h = hesap(d);
+  return `Sayın ${d.ad||"Daire Sakini"}, ${ST.ayar.siteAd} ${d.blok} Blok ${d.no} no'lu dairenizin aidat borcu ${tl(h.anapara)}${h.gec?`, gecikme tazminatı ${tl(h.gec)}`:""} olmak üzere toplam ${tl(h.toplam)}'dir.${ST.ayar.iban?` Ödemenizi ${ST.ayar.iban} IBAN'ına açıklamaya "${d.blok}-${d.no}" yazarak yapabilirsiniz.`:""} Ödediyseniz bu mesajı dikkate almayınız. Site Yönetimi`; }
+const waNo = t => { let n = String(t||"").replace(/\D/g,""); if (n.startsWith("0")) n = "9" + n; else if (n.length===10) n = "90" + n; return n; };
+
+/* ---------- BANKA ---------- */
+let BNK = null;
+function bankaCoz(metin){
+  const T = tabloOku(metin); if (!T.length) return [];
+  const bas = T[0].map(x=>x.toLocaleLowerCase("tr"));
+  let iT=-1, iA=-1, iTut=-1, iBorc=-1, iAl=-1, veri = T;
+  if (bas.some(x=>/tarih|açıklama|aciklama|tutar|alacak/.test(x))){
+    iT = bas.findIndex(x=>/tarih/.test(x)); iA = bas.findIndex(x=>/açıklama|aciklama|detay|işlem|islem/.test(x) && !/tarih|tutar/.test(x));
+    iTut = bas.findIndex(x=>/^tutar|işlem tutarı|islem tutari|^miktar/.test(x)); iBorc = bas.findIndex(x=>/^borç|^borc/.test(x)); iAl = bas.findIndex(x=>/^alacak/.test(x));
+    veri = T.slice(1);
+  }
+  const tarihMi = s => /^\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4}/.test(s);
+  return veri.map(r=>{
+    const ti = iT>=0 ? iT : r.findIndex(tarihMi); if (ti<0 || !tarihMi(r[ti]||"")) return null;
+    const [g,a,y] = r[ti].split(/[.\/\-\s]/).map(Number); const t = new Date(y<100?2000+y:y, a-1, g, 12).getTime();
+    let tutar;
+    if (iTut>=0) tutar = sayi(r[iTut]); else if (iAl>=0 || iBorc>=0) tutar = (sayi(r[iAl])||0) - (sayi(r[iBorc])||0);
+    else { const say = r.map((x,j)=>j!==ti && /\d/.test(x) && /^[-+]?[\d.,\s]+(TL|₺)?$/.test(x.trim()) ? j : -1).filter(j=>j>=0); tutar = say.length ? sayi(r[say[0]]) : NaN; }
+    const acik = iA>=0 ? r[iA] : r.filter((x,j)=>j!==ti && !/^[-+]?[\d.,\s]+(TL|₺)?$/.test(x.trim())).sort((p,q)=>q.length-p.length)[0] || "";
+    if (isNaN(tutar) || !tutar) return null;
+    return {t, acik, tutar};
+  }).filter(Boolean);
+}
+const bRef = r => `${isoGun(r.t)}|${Math.round(r.tutar*100)}|${r.acik.slice(0,60)}`;
+function eslestir(L){
+  const bloklar = [...new Set(ST.daire.map(d=>d.blok))].sort((a,b)=>b.length-a.length).map(b=>b.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
+  const re = bloklar.length ? new RegExp(`(?:^|[^A-ZÇĞİÖŞÜ0-9])(${bloklar.join("|")})\\s*(?:BLOK|BL\\.?)?\\s*[-\\/:. ]*\\s*(?:DAİRE|DAIRE|DA[İI]RE|D\\.?|NO:?|NO\\.?)?\\s*:?\\s*(\\d{1,4})(?![0-9])`) : null;
+  const norm = s => String(s).toLocaleUpperCase("tr").replace(/[^A-ZÇĞİÖŞÜ0-9 ]/g," ").replace(/\s+/g," ").trim();
+  const islenmis = new Set(); ST.daire.forEach(d=>(d.har||[]).forEach(h=>{ if (!h.iptal && h.ref) islenmis.add(h.ref); }));
+  const giderRef = new Set(ST.gider.filter(g=>!g.iptal && g.ref).map(g=>g.ref));
+  return L.map(r=>{
+    const ref = bRef(r);
+    if (r.tutar < 0) return {...r, ref, durum: giderRef.has(ref) ? "islenmis" : "gider", kat: katBul(r.acik), sec: !giderRef.has(ref)};
+    if (islenmis.has(ref)) return {...r, ref, durum:"islenmis"};
+    const a = norm(r.acik);
+    const m = re && (" " + a).match(re);
+    if (m){ const id = daireId(m[1], m[2]); if (ST.daire.some(d=>d.id===id)) return {...r, ref, durum:"eslesti", daire:id, neden:"Açıklamada daire numarası var", puan:98}; }
+    const adaylar = ST.daire.filter(d=>{ if (!d.ad) return false; const p = norm(d.ad).split(" ").filter(x=>x.length>1); return p.length>=2 && p.every(x=>a.includes(x)); });
+    if (adaylar.length === 1) return {...r, ref, durum:"eslesti", daire:adaylar[0].id, neden:"İsim eşleşti", puan:90};
+    if (adaylar.length > 1) return {...r, ref, durum:"bak", adaylar:adaylar.map(d=>d.id), neden:`${adaylar.length} daire aynı isimde`};
+    const tut = ST.daire.filter(d=>{ const h = hesap(d); return Math.abs(h.toplam - r.tutar) < 1 || Math.abs((d.aidat||0) - r.tutar) < 1; });
+    return {...r, ref, durum:"bak", adaylar:tut.slice(0,6).map(d=>d.id), neden: tut.length ? `Tutar ${tut.length} daireninkiyle aynı` : "Kime ait olduğu belli değil"};
+  });
+}
+function vBanka(){
+  if (!BNK){
+    $("#main").innerHTML = `<div class="card"><h2>Banka ekstresinden ödemeleri işle</h2>
+      <p style="margin:0 0 10px;max-width:760px">Bankanın internet şubesinden hesap hareketlerini Excel olarak indirin. Excel'de satırları (başlık satırıyla birlikte) seçip kopyalayın ve aşağıya yapıştırın. Sistem her ödemenin hangi daireye ait olduğunu <b>açıklamadaki daire numarasından, isimden ve tutardan</b> bulur. Daha önce işlenmiş hareketleri tanır, iki kez işlemez.</p>
+      <textarea class="inp" id="bnkMetin" placeholder="Tarih	Açıklama	Tutar
+14.11.2026	A1-12 KASIM AIDAT	2.750,00
+13.11.2026	ENERJISA ELEKTRIK	-33.870,00"></textarea>
+      <div class="arac" style="margin-top:10px"><button class="btn" data-act="bankaOku">Hareketleri oku</button>
+        <label class="ibtn" style="cursor:pointer">📄 CSV dosyası seç<input type="file" id="bnkDosya" accept=".csv,.txt,text/csv" hidden></label></div>
+      ${ST.daire.length?"":`<p class="bad">Önce daire listesini yükleyin, yoksa ödemeler eşleşemez.</p>`}</div>`;
+    return;
+  }
+  const L = BNK.satir;
+  const es = L.filter(r=>r.durum==="eslesti"), bk = L.filter(r=>r.durum==="bak"), gd = L.filter(r=>r.durum==="gider"), ok = L.filter(r=>r.durum==="islenmis");
+  const gdSec = gd.filter(r=>r.sec);
+  $("#main").innerHTML = `<div class="card"><h2>Ekstre · ${L.length} hareket <span class="r"><button class="ibtn" data-act="bankaSifir">Yeni ekstre</button></span></h2>
+    <div class="adim">
+      <div><b class="ok">${es.length}</b><span>Eşleşti · ${tl(es.reduce((s,r)=>s+r.tutar,0))}</span></div>
+      <div><b class="warn">${bk.length}</b><span>Sizin seçmeniz gerekiyor</span></div>
+      <div><b>${gd.length}</b><span>Çıkan para · gider</span></div>
+      ${ok.length?`<div><b class="mut">${ok.length}</b><span>Daha önce işlenmiş</span></div>`:""}
+    </div>
+    <div class="tblwrap"><table class="tbl bnk"><thead><tr><th>Tarih</th><th>Bankadaki açıklama</th><th class="num">Tutar</th><th>Nereye</th><th class="gizle-mob">Neden</th></tr></thead><tbody>
+    ${L.map((r,i)=>`<tr class="${r.durum==="eslesti"?"eslesti":r.durum==="bak"?"bak":"disi"}"><td>${kTarih(r.t)}</td><td style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px;max-width:340px">${esc(r.acik)}</td>
+      <td class="num ${r.tutar<0?"bad":"ok"}"><b>${tl(r.tutar)}</b></td>
+      <td>${r.durum==="islenmis" ? `<span class="pill p-mut">✓ Zaten işlenmiş</span>` :
+           r.durum==="eslesti" ? `<b>${esc(r.daire.replace("-"," / "))}</b> <span class="pill p-ok">✓ %${r.puan}</span> <a href="#" data-bcoz="${i}" style="font-size:12px;color:var(--muted)">değiştir</a>` :
+           r.durum==="bak" ? `<select class="sel" data-bsec="${i}" style="padding:6px 8px;max-width:220px"><option value="">Daire seçin…</option>${(r.adaylar||[]).map(id=>{ const d = ST.daire.find(x=>x.id===id); return `<option value="${id}">${esc(daireAd(d))} · ${esc(d.ad||"")}</option>`; }).join("")}<option value="" disabled>──────</option>${[...ST.daire].sort(sirala).map(d=>`<option value="${d.id}">${esc(daireAd(d))} ${esc(d.ad?"· "+d.ad:"")}</option>`).join("")}</select>` :
+           `<label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" data-gsec="${i}" ${r.sec?"checked":""}> Gider:</label><select class="sel" data-gkat="${i}" style="padding:5px 6px;margin-top:4px">${Object.entries(GKAT).map(([k,v])=>`<option value="${k}" ${r.kat===k?"selected":""}>${v.ad}</option>`).join("")}</select>`}</td>
+      <td class="gizle-mob" style="font-size:12.5px;color:var(--muted)">${esc(r.neden||"")}</td></tr>`).join("")}
+    </tbody></table></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center">
+      <button class="btn yesil" data-act="bankaIsle" ${(!es.length && !gdSec.length) || BNK.isleniyor?"disabled":""}>✓ ${es.length} ödemeyi${gdSec.length?` ve ${gdSec.length} gideri`:""} işle</button>
+      <span class="note" style="margin:0">Sarı satırlar için daire seçin. Seçilmeyenler işlenmez, sonra tekrar yapıştırdığınızda yine sorulur.</span>
+    </div></div>`;
+}
+async function bankaIsle(){
+  BNK.isleniyor = true; vBanka();
+  const har = BNK.satir.filter(r=>r.durum==="eslesti").map(r=>[r.daire, {id:yeniId(), tip:"ode", tutar:r.tutar, t:r.t, acik:r.acik.slice(0,120), kanal:"Banka", ref:r.ref, ts:NOW(), by:ST.kim}]);
+  const gid = BNK.satir.filter(r=>r.durum==="gider" && r.sec).map(r=>({t:r.t, kat:r.kat, aciklama:r.acik.slice(0,140), tutar:-r.tutar, belge:"Banka ekstresi", bag:[], ref:r.ref, ts:NOW(), by:ST.kim}));
+  try { if (har.length) await DB.topluHareket(har); for (const g of gid) await DB.giderEkle(g);
+    toast(`✓ ${har.length} ödeme${gid.length?`, ${gid.length} gider`:""} işlendi`); BNK = {satir: eslestir(BNK.satir.map(({t,acik,tutar})=>({t,acik,tutar})))}; vBanka(); }
+  catch(err){ BNK.isleniyor = false; hata(err); vBanka(); }
+}
+
+/* ---------- GİDERLER ---------- */
+let GF = {ay: ayKey(NOW()), ac:{}};
+function vGider(){
+  const aylar = [...new Set([ayKey(NOW()), ...ST.gider.map(g=>ayKey(g.t))])].sort().reverse();
+  const L = ST.gider.filter(g=>ayKey(g.t)===GF.ay).sort((a,b)=>b.t-a.t);
+  const gecerli = L.filter(g=>!g.iptal);
+  const top = gecerli.reduce((x,g)=>x+g.tutar,0);
+  const kat = {}; gecerli.forEach(g=>kat[g.kat]=(kat[g.kat]||0)+g.tutar);
+  const dil = Object.entries(kat).sort((a,b)=>b[1]-a[1]);
+  let ac0 = -Math.PI/2; const R = 80, r0 = 50;
+  const arc = top ? dil.map(([k,v])=>{ const a1 = ac0, a2 = ac0 + v/top*Math.PI*2; ac0 = a2; const b = a2-a1 > Math.PI ? 1 : 0;
+    const p = (r,a)=>`${(100+r*Math.cos(a)).toFixed(2)} ${(100+r*Math.sin(a)).toFixed(2)}`;
+    return `<path d="M${p(R,a1)} A${R} ${R} 0 ${b} 1 ${p(R,a2-0.0001)} L${p(r0,a2-0.0001)} A${r0} ${r0} 0 ${b} 0 ${p(r0,a1)}Z" fill="${(GKAT[k]||GKAT.diger).renk}"><title>${(GKAT[k]||GKAT.diger).ad} ${tl(v)}</title></path>`; }).join("") : `<circle cx="100" cy="100" r="65" fill="none" stroke="var(--line)" stroke-width="30"/>`;
+  $("#main").innerHTML = `
+  <div class="arac"><select id="gAy" class="sel">${aylar.map(k=>`<option value="${k}" ${GF.ay===k?"selected":""}>${ayAd(k)}</option>`).join("")}</select>
+    <button class="btn" data-act="giderForm">＋ Gider ekle</button>
+    <span class="note" style="margin:0">Teknik bir harcamayı arıza ve tesis kayıtlarına bağlayabilirsiniz.</span></div>
+  <div class="grid g32">
+    <div class="card"><h2>${ayAd(GF.ay)} giderleri <span class="r"><b>${tl(top)}</b></span></h2>
+      ${L.length?`<div class="tblwrap"><table class="tbl"><tbody>${L.map(g=>`<tr class="${g.iptal?"iptal":""}"><td style="width:70px">${kTarih(g.t)}</td><td><b>${esc(g.aciklama)}</b>
+        <div style="font-size:12.5px;color:var(--muted)">${(GKAT[g.kat]||GKAT.diger).ad}${g.belge?` · 📎 ${esc(g.belge)}`:""}${g.iptal?` · <span class="bad" style="text-decoration:none">İptal: ${esc(g.iptalNot||"")}</span>`:""}</div>
+        ${g.bag && g.bag.length?`<div class="bag"><a data-bag="${g.id}">🔧 ${g.bag.length} kayıtla bağlantılı ${GF.ac[g.id]?"▲":"▼"}</a>
+          ${GF.ac[g.id]?`<div class="bagli">${g.bag.map(b=>`<div>${esc(b.metin)}</div>`).join("")}</div>`:""}</div>`:""}
+        </td><td class="num"><b>${tl(g.tutar)}</b>${!g.iptal?`<div><a href="#" data-gduz="${g.id}" style="font-size:12px;color:var(--accent);font-weight:700">Düzenle</a> · <a href="#" data-giptal="${g.id}" style="font-size:12px;color:var(--bad);font-weight:700">İptal</a></div>`:""}</td></tr>`).join("")}</tbody></table></div>`:`<div class="bos"><b>Bu ay gider yok</b>"Gider ekle" ya da Banka sekmesinden ekstreyle ekleyin.</div>`}</div>
+    <div class="card"><h2>Dağılım</h2>
+      <svg viewBox="0 0 200 200" style="width:min(220px,100%);display:block;margin:0 auto 14px">${arc}<text x="100" y="96" text-anchor="middle" font-size="12" fill="var(--muted)" font-weight="700">Toplam</text><text x="100" y="116" text-anchor="middle" font-size="15" font-weight="800" fill="var(--ink)">${top>=1000?Math.round(top/1000)+" bin ₺":tl(top)}</text></svg>
+      <div class="lej">${dil.map(([k,v])=>`<div><i style="background:${(GKAT[k]||GKAT.diger).renk}"></i>${(GKAT[k]||GKAT.diger).ad}<span>${tl(v)}</span></div>`).join("")}</div></div>
+  </div>`;
+}
+let KAYIT_LISTE = null;
+async function giderForm(id){
+  const g = id ? ST.gider.find(x=>x.id===id) : {t:NOW(), kat:"asansor", aciklama:"", tutar:"", belge:"", bag:[]};
+  const secili = new Set((g.bag||[]).map(b=>b.tip+":"+b.id));
+  modal(`<div class="bas"><h3>${id?"Gideri düzenle":"Gider ekle"}</h3><button class="ibtn" data-act="kapat">✕</button></div>
+    <form class="form" id="gForm">
+      <label>Tarih<input class="inp" type="date" id="gTarih" value="${isoGun(g.t)}" required></label>
+      <label>Kategori<select class="sel" id="gKat">${Object.entries(GKAT).map(([k,v])=>`<option value="${k}" ${g.kat===k?"selected":""}>${v.ad}</option>`).join("")}</select></label>
+      <label class="tam">Açıklama<input class="inp" id="gAcik" required maxlength="140" value="${esc(g.aciklama)}" placeholder="Örn. B3 Asansör 2 kapı kartı değişimi"></label>
+      <label>Tutar (₺)<input class="inp" id="gTutar" inputmode="decimal" required value="${esc(g.tutar)}"></label>
+      <label>Fatura / belge no<input class="inp" id="gBelge" maxlength="60" value="${esc(g.belge||"")}" placeholder="İsteğe bağlı"></label>
+      <div class="tam"><div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">Bağlantılı arıza / tesis kayıtları (son 90 gün)</div>
+        <input class="inp" id="gAra" placeholder="Ara: asansör, B3, hidrofor…" style="width:100%;margin-bottom:6px">
+        <div class="secli" id="gKayit"><div class="mut" style="padding:8px">Yükleniyor…</div></div></div>
+      <div class="tam"><button class="btn" type="submit">Kaydet</button></div>
+    </form>`);
+  const ciz2 = () => { const q = ($("#gAra").value||"").toLocaleLowerCase("tr"); const L = (KAYIT_LISTE||[]).filter(k=>!q || k.metin.toLocaleLowerCase("tr").includes(q));
+    $("#gKayit").innerHTML = KAYIT_LISTE===null ? `<div class="mut" style="padding:8px">Yükleniyor…</div>` : L.length ? L.slice(0,150).map(k=>`<label><input type="checkbox" value="${esc(k.tip+":"+k.id)}" ${secili.has(k.tip+":"+k.id)?"checked":""}><span>${esc(k.metin)}</span></label>`).join("") : `<div class="mut" style="padding:8px">Kayıt yok</div>`; };
+  $("#gAra").addEventListener("input", ciz2);
+  $("#gKayit").addEventListener("change", e => { const v = e.target.value; if (e.target.checked) secili.add(v); else secili.delete(v); });
+  if (KAYIT_LISTE===null) DB.teknikKayitlar().then(L=>{ KAYIT_LISTE = L; (g.bag||[]).forEach(b=>{ if (!L.some(k=>k.tip===b.tip && k.id===b.id)) L.unshift(b); }); if ($("#gKayit")) ciz2(); }).catch(err=>{ KAYIT_LISTE = []; console.error(err); if ($("#gKayit")) $("#gKayit").innerHTML = `<div class="bad" style="padding:8px">Kayıtlar okunamadı</div>`; });
+  else ciz2();
+  $("#gForm").onsubmit = async e => { e.preventDefault();
+    const tutar = sayi($("#gTutar").value); if (!tutar || isNaN(tutar) || tutar<=0){ toast("Tutarı kontrol edin"); return; }
+    const bag = [...secili].map(v=>{ const [tip, kid] = v.split(/:(.+)/); const k = (KAYIT_LISTE||[]).find(x=>x.tip===tip && x.id===kid) || (g.bag||[]).find(x=>x.tip===tip && x.id===kid); return k ? {tip, id:kid, metin:k.metin} : null; }).filter(Boolean);
+    const yeni = {t:gunTs($("#gTarih").value), kat:$("#gKat").value, aciklama:$("#gAcik").value.trim(), tutar, belge:$("#gBelge").value.trim(), bag};
+    try { if (id) await DB.giderGuncelle(id, {...yeni, duzenT:NOW(), duzenBy:ST.kim}); else await DB.giderEkle({...yeni, ts:NOW(), by:ST.kim});
+      toast("✓ Gider kaydedildi"); kapat(); GF.ay = ayKey(yeni.t); vGider(); } catch(err){ hata(err); } };
+}
+function giderIptal(id){
+  const g = ST.gider.find(x=>x.id===id);
+  modal(`<div class="bas"><h3>Gideri iptal et</h3><button class="ibtn" data-act="kapat">✕</button></div><p>${kTarih(g.t)} · ${esc(g.aciklama)} · <b>${tl(g.tutar)}</b></p>
+    <form id="giForm" class="form"><label class="tam">Neden<input class="inp" id="giNot" required maxlength="120"></label><div class="tam"><button class="btn kirmizi">İptal et</button></div></form>`);
+  $("#giForm").onsubmit = async e => { e.preventDefault(); try { await DB.giderGuncelle(id, {iptal:true, iptalNot:$("#giNot").value.trim(), iptalTs:NOW(), iptalBy:ST.kim}); toast("Gider iptal edildi"); kapat(); vGider(); } catch(err){ hata(err); } };
+}
+
+/* ---------- RAPORLAR ---------- */
+let RP = {donem:"yil", artis:30};
+function donemAralik(){ const d = new Date(); const y0 = new Date(d.getFullYear(),0,1).getTime();
+  return ({yil:[y0, NOW()+GUN, `${d.getFullYear()} yılı`], son12:[new Date(d.getFullYear(), d.getMonth()-11, 1).getTime(), NOW()+GUN, "Son 12 ay"], son6:[new Date(d.getFullYear(), d.getMonth()-5, 1).getTime(), NOW()+GUN, "Son 6 ay"]})[RP.donem]; }
+function vRapor(){
+  const [a,b,ad] = donemAralik();
+  const gelir = ST.daire.reduce((s,d)=>s+(d.har||[]).filter(h=>!h.iptal && h.tip==="ode" && h.t>=a && h.t<b).reduce((x,h)=>x+h.tutar,0),0);
+  const G = ST.gider.filter(g=>!g.iptal && g.t>=a && g.t<b); const gider = G.reduce((s,g)=>s+g.tutar,0);
+  const kat = {}; G.forEach(g=>kat[g.kat]=(kat[g.kat]||0)+g.tutar);
+  const ayS = Math.max(1, Math.round((Math.min(b,NOW())-a)/(30.4*GUN)));
+  const bt = ST.ayar.butce||{};
+  const butce = Object.keys(GKAT).filter(k=>bt[k]||kat[k]).map(k=>{ const bb = (bt[k]||0)*ayS, g = kat[k]||0; return {k, b:bb, g, f: bb ? g/bb : null}; });
+  const yillik = gider/ayS*12*(1+RP.artis/100);
+  const aidatTop = ST.daire.reduce((s,d)=>s+(d.aidat||0),0);
+  const carpan = aidatTop ? (yillik/12)/aidatTop : null;
+  const o = ozet();
+  $("#main").innerHTML = `
+  <div class="arac"><div class="seg">${[["yil","Bu yıl"],["son12","Son 12 ay"],["son6","Son 6 ay"]].map(([k,x])=>`<button aria-pressed="${RP.donem===k}" data-donem="${k}">${x}</button>`).join("")}</div></div>
+  <div class="grid g2">
+    <div class="card"><h2>Genel kurul raporu · ${ad}</h2>
+      <div class="adim"><div><b class="ok">${tl(gelir)}</b><span>Tahsilat</span></div><div><b class="warn">${tl(gider)}</b><span>Gider</span></div><div><b>${tl(o.kasa)}</b><span>Kasa (bugün)</span></div><div><b class="bad">${tl(o.alacak)}</b><span>Alacak</span></div></div>
+      <div class="arac"><button class="btn" data-act="yazdir">🖨️ Raporu PDF olarak al</button><button class="btn ikincil" data-act="csvBakiye">⬇ Daire bakiyeleri (Excel)</button><button class="btn ikincil" data-act="csvGider">⬇ Giderler (Excel)</button></div></div>
+    <div class="card"><h2>Yeni dönem işletme projesi taslağı</h2>
+      <label style="font-weight:600;font-size:13.5px">Beklenen fiyat artışı: <b>%${RP.artis}</b>
+        <input type="range" id="artis" min="0" max="80" value="${RP.artis}" style="width:100%;accent-color:var(--accent)"></label>
+      <div class="adim" style="margin-top:12px"><div><b>${tl(yillik)}</b><span>Gelecek yıl tahmini gider</span></div><div><b class="acc">${carpan?`%${Math.round((carpan-1)*100)}`:"—"}</b><span>Gereken aidat değişimi</span></div></div>
+      <p class="note">${carpan?`Şu an aylık toplam aidat ${tl(aidatTop)}. Giderleri karşılamak için aylık ${tl(yillik/12)} gerekir.`:"Daire aidat tutarları girilince hesaplanır."} Tahmin, seçili dönemin gerçek giderlerinden yapılır. İşletme projesi genel kurulda onaylanır.</p></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h2>Bütçe ile gerçekleşen · ${ad} <span class="r"><a href="#" data-git="ayar" style="color:var(--accent);font-size:13px">Aylık bütçeyi düzenle →</a></span></h2>
+    ${butce.length?`<div class="tblwrap"><table class="tbl"><thead><tr><th>Kalem</th><th class="num">Bütçe</th><th class="num">Harcanan</th><th style="width:34%">Durum</th></tr></thead><tbody>
+    ${butce.map(x=>`<tr><td><b>${GKAT[x.k].ad}</b></td><td class="num">${x.b?tl(x.b):"—"}</td><td class="num">${tl(x.g)}</td>
+      <td>${x.f===null?`<span class="mut" style="font-size:12.5px">Bütçe girilmedi</span>`:`<div class="meter"><i style="width:${Math.min(100,x.f*100)}%;background:${x.f>1.05?"var(--bad)":x.f>.98?"var(--warn)":"var(--ok)"}"></i></div><span style="font-size:12px;font-weight:700" class="${x.f>1.05?"bad":x.f>.98?"warn":"ok"}">%${Math.round(x.f*100)}</span>`}</td></tr>`).join("")}
+    </tbody></table></div>`:`<p class="mut">Bu dönemde gider yok.</p>`}</div>`;
+}
+function yazdirHtml(html){ $("#yazdir").innerHTML = html; setTimeout(()=>print(), 60); }
+function raporYazdir(){
+  const [a,b,ad] = donemAralik(); const o = ozet();
+  const aylar = []; for (let t = a; t < Math.min(b, NOW()+GUN); ){ const d = new Date(t); const s = new Date(d.getFullYear(), d.getMonth(), 1).getTime(), e = new Date(d.getFullYear(), d.getMonth()+1, 1).getTime();
+    const gel = ST.daire.reduce((x,dd)=>x+(dd.har||[]).filter(h=>!h.iptal && h.tip==="ode" && h.t>=s && h.t<e).reduce((q,h)=>q+h.tutar,0),0);
+    const gid = ST.gider.filter(g=>!g.iptal && g.t>=s && g.t<e).reduce((q,g)=>q+g.tutar,0); aylar.push([`${AY[d.getMonth()]} ${d.getFullYear()}`, gel, gid]); t = e; }
+  const kat = {}; ST.gider.filter(g=>!g.iptal && g.t>=a && g.t<b).forEach(g=>kat[g.kat]=(kat[g.kat]||0)+g.tutar);
+  const borclu = [...o.borclu].sort((x,y)=>y.h.toplam-x.h.toplam);
+  const tg = aylar.reduce((s,x)=>s+x[1],0), tgd = aylar.reduce((s,x)=>s+x[2],0);
+  yazdirHtml(`<h1>${esc(ST.ayar.siteAd)} · Yönetim Hesap Raporu</h1><div>Dönem: ${ad} · Hazırlanma: ${tarih(NOW())}</div>
+    <h2>Özet</h2><table><tr><td>Dönem tahsilatı</td><td class="num">${tl(tg)}</td></tr><tr><td>Dönem gideri</td><td class="num">${tl(tgd)}</td></tr><tr><td><b>Kasa (bugün)</b></td><td class="num"><b>${tl(o.kasa)}</b></td></tr><tr><td>Toplam alacak (${o.borclu.length} daire gecikmede)</td><td class="num">${tl(o.alacak)}</td></tr></table>
+    <h2>Aylık gelir – gider</h2><table><tr><th>Ay</th><th class="num">Tahsilat</th><th class="num">Gider</th><th class="num">Fark</th></tr>${aylar.map(x=>`<tr><td>${x[0]}</td><td class="num">${tl(x[1])}</td><td class="num">${tl(x[2])}</td><td class="num">${tl(x[1]-x[2])}</td></tr>`).join("")}</table>
+    <h2>Gider kalemleri</h2><table>${Object.entries(kat).sort((x,y)=>y[1]-x[1]).map(([k,v])=>`<tr><td>${(GKAT[k]||GKAT.diger).ad}</td><td class="num">${tl(v)}</td></tr>`).join("")}</table>
+    <h2>Geciken daireler</h2><table><tr><th>Daire</th><th class="num">Bakiye</th></tr>${borclu.map(({d,h})=>`<tr><td>${esc(daireAd(d))}</td><td class="num">${tl(h.toplam)}</td></tr>`).join("")}</table>
+    <p style="margin-top:30px">Yönetim Kurulu &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Denetim Kurulu</p>`);
+}
+function makbuzYazdir(did, hid){
+  const d = ST.daire.find(x=>x.id===did), o = (d.har||[]).find(h=>h.id===hid);
+  const no = "MK-" + String(o.ts||o.t).slice(-7);
+  yazdirHtml(`<div class="makbuz"><h1>Tahsilat Makbuzu</h1><div>${esc(ST.ayar.siteAd)} Site Yönetimi · No: ${no}</div>
+    <table style="margin-top:12px"><tr><td>Daire</td><td><b>${esc(d.blok)} Blok · No ${esc(d.no)}</b></td></tr><tr><td>Ödeyen</td><td>${esc(d.ad||"")}</td></tr><tr><td>Tarih</td><td>${tarih(o.t)}</td></tr><tr><td>Kanal</td><td>${esc(o.kanal||"")}</td></tr><tr><td>Açıklama</td><td>${esc(o.acik||"")}</td></tr><tr><td>Tutar</td><td><b>${tl2(o.tutar)}</b></td></tr><tr><td>Kalan bakiye</td><td>${tl(hesap(d).toplam)}</td></tr></table>
+    <p style="margin-top:28px">Teslim alan: ____________________</p></div>`);
+}
+function csvIndir(ad, satirlar){
+  const metin = "\uFEFF" + satirlar.map(r=>r.map(x=>{ const s = String(x ?? ""); return /[;"\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; }).join(";")).join("\r\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([metin], {type:"text/csv;charset=utf-8"})); a.download = ad; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+const sayiTr = n => (Math.round((n||0)*100)/100).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:false});
+
+/* ---------- AYARLAR ---------- */
+function vAyar(){
+  const A = ST.ayar, bt = A.butce||{};
+  $("#main").innerHTML = `
+  <div class="grid g2">
+    <div class="card"><h2>Site ve banka</h2><form class="form" id="aForm">
+      <label class="tam">Site adı<input class="inp" id="aSite" value="${esc(A.siteAd||"")}" maxlength="60"></label>
+      <label class="tam">IBAN (hatırlatma mesajlarında yazar)<input class="inp" id="aIban" value="${esc(A.iban||"")}" maxlength="40" placeholder="TR.."></label>
+      <label class="tam">Banka / hesap adı<input class="inp" id="aBanka" value="${esc(A.banka||"")}" maxlength="80"></label>
+      <label>Aidat vade günü<input class="inp" id="aVade" type="number" min="1" max="28" value="${A.vadeGun||10}"></label>
+      <label>Gecikme tazminatı (aylık %)<input class="inp" id="aGec" inputmode="decimal" value="${A.gecikme??5}"><span style="font-weight:500;font-size:12px">KMK md.20 üst sınır %5 · 0 = kapalı</span></label>
+      <label>Kasa devri (₺)<input class="inp" id="aDevir" inputmode="decimal" value="${A.devir||0}"><span style="font-weight:500;font-size:12px">Başlangıç günü kasada/bankada olan para</span></label>
+      <label>Devir tarihi<input class="inp" id="aDevirT" type="date" value="${isoGun(A.devirT||NOW())}"></label>
+      <div class="tam"><button class="btn" type="submit">Kaydet</button></div></form></div>
+    <div class="card"><h2>Aylık bütçe (gider kalemleri)</h2><form class="form" id="bForm">
+      ${Object.entries(GKAT).map(([k,v])=>`<label>${v.ad}<input class="inp" data-bt="${k}" inputmode="decimal" value="${bt[k]||""}" placeholder="0"></label>`).join("")}
+      <div class="tam"><button class="btn" type="submit">Bütçeyi kaydet</button></div></form></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h2>Yedek</h2>
+    <p style="margin:0 0 10px">Tüm muhasebe verisini (daireler, hareketler, giderler, ayarlar) tek dosya olarak indirir. Ayda bir indirip saklayın.</p>
+    <button class="btn ikincil" data-act="yedek">⬇ Yedeği indir</button>
+    <p class="note">${ST.daire.length} daire · ${ST.daire.reduce((s,d)=>s+(d.har||[]).length,0)} hareket · ${ST.gider.length} gider kaydı</p></div>`;
+  $("#aForm").onsubmit = async e => { e.preventDefault();
+    const g = Math.max(0, Math.min(5, sayi($("#aGec").value)||0));
+    try { await DB.ayarYaz({siteAd:$("#aSite").value.trim(), iban:$("#aIban").value.trim().toUpperCase(), banka:$("#aBanka").value.trim(), vadeGun:Math.max(1,Math.min(28,+$("#aVade").value||10)), gecikme:g, devir:sayi($("#aDevir").value)||0, devirT:gunTs($("#aDevirT").value)}); toast("✓ Ayarlar kaydedildi"); } catch(err){ hata(err); } };
+  $("#bForm").onsubmit = async e => { e.preventDefault(); const b = {}; document.querySelectorAll("[data-bt]").forEach(i=>{ const v = sayi(i.value); if (v>0) b[i.dataset.bt] = v; });
+    try { await DB.ayarYaz({butce:b}); toast("✓ Bütçe kaydedildi"); } catch(err){ hata(err); } };
+}
+
+/* ---------- olaylar ---------- */
+function hata(err){ console.error(err); toast(err && err.code==="permission-denied" ? "Yetki yok: Firebase kuralına muhasebe bölümü eklenmeli" : "Kaydedilemedi: " + (err && (err.code||err.message) || "bağlantı")); }
+document.addEventListener("click", async e => {
+  const t = e.target.closest("[data-act],[data-daire],[data-blok],[data-filtre],[data-git],[data-makbuz],[data-hatir],[data-bag],[data-iptal],[data-duzenle],[data-sil],[data-ice],[data-gduz],[data-giptal],[data-donem],[data-bcoz]");
+  if (!t) return;
+  if (t.dataset.git){ e.preventDefault(); kapat(); git(t.dataset.git); return; }
+  if (t.dataset.daire){ daireModal(t.dataset.daire); return; }
+  if (t.dataset.blok){ DF = {ara:"", blok:t.dataset.blok, filtre:"hepsi"}; git("daire"); return; }
+  if (t.dataset.filtre){ DF.filtre = t.dataset.filtre; vDaire(); return; }
+  if (t.dataset.donem){ RP.donem = t.dataset.donem; vRapor(); return; }
+  if (t.dataset.makbuz){ e.preventDefault(); const [a,b] = t.dataset.makbuz.split("|"); makbuzYazdir(a,b); return; }
+  if (t.dataset.iptal){ e.preventDefault(); const [a,b] = t.dataset.iptal.split("|"); iptalForm(a,b); return; }
+  if (t.dataset.duzenle){ e.preventDefault(); daireDuzenle(t.dataset.duzenle); return; }
+  if (t.dataset.ice){ iceAktarModal(t.dataset.ice); return; }
+  if (t.dataset.gduz){ e.preventDefault(); giderForm(t.dataset.gduz); return; }
+  if (t.dataset.giptal){ e.preventDefault(); giderIptal(t.dataset.giptal); return; }
+  if (t.dataset.bcoz){ e.preventDefault(); const r = BNK.satir[+t.dataset.bcoz]; r.durum = "bak"; r.adaylar = [r.daire]; r.neden = "Elle değiştiriliyor"; vBanka(); return; }
+  if (t.dataset.sil){ if (!confirm("Bu daire silinsin mi?")) return; try { await DB.daireSil(t.dataset.sil); toast("Daire silindi"); kapat(); } catch(err){ hata(err); } return; }
+  if (t.dataset.hatir){ const d = ST.daire.find(x=>x.id===t.dataset.hatir); const n = waNo(d.tel); open(`https://wa.me/${n.length>=11?n:""}?text=` + encodeURIComponent(hatirMetin(d)), "_blank"); return; }
+  if (t.dataset.bag){ GF.ac[t.dataset.bag] = !GF.ac[t.dataset.bag]; vGider(); return; }
+  const a = t.dataset.act;
+  if (a==="kapat") kapat();
+  else if (a==="iceAktar") iceAktarModal();
+  else if (a==="iceKaydet") iceKaydet();
+  else if (a==="odemeForm") hareketForm(t.dataset.id, "ode");
+  else if (a==="duzForm") hareketForm(t.dataset.id, "duz");
+  else if (a==="giderForm") giderForm(null);
+  else if (a==="bankaOku"){ const L = bankaCoz($("#bnkMetin").value); if (!L.length){ toast("Okunabilir hareket bulunamadı. Tarih ve tutar sütunları olmalı."); return; } BNK = {satir: eslestir(L)}; vBanka(); }
+  else if (a==="bankaSifir"){ BNK = null; vBanka(); }
+  else if (a==="bankaIsle") bankaIsle();
+  else if (a==="tahakkuk"){
+    const k = $("#tahAy").value, [y,m] = k.split("-").map(Number), vade = new Date(y, m-1, ST.ayar.vadeGun||10, 12).getTime();
+    const L = ST.daire.filter(d=>d.aidat>0 && !(d.har||[]).some(h=>!h.iptal && h.tip==="tah" && h.ay===k));
+    if (!L.length){ toast("Yazılacak aidat yok"); return; }
+    if (!confirm(`${ayAd(k)} için ${L.length} daireye toplam ${tl(L.reduce((s,d)=>s+d.aidat,0))} aidat yazılsın mı?`)) return;
+    t.disabled = true; t.textContent = "Yazılıyor…";
+    try { await DB.topluHareket(L.map(d=>[d.id, {id:yeniId(), tip:"tah", ay:k, tutar:d.aidat, t:new Date(y,m-1,1,12).getTime(), vade, acik:`${ayAd(k)} aidatı`, ts:NOW(), by:ST.kim}])); toast(`✓ ${L.length} daireye ${ayAd(k)} aidatı yazıldı`); }
+    catch(err){ hata(err); } t.disabled = false; t.textContent = "Aidatları oluştur"; tahOnizle();
+  }
+  else if (a==="topluHatir"){
+    const o = ozet(); const L = [...o.borclu].sort((x,y)=>y.h.toplam-x.h.toplam);
+    modal(`<div class="bas"><h3>Borç hatırlatmaları · ${L.length} daire</h3><button class="ibtn" data-act="kapat">✕</button></div>
+      <p class="note" style="margin:0 0 12px">Her daireye kendi borcunu yazan kişisel mesaj. Telefonu kayıtlıysa doğrudan o kişiye açılır.</p>
+      <div class="tblwrap"><table class="tbl"><tbody>${L.map(({d,h})=>`<tr><td><b>${esc(daireAd(d))}</b><div style="font-size:12.5px;color:var(--muted)">${esc(d.ad||"")}${d.tel?"":" · telefon yok"}</div></td><td class="num"><b>${tl(h.toplam)}</b></td><td class="num"><button class="btn kucuk" data-hatir="${d.id}">Gönder</button></td></tr>`).join("")}</tbody></table></div>`);
+  }
+  else if (a==="yazdir") raporYazdir();
+  else if (a==="csvBakiye"){ const o = ozet(); csvIndir(`daire-bakiyeleri-${isoGun(NOW())}.csv`, [["Blok","Daire","Ad Soyad","Telefon","Aylık aidat","Anapara","Gecikme tazminatı","Toplam bakiye","Durum"], ...o.H.sort((x,y)=>sirala(x.d,y.d)).map(({d,h})=>[d.blok,d.no,d.ad||"",d.tel||"",sayiTr(d.aidat),sayiTr(h.anapara),sayiTr(h.gec),sayiTr(h.toplam),durumEt(h)[0]])]); }
+  else if (a==="csvGider"){ const [x,y] = donemAralik(); csvIndir(`giderler-${isoGun(NOW())}.csv`, [["Tarih","Kategori","Açıklama","Tutar","Belge","Bağlantılı kayıt","Durum"], ...ST.gider.filter(g=>g.t>=x && g.t<y).sort((p,q)=>p.t-q.t).map(g=>[kTarih(g.t),(GKAT[g.kat]||GKAT.diger).ad,g.aciklama,sayiTr(g.tutar),g.belge||"",(g.bag||[]).map(b=>b.metin).join(" | "),g.iptal?"İptal":""])]); }
+  else if (a==="yedek"){ const v = JSON.stringify({surum:1, tarih:new Date().toISOString(), ayar:ST.ayar, daireler:ST.daire, giderler:ST.gider}, null, 1);
+    const el = document.createElement("a"); el.href = URL.createObjectURL(new Blob([v],{type:"application/json"})); el.download = `muhasebe-yedek-${isoGun(NOW())}.json`; el.click(); }
+});
+document.addEventListener("input", e => {
+  if (e.target.id==="ara"){ DF.ara = e.target.value; const pos = e.target.selectionStart; ({daire:vDaire})[AKTIF]?.(); const i = $("#ara"); if (i){ i.focus(); i.setSelectionRange(pos,pos); } }
+  if (e.target.id==="artis"){ RP.artis = +e.target.value; vRapor(); $("#artis").focus(); }
+});
+document.addEventListener("change", async e => {
+  if (e.target.id==="blokSec"){ DF.blok = e.target.value; vDaire(); }
+  if (e.target.id==="tahAy") tahOnizle();
+  if (e.target.id==="gAy"){ GF.ay = e.target.value; vGider(); }
+  if (e.target.dataset.bsec){ const r = BNK.satir[+e.target.dataset.bsec]; if (e.target.value){ r.durum = "eslesti"; r.daire = e.target.value; r.puan = 100; r.neden = "Sizin seçiminiz"; vBanka(); } }
+  if (e.target.dataset.gsec){ BNK.satir[+e.target.dataset.gsec].sec = e.target.checked; vBanka(); }
+  if (e.target.dataset.gkat){ BNK.satir[+e.target.dataset.gkat].kat = e.target.value; }
+  if (e.target.id==="bnkDosya" && e.target.files[0]){ const f = e.target.files[0]; let m = await f.text(); if (m.includes("\uFFFD")) m = new TextDecoder("windows-1254").decode(await f.arrayBuffer()); $("#bnkMetin").value = m; document.querySelector('[data-act="bankaOku"]').click(); }
+});
+$("#temaBtn").onclick = () => { const r = document.documentElement; const koyu = r.dataset.theme ? r.dataset.theme==="dark" : matchMedia("(prefers-color-scheme: dark)").matches; r.dataset.theme = koyu ? "light" : "dark"; try { localStorage.setItem("muh-tema", r.dataset.theme); } catch(_){} ciz(); };
+try { const tm = localStorage.getItem("muh-tema"); if (tm) document.documentElement.dataset.theme = tm; } catch(_){}
+
+/* ================= veri katmanı ================= */
+function guncelle(){ $("#siteAd").textContent = `${ST.ayar.siteAd||"Site"} · ${ST.daire.length} daire`; cizGec(); }
+const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı / kilit",p_asansor:"Asansör",p_su:"Su / tesisat",p_hasar:"Kırık / hasar",p_bahce:"Bahçe / çevre",p_temiz:"Temizlik / koku",p_diger:"Diğer",p_tasinma:"Taşınma / tadilat"};
+const TES_AD = {ariza:"Asansör arızası", bakim:"Asansör bakımı", pompa:"Hidrofor pompa", kesinti:"Elektrik kesintisi", yakit:"Jeneratör yakıt", yangin:"Yangın ekipmanı", tank:"Hidrofor tankı"};
+function teknikMetin(tip, k){
+  if (tip==="ariza"){ const yer = k.block ? `${k.block}${k.kat?" "+k.kat:""}${k.flat?" D"+k.flat:""}` : (k.alan||"Ortak alan");
+    return `${kTarih(k.createdAt||0)} · ${yer} · ${PKAT_AD[k.cat] || (k.src==="personel"?"Personel bildirimi":"Daire arızası")}${k.desc?": "+String(k.desc).slice(0,70):""}${k.status==="tamamlandi"?" ✓":""}`; }
+  return `${kTarih(k.ts||0)} · ${TES_AD[k.tur]||k.tur} · ${k.ekipman||""}${k.not?": "+String(k.not).slice(0,60):""}${k.olay?" ("+k.olay+")":""}`;
+}
+
+async function canli(){
+  const cfg = window.FB_CONFIG;
+  const V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
+  const [app, fs, au] = await Promise.all([import(U+"firebase-app.js"), import(U+"firebase-firestore.js"), import(U+"firebase-auth.js")]);
+  const ap = app.initializeApp(cfg), db = fs.getFirestore(ap), auth = au.getAuth(ap);
+  const izinli = e => (window.FB_TEKNISYEN||[]).map(x=>x.toLowerCase()).includes((e||"").toLowerCase());
+  const cD = fs.collection(db,"muhasebe","veri","daireler"), cG = fs.collection(db,"muhasebe","veri","giderler"), rA = fs.doc(db,"muhasebe","ayar");
+  DB = {
+    async daireYaz(L){ for (let i=0;i<L.length;i+=400){ const b = fs.writeBatch(db); L.slice(i,i+400).forEach(({id,...v})=>b.set(fs.doc(cD,id), v, {merge:true})); await b.commit(); } },
+    async daireSil(id){ await fs.deleteDoc(fs.doc(cD,id)); },
+    async hareketEkle(id, H){ await fs.updateDoc(fs.doc(cD,id), {har: fs.arrayUnion(...H)}); },
+    async topluHareket(L){ const grup = {}; L.forEach(([id,h])=>(grup[id] ||= []).push(h)); const E = Object.entries(grup);
+      for (let i=0;i<E.length;i+=400){ const b = fs.writeBatch(db); E.slice(i,i+400).forEach(([id,H])=>b.update(fs.doc(cD,id), {har: fs.arrayUnion(...H)})); await b.commit(); } },
+    async hareketIptal(id, hid, not){ await fs.runTransaction(db, async tx => { const r = fs.doc(cD,id); const s = await tx.get(r); const har = (s.data().har||[]).map(h=>h.id===hid ? {...h, iptal:true, iptalNot:not, iptalTs:Date.now(), iptalBy:ST.kim} : h); tx.update(r, {har}); }); },
+    async giderEkle(g){ await fs.addDoc(cG, g); },
+    async giderGuncelle(id, v){ await fs.updateDoc(fs.doc(cG,id), v); },
+    async ayarYaz(v){ await fs.setDoc(rA, v, {merge:true}); },
+    async teknikKayitlar(){ const sinir = Date.now() - 90*GUN;
+      const [ap1, ts1] = await Promise.all([ fs.getDocs(fs.query(fs.collection(db,"appointments"), fs.where("createdAt",">=",sinir))), fs.getDocs(fs.query(fs.collection(db,"tesis"), fs.where("ts",">=",sinir))) ]);
+      const A = ap1.docs.map(d=>({id:d.id, ...d.data()})).filter(k=>k.status!=="iptal" && k.cat!=="p_gelemiyorum").sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).map(k=>({tip:"ariza", id:k.id, metin:teknikMetin("ariza",k)}));
+      const T = ts1.docs.map(d=>({id:d.id, ...d.data()})).filter(k=>["ariza","pompa","bakim","yakit","yangin","tank"].includes(k.tur)).sort((a,b)=>(b.ts||0)-(a.ts||0)).map(k=>({tip:"tesis", id:k.id, metin:teknikMetin("tesis",k)}));
+      return [...A, ...T]; }
+  };
+  $("#girisForm").onsubmit = async e => { e.preventDefault(); $("#gHata").textContent = "";
+    try { await au.signInWithEmailAndPassword(auth, $("#gEmail").value.trim(), $("#gSifre").value); } catch(_){ $("#gHata").textContent = "E-posta veya şifre hatalı."; } };
+  let unsub = [];
+  au.onAuthStateChanged(auth, u => {
+    unsub.forEach(f=>f()); unsub = [];
+    if (!u || u.isAnonymous || !izinli(u.email)){ $("#app").hidden = true; $("#giris").hidden = false; if (u && !u.isAnonymous && !izinli(u.email)) $("#gHata").textContent = "Bu sayfa sadece teknisyen hesabı içindir."; return; }
+    ST.kim = u.email; $("#giris").hidden = true; $("#app").hidden = false; sekmeler(); ciz();
+    const hataDin = err => { console.error(err); $("#durum").textContent = err.code==="permission-denied" ? "⚠️ Kural eksik" : "⚠️ Bağlantı"; if (err.code==="permission-denied") toast("Firebase kuralına muhasebe bölümünü ekleyin"); };
+    unsub.push(fs.onSnapshot(rA, s=>{ if (s.exists()) ST.ayar = {...ST.ayar, ...s.data()}; ST.yuklendi.a = true; guncelle(); }, hataDin));
+    unsub.push(fs.onSnapshot(cD, s=>{ ST.daire = s.docs.map(d=>({id:d.id, har:[], ...d.data()})); ST.yuklendi.d = true; $("#durum").textContent = "● Canlı"; guncelle(); }, hataDin));
+    unsub.push(fs.onSnapshot(cG, s=>{ ST.gider = s.docs.map(d=>({id:d.id, bag:[], ...d.data()})); ST.yuklendi.g = true; guncelle(); }, hataDin));
+  });
+}
+/* Test için bellek katmanı (yalnızca FB_CONFIG yoksa) */
+function bellek(){
+  const yay = () => { ST.daire = ST.daire.map(d=>({...d})); guncelle(); };
+  DB = {
+    async daireYaz(L){ L.forEach(({id,...v})=>{ const d = ST.daire.find(x=>x.id===id); if (d) Object.assign(d, v); else ST.daire.push({id, har:[], ...v}); }); yay(); },
+    async daireSil(id){ ST.daire = ST.daire.filter(d=>d.id!==id); yay(); },
+    async hareketEkle(id, H){ const d = ST.daire.find(x=>x.id===id); d.har = [...(d.har||[]), ...H]; yay(); },
+    async topluHareket(L){ L.forEach(([id,h])=>{ const d = ST.daire.find(x=>x.id===id); d.har = [...(d.har||[]), h]; }); yay(); },
+    async hareketIptal(id, hid, not){ const d = ST.daire.find(x=>x.id===id); d.har = d.har.map(h=>h.id===hid ? {...h, iptal:true, iptalNot:not, iptalTs:Date.now()} : h); yay(); },
+    async giderEkle(g){ ST.gider.push({id:yeniId(), bag:[], ...g}); yay(); },
+    async giderGuncelle(id, v){ const g = ST.gider.find(x=>x.id===id); Object.assign(g, v); yay(); },
+    async ayarYaz(v){ ST.ayar = {...ST.ayar, ...v}; yay(); },
+    async teknikKayitlar(){ const t = Date.now(); return [
+      {tip:"ariza", id:"a1", metin:teknikMetin("ariza",{createdAt:t-3*GUN, block:"B3", cat:"p_asansor", src:"personel", desc:"Asansör 2 kapısı kapanmıyor"})},
+      {tip:"tesis", id:"t1", metin:teknikMetin("tesis",{ts:t-4*GUN, tur:"ariza", ekipman:"B3-2", not:"Kapı kartı arızası"})},
+      {tip:"tesis", id:"t2", metin:teknikMetin("tesis",{ts:t-9*GUN, tur:"pompa", ekipman:"H-C1C2:UP2", olay:"tamire"})} ]; }
+  };
+  $("#durum").textContent = "Test · bellek"; $("#giris").hidden = true; $("#app").hidden = false; sekmeler(); guncelle();
+}
+const h0 = location.hash.slice(1); if (SEKME.some(([k])=>k===h0)) AKTIF = h0;
+window.__MUH = {ST, hesap, ozet, eslestir, bankaCoz, daireCoz, get DB(){ return DB; }};
+if (window.FB_CONFIG) canli().catch(e=>{ console.error(e); $("#giris").hidden = false; $("#gHata").textContent = "Bağlantı kurulamadı, sayfayı yenileyin."; });
+else bellek();
+</script>
+</body>
+</html>
