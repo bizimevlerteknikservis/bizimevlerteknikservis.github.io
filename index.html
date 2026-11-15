@@ -877,8 +877,9 @@ const yenidenEskiye = arr => arr.slice().sort((x,y) => (y.createdAt||0) - (x.cre
 
 function personelHazir(){
   const p = S.p;
-  const ariza = p.issues.length && (!(p.issues.length===1 && /^Diğer/.test(p.issues[0])) || p.desc.trim());
-  const yer = p.yerTip==="blok" ? (p.block && (p.kat || p.cat==="p_malzeme")) : !!p.alan;
+  const sesli = !!SES.sonuc;   // sesle bildirildiyse kat ve arıza maddesi zorunlu değil (söylenen cümle nota yazıldı)
+  const ariza = (p.issues.length && (!(p.issues.length===1 && /^Diğer/.test(p.issues[0])) || p.desc.trim())) || (sesli && p.desc.trim());
+  const yer = p.yerTip==="blok" ? (p.block && (p.kat || p.cat==="p_malzeme" || sesli)) : !!p.alan;
   return !!(p.name.trim() && p.rol && p.cat && ariza && yer);
 }
 /* Tek dokunuşla "uygulamayı yükle" (Android Chrome) */
@@ -1276,7 +1277,7 @@ function vPersonelIc(){
     </div>`}
     ${p.yerTip==="blok" ? `<div class="grid2">
         <label class="f">Blok<select id="p_block"><option value="">Seçin</option>${AYAR.bloklar.map(b => `<option ${p.block===b?"selected":""}>${esc(b)}</option>`).join("")}</select></label>
-        <label class="f">Kat${p.cat==="p_malzeme"?" (isteğe bağlı)":""}<select id="p_kat"><option value="">Seçin</option>${KATLAR.map(k => `<option ${p.kat===k?"selected":""}>${k}</option>`).join("")}</select></label>
+        <label class="f">Kat${p.cat==="p_malzeme" || SES.sonuc ?" (isteğe bağlı)":""}<select id="p_kat"><option value="">Seçin</option>${KATLAR.map(k => `<option ${p.kat===k?"selected":""}>${k}</option>`).join("")}</select></label>
       </div>`
     : `<label class="f">Alan<select id="p_alan"><option value="">Seçin</option>${ALANLAR.map(x => `<option ${p.alan===x?"selected":""}>${esc(x)}</option>`).join("")}</select></label>`}
     <label class="f note-l" for="p_desc">Kısa not <span>${p.issues.length===1&&/^Diğer/.test(p.issues[0])?"(gerekli)":"(isteğe bağlı)"}</span></label>
@@ -2743,7 +2744,7 @@ document.addEventListener("click", async e => {
     else if (act==="pCat"){ syncForm(); if (S.p.cat !== v) S.p.issues = []; S.p.cat = v; render(); }
     else if (act==="pIss"){ syncForm(); const L = S.p.issues; const i = L.indexOf(v); i < 0 ? L.push(v) : L.splice(i,1); render(); }
     else if (act==="pYer"){ syncForm(); S.p.yerTip = v; render(); }
-    else if (act==="pYeni"){ S.pSent = null; Object.assign(S.p, {cat:S.p.rol===BAHCIVAN?"p_bahce":null, issues:[], desc:"", foto:[]}); render(); scrollTo(0,0); }
+    else if (act==="pYeni"){ S.pSent = null; SES.sonuc = null; SES.metin = ""; Object.assign(S.p, {cat:S.p.rol===BAHCIVAN?"p_bahce":null, issues:[], desc:"", foto:[]}); render(); scrollTo(0,0); }
     else if (act==="kur"){ if (KUR){ KUR.prompt(); const r = await KUR.userChoice; KUR = null; render(); } }
     else if (act==="kodGir"){
       syncForm(); const kod = String(S.kodTaslak||"").replace(/\D/g,"");
@@ -2891,7 +2892,7 @@ document.addEventListener("click", async e => {
         const fotolar = p.foto.slice();
         S.pSent = await store.create({src:"personel", kod:p.kod, rol:p.rol, cat:p.cat, issues:p.issues.slice(), desc:aciklama, name:p.name.trim(), phone:"",
           block: blokIci ? p.block : "", kat: blokIci ? p.kat : "", alan: blokIci ? "" : p.alan, flat:"", fotoSayi: fotolar.length});
-        telegramBildir(S.pSent);
+        telegramBildir(S.pSent); SES.sonuc = null; SES.metin = "";
         for (let i = 0; i < fotolar.length; i++){
           try { await store.addFoto(S.pSent.id, i, fotolar[i], p.kod); } catch(e){ console.error(e); toast("Fotoğraf gönderilemedi"); }
           telegramFoto(fotolar[i], `📷 ${fisNo(S.pSent)} · ${catOf(S.pSent.cat).ad} · ${yerAd(S.pSent)}`);
