@@ -92,6 +92,7 @@ table.pt{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:10
 .c.uyar span{box-shadow:inset 0 0 0 2px var(--bad);border-radius:4px}
 .c i.ms{position:absolute;left:4px;right:4px;bottom:2px;height:3px;border-radius:2px;background:#2b7cd3}
 .c i.ms.eksik{background:#d9851b}
+.c i.ms.supheli{background:#d63a35;height:4px}
 .iste{background:var(--okbg);color:var(--ok);border-radius:14px;padding:10px 14px;font-size:13.5px;margin-bottom:12px}
 .iste small{opacity:.75}
 .k-X{color:var(--ink)}
@@ -160,6 +161,7 @@ table.pt{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:10
     <span style="flex:1"></span>
     <button class="ibtn" data-act="desen">⚙️ Vardiya düzeni</button>
     <button class="ibtn" data-act="kisiEkle">＋ Kişi</button>
+    <button class="ibtn" data-act="siteKonum" title="Giriş-çıkış konum kontrolü için site merkezini kaydet">📍 Site konumu</button>
     <button class="btn ikincil" data-act="excel">⬇ Excel</button>
     <button class="btn" data-act="paylas">📤 Muhasebeye gönder</button>
   </div>
@@ -294,17 +296,21 @@ function mesaiGun(k){
   const L = P.mesai.filter(r => msEslesir(k, r)).sort((a,b)=>a.ts-b.ts);
   const G = {}; let acik = null;
   const ekle = (d, o) => { const g = new Date(d); if (`${g.getFullYear()}-${pad(g.getMonth()+1)}` !== P.ay) return; (G[g.getDate()] ||= []).push(o); };
+  const sup = r => !r.konum ? "konum alınamadı" : (msUzak(r) > 400 ? `siteden ${msUzak(r) >= 1000 ? (msUzak(r)/1000).toFixed(1).replace(".",",")+" km" : msUzak(r)+" m"} uzakta` : "");
   L.forEach(r => {
-    if (r.tip==="giris"){ if (acik) ekle(acik.ts, {giris:acik.ts, cikis:null}); acik = r; }
-    else { if (acik && r.ts - acik.ts <= 18*36e5){ ekle(acik.ts, {giris:acik.ts, cikis:r.ts}); acik = null; } else ekle(r.ts, {giris:null, cikis:r.ts}); }
+    if (r.tip==="giris"){ if (acik) ekle(acik.ts, {giris:acik.ts, cikis:null, gs:sup(acik)}); acik = r; }
+    else { if (acik && r.ts - acik.ts <= 18*36e5){ ekle(acik.ts, {giris:acik.ts, cikis:r.ts, gs:sup(acik), cs:sup(r)}); acik = null; } else ekle(r.ts, {giris:null, cikis:r.ts, cs:sup(r)}); }
   });
-  if (acik) ekle(acik.ts, {giris:acik.ts, cikis:null, acik: Date.now() - acik.ts < 18*36e5});
+  if (acik) ekle(acik.ts, {giris:acik.ts, cikis:null, acik: Date.now() - acik.ts < 18*36e5, gs:sup(acik)});
   const ilk = L.length ? new Date(L[0].ts) : null;
   const sonuc = {G, ilk, var: L.length > 0}; MS_CACHE.set(key, sonuc); return sonuc;
 }
+function msUzak(r){ if (!r.konum) return null; const m = P.siteKonum; if (!m || !m.lat) return r.uzakM ?? 0;
+  const R = 6371000, q = x => x*Math.PI/180, dLa = q(m.lat-r.konum.lat), dLo = q(m.lng-r.konum.lng); const h = Math.sin(dLa/2)**2 + Math.cos(q(r.konum.lat))*Math.cos(q(m.lat))*Math.sin(dLo/2)**2; return Math.round(2*R*Math.asin(Math.sqrt(h))); }
+const msSupheli = o => !!(o.gs || o.cs);
 const saatKisa = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const msDk = o => o.giris && o.cikis ? Math.round((o.cikis - o.giris)/6e4) : 0;
-const msMetin = L => (L||[]).map(o => `🕘 ${o.giris ? "Giriş " + saatKisa(o.giris) : "Giriş yok"} · ${o.cikis ? "Çıkış " + saatKisa(o.cikis) : (o.acik ? "hâlâ işte" : "çıkış yok")}${msDk(o) ? ` (${Math.floor(msDk(o)/60)} sa ${msDk(o)%60} dk)` : ""}`).join("\n");
+const msMetin = L => (L||[]).map(o => `🕘 ${o.giris ? "Giriş " + saatKisa(o.giris) : "Giriş yok"} · ${o.cikis ? "Çıkış " + saatKisa(o.cikis) : (o.acik ? "hâlâ işte" : "çıkış yok")}${msDk(o) ? ` (${Math.floor(msDk(o)/60)} sa ${msDk(o)%60} dk)` : ""}${o.gs ? `\n⚠️ Giriş: ${o.gs}` : ""}${o.cs ? `\n⚠️ Çıkış: ${o.cs}` : ""}`).join("\n");
 const qrGun = (k, gi) => ((P.qr[anahtar(k.ad)]||{})[gi+1]) || 0;
 const kilitli = g => !!(((P.doc.onay||{})[g]||{}).mudur);
 
@@ -351,7 +357,7 @@ function ciz(){
       if (h.kod==="X" && tatil(d)) T.RTc++; if (q) T.QR++;
       const uyar = (q || (ms && ms.some(o=>o.giris))) && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod);
       const t = tatil(d), hs = d.getDay()===0||d.getDay()===6;
-      return `<td class="c k-${h.kod}${h.elle?" elle":""}${uyar?" uyar":""}${t?" tat":""}${ymd(d)===bugun?" bugun":""}" data-k="${esc(key)}" data-g="${i}" title="${esc(`${d.getDate()} ${AY[d.getMonth()]} · ${KODLAR[h.kod]?.ad||h.kod}\n${h.neden}${q?`\n✓ QR okuttu (${q})`:""}${ms?`\n${msMetin(ms)}`:""}`)}">${h.gece&&h.kod==="X"?`<i class="gece">☾</i>`:""}${q?`<i class="qr"></i>`:""}${ms?`<i class="ms${ms.some(o=>!o.giris||(!o.cikis&&!o.acik))?" eksik":""}"></i>`:""}<span>${h.kod}</span></td>`; }).join("");
+      return `<td class="c k-${h.kod}${h.elle?" elle":""}${uyar?" uyar":""}${t?" tat":""}${ymd(d)===bugun?" bugun":""}" data-k="${esc(key)}" data-g="${i}" title="${esc(`${d.getDate()} ${AY[d.getMonth()]} · ${KODLAR[h.kod]?.ad||h.kod}\n${h.neden}${q?`\n✓ QR okuttu (${q})`:""}${ms?`\n${msMetin(ms)}`:""}`)}">${h.gece&&h.kod==="X"?`<i class="gece">☾</i>`:""}${q?`<i class="qr"></i>`:""}${ms?`<i class="ms${ms.some(msSupheli)?" supheli":ms.some(o=>!o.giris||(!o.cikis&&!o.acik))?" eksik":""}"></i>`:""}<span>${h.kod}</span></td>`; }).join("");
     const kd = ((P.doc.kisi||{})[key]) || {};
     const z = v => `<td class="top${v?"":" zero"}">${v}</td>`;
     sat.push(`<tr><td class="ad"><a data-kisi="${esc(key)}"><b>${esc(k.ad)}${k.amir?" ⭐":""}</b><small>${esc(k.grup==="guvenlik"?(k.vardiya||""):k.grup==="bahce"?"Bahçe":k.grup==="diger"?"Diğer":"Temizlik")}</small></a></td>${hc}
@@ -362,7 +368,7 @@ function ciz(){
   });
   $("#tw").innerHTML = L.length ? `<table class="pt">${bas}<tbody>${sat.join("")}</tbody></table>` : `<div style="padding:30px;text-align:center" class="mut">Bu grupta kişi yok. "＋ Kişi" ile ekleyin.</div>`;
   $("#lej").innerHTML = Object.entries(KODLAR).map(([k,v])=>`<span><b class="k-${k}">${k}</b>${v.ad}</span>`).join("") +
-    `<span>☾ Gece vardiyası</span><span><i style="width:14px;height:4px;border-radius:2px;background:#2b7cd3;display:inline-block"></i> QR giriş-çıkış var</span><span><i style="width:14px;height:4px;border-radius:2px;background:#d9851b;display:inline-block"></i> Giriş/çıkış eksik</span>${P.grup==="guvenlik"?`<span><i style="width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block"></i> QR okuttu</span>`:""}<span><b style="text-decoration:underline">X</b> Elle değiştirildi</span><span>🇹🇷 Resmi tatil · ½ yarım gün</span>`;
+    `<span>☾ Gece vardiyası</span><span><i style="width:14px;height:4px;border-radius:2px;background:#2b7cd3;display:inline-block"></i> QR giriş-çıkış var</span><span><i style="width:14px;height:4px;border-radius:2px;background:#d9851b;display:inline-block"></i> Giriş/çıkış eksik</span><span><i style="width:14px;height:4px;border-radius:2px;background:#d63a35;display:inline-block"></i> Konum şüpheli</span>${P.grup==="guvenlik"?`<span><i style="width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block"></i> QR okuttu</span>`:""}<span><b style="text-decoration:underline">X</b> Elle değiştirildi</span><span>🇹🇷 Resmi tatil · ½ yarım gün</span>`;
   kontrolCiz(L, gunler);
 }
 function kontrolCiz(L, gunler){
@@ -371,6 +377,7 @@ function kontrolCiz(L, gunler){
   L.forEach(([key,k])=>{ const MSG = mesaiGun(k); gunler.forEach((d,i)=>{ const h = hucre(key, k, d, i); const ms = MSG.G[i+1];
     if (ms && ms.some(o=>o.giris) && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: puantajda <b>${h.kod}</b> ama <b>işe giriş yapmış</b> (${saatKisa(ms.find(o=>o.giris).giris)}). Çalıştıysa X yapın.`);
     if (MSG.var && MSG.ilk && h.kod==="X" && !ms && d < bugun0 && d >= new Date(MSG.ilk).setHours(0,0,0,0)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: puantajda X ama <b>giriş kaydı yok</b>. Gelmediyse D, izinliyse ilgili kodu seçin.`);
+    if (ms && ms.some(msSupheli)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: <b>şüpheli giriş-çıkış</b> · ${ms.filter(msSupheli).map(o=>[o.gs&&"giriş "+o.gs, o.cs&&"çıkış "+o.cs].filter(Boolean).join(", ")).join(" · ")}`);
     if (ms && ms.some(o=>o.giris && !o.cikis && !o.acik)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: giriş ${saatKisa(ms.find(o=>o.giris&&!o.cikis).giris)} var, <b>çıkış okutulmamış</b>.`);
     if (P.grup==="guvenlik"){ const q = qrGun(k, i); if (q && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: puantajda <b>${h.kod}</b> ama o gece <b>QR okutmuş</b> (${q}). Çalıştıysa X yapın, fazla mesaiyse FM'e yazın.`); }
     if (h.elle && h.oto && ["Yİ","R","Mİ","Üİ"].includes(h.oto) && h.kod==="X") M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: İzinler'de <b>${h.oto}</b> görünüyor ama elle X yapılmış.`);
@@ -484,7 +491,7 @@ function excelYap(g = P.grup){
     [""], ["Resmi tatiller", gunler.filter(d=>tatil(d)).map(d=>`${d.getDate()} ${AY[m-1]} ${tatil(d)}`).join(", ") || "Yok"]];
   const gen = [5, 24, 12, ...gunler.map(()=>5), 9, 8, 8, 7, 9, 9, 8, 10, 10, 10, 10, 24];
   const gc = [["Ad Soyad","Tarih","Giriş","Çıkış","Süre (saat)","Not"]];
-  L.forEach(([key,k]) => { const G = mesaiGun(k).G; Object.keys(G).map(Number).sort((a,b)=>a-b).forEach(g => G[g].forEach(o => gc.push([k.ad, `${g} ${AY[m-1]} ${y}`, o.giris ? saatKisa(o.giris) : "", o.cikis ? saatKisa(o.cikis) : "", msDk(o) ? Math.round(msDk(o)/6)/10 : "", !o.giris ? "Giriş okutulmamış" : !o.cikis ? (o.acik ? "Hâlâ işte" : "Çıkış okutulmamış") : ""]))); });
+  L.forEach(([key,k]) => { const G = mesaiGun(k).G; Object.keys(G).map(Number).sort((a,b)=>a-b).forEach(g => G[g].forEach(o => gc.push([k.ad, `${g} ${AY[m-1]} ${y}`, o.giris ? saatKisa(o.giris) : "", o.cikis ? saatKisa(o.cikis) : "", msDk(o) ? Math.round(msDk(o)/6)/10 : "", [!o.giris ? "Giriş okutulmamış" : !o.cikis ? (o.acik ? "Hâlâ işte" : "Çıkış okutulmamış") : "", o.gs ? "Giriş " + o.gs : "", o.cs ? "Çıkış " + o.cs : ""].filter(Boolean).join(" · ")]))); });
   const blob = XLSXW([["Puantaj", satirlar, gen, 0], ["Giriş-Çıkış", gc, [24, 16, 9, 9, 11, 22], 0], ["Bilgi", bilgi, [22, 60], -1]]);
   return {blob, ad:`puantaj-${y}-${pad(m)}-${g==="guvenlik"?"guvenlik":"temizlik"}.xlsx`};
 }
@@ -567,6 +574,14 @@ document.addEventListener("click", async e => {
   else if (a==="desen") desenModal();
   else if (a==="desenKaydet"){ try { await DB.ayarYaz({desen:DESEN_TASLAK, desenOnay:true}); P.ayar.desen = DESEN_TASLAK; P.ayar.desenOnay = true; toast("✓ Vardiya düzeni kaydedildi"); kapat(); ciz(); } catch(err){ hata(err); } }
   else if (a==="kisiEkle") kisiModal(null);
+  else if (a==="siteKonum"){
+    if (!(P.rol.tech || P.rol.tesis)){ toast("Site konumunu müdür ya da teknisyen kaydeder"); return; }
+    if (!confirm("Şu an sitenin ortasında mısınız? Bulunduğunuz yer, giriş-çıkışların kontrol edileceği site merkezi olarak kaydedilecek.")) return;
+    if (!navigator.geolocation){ toast("Bu cihazda konum yok"); return; }
+    navigator.geolocation.getCurrentPosition(async pz => { const v = {lat:+pz.coords.latitude.toFixed(6), lng:+pz.coords.longitude.toFixed(6), acc:Math.round(pz.coords.accuracy), ts:Date.now(), by:P.kim};
+      try { if (DB.konumYaz) await DB.konumYaz(v); P.siteKonum = v; MS_CACHE.clear(); ciz(); toast(`✓ Site konumu kaydedildi (±${v.acc} m)`); } catch(err){ hata(err); } },
+      () => toast("Konum alınamadı, konum iznini açın"), {enableHighAccuracy:true, timeout:10000});
+  }
   else if (a==="kisiCikar"){ if (!confirm("Bu kişi bu aydan sonra listede görünmesin mi? Geçmiş aylar etkilenmez.")) return; const K = kisiler(); K[t.dataset.k] = {...K[t.dataset.k], aktif:false, ayrilma:P.ay}; try { P.ayar.kisiler = K; await DB.ayarYaz({kisiler:K}); kapat(); ciz(); } catch(err){ hata(err); } }
   else if (a==="onay") onayla(t.dataset.v);
   else if (a==="kilitAc") kilitAc();
@@ -610,7 +625,9 @@ async function canli(){
     async ayYaz(ay, v){ await fs.setDoc(fs.doc(db,"puantaj",ay), v, {merge:true}); },
     async kilitAc(ay, g){ await fs.updateDoc(fs.doc(db,"puantaj",ay), {[`onay.${g}.mudur`]: fs.deleteField(), [`kesin.${g}`]: fs.deleteField(), son:{by:P.kim, ts:Date.now(), not:"kilit açıldı"}}); },
     async devriye(a, b){ return (await fs.getDocs(fs.query(fs.collection(db,"devriye"), fs.where("ts",">=",a), fs.where("ts","<",b)))).docs.map(d=>d.data()); },
-    async mesai(a, b){ return (await fs.getDocs(fs.query(fs.collection(db,"mesai"), fs.where("ts",">=",a), fs.where("ts","<",b)))).docs.map(d=>d.data()); }
+    async mesai(a, b){ return (await fs.getDocs(fs.query(fs.collection(db,"mesai"), fs.where("ts",">=",a), fs.where("ts","<",b)))).docs.map(d=>d.data()); },
+    konumDinle: cb => fs.onSnapshot(fs.doc(db,"duyuru","konum"), s => cb(s.exists() ? s.data() : null), e => cb(null)),
+    async konumYaz(v){ await fs.setDoc(fs.doc(db,"duyuru","konum"), v); }
   };
   $("#girisForm").onsubmit = async e => { e.preventDefault(); $("#gHata").textContent = "";
     try { await au.signInWithEmailAndPassword(auth, $("#gEmail").value.trim(), $("#gSifre").value); } catch(_){ $("#gHata").textContent = "E-posta veya şifre hatalı."; } };
@@ -629,6 +646,7 @@ async function canli(){
     DB.ayarDinle(v => { P.ayar = {kisiler:{}, desen:{}, ...v}; P.ayarGeldi = true; if (!POP) ciz(); });
     DB.izinDinle(L => { P.izin = L; if (!POP) ciz(); });
     DB.planDinle(v => { P.plan = planCoz(v); if (!POP) ciz(); });
+    if (DB.konumDinle) DB.konumDinle(v => { P.siteKonum = v; MS_CACHE.clear(); if (!POP) ciz(); });
     ayDinle();
   });
 }
@@ -651,11 +669,14 @@ function bellek(){
       for (let g=1; g<=Math.min(t.getDate(), 28); g++){ const d = new Date(t.getFullYear(), t.getMonth(), g); if (d.getDay()>=1 && d.getDay()<=5 && g!==9){ L.push({ad:"AYŞE", grup:"temizlik", tip:"giris", ts:sa(g,7,50+(g%7))}); if (g!==t.getDate()) L.push({ad:"AYŞE", grup:"temizlik", tip:"cikis", ts:sa(g,16,30+(g%9))}); } }
       L.push({ad:"Ali Vesek", grup:"guvenlik", tip:"giris", ts:sa(2,7,55)}); L.push({ad:"Ali Vesek", grup:"guvenlik", tip:"cikis", ts:sa(2,20,5)});
       L.push({ad:"Ali Vesek", grup:"guvenlik", tip:"giris", ts:sa(5,19,50)});
-      return L.filter(r=>r.ts>=a && r.ts<b); }
+      L.forEach(r => { r.konum = {lat:40.9932, lng:28.7181, acc:15}; });
+      const uz = L.find(r => r.ad==="AYŞE" && new Date(r.ts).getDate()===4 && r.tip==="giris"); if (uz) uz.konum = {lat:41.0150, lng:28.7600, acc:20};
+      return L.filter(r=>r.ts>=a && r.ts<b); },
+    konumDinle: cb => { cb({lat:40.9932, lng:28.7181}); return ()=>{}; }
   };
   P.rol = window.TEST_ROL || {tech:true, tesis:false, yon:false}; P.kim = "Test";
   $("#kimAd").textContent = "Test"; $("#giris").hidden = true; $("#app").hidden = false;
-  DB.ayarDinle(v=>{ P.ayar = {kisiler:{}, desen:{}, ...v}; ciz(); }); DB.izinDinle(L=>{ P.izin = L; }); DB.planDinle(v=>{ P.plan = planCoz(v); }); ayDinle();
+  DB.ayarDinle(v=>{ P.ayar = {kisiler:{}, desen:{}, ...v}; ciz(); }); DB.izinDinle(L=>{ P.izin = L; }); DB.planDinle(v=>{ P.plan = planCoz(v); }); DB.konumDinle(v=>{ P.siteKonum = v; }); ayDinle();
 }
 window.__PT = {P, oto, hucre, kisiler, excelYap};
 if (window.FB_CONFIG) canli().catch(e=>{ console.error(e); $("#giris").hidden = false; $("#gHata").textContent = "Bağlantı kurulamadı, sayfayı yenileyin."; });

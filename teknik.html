@@ -664,6 +664,7 @@ function DemoStore(){
     async setDuyuru(v){ mem.duyuru = v; save(); },
     listenGorev: cb => sub(() => cb((mem.gorev ||= []).filter(g => g.ts > Date.now() - 10*864e5 || g.tur==="talimat"))),
     async mesaiEkle(o){ (mem.mesai ||= []).push({id:"m"+Date.now().toString(36), uid:mem.uid, ...o}); save(); },
+    async getSiteKonum(){ return mem.siteKonum || null; },
     listenMesaiBen: cb => sub(() => cb((mem.mesai||[]).filter(m => m.uid===mem.uid && m.ts > Date.now() - 2*864e5))),
     async gorevEkle(o){ (mem.gorev ||= []).push({id:"g"+Date.now().toString(36)+Math.random().toString(36).slice(2,5), ...o}); save(); },
     async gorevGuncelle(id, p){ const g = (mem.gorev||[]).find(x=>x.id===id); if (g) for (const [k,v] of Object.entries(p)){ if (k.includes(".")){ const [a,b2] = k.split("."); (g[a] ||= {})[b2] = v; } else g[k] = v; } save(); },
@@ -752,6 +753,7 @@ function FirebaseStore(cfg){
       return () => { u1(); u2(); }; },
     async gorevEkle(o){ await fs.addDoc(fs.collection(db,"gorev"), {...o, uid:user.uid}); },
     async mesaiEkle(o){ await fs.addDoc(fs.collection(db,"mesai"), {...o, uid:user.uid}); },
+    async getSiteKonum(){ if (this._sk !== undefined) return this._sk; try { const s = await fs.getDoc(fs.doc(db,"duyuru","konum")); this._sk = s.exists() ? s.data() : null; } catch(e){ this._sk = null; } return this._sk; },
     listenMesaiBen(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"mesai"), fs.where("uid","==",user.uid)), s => cb(s.docs.map(d=>({id:d.id, ...d.data()})).filter(m => m.ts > Date.now() - 2*864e5)), e => { console.warn("mesai", e && e.code); cb([]); }); },
     async gorevGuncelle(id, p){ await fs.updateDoc(fs.doc(db,"gorev",id), p); },
     listenDizin(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","personel"), s => cb(s.exists() ? s.data() : null), e => cb(null)); },
@@ -1413,12 +1415,18 @@ function mesaiBen(){
 }
 function mesaiBaslat(){ if (!MS.un && store.listenMesaiBen) MS.un = store.listenMesaiBen(L => { MS.liste = L.sort((a,b)=>b.ts-a.ts); if (["personel","devriye"].includes(S.view)) setTimeout(render,0); }); }
 const mesaiSon = () => MS.liste[0] || null;
+function mesafeM(a, b){ const R = 6371000, r = x => x*Math.PI/180, dLa = r(b.lat-a.lat), dLo = r(b.lng-a.lng); const h = Math.sin(dLa/2)**2 + Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLo/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
 const mesaiIcerde = () => { const s = mesaiSon(); return !!(s && s.tip==="giris" && Date.now() - s.ts < 18*36e5); };
 function mesaiKart(){
   const ben = mesaiBen(); if (!ben) return ""; mesaiBaslat();
   const s = mesaiSon(), ic = mesaiIcerde();
   const durum = ic ? `🟢 İştesiniz · giriş ${saatYaz(s.ts)} (${sureYaz(Math.round((Date.now()-s.ts)/6e4))})` : s && s.tip==="cikis" && Date.now()-s.ts < 16*36e5 ? `⚪ Çıkış yaptınız · ${saatYaz(s.ts)}` : "⚪ Bugün henüz giriş yapmadınız";
   return `<section class="mesai-kart${ic?" ic":""}"><div><b>🕘 Mesai</b><small>${durum}</small></div><button class="cta${ic?" ghost":""}" data-act="mesaiQr">${ic ? "Çıkış · QR okut" : "Giriş · QR okut"}</button></section>`;
+}
+function mesaiLinkUyari(){
+  let d = document.getElementById("mesaiModal"); if (!d){ d = document.createElement("div"); d.id = "mesaiModal"; d.className = "mesai-modal"; document.body.appendChild(d); }
+  d.innerHTML = `<div class="mesai-ic"><h3>🕘 Giriş / çıkış</h3><p>Güvenlik için giriş-çıkış sadece uygulamanın içinden, kamerayla okutularak yapılır.</p><button class="cta" data-act="mesaiQrAc">📷 Kamerayı aç, QR'ı okut</button><button class="pill-btn" data-act="mesaiKapat" style="margin-top:10px">Vazgeç</button></div>`;
+  d.hidden = false;
 }
 function mesaiAc(nokta){
   const ben = mesaiBen();
@@ -1434,12 +1442,16 @@ function mesaiAc(nokta){
 }
 async function mesaiKaydet(tip, nokta){
   const ben = mesaiBen(); if (!ben || MS.kayit) return; MS.kayit = true;
-  const o = {ad:ben.ad, kod:ben.kod, grup:ben.grup, tip, nokta, ts:Date.now()};
   const d = document.getElementById("mesaiModal");
+  if (d) d.querySelectorAll("button").forEach(x => x.disabled = true);
+  const konum = await konumAl();
+  const o = {ad:ben.ad, kod:ben.kod, grup:ben.grup, tip, nokta, ts:Date.now(), konum: konum || null};
+  if (konum && store.getSiteKonum){ try { const m = await store.getSiteKonum(); if (m && m.lat){ o.uzakM = Math.round(mesafeM(konum, m)); } } catch(e){} }
   try { await store.mesaiEkle(o); MS.liste.unshift(o);
-    if (d) d.innerHTML = `<div class="mesai-ic"><div style="font-size:54px">${tip==="giris"?"✅":"🏁"}</div><h3>${tip==="giris"?"Giriş kaydedildi":"Çıkış kaydedildi"}</h3><div class="mesai-saat">${saatYaz(o.ts)}</div><p>${tip==="giris"?"İyi çalışmalar!":"Emeğinize sağlık, iyi dinlenmeler."}</p><button class="cta" data-act="mesaiKapat">Tamam</button></div>`;
+    const not = !konum ? `<p class="t-uyari turuncu" style="margin:8px 0">📍 Konum alınamadı. Kayıt "konumsuz" olarak işaretlendi; telefonun konum iznini açın.</p>` : o.uzakM > 400 ? `<p class="t-uyari kirmizi" style="margin:8px 0">📍 Konumunuz siteden ${o.uzakM >= 1000 ? (o.uzakM/1000).toFixed(1).replace(".",",") + " km" : o.uzakM + " m"} uzakta görünüyor. Kayıt amire işaretli gider.</p>` : "";
+    if (d) d.innerHTML = `<div class="mesai-ic"><div style="font-size:54px">${tip==="giris"?"✅":"🏁"}</div><h3>${tip==="giris"?"Giriş kaydedildi":"Çıkış kaydedildi"}</h3><div class="mesai-saat">${saatYaz(o.ts)}</div>${not}<p>${tip==="giris"?"İyi çalışmalar!":"Emeğinize sağlık, iyi dinlenmeler."}</p><button class="cta" data-act="mesaiKapat">Tamam</button></div>`;
     if (navigator.vibrate) navigator.vibrate(80); render(); }
-  catch(e){ console.error(e); toast(e && e.code==="permission-denied" ? "Kaydedilemedi: kodunuzla giriş yapın" : "Kaydedilemedi, internet bağlantısını kontrol edin"); }
+  catch(e){ console.error(e); toast(e && e.code==="permission-denied" ? "Kaydedilemedi: kodunuzla giriş yapın" : "Kaydedilemedi, internet bağlantısını kontrol edin"); if (d) d.querySelectorAll("button").forEach(x => x.disabled = false); }
   MS.kayit = false;
 }
 /* =================== GÖREV VER (müdür/amir → personel) =================== */
@@ -1875,6 +1887,7 @@ async function fotoIleOku(inp){
       }
     }
     URL.revokeObjectURL(url);
+    if (txt && mesaiCoz(txt)){ $("#scanMsg").textContent = "Giriş-çıkış QR'ı fotoğraftan okutulamaz. Kamerayı QR afişine tutun."; return; }
     const n = txt && qrCoz(txt);
     if (n){ taramaKapat(); noktaOkut(n); return; }
     $("#scanMsg").textContent = txt ? "Bu QR bir devriye noktasına ait değil" : "Fotoğrafta QR bulunamadı. Biraz daha yakından, net çekin.";
@@ -3135,6 +3148,7 @@ document.addEventListener("click", async e => {
     else if (act==="sesBas"){ syncForm(); sesBaslat(); return; }
     else if (act==="gvGonder"){ gvGonder(); return; }
     else if (act==="mesaiQr"){ taramaAc(); return; }
+    else if (act==="mesaiQrAc"){ const m = document.getElementById("mesaiModal"); if (m) m.hidden = true; taramaAc(); return; }
     else if (act==="mesaiKaydet"){ mesaiKaydet(v, b.dataset.n); return; }
     else if (act==="mesaiKapat"){ const m = document.getElementById("mesaiModal"); if (m) m.hidden = true; return; }
     else if (act==="gvTur"){ gvSync(); GV.f.tur = v; GV.sonEklenen = null; render(); return; }
@@ -3393,7 +3407,7 @@ function route(){
   if (S.view !== "tesis"){ T.f = null; T.detay = null; }
   // Mesai QR'ı telefonun kendi kamerasıyla okutulduysa (…personel.html?mesai=…)
   const mzl = mesaiCoz(location.search);
-  if (mzl){ history.replaceState(null, "", location.pathname + location.hash); setTimeout(() => mesaiAc(mzl), 600); }
+  if (mzl){ history.replaceState(null, "", location.pathname + location.hash); setTimeout(() => mesaiLinkUyari(), 600); }
   // Linkte kod varsa (…devriye.html?kod=123456) otomatik gir, sonra adres çubuğundan sil
   const lk = new URLSearchParams(location.search).get("kod");
   if (lk && (S.view === "personel" || S.view === "devriye") && store.kodOku){
