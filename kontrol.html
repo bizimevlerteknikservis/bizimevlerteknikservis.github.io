@@ -624,6 +624,7 @@ let DUYK = null;   // devriye duyurusu (yağmur/kar → devriye iptal)
 const DUYK_AD = {yagmur:"🌧️ Yağmur", kar:"❄️ Kar", firtina:"💨 Fırtına", diger:"⚠️"};
 function tesisSerit(){
   const el = $("#tesisSerit"); if (!el || !LIVE.on) return;
+  if (window.ROL==="personel"){ el.hidden = true; return; }
   el.hidden = false;
   if (TES.hata){ el.className = "tserit uyari"; el.innerHTML = `⚠️ Tesis bilgileri okunamadı (${esc(TES.hata)}) · Firebase kurallarını yayınlayın`; return; }
   if (!TES.kayit){ el.className = "tserit"; el.textContent = "Tesis bilgileri yükleniyor…"; return; }
@@ -1284,6 +1285,10 @@ function arizaVeri(snap){
           if (!(a.id in ARZ_ONCEKI) && a.s==="yeni") tvArizaUyari(a);
         });
       }
+      if (!ARZ_ONCEKI && typeof tvArizaUyari === "function"){
+        const taze = ARZ.list.filter(a => a.s==="yeni" && Date.now() - a.t < 15*6e4)[0];
+        if (taze) setTimeout(() => tvArizaUyari(taze, true), 1500);
+      }
       ARZ_ONCEKI = simdi;
       if (MODE==="gunduz"){ arizaCiz(); arizaPanel(); }
 }
@@ -1500,8 +1505,7 @@ function tvSoyle(metin, tekrar){
 function blokSoz(b){ return b ? `${String(b).replace(/^([A-Za-zÇĞİÖŞÜçğıöşü]+)\s*(\d+)$/, "$1 $2")} blok` : ""; }
 function tvUyari(o){
   if (!TV.on) return;
-  tvGong(o.acil);
-  setTimeout(()=>tvSoyle(o.soz, o.acil ? 2 : 1), o.acil ? 1400 : 1000);
+  if (!o.sessiz){ tvGong(o.acil); setTimeout(()=>tvSoyle(o.soz, o.acil ? 2 : 1), o.acil ? 1400 : 1000); }
   TV.durak = Date.now() + 60000; TV.durakYazi = "🔔 Uyarı gösteriliyor";
   if (o.mod && MODE !== o.mod) modAc(o.mod);
   tvAdim();
@@ -1511,7 +1515,7 @@ function tvUyari(o){
   requestAnimationFrame(()=>d.classList.add("on"));
   clearTimeout(TV.uyT); TV.uyT = setTimeout(()=>d.classList.remove("on"), o.acil ? 25000 : 14000);
 }
-function tvArizaUyari(a){
+function tvArizaUyari(a, sessiz){
   const kat = a.k.split(":")[0], tas = /Taşınma/.test(kat);
   const yer = a.b ? `${a.b} Blok${a.yer && a.yer.includes("·") ? " · "+a.yer.split("·").slice(1).join("·").trim() : ""}` : a.yer;
   const yerSoz = a.b ? blokSoz(a.b) : (a.alan || a.yer || "");
@@ -1519,7 +1523,7 @@ function tvArizaUyari(a){
     ust: tas ? "GÜVENLİK BİLDİRİMİ" : "YENİ ARIZA BİLDİRİMİ", ton: tas ? "warn" : "",
     baslik: `${tas?"🚚":"🔴"} ${yer} · ${kat}`, alt: a.kim || "",
     soz: tas ? `Güvenlik bildirimi. ${yerSoz}. ${kat}.` : `Yeni arıza bildirimi. ${yerSoz}. ${kat}.`,
-    mod: "gunduz", acil: /Asansör/.test(kat) && /mahsur/i.test(a.k)
+    mod: "gunduz", acil: /Asansör/.test(kat) && /mahsur/i.test(a.k), sessiz
   });
 }
 
