@@ -1462,6 +1462,7 @@ function vGorev(){
     ${g.gorulduTs?`<small>👍 ${esc(g.gorulduAd||"")} gördü · ${gvSaat(g.gorulduTs)}</small>`:""}
     ${g.yapildiTs?`<small style="color:#14703f;font-weight:700">✓ ${esc(g.yapildiAd||"")} yaptı · ${gvSaat(g.yapildiTs)} (${Math.max(1,Math.round((g.yapildiTs-g.ts)/6e4))} dk)</small>`:""}
     ${g.durum==="yeni"||g.durum==="goruldu" ? `<div class="gv-btn"><button class="cta ghost" data-act="gvWa" data-v="${g.id}">📲 Hatırlat</button><button class="cta ghost" data-act="gvIptal" data-v="${g.id}">İptal</button></div>` : ""}
+    ${g.durum==="yapildi" && g.yapildiTs > Date.now() - 6*36e5 ? `<div class="gv-btn"><button class="cta ghost" data-act="gvIptal" data-v="${g.id}">🗑️ Personel ekranından kaldır</button></div>` : ""}
   </div>`).join("") : `<div class="empty"><strong>${GV.filtre==="acik"?"Açık görev yok":"Son 10 günde biten görev yok"}</strong></div>`}</div>`;
 }
 function talKart(g){
