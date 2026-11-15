@@ -103,6 +103,31 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 /* SVG harita öğeleri */
 .tint{fill:var(--tint);opacity:var(--tint-op);transition:fill .6s,opacity .6s;pointer-events:none}
 .editbtn{pointer-events:auto;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:10px;padding:7px 11px;font:600 12.5px var(--body);white-space:nowrap}
+.mh-sag{display:flex;gap:6px;pointer-events:auto}
+.g3btn{font-weight:700}
+.map3d{position:relative;width:100%;aspect-ratio:1063/661;max-height:calc(100vh - 230px);min-height:300px;background:#0e1a28;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.map3d canvas{display:block;width:100%!important;height:100%!important;outline:0}
+.g3et{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.g3e{position:absolute;left:0;top:0;transform:translate(-50%,-100%);pointer-events:auto;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;will-change:transform}
+.g3e b{font:700 12.5px/1 var(--display);letter-spacing:.04em;color:#10233d;background:rgba(255,255,255,.92);border:1px solid rgba(16,35,61,.18);padding:4px 7px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.g3e i{font:800 12px/22px var(--display);font-style:normal;color:#fff;min-width:22px;height:22px;border-radius:11px;text-align:center;padding:0 6px;box-shadow:0 0 0 2px #fff,0 3px 8px rgba(0,0,0,.35)}
+.g3e i.bad{background:var(--bad);animation:g3nabiz 1.4s ease-in-out infinite}.g3e i.warn{background:var(--warn)}.g3e i.ok{background:var(--ok)}
+.g3e.alan b{font-size:11px;background:rgba(16,35,61,.82);color:#fff;border-color:transparent}
+.g3e.uzak{opacity:0;pointer-events:none}
+@keyframes g3nabiz{0%,100%{transform:scale(1);box-shadow:0 0 0 2px #fff,0 0 0 0 rgba(214,58,53,.6)}50%{transform:scale(1.12);box-shadow:0 0 0 2px #fff,0 0 0 8px rgba(214,58,53,0)}}
+.g3yuk{position:absolute;inset:0;display:grid;place-items:center;color:#cfe0f2;font:600 14px var(--body)}
+.g3ipucu{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);background:rgba(10,20,34,.72);color:#fff;font:600 12px var(--body);padding:6px 11px;border-radius:999px;white-space:nowrap;pointer-events:none;transition:opacity .6s}
+.g3ipucu.gizle{opacity:0}
+.bdetay{position:absolute;left:12px;top:58px;z-index:6;width:min(360px,calc(100% - 24px));max-height:calc(100% - 120px);overflow:auto;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.35);padding:12px 14px;animation:in .18s ease-out}
+.bdetay h3{margin:0;font:800 17px var(--display);display:flex;align-items:center;gap:8px}
+.bdetay h3 button{margin-left:auto;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);border-radius:9px;padding:4px 9px;font:700 13px var(--body);cursor:pointer}
+.bdetay .bd-oz{font-size:12.5px;color:var(--muted);margin:2px 0 8px}
+.bdetay .bd-s{display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+.bdetay .bd-s i{width:10px;height:10px;border-radius:50%;flex:none;margin-top:5px}
+.bdetay .bd-s div{flex:1;min-width:0}.bdetay .bd-s small{display:block;color:var(--muted);font-size:12px}
+.bdetay .bd-s time{color:var(--muted);font-size:12px;white-space:nowrap}
+.bdetay .bos{color:var(--muted);font-size:13.5px;padding:6px 0 2px}
+.blk{cursor:pointer}.duzenle .blk{cursor:move}
 .editbtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .editbar{position:relative;margin:0 14px 10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:10px 12px;font-size:13px;z-index:3}
 .editbar[hidden]{display:none}
@@ -215,6 +240,11 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 @media (max-width:980px){
   .main{grid-template-columns:1fr}
   .mapwrap svg.map{max-height:none}
+  .map3d{max-height:none;aspect-ratio:4/3.4}
+  .bdetay{top:auto;bottom:12px;max-height:60%}
+  .g3e b{font-size:10.5px;padding:3px 5px;border-radius:6px}
+  .g3e i{font-size:10.5px;line-height:18px;min-width:18px;height:18px;padding:0 4px}
+  .g3ipucu{white-space:normal;text-align:center;width:max-content;max-width:calc(100% - 24px)}
   .ticker{position:static;max-width:none;margin:0 12px 12px;border-radius:10px}
   .legend{position:static;margin:0 12px 12px}
   .maphead{position:static;padding:12px 12px 0}
@@ -236,7 +266,7 @@ html.personel .modes button[hidden]{display:none!important}
 .tvakis{display:flex}
 .app{padding-bottom:84px}
 .tvakis .son:empty{display:none}
-@media (min-height:700px){.mapwrap svg.map{max-height:calc(100vh - 300px)}}
+@media (min-height:700px){.mapwrap svg.map,.mapwrap .map3d{max-height:calc(100vh - 300px)}}
 html .tvbar{bottom:70px;left:16px;right:16px;height:4px;border-radius:2px}
 html .tvbar span{display:none}
 .tvakis .sesac{flex:none;height:100%;border:0;border-left:1px solid var(--line);background:var(--warn);color:#fff;font:800 15px var(--display);padding:0 16px;cursor:pointer;white-space:nowrap}
@@ -310,12 +340,15 @@ window.FB_TEKNISYEN = ["teknisyenzeynel91@gmail.com"];</script>
 
   <div class="main">
     <section class="mapwrap" aria-label="Site haritası">
-      <div class="maphead"><b id="mapTitle">Arıza haritası</b><span id="mapSub">Bizimevler 1 · kuşbakışı</span><button class="editbtn" id="edit" aria-pressed="false">Yerleri düzenle</button></div>
+      <div class="maphead"><b id="mapTitle">Arıza haritası</b><span id="mapSub">Bizimevler 1 · kuşbakışı</span><div class="mh-sag"><button class="editbtn g3btn" id="g3Btn" aria-pressed="false" hidden title="2D / 3D görünüm">🧊 3D</button><button class="editbtn" id="edit" aria-pressed="false">Yerleri düzenle</button></div></div>
       <div class="editbar" id="editBar" hidden>
         <span><b>1.</b> Bir blok etiketine ya da numaralı devriye noktasına dokunun (mavi olur). <b>2.</b> Fotoğrafta doğru yere dokunun, oraya gider. Sürükleyerek de taşıyabilirsiniz.</span>
         <button id="copyPos">Konumları kopyala</button><button id="resetPos">Varsayılana dön</button><button id="doneEdit" class="primary">Bitti</button>
       </div>
       <svg class="map" id="map" viewBox="0 0 1063 661" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Bizimevler 1 kuşbakışı harita"></svg>
+      <div class="map3d" id="map3d" hidden><div class="g3et" id="g3et"></div><div class="g3yuk" id="g3yuk">3D harita yükleniyor…</div>
+        <div class="g3ipucu" id="g3ipucu">Döndür: tek parmak · Yakınlaştır: iki parmak · Binaya dokun: arızalar</div></div>
+      <div class="bdetay" id="bdetay" hidden></div>
       <div id="afetBanner" class="afetbanner" hidden>TATBİKAT · AFET MODU</div>
       <div class="legend" id="legend"></div>
       <div class="ticker hide" id="ticker"></div>
@@ -399,6 +432,7 @@ function haritaKur(){
     b.label = el("text",{class:"blabel"},g); b.label.textContent=b.id;
     yerlestir(b);
     g.addEventListener("pointerdown", e=>surukBasla(e,b));
+    g.addEventListener("click", ()=>{ if (!DUZENLE && MODE==="gunduz" && window.blokDetay) blokDetay(b.id); });
   });
   tepsiCiz();
   L.nokta = el("g",{class:"nk"},svg);
@@ -545,6 +579,8 @@ function arizaCiz(){
     const t = el("text",{x:b.x+b.w-4,y:b.y+5,"text-anchor":"middle","dominant-baseline":"central",fill:"#fff","font-weight":"700","font-size":"12","font-family":"var(--display)"},L.over);
     t.textContent = durum==="ok" ? "✓" : arr.filter(a=>a.s!=="bitti").length;
   });
+  if (window.G3 && G3.acik) G3.guncelle();
+  if (window.blokDetayYenile) blokDetayYenile();
 }
 function alanCiz(ad, arr){
   const [x,y] = ALAN_POS[ad] || ALAN_POS["Diğer"];
@@ -1418,6 +1454,7 @@ function modAc(m){
   try { localStorage.setItem("bz1-mod", m); } catch(e){}
   document.documentElement.classList.remove("kesik"); if (L.jen) L.jen.innerHTML = "";
   requestAnimationFrame(()=>{ if (m==="gunduz") arizaBaslat(); else if (m==="gece") devriyeBaslat(); else if (m==="tesis") tesisBaslat(); else afetBaslat(); });
+  if (window.g3Mod) g3Mod();
 }
 document.querySelectorAll(".modes button").forEach(b=>b.onclick=()=>modAc(b.dataset.mode));
 
@@ -1611,5 +1648,194 @@ canliBaslat().catch(e=>{ console.error(e); ticker("Canlı bağlantı kurulamadı
 tvOtomatik();
 </script>
 
+
+<script>
+/* =====================================================================
+   3D ARIZA HARİTASI
+   - Zemin: mevcut hava fotoğrafı (harita-hd.jpg), 2D haritayla aynı 1063×661 koordinat sistemi.
+   - Binalar: 2D'deki blok konumları (VARSAYILAN / "Yerleri düzenle" ile kaydedilen KONUM) kullanılır.
+     2D etiketleri fotoğrafta kulelerin ÇATISINDADIR. Fotoğraf eğik çekildiği için çatı, binanın
+     tabanından yukarıda görünür; 3D bina tabana oturtulur:  taban = çatı + kaydırma (aşağıda tabanBul).
+   - Arıza verisi: 2D ile aynı ARZ.list; renkler ve sayılar arizaCiz() ile aynı kurala göre.
+   - Performans: sadece gerektiğinde çizer (döndürme/yakınlaştırma/veri değişince), gölge yok,
+     piksel oranı sınırlı, three.js ilk açılışta yüklenir (2D kullananlar hiç indirmez).
+   ===================================================================== */
+const G3 = { acik:false, yuklu:false, yukleniyor:null, r:null, sahne:null, kamera:null, kontrol:null, binalar:{}, etiket:{}, alanlar:[], ciz:false, son:0, zemin:null };
+window.G3 = G3;
+const G3_ZS = 1.5;          // fotoğraf derinlik yönünde basık; zemini bu oranda uzatır
+const G3_H = 175, G3_W = 60, G3_D = 52;   // kule yüksekliği ve taban ölçüsü (fotoğraf pikseli)
+/* Çatı noktasından taban noktasına: fotoğraftaki 22 kulenin ölçümünden (aşağıdakiler daha uzun görünür, kenardakiler dışa yatık) */
+function tabanBul(cx, cy){ return [cx - 0.07*(cx - 531), Math.min(PH - 6, cy + 87 + 0.23*cy - 12)]; }
+const g3x = x => x - PW/2, g3z = y => (y - PH/2) * G3_ZS;
+function g3Script(src){ return new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => no(new Error(src)); document.head.appendChild(s); }); }
+async function g3Yukle(){
+  if (G3.yuklu) return; if (G3.yukleniyor) return G3.yukleniyor;
+  G3.yukleniyor = (async () => {
+    if (!window.THREE) await g3Script("lib/three-r128.min.js");
+    if (!THREE.OrbitControls) await g3Script("lib/OrbitControls-r128.js");
+    g3Kur(); G3.yuklu = true;
+  })();
+  try { await G3.yukleniyor; } finally { G3.yukleniyor = null; }
+}
+function g3Kur(){
+  const kap = $("#map3d");
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
+  const r = new THREE.WebGLRenderer({antialias: dpr < 1.5, alpha:false, powerPreference:"default"});
+  r.setPixelRatio(dpr); r.outputEncoding = THREE.sRGBEncoding;
+  kap.insertBefore(r.domElement, kap.firstChild);
+  const sahne = new THREE.Scene();
+  sahne.background = new THREE.Color(0x0e1a28);
+  sahne.fog = new THREE.Fog(0x0e1a28, 1400, 2600);
+  const kamera = new THREE.PerspectiveCamera(42, 1, 5, 5000);
+  sahne.add(new THREE.HemisphereLight(0xffffff, 0x51606f, 0.85));
+  const gun = new THREE.DirectionalLight(0xffffff, 0.75); gun.position.set(-500, 900, 600); sahne.add(gun);
+  // zemin = mevcut hava fotoğrafı
+  const tex = new THREE.TextureLoader().load(FOTO, () => g3Istek());
+  tex.encoding = THREE.sRGBEncoding; tex.anisotropy = Math.min(4, r.capabilities.getMaxAnisotropy()); tex.minFilter = THREE.LinearMipmapLinearFilter;
+  const zm = new THREE.MeshBasicMaterial({map:tex, color:0xffffff});
+  const zemin = new THREE.Mesh(new THREE.PlaneGeometry(PW, PH*G3_ZS), zm); zemin.rotation.x = -Math.PI/2; sahne.add(zemin); G3.zemin = zemin;
+  // fotoğrafın dışı: koyu kenar
+  const kenar = new THREE.Mesh(new THREE.PlaneGeometry(PW*4, PH*G3_ZS*4), new THREE.MeshBasicMaterial({color:0x2c4a2e})); kenar.rotation.x = -Math.PI/2; kenar.position.y = -0.6; sahne.add(kenar);
+  // binalar: ortak geometri, blok başına malzeme (renk değişimi için)
+  const gov = new THREE.BoxGeometry(G3_W, G3_H, G3_D); gov.translate(0, G3_H/2, 0);
+  const cat = new THREE.BoxGeometry(G3_W + 4, 5, G3_D + 4); cat.translate(0, G3_H + 2.5, 0);
+  const golge = new THREE.PlaneGeometry(G3_W*1.5, G3_D*1.5); golge.rotateX(-Math.PI/2); golge.translate(G3_W*.25, 0.4, G3_D*.25);
+  const golgeM = new THREE.MeshBasicMaterial({color:0x000000, transparent:true, opacity:.28, depthWrite:false});
+  BLOK.forEach(b => {
+    const govM = new THREE.MeshLambertMaterial({color:0xeef1f4}), catM = new THREE.MeshLambertMaterial({color:0x9aa7b5});
+    const g = new THREE.Group(); g.add(new THREE.Mesh(golge, golgeM));
+    const m1 = new THREE.Mesh(gov, govM), m2 = new THREE.Mesh(cat, catM); m1.userData.blok = m2.userData.blok = b.id; g.add(m1, m2);
+    sahne.add(g); G3.binalar[b.id] = {g, govM, catM, m:[m1, m2]};
+    const e = document.createElement("div"); e.className = "g3e"; e.innerHTML = `<i hidden></i><b>${esc(b.id)}</b>`; e.dataset.blok = b.id;
+    $("#g3et").appendChild(e); G3.etiket[b.id] = e;
+  });
+  const kont = new THREE.OrbitControls(kamera, r.domElement);
+  kont.enableDamping = true; kont.dampingFactor = 0.12; kont.screenSpacePanning = false;
+  kont.minDistance = 220; kont.maxDistance = 1700; kont.maxPolarAngle = Math.PI*0.44; kont.minPolarAngle = 0.12;
+  kont.target.set(0, 0, 40); kont.addEventListener("change", g3Istek);
+  kont.addEventListener("start", () => { $("#g3ipucu").classList.add("gizle"); });
+  Object.assign(G3, {r, sahne, kamera, kontrol:kont});
+  g3Yerlestir(); g3KameraSifirla();
+  new ResizeObserver(g3Boyut).observe(kap);
+  // dokunma: sürükleme değilse binayı seç
+  let bas = null;
+  r.domElement.addEventListener("pointerdown", e => { bas = {x:e.clientX, y:e.clientY, t:Date.now()}; });
+  r.domElement.addEventListener("pointerup", e => {
+    if (!bas || Math.hypot(e.clientX - bas.x, e.clientY - bas.y) > 8 || Date.now() - bas.t > 600) return;
+    const id = g3Sec(e); if (id) blokDetay(id); else blokDetayKapat();
+  });
+  $("#g3et").addEventListener("click", e => { const t = e.target.closest(".g3e"); if (!t) return; if (t.dataset.blok) blokDetay(t.dataset.blok); else if (t.dataset.alan) blokDetay(null, t.dataset.alan); });
+  r.domElement.addEventListener("dblclick", g3KameraSifirla);
+  document.addEventListener("visibilitychange", g3Istek);
+}
+function g3Yerlestir(){   // "Yerleri düzenle" sonrası da çağrılır
+  BLOK.forEach(b => { const o = G3.binalar[b.id]; if (!o) return; const [cx, cy] = ctr(b), [tx, ty] = tabanBul(cx, cy); o.g.position.set(g3x(tx), 0, g3z(ty)); });
+  g3Istek();
+}
+function g3KameraSifirla(){
+  if (!G3.kamera) return;
+  const k = Math.max(1, 1.65 / (G3.kamera.aspect || 1.6));   // dar ekranda (telefon) tüm site sığsın diye geri çekil
+  G3.kontrol.target.set(0, 0, 40);
+  G3.kamera.position.set(0, 760*k, 40 + 660*k);   // fotoğrafın çekildiği yön: güneyden kuzeye eğik bakış
+  G3.kontrol.update(); g3Istek();
+}
+function g3Boyut(){
+  const kap = $("#map3d"), w = kap.clientWidth, h = kap.clientHeight; if (!w || !h || !G3.r) return;
+  G3.r.setSize(w, h, false); G3.kamera.aspect = w / h; G3.kamera.updateProjectionMatrix(); g3Istek();
+}
+function g3Sec(e){
+  const rc = G3.r.domElement.getBoundingClientRect(), v = new THREE.Vector2(((e.clientX - rc.left)/rc.width)*2 - 1, -((e.clientY - rc.top)/rc.height)*2 + 1);
+  const ray = new THREE.Raycaster(); ray.setFromCamera(v, G3.kamera);
+  const hit = ray.intersectObjects(Object.values(G3.binalar).flatMap(o => o.m))[0];
+  return hit ? hit.object.userData.blok : null;
+}
+/* Arıza durumu → bina rengi ve rozet (arizaCiz ile aynı kural) */
+function g3Durumlar(){
+  const grup = {};
+  ARZ.list.forEach(a => { if (a.s==="bitti" && Date.now() - (a.bitis||0) > 60*6e4) return; const key = B[a.b] ? a.b : "alan:" + (a.alan || "Diğer"); (grup[key] ||= []).push(a); });
+  return grup;
+}
+G3.guncelle = function(){
+  if (!G3.yuklu) return;
+  const grup = g3Durumlar(), renk = {bad:cssv("--bad"), warn:cssv("--warn"), ok:cssv("--ok")};
+  BLOK.forEach(b => {
+    const o = G3.binalar[b.id], e = G3.etiket[b.id], arr = grup[b.id], i = e.querySelector("i");
+    if (!arr){ o.govM.color.set(0xeef1f4); o.catM.color.set(0x9aa7b5); i.hidden = true; return; }
+    const d = arr.some(a=>a.s==="yeni") ? "bad" : arr.some(a=>a.s==="isleniyor") ? "warn" : "ok";
+    o.catM.color.set(renk[d]); o.govM.color.set(d==="bad" ? 0xffe1df : d==="warn" ? 0xffefd6 : 0xe2f6e9);
+    i.hidden = false; i.className = d; i.textContent = d==="ok" ? "✓" : arr.filter(a=>a.s!=="bitti").length;
+  });
+  // ortak alan bildirimleri: zeminde iğne
+  G3.alanlar.forEach(x => x.e.remove()); G3.alanlar = [];
+  Object.entries(grup).filter(([k]) => k.startsWith("alan:")).forEach(([k, arr]) => {
+    const ad = k.slice(5), [x, y] = ALAN_POS[ad] || ALAN_POS["Diğer"];
+    const d = arr.some(a=>a.s==="yeni") ? "bad" : arr.some(a=>a.s==="isleniyor") ? "warn" : "ok";
+    const e = document.createElement("div"); e.className = "g3e alan"; e.dataset.alan = ad;
+    e.innerHTML = `<i class="${d}">${d==="ok" ? "✓" : arr.filter(a=>a.s!=="bitti").length}</i><b>${esc(ad)}</b>`;
+    $("#g3et").appendChild(e); G3.alanlar.push({e, p:new THREE.Vector3(g3x(x), 4, g3z(y))});
+  });
+  const koyu = typeof koyuMu === "function" && koyuMu();
+  G3.zemin.material.color.set(koyu ? 0x8f9aa8 : 0xffffff);
+  g3Istek();
+};
+function g3Istek(){ if (!G3.acik || G3.ciz) return; G3.ciz = true; requestAnimationFrame(g3Kare); }
+function g3Kare(){
+  G3.ciz = false; if (!G3.acik || document.hidden) return;
+  const hareket = G3.kontrol.update();
+  G3.r.render(G3.sahne, G3.kamera);
+  // etiketleri ekrana yansıt (DOM, metin her zaman net)
+  const w = G3.r.domElement.clientWidth, h = G3.r.domElement.clientHeight, v = new THREE.Vector3();
+  const yaz = (e, p) => { v.copy(p).project(G3.kamera); const gor = v.z < 1 && v.x > -1.2 && v.x < 1.2 && v.y > -1.2 && v.y < 1.3;
+    e.classList.toggle("uzak", !gor); if (gor) e.style.transform = `translate(${((v.x+1)/2*w).toFixed(1)}px,${((1-v.y)/2*h).toFixed(1)}px) translate(-50%,-100%)`; };
+  BLOK.forEach(b => { const o = G3.binalar[b.id]; yaz(G3.etiket[b.id], new THREE.Vector3(o.g.position.x, G3_H + 10, o.g.position.z)); });
+  G3.alanlar.forEach(x => yaz(x.e, x.p));
+  if (hareket) g3Istek();   // sönümleme bitene kadar
+}
+async function g3Ac(ac){
+  if (ac && (MODE!=="gunduz" || DUZENLE)) ac = false;
+  G3.acik = ac; try { localStorage.setItem("bz1-3d", ac ? "1" : "0"); } catch(e){}
+  $("#g3Btn").setAttribute("aria-pressed", ac); $("#g3Btn").textContent = ac ? "🗺️ 2D" : "🧊 3D";
+  $("#map").style.display = ac ? "none" : ""; $("#map3d").hidden = !ac;
+  if (!ac) return;
+  try { await g3Yukle(); $("#g3yuk").hidden = true; g3Yerlestir(); g3Boyut(); if (!G3.kameraTamam){ G3.kameraTamam = true; g3KameraSifirla(); } G3.guncelle(); setTimeout(() => $("#g3ipucu").classList.add("gizle"), 6000); }
+  catch(e){ console.error(e); $("#g3yuk").textContent = "3D harita bu cihazda açılamadı. 2D haritaya dönülüyor."; setTimeout(() => g3Ac(false), 2200); }
+}
+/* Mod değişince: 3D sadece Arıza haritasında; düzenleme sırasında 2D */
+window.g3Mod = function(){
+  const uygun = MODE==="gunduz" && !DUZENLE;
+  $("#g3Btn").hidden = !uygun;
+  blokDetayKapat();
+  let tercih = false; try { tercih = localStorage.getItem("bz1-3d") === "1"; } catch(e){}
+  if (!uygun){ if (G3.acik || $("#map").style.display === "none"){ const t = tercih; g3Ac(false); try { localStorage.setItem("bz1-3d", t ? "1" : "0"); } catch(e){} } return; }
+  if (tercih !== G3.acik) g3Ac(tercih); else if (G3.acik){ g3Yerlestir(); G3.guncelle(); }
+};
+$("#g3Btn").onclick = () => g3Ac(!G3.acik);
+
+/* ============ Bloğa dokununca arıza detayı (2D ve 3D ortak) ============ */
+let BDETAY = null;
+const g3Once = t => { const dk = dkOnce(t); return dk < 60 ? `${dk} dk önce` : dk < 1440 ? `${Math.floor(dk/60)} sa önce` : `${Math.floor(dk/1440)} gün önce`; };
+window.blokDetay = function(bid, alan){
+  BDETAY = {bid, alan}; const k = $("#bdetay");
+  const L = ARZ.list.filter(a => bid ? a.b === bid : (!B[a.b] && (a.alan || "Diğer") === alan));
+  const acik = L.filter(a => a.s !== "bitti"), biten = L.filter(a => a.s === "bitti").slice(0, 5);
+  const renk = s => cssv(s==="yeni" ? "--bad" : s==="isleniyor" ? "--warn" : "--ok");
+  const durumAd = s => s==="yeni" ? "Yeni bildirim" : s==="isleniyor" ? "Teknisyen ilgileniyor" : "Çözüldü";
+  const satir = a => `<div class="bd-s"><i style="background:${renk(a.s)}"></i><div><b>${esc(a.k)}</b><small>${[a.yer && a.yer !== bid ? esc(a.yer) : "", a.kim ? "👷 " + esc(a.kim) : "", durumAd(a.s)].filter(Boolean).join(" · ")}</small>${a.foto ? `<button class="fotobtn" data-foto="${esc(a.id)}">📷 Fotoğraf${a.foto > 1 ? ` (${a.foto})` : ""}</button>` : ""}</div><time>${g3Once(a.s==="bitti" && a.bitis ? a.bitis : a.t)}</time></div>`;
+  k.innerHTML = `<h3>${bid ? `🏢 ${esc(bid)} Blok` : `📍 ${esc(alan)}`}<button type="button" data-bdkapat>Kapat ✕</button></h3>
+    <p class="bd-oz">${acik.length ? `${acik.length} açık arıza` : "Açık arıza yok"}${biten.length ? ` · son 30 günde ${L.filter(a=>a.s==="bitti").length} çözüldü` : ""}</p>
+    ${acik.map(satir).join("")}${biten.length ? `<div class="bd-oz" style="margin-top:8px">Son çözülenler</div>${biten.map(satir).join("")}` : ""}
+    ${!L.length ? `<div class="bos">Son 30 günde bu ${bid ? "blokta" : "alanda"} arıza kaydı yok.</div>` : ""}`;
+  k.hidden = false;
+  k.querySelector("[data-bdkapat]").onclick = blokDetayKapat;
+};
+window.blokDetayYenile = function(){ if (BDETAY && !$("#bdetay").hidden) blokDetay(BDETAY.bid, BDETAY.alan); };
+function blokDetayKapat(){ BDETAY = null; const k = $("#bdetay"); if (k) k.hidden = true; }
+window.blokDetayKapat = blokDetayKapat;
+document.addEventListener("keydown", e => { if (e.key === "Escape") blokDetayKapat(); });
+/* "Yerleri düzenle" ile taşınan bloklar 3D'de de yerini bulsun */
+const g3KonumEski = konumUygula;
+konumUygula = function(k){ g3KonumEski(k); if (G3.yuklu) g3Yerlestir(); };
+g3Mod();
+</script>
 </body>
 </html>
