@@ -316,7 +316,8 @@ const msSupheli = o => !!(o.gs || o.cs);
 function msKonum(r){
   if (!r) return "";
   if (!r.konum || !r.konum.lat) return `<span class="kz yok">📍 konum yok</span>`;
-  const m = msUzak(r), uzak = m > 400, yaz = m >= 1000 ? (m/1000).toFixed(1).replace(".",",")+" km uzakta" : uzak ? m+" m uzakta" : "sitede";
+  const bilinmez = !(P.siteKonum && P.siteKonum.lat) && r.uzakM == null;
+  const m = msUzak(r), uzak = !bilinmez && m > 400, yaz = bilinmez ? "haritada gör" : m >= 1000 ? (m/1000).toFixed(1).replace(".",",")+" km uzakta" : uzak ? m+" m uzakta" : "sitede";
   return `<a class="kz${uzak?" uzak":""}" href="https://maps.google.com/?q=${r.konum.lat},${r.konum.lng}" target="_blank" rel="noopener">📍 ${yaz}</a>`;
 }
 const saatKisa = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
