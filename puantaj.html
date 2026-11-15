@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#17588f">
+<title>Puantaj</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>window.FB_CONFIG = {
+    apiKey: "AIzaSyAAtGK76Oanri1T9nCK4bm6dDJCLVzWp5c",
+    authDomain: "bizimevler-teknik-servis.firebaseapp.com",
+    projectId: "bizimevler-teknik-servis",
+    storageBucket: "bizimevler-teknik-servis.firebasestorage.app",
+    messagingSenderId: "947168663247",
+    appId: "1:947168663247:web:de355a52058ff2ce4109ba"
+  };
+window.FB_TEKNISYEN = ["teknisyenzeynel91@gmail.com"];</script>
+<style>
+:root{
+  --bg:#eef3f9; --panel:#ffffff; --panel2:#f5f8fc; --ink:#10233d; --muted:#5f7591; --line:#dde6f0;
+  --accent:#2b7cd3; --ok:#1e9d5b; --warn:#d9851b; --bad:#d63a35;
+  --okbg:#e6f6ed; --warnbg:#fdf1e1; --badbg:#fdeaea; --accbg:#e7f0fb; --tatil:#fff4d6;
+  --shadow:0 8px 24px rgba(16,40,80,.07); color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#081320; --panel:#0f1f33; --panel2:#0b192a; --ink:#e4eef9; --muted:#8ea6bf; --line:#1d3350;
+  --accent:#5bb0ff; --ok:#36c47a; --warn:#f0a43a; --bad:#ff6b66;
+  --okbg:rgba(54,196,122,.14); --warnbg:rgba(240,164,58,.14); --badbg:rgba(255,107,102,.14); --accbg:rgba(91,176,255,.13); --tatil:rgba(240,164,58,.10);
+  --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#081320; --panel:#0f1f33; --panel2:#0b192a; --ink:#e4eef9; --muted:#8ea6bf; --line:#1d3350;
+  --accent:#5bb0ff; --ok:#36c47a; --warn:#f0a43a; --bad:#ff6b66;
+  --okbg:rgba(54,196,122,.14); --warnbg:rgba(240,164,58,.14); --badbg:rgba(255,107,102,.14); --accbg:rgba(91,176,255,.13); --tatil:rgba(240,164,58,.10);
+  --shadow:0 10px 30px rgba(0,0,0,.35); color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+[hidden]{display:none!important}
+.app{max-width:1400px;margin:0 auto;padding:14px 14px 40px}
+header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(140deg,#17588f,#2f8ad6);display:grid;place-items:center;color:#fff;flex:none;font-size:24px}
+.brand small{display:block;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.brand h1{margin:0;font-size:22px;font-weight:800}
+.top .sag{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ibtn{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:8px 12px;cursor:pointer;font-weight:600;font-size:13.5px;text-decoration:none;color:var(--ink);white-space:nowrap}
+.ibtn:hover{border-color:var(--accent)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.ay{display:flex;align-items:center;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px}
+.ay b{min-width:120px;text-align:center;font-size:15px}
+.ay button{border:0;background:transparent;font-size:18px;font-weight:800;padding:4px 10px;border-radius:10px;cursor:pointer;color:var(--accent)}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px}
+.seg button{border:0;background:transparent;padding:8px 12px;border-radius:10px;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.btn{border:0;border-radius:12px;padding:10px 16px;font-weight:700;cursor:pointer;background:var(--accent);color:#fff;font-size:14px;white-space:nowrap}
+.btn.yesil{background:var(--ok)}.btn.ikincil{background:var(--accbg);color:var(--accent)}.btn.kirmizi{background:var(--badbg);color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:default}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow);min-width:0}
+.card h2{margin:0 0 10px;font-size:12.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+.onay{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.adim{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);font-size:13.5px;font-weight:600}
+.adim.tamam{background:var(--okbg);border-color:transparent;color:var(--ok)}
+.adim small{display:block;font-weight:500;color:var(--muted);font-size:12px}
+.uyari{background:var(--warnbg);color:var(--warn);border-radius:14px;padding:10px 14px;font-size:13.5px;font-weight:600;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.uyari .btn{padding:7px 12px;font-size:13px}
+/* tablo */
+.tw{overflow:auto;max-height:calc(100vh - 230px);border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+table.pt{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:100%}
+.pt th,.pt td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:0;text-align:center;white-space:nowrap}
+.pt thead th{position:sticky;top:0;z-index:3;background:var(--panel);font-weight:700;color:var(--muted);padding:5px 0;font-size:11.5px;line-height:1.15}
+.pt thead th b{display:block;color:var(--ink);font-size:12.5px}
+.pt th.ad,.pt td.ad{position:sticky;left:0;z-index:2;background:var(--panel);text-align:left;padding:6px 10px;min-width:150px;max-width:190px;overflow:hidden;text-overflow:ellipsis}
+.pt thead th.ad{z-index:4}
+.pt td.ad b{display:block;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis}
+.pt td.ad small{color:var(--muted);font-size:11.5px}
+.pt td.ad a{color:inherit;text-decoration:none;cursor:pointer}
+.pt tr.grup td{background:var(--panel2);font-weight:800;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 10px}
+.pt tr.grup td.ad{background:var(--panel2)}
+.pt .tat{background:var(--tatil)}
+.pt .hs{background:color-mix(in srgb, var(--panel2) 70%, transparent)}
+.pt .bugun{box-shadow:inset 0 0 0 2px var(--accent)}
+.c{width:32px;min-width:32px;height:34px;cursor:pointer;position:relative;font-weight:800;font-size:11.5px}
+.c span{display:grid;place-items:center;width:100%;height:100%}
+.c:hover{outline:2px solid var(--accent);outline-offset:-2px}
+.c.elle span{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:2px}
+.c i.qr{position:absolute;right:2px;top:2px;width:6px;height:6px;border-radius:50%;background:var(--ok)}
+.c i.gece{position:absolute;left:2px;top:1px;font-style:normal;font-size:8px;opacity:.7}
+.c.uyar span{box-shadow:inset 0 0 0 2px var(--bad);border-radius:4px}
+.k-X{color:var(--ink)}
+.k-HT{color:var(--muted);background:var(--panel2)}
+.k-Yİ{background:#e3f2ff;color:#1b5ea8}.k-R{background:#fde7e7;color:#b4232a}.k-Mİ{background:#efe7fb;color:#6a3fb5}.k-Üİ{background:#eceff3;color:#4a5a6d}
+.k-D{background:#d63a35;color:#fff}.k-RT{background:#fff0c7;color:#8a5a00}
+:root[data-theme="dark"] .k-Yİ,:root[data-theme="dark"] .k-R,:root[data-theme="dark"] .k-Mİ,:root[data-theme="dark"] .k-Üİ,:root[data-theme="dark"] .k-RT{filter:brightness(.55) saturate(1.3);color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .k-Yİ,:root:not([data-theme="light"]) .k-R,:root:not([data-theme="light"]) .k-Mİ,:root:not([data-theme="light"]) .k-Üİ,:root:not([data-theme="light"]) .k-RT{filter:brightness(.55) saturate(1.3);color:#fff}}
+.pt td.top{padding:0 8px;font-weight:700;font-variant-numeric:tabular-nums;font-size:12.5px;min-width:40px}
+.pt td.top.zero{color:var(--muted);font-weight:500}
+.pt td.fm input{width:52px;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:5px;text-align:center}
+.pt td.not input{width:150px;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:5px 7px}
+.lej{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;font-size:12.5px}
+.lej span{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel)}
+.lej b{min-width:22px;text-align:center;border-radius:5px;padding:1px 3px}
+.kontrol li{margin:4px 0;font-size:13.5px}
+/* açılır seçici */
+.pop{position:fixed;z-index:70;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.3);padding:10px;width:250px}
+.pop h4{margin:0 0 8px;font-size:13px}
+.pop h4 small{display:block;color:var(--muted);font-weight:500}
+.pop .kodlar{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pop .kodlar button{border:1px solid var(--line);border-radius:10px;padding:8px 0;font-weight:800;cursor:pointer;background:transparent}
+.pop .kodlar button[aria-pressed="true"]{outline:2px solid var(--accent)}
+.pop .oto{margin-top:8px;width:100%}
+.pop p{margin:8px 0 0;font-size:12px;color:var(--muted)}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(5,12,22,.55);display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto}
+.mic{background:var(--panel);border-radius:22px;width:min(720px,100%);padding:20px;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+.mic .bas{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.mic .bas h3{margin:0;font-size:19px}
+.mic .bas button{margin-left:auto}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.form label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted)}
+.form .tam{grid-column:1/-1}
+.inp,.sel{border:1px solid var(--line);background:var(--panel2);border-radius:12px;padding:9px 12px;color:var(--ink);font-weight:500}
+@media (max-width:560px){.form{grid-template-columns:1fr}}
+.desen{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
+.desen button.g{width:44px;height:40px;border-radius:10px;border:1px solid var(--line);font-weight:800;cursor:pointer}
+.desen .G{background:#fff4d6;color:#8a5a00}.desen .N{background:#1d3557;color:#fff}.desen .HT{background:var(--panel2);color:var(--muted)}
+.onizle{display:flex;gap:3px;flex-wrap:wrap;margin-top:6px}
+.onizle span{width:30px;text-align:center;font-size:11px;border-radius:6px;padding:3px 0}
+.vd{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;opacity:0;transition:.3s;z-index:80;pointer-events:none;max-width:90vw}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.giris{max-width:380px;margin:12vh auto;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:var(--shadow)}
+.giris input{width:100%;margin-top:10px}
+.mut{color:var(--muted)}.ok{color:var(--ok)}.bad{color:var(--bad)}
+@media (max-width:640px){.brand h1{font-size:19px}.tw{max-height:none}.pt th.ad,.pt td.ad{min-width:118px;max-width:130px;padding:5px 7px}}
+</style>
+</head>
+<body>
+<div class="giris" id="giris" hidden>
+  <h2 style="margin:0 0 6px">Puantaj</h2><p class="mut" style="margin:0">Amir, müdür ve teknisyen hesabıyla girilir.</p>
+  <form id="girisForm"><input class="inp" id="gEmail" type="email" placeholder="E-posta" autocomplete="username" required>
+  <input class="inp" id="gSifre" type="password" placeholder="Şifre" autocomplete="current-password" required>
+  <button class="btn" style="width:100%;margin-top:12px">Giriş</button><p class="bad" id="gHata" style="font-size:13px"></p></form>
+</div>
+<div class="app" id="app" hidden>
+  <header class="top">
+    <div class="logo">🗓️</div>
+    <div class="brand"><small>Bizimevler 1 · <span id="kimAd"></span></small><h1>Puantaj</h1></div>
+    <div class="sag"><a class="ibtn" id="geri" href="index.html#panel">← Geri</a><button class="ibtn" id="temaBtn" type="button">🌓</button></div>
+  </header>
+  <div class="bar">
+    <div class="ay"><button data-ay="-1" aria-label="Önceki ay">‹</button><b id="ayAd"></b><button data-ay="1" aria-label="Sonraki ay">›</button></div>
+    <div class="seg" id="grupSeg"></div>
+    <span style="flex:1"></span>
+    <button class="ibtn" data-act="desen">⚙️ Vardiya düzeni</button>
+    <button class="ibtn" data-act="kisiEkle">＋ Kişi</button>
+    <button class="btn ikincil" data-act="excel">⬇ Excel</button>
+    <button class="btn" data-act="paylas">📤 Muhasebeye gönder</button>
+  </div>
+  <div id="ust"></div>
+  <div class="tw" id="tw"></div>
+  <div class="lej" id="lej"></div>
+  <div class="card" style="margin-top:12px" id="kontrol"></div>
+</div>
+<div class="pop" id="pop" hidden></div>
+<div class="modal" id="modal" hidden><div class="mic" id="mic"></div></div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+/* =====================================================================
+   Bizimevler · Puantaj
+   puantaj/ayar      { kisiler:{key:{ad,grup,vardiya,duzen,gunler,aktif,sira}}, desen:{vardiya:{seq:"G,G,N,N,HT,HT",baz:"YYYY-MM-DD"}}, desenOnay }
+   puantaj/{YYYY-MM} { kisi:{key:{gun:{"5":"R"}, fm, not}}, onay:{guvenlik:{amir,mudur}, temizlik:{mudur}}, kesin:{grup:{key:"X,X,HT,..."}} }
+   Otomatik: vardiya deseni (güvenlik) · hafta sonu çalışma listesi (temizlik) · İzinler · resmi tatil · devriye QR (kontrol)
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pad = n => String(n).padStart(2,"0");
+const AY = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+const GK = ["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"];
+const GUN = 864e5;
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const ymdT = s => { const [y,m,g] = String(s).split("-").map(Number); return new Date(y, m-1, g, 12); };
+const anahtar = ad => String(ad||"").trim().toLocaleLowerCase("tr").replace(/[çğıöşü]/g, c=>({ç:"c",ğ:"g",ı:"i",ö:"o",ş:"s",ü:"u"}[c])).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+const adKok = x => String(x||"").trim().split(/\s+/)[0].toLocaleUpperCase("tr");
+function toast(m){ const t = $("#toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(()=>t.classList.remove("on"), 2800); }
+
+const KODLAR = {
+  "X":  {ad:"Çalıştı"}, "HT": {ad:"Hafta tatili"}, "Yİ": {ad:"Yıllık izin"}, "R": {ad:"Rapor"},
+  "Mİ": {ad:"Mazeret izni"}, "Üİ": {ad:"Ücretsiz izin"}, "D": {ad:"Devamsız (gelmedi)"}, "RT": {ad:"Resmi tatil (çalışmadı)"}
+};
+const IZIN_KOD = {yillik:"Yİ", rapor:"R", mazeret:"Mİ", ucretsiz:"Üİ"};
+const GRUP_AD = {guvenlik:"🛡️ Güvenlik", temizlik:"🧹 Temizlik", bahce:"🌿 Bahçe", diger:"👷 Diğer"};
+/* Resmi tatiller (tam gün) ve yarım günler. Yeni yılın dini bayramları eklenmeli. */
+const SABIT_TATIL = {"01-01":"Yılbaşı","04-23":"23 Nisan","05-01":"1 Mayıs","05-19":"19 Mayıs","07-15":"15 Temmuz","08-30":"30 Ağustos","10-29":"Cumhuriyet Bayramı"};
+const DINI_TATIL = {"2026-03-20":"Ramazan Bayramı","2026-03-21":"Ramazan Bayramı","2026-03-22":"Ramazan Bayramı","2026-05-27":"Kurban Bayramı","2026-05-28":"Kurban Bayramı","2026-05-29":"Kurban Bayramı","2026-05-30":"Kurban Bayramı",
+  "2027-03-09":"Ramazan Bayramı","2027-03-10":"Ramazan Bayramı","2027-03-11":"Ramazan Bayramı","2027-05-16":"Kurban Bayramı","2027-05-17":"Kurban Bayramı","2027-05-18":"Kurban Bayramı","2027-05-19":"Kurban Bayramı"};
+const YARIM = {"2026-03-19":"Arife (yarım gün)","2026-05-26":"Arife (yarım gün)","2027-03-08":"Arife (yarım gün)","2027-05-15":"Arife (yarım gün)"};
+const tatil = d => { const s = ymd(d); return DINI_TATIL[s] || SABIT_TATIL[s.slice(5)] || null; };
+const yarim = d => { const s = ymd(d); return YARIM[s] || (s.slice(5)==="10-28" ? "28 Ekim (yarım gün)" : null); };
+
+const VARDIYA = [
+  {ad:"1. Vardiya", kisiler:[["Rüstem Eryüksel",1],["Ali Vesek"],["Tayfun Özdemir"],["Erkan Bavkir"]]},
+  {ad:"2. Vardiya", kisiler:[["Yakup Erol",1],["Cihan Yıldırım"],["Serkan Çinibulak"],["Mehmet Ünal"]]},
+  {ad:"3. Vardiya", kisiler:[["Nejdet Baydemir",1],["Yalçın Akyol"],["Berke Dursun Tuncer"],["Yusuf Nazlım"]]},
+  {ad:"Joker", kisiler:[["Eray Polat"]]}
+];
+/* Varsayılan 12 saatlik düzen: 2 gündüz · 2 gece · 2 izin, vardiyalar 2'şer gün kaydırılmış. Amir kendi düzenine göre değiştirir. */
+const DESEN_VARSAYILAN = {"1. Vardiya":{seq:"G,G,N,N,HT,HT", baz:"2026-11-01"}, "2. Vardiya":{seq:"G,G,N,N,HT,HT", baz:"2026-10-30"}, "3. Vardiya":{seq:"G,G,N,N,HT,HT", baz:"2026-10-28"}, "Joker":{seq:"G,G,G,G,G,HT,HT", baz:"2026-11-02"}};
+
+/* ================= durum ================= */
+const P = { ay:null, grup:"guvenlik", ayar:{kisiler:{}, desen:{}}, doc:{kisi:{}, onay:{}, kesin:{}}, izin:[], plan:null, qr:{}, rol:{tech:false, tesis:false, yon:false}, kim:"", ayarGeldi:false };
+let DB = null;
+const now = new Date(); P.ay = `${now.getFullYear()}-${pad(now.getMonth()+1)}`;
+const ayBilgi = () => { const [y,m] = P.ay.split("-").map(Number); const n = new Date(y, m, 0).getDate(); return {y, m, n, gunler: Array.from({length:n}, (_,i)=>new Date(y, m-1, i+1, 12))}; };
+const gorurGrup = g => P.rol.tech || P.rol.tesis || (P.rol.yon && g==="guvenlik");
+const duzenler = () => P.rol.tech || P.rol.tesis || P.rol.yon;
+
+/* Kişi listesi: kayıtlı liste yoksa vardiya listesi ve temizlik çalışma listesinden kurulur */
+function kisiler(){
+  const K = {...(P.ayar.kisiler||{})};
+  if (!Object.keys(K).length){
+    let s = 0;
+    VARDIYA.forEach(v=>v.kisiler.forEach(([ad, amir])=>{ K[anahtar(ad)] = {ad, grup:"guvenlik", vardiya:v.ad, amir:!!amir, aktif:true, sira:s++}; }));
+    const pl = P.plan; const T = pl ? [...pl.cmt, ...pl.paz].map(r=>r[0]).filter(Boolean) : [];
+    [...new Set(T.map(adKok))].sort((a,b)=>a.localeCompare(b,"tr")).forEach(ad=>{ K[anahtar(ad)] = {ad, grup:"temizlik", duzen:"temizlik", aktif:true, sira:s++}; });
+  }
+  return K;
+}
+const grupKisileri = g => Object.entries(kisiler()).filter(([k,v])=>v.aktif!==false && (v.grup===g || (g==="temizlik" && (v.grup==="bahce" || v.grup==="diger")))).sort((a,b)=>(a[1].vardiya||"").localeCompare(b[1].vardiya||"","tr",{numeric:true}) || (b[1].amir?1:0)-(a[1].amir?1:0) || (a[1].sira??0)-(b[1].sira??0) || a[1].ad.localeCompare(b[1].ad,"tr"));
+
+/* Temizlik hafta sonu dönüşümü (index.html ile aynı kural) */
+const cmtBul = d => { d = new Date(d); d.setHours(12,0,0,0); const g = d.getDay(); if (g === 0) d.setDate(d.getDate()-1); else d.setDate(d.getDate() + (6 - g)); return d; };
+function haftaSonu(plan, gun){ const fark = Math.round((cmtBul(gun) - cmtBul(plan.baz)) / (7*GUN)); const tek = Math.abs(fark) % 2 === 1; return {cmtL: tek ? plan.paz : plan.cmt, pazL: tek ? plan.cmt : plan.paz}; }
+const cift = L => (L||[]).map(r => Array.isArray(r) ? r : [r.ad || "", r.blok || ""]);
+const TARIH_RE = /(\d{1,2})[./](\d{1,2})[./](\d{4})/;
+function planCoz(v){
+  if (!v) return null;
+  if (v.cmt && v.paz && v.baz) return {baz:new Date(v.baz), cmt:cift(v.cmt), paz:cift(v.paz)};
+  if (!v.gunler) return null; let baz = null, cmt = [], paz = [];
+  v.gunler.forEach(g=>{ const m = String(g.baslik||"").match(TARIH_RE); if (!m) return; const d = new Date(+m[3], +m[2]-1, +m[1], 12);
+    if (d.getDay()===6){ cmt = cift(g.satir); baz = d; } else if (d.getDay()===0){ paz = cift(g.satir); if (!baz){ baz = new Date(d); baz.setDate(d.getDate()-1); } } });
+  return baz ? {baz:cmtBul(baz), cmt, paz} : null;
+}
+const gunFark = (a, b) => Math.round((new Date(a).setHours(12,0,0,0) - new Date(b).setHours(12,0,0,0)) / GUN);
+
+/* Bir kişinin bir gününün otomatik kodu ve nedeni */
+function oto(key, k, d){
+  let kod = "X", neden = "", gece = false;
+  if (k.grup==="guvenlik"){
+    const ds = (P.ayar.desen||{})[k.vardiya] || DESEN_VARSAYILAN[k.vardiya];
+    if (ds){ const seq = ds.seq.split(","); const i = ((gunFark(d, ymdT(ds.baz)) % seq.length) + seq.length) % seq.length; const s = seq[i];
+      kod = s==="HT" ? "HT" : "X"; gece = s==="N"; neden = s==="HT" ? "Vardiya düzeni: izin günü" : s==="N" ? "Vardiya düzeni: gece (20–08)" : "Vardiya düzeni: gündüz (08–20)"; }
+    else { kod = d.getDay()===0 ? "HT" : "X"; neden = "Vardiya düzeni girilmedi"; }
+  } else if (k.duzen==="temizlik" || (k.grup==="temizlik" && !k.gunler)){
+    const g = d.getDay();
+    if (g>=1 && g<=5){ kod = "X"; neden = "Hafta içi"; }
+    else if (!P.plan){ kod = "HT"; neden = "Hafta sonu listesi yok"; }
+    else { const h = haftaSonu(P.plan, d), L = g===6 ? h.cmtL : h.pazL; const var_ = L.some(([ad])=>adKok(ad)===adKok(k.ad));
+      kod = var_ ? "X" : "HT"; neden = var_ ? `Çalışma listesinde ${g===6?"Cumartesi":"Pazar"}` : "Hafta sonu izinli (çalışma listesi)"; }
+  } else { const G = k.gunler || [1,2,3,4,5,6]; kod = G.includes(d.getDay()) ? "X" : "HT"; neden = kod==="X" ? "Çalışma günü" : "Hafta tatili"; }
+  const t = tatil(d);
+  if (t && kod==="X" && k.grup!=="guvenlik"){ kod = "RT"; neden = t; }
+  const iz = izinBul(k, d);
+  if (iz && kod!=="HT"){ kod = IZIN_KOD[iz.tur] || "Yİ"; neden = `İzinler: ${({yillik:"Yıllık izin",rapor:"Rapor",mazeret:"Mazeret",ucretsiz:"Ücretsiz izin"})[iz.tur]||"İzin"}${iz.not?" · "+iz.not:""}`; gece = false; }
+  return {kod, neden, gece};
+}
+function izinBul(k, d){
+  const s = ymd(d);
+  return P.izin.find(e => e.bas <= s && (e.bit||e.bas) >= s && (
+    (k.grup==="guvenlik" && (e.grup==="guvenlik") && anahtar(e.ad)===anahtar(k.ad)) ||
+    (k.grup!=="guvenlik" && (e.grup||"temizlik")!=="guvenlik" && adKok(e.ad)===adKok(k.ad))));
+}
+/* Hücrenin son değeri: müdür onayı varsa kesin kayıt, yoksa elle değişiklik ya da otomatik */
+function hucre(key, k, d, gi){
+  const g = grupOf(k), kes = ((P.doc.kesin||{})[g]||{})[key];
+  const o = oto(key, k, d);
+  if (kes){ const kod = kes.split(",")[gi]; return {kod, kesin:true, elle:false, neden:o.neden, gece:o.gece}; }
+  const el = (((P.doc.kisi||{})[key]||{}).gun||{})[String(gi+1)];
+  return el ? {kod:el, elle:true, neden:`Elle değiştirildi · otomatik: ${o.kod}`, gece:false, oto:o.kod} : {...o, elle:false};
+}
+const grupOf = k => k.grup==="guvenlik" ? "guvenlik" : "temizlik";
+const qrGun = (k, gi) => ((P.qr[anahtar(k.ad)]||{})[gi+1]) || 0;
+const kilitli = g => !!(((P.doc.onay||{})[g]||{}).mudur);
+
+/* ================= çizim ================= */
+function ciz(){
+  const {y, m, n, gunler} = ayBilgi();
+  $("#ayAd").textContent = `${AY[m-1]} ${y}`;
+  const gruplar = ["guvenlik","temizlik"].filter(gorurGrup);
+  if (!gruplar.includes(P.grup)) P.grup = gruplar[0];
+  $("#grupSeg").innerHTML = gruplar.map(g=>`<button aria-pressed="${P.grup===g}" data-grup="${g}">${g==="guvenlik"?"🛡️ Güvenlik":"🧹 Temizlik & Bahçe"}</button>`).join("");
+  const L = grupKisileri(P.grup);
+  const bugun = ymd(new Date());
+  const kil = kilitli(P.grup);
+  // üst bilgi: onay adımları + uyarılar
+  const on = (P.doc.onay||{})[P.grup] || {};
+  const adimH = (ok, baslik, kim) => `<div class="adim ${ok?"tamam":""}">${ok?"✓":"○"} <div>${baslik}<small>${ok?`${esc(ok.by)} · ${new Date(ok.ts).toLocaleString("tr-TR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}`:kim}</small></div></div>`;
+  const desenYok = P.grup==="guvenlik" && !P.ayar.desenOnay;
+  $("#ust").innerHTML = `
+    ${desenYok ? `<div class="uyari">⚠️ Güvenlik vardiya düzeni örnek olarak dolduruldu (2 gündüz · 2 gece · 2 izin). Bir kez kendi düzeninize göre ayarlayın, sonraki aylar kendiliğinden dolar. <button class="btn" data-act="desen">Vardiya düzenini ayarla</button></div>` : ""}
+    ${kil ? `<div class="uyari" style="background:var(--okbg);color:var(--ok)">🔒 Bu ay müdür onaylı, değişiklik kapalı. ${P.rol.tech||P.rol.tesis?`<button class="btn kirmizi" data-act="kilitAc">Kilidi aç</button>`:""}</div>` : ""}
+    <div class="onay" style="margin-bottom:12px">
+      ${P.grup==="guvenlik" ? adimH(on.amir, "Amir onayı", "Nejdet · Rüstem · Yakup") : ""}
+      ${adimH(on.mudur, "Müdür onayı", "Tuğrul")}
+      ${P.grup==="guvenlik" && !on.amir && !kil ? `<button class="btn yesil" data-act="onay" data-v="amir">✓ Amir olarak onayla</button>` : ""}
+      ${(P.rol.tech||P.rol.tesis) && !kil && (P.grup!=="guvenlik" || on.amir) ? `<button class="btn yesil" data-act="onay" data-v="mudur">✓ Müdür onayı · kesinleştir</button>` : ""}
+      ${(P.rol.tech||P.rol.tesis) && !kil && P.grup==="guvenlik" && !on.amir ? `<span class="mut" style="font-size:12.5px">Müdür onayı amir onayından sonra açılır</span>` : ""}
+    </div>`;
+  // tablo
+  const bas = `<thead><tr><th class="ad">${L.length} kişi</th>${gunler.map((d,i)=>{ const t = tatil(d), yr = yarim(d), hs = d.getDay()===0||d.getDay()===6;
+      return `<th class="${t?"tat":hs?"hs":""}${ymd(d)===bugun?" bugun":""}" title="${esc(t||yr||"")}"><b>${i+1}</b>${GK[d.getDay()]}${t?"<br>🇹🇷":yr?"<br>½":""}</th>`; }).join("")}
+      <th title="Çalışılan gün">Çalş</th><th>HT</th><th>Yİ</th><th>R</th><th title="Mazeret / ücretsiz izin">Mİ/Üİ</th><th>D</th><th title="Resmi tatilde çalıştığı gün">RT çlş</th><th title="Fazla mesai (saat)">FM sa</th>${P.grup==="guvenlik"?`<th title="QR okuttuğu gece sayısı">QR</th>`:""}<th>Not</th></tr></thead>`;
+  let sonGrup = null; const sat = [];
+  L.forEach(([key, k])=>{
+    const etiket = P.grup==="guvenlik" ? k.vardiya || "Vardiyasız" : (k.grup==="bahce" ? "Bahçe" : k.grup==="diger" ? "Diğer" : "Temizlik");
+    if (etiket !== sonGrup){ sonGrup = etiket; sat.push(`<tr class="grup"><td class="ad">${esc(etiket)}</td><td colspan="${n + 9 + (P.grup==="guvenlik"?1:0)}"></td></tr>`); }
+    const T = {X:0, HT:0, "Yİ":0, R:0, MU:0, D:0, RTc:0, QR:0};
+    const hc = gunler.map((d,i)=>{ const h = hucre(key, k, d, i); const q = P.grup==="guvenlik" ? qrGun(k, i) : 0;
+      if (h.kod==="X") T.X++; if (h.kod==="HT") T.HT++; if (h.kod==="Yİ") T["Yİ"]++; if (h.kod==="R") T.R++; if (h.kod==="Mİ"||h.kod==="Üİ") T.MU++; if (h.kod==="D") T.D++;
+      if (h.kod==="X" && tatil(d)) T.RTc++; if (q) T.QR++;
+      const uyar = q && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod);
+      const t = tatil(d), hs = d.getDay()===0||d.getDay()===6;
+      return `<td class="c k-${h.kod}${h.elle?" elle":""}${uyar?" uyar":""}${t?" tat":""}${ymd(d)===bugun?" bugun":""}" data-k="${esc(key)}" data-g="${i}" title="${esc(`${d.getDate()} ${AY[d.getMonth()]} · ${KODLAR[h.kod]?.ad||h.kod}\n${h.neden}${q?`\n✓ QR okuttu (${q})`:""}`)}">${h.gece&&h.kod==="X"?`<i class="gece">☾</i>`:""}${q?`<i class="qr"></i>`:""}<span>${h.kod}</span></td>`; }).join("");
+    const kd = ((P.doc.kisi||{})[key]) || {};
+    const z = v => `<td class="top${v?"":" zero"}">${v}</td>`;
+    sat.push(`<tr><td class="ad"><a data-kisi="${esc(key)}"><b>${esc(k.ad)}${k.amir?" ⭐":""}</b><small>${esc(k.grup==="guvenlik"?(k.vardiya||""):k.grup==="bahce"?"Bahçe":k.grup==="diger"?"Diğer":"Temizlik")}</small></a></td>${hc}
+      ${z(T.X)}${z(T.HT)}${z(T["Yİ"])}${z(T.R)}${z(T.MU)}${z(T.D)}${z(T.RTc)}
+      <td class="fm"><input inputmode="decimal" data-fm="${esc(key)}" value="${esc(kd.fm||"")}" ${kil?"disabled":""} placeholder="0"></td>${P.grup==="guvenlik"?z(T.QR):""}
+      <td class="not"><input data-not="${esc(key)}" value="${esc(kd.not||"")}" ${kil?"disabled":""} maxlength="80"></td></tr>`);
+  });
+  $("#tw").innerHTML = L.length ? `<table class="pt">${bas}<tbody>${sat.join("")}</tbody></table>` : `<div style="padding:30px;text-align:center" class="mut">Bu grupta kişi yok. "＋ Kişi" ile ekleyin.</div>`;
+  $("#lej").innerHTML = Object.entries(KODLAR).map(([k,v])=>`<span><b class="k-${k}">${k}</b>${v.ad}</span>`).join("") +
+    `<span>☾ Gece vardiyası</span>${P.grup==="guvenlik"?`<span><i style="width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block"></i> QR okuttu</span>`:""}<span><b style="text-decoration:underline">X</b> Elle değiştirildi</span><span>🇹🇷 Resmi tatil · ½ yarım gün</span>`;
+  kontrolCiz(L, gunler);
+}
+function kontrolCiz(L, gunler){
+  const M = [];
+  L.forEach(([key,k])=>gunler.forEach((d,i)=>{ const h = hucre(key, k, d, i);
+    if (P.grup==="guvenlik"){ const q = qrGun(k, i); if (q && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: puantajda <b>${h.kod}</b> ama o gece <b>QR okutmuş</b> (${q}). Çalıştıysa X yapın, fazla mesaiyse FM'e yazın.`); }
+    if (h.elle && h.oto && ["Yİ","R","Mİ","Üİ"].includes(h.oto) && h.kod==="X") M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: İzinler'de <b>${h.oto}</b> görünüyor ama elle X yapılmış.`);
+  }));
+  const izSay = P.izin.filter(e=>{ const {y,m} = ayBilgi(); const a = `${y}-${pad(m)}-01`, b = `${y}-${pad(m)}-31`; return e.bas <= b && (e.bit||e.bas) >= a; }).length;
+  $("#kontrol").innerHTML = `<h2>Kontrol edilecekler</h2>${M.length ? `<ul class="kontrol">${M.slice(0,30).map(x=>`<li>${x}</li>`).join("")}</ul>` : `<p class="ok" style="margin:0;font-weight:600">✓ Çelişki yok.</p>`}
+    <p class="mut" style="font-size:12.5px;margin:10px 0 0">Bu ay İzinler bölümünden ${izSay} kayıt otomatik işlendi. Hücrelerin üstüne gelince (telefonda dokununca) nereden geldiği yazar.</p>`;
+}
+
+/* ================= hücre seçici ================= */
+let POP = null;
+function popAc(td){
+  const key = td.dataset.k, gi = +td.dataset.g, k = kisiler()[key], d = ayBilgi().gunler[gi], h = hucre(key, k, d, gi), o = oto(key, k, d);
+  if (kilitli(P.grup)){ toast("Bu ay onaylandı, değişiklik için müdür kilidi açmalı"); return; }
+  if (!duzenler()){ return; }
+  POP = {key, gi};
+  const pop = $("#pop");
+  pop.innerHTML = `<h4>${esc(k.ad)} · ${d.getDate()} ${AY[d.getMonth()]} ${GK[d.getDay()]}<small>${esc(o.neden)}${tatil(d)?" · "+tatil(d):""}</small></h4>
+    <div class="kodlar">${Object.keys(KODLAR).map(c=>`<button class="k-${c}" data-kod="${c}" aria-pressed="${h.kod===c}" title="${KODLAR[c].ad}">${c}</button>`).join("")}</div>
+    <button class="btn ikincil oto" data-kod="">↺ Otomatik (${o.kod})</button>
+    <p>${Object.entries(KODLAR).map(([c,v])=>`${c}: ${v.ad}`).join(" · ")}</p>`;
+  pop.hidden = false;
+  const r = td.getBoundingClientRect(), w = 250, hh = pop.offsetHeight;
+  let x = Math.min(innerWidth - w - 8, Math.max(8, r.left + r.width/2 - w/2)), y = r.bottom + 6; if (y + hh > innerHeight - 8) y = Math.max(8, r.top - hh - 6);
+  pop.style.left = x + "px"; pop.style.top = y + "px";
+}
+function popKapat(){ $("#pop").hidden = true; POP = null; }
+async function kodYaz(kod){
+  const {key, gi} = POP; popKapat();
+  const k = kisiler()[key], d = ayBilgi().gunler[gi], o = oto(key, k, d);
+  const deger = kod && kod !== o.kod ? kod : "";
+  P.doc.kisi ||= {}; P.doc.kisi[key] ||= {}; P.doc.kisi[key].gun ||= {}; P.doc.kisi[key].gun[String(gi+1)] = deger; ciz();
+  try { await kisilerKaydetIlk(); await DB.ayYaz(P.ay, {kisi:{[key]:{gun:{[String(gi+1)]:deger}}}, son:{by:P.kim, ts:Date.now()}}); } catch(e){ hata(e); }
+}
+async function kisilerKaydetIlk(){ if (!Object.keys(P.ayar.kisiler||{}).length){ const K = kisiler(); P.ayar.kisiler = K; await DB.ayarYaz({kisiler:K}); } }
+
+/* ================= onay, kilit ================= */
+async function onayla(tur){
+  const g = P.grup;
+  if (tur==="mudur"){
+    if (!confirm(`${AY[ayBilgi().m-1]} ${g==="guvenlik"?"güvenlik":"temizlik & bahçe"} puantajı kesinleşsin mi? Sonra değişiklik için kilidin açılması gerekir.`)) return;
+    const {gunler} = ayBilgi(); const kes = {};
+    grupKisileri(g).forEach(([key,k])=>{ kes[key] = gunler.map((d,i)=>hucre(key,k,d,i).kod).join(","); });
+    try { await kisilerKaydetIlk(); await DB.ayYaz(P.ay, {onay:{[g]:{mudur:{by:P.kim, ts:Date.now()}}}, kesin:{[g]:kes}}); toast("✓ Kesinleşti. Excel'i muhasebeye gönderebilirsiniz."); } catch(e){ hata(e); }
+  } else {
+    if (!confirm("Güvenlik puantajını amir olarak onaylıyor musunuz?")) return;
+    try { await kisilerKaydetIlk(); await DB.ayYaz(P.ay, {onay:{[g]:{amir:{by:P.kim, ts:Date.now()}}}}); toast("✓ Amir onayı verildi, Tuğrul Bey'e iletildi."); } catch(e){ hata(e); }
+  }
+}
+async function kilitAc(){
+  if (!confirm("Kilit açılsın mı? Müdür onayı kalkar, değişiklikten sonra tekrar onaylanması gerekir.")) return;
+  try { await DB.kilitAc(P.ay, P.grup); toast("Kilit açıldı"); } catch(e){ hata(e); }
+}
+
+/* ================= Excel ================= */
+const XLSXW = (() => {
+  const enc = new TextEncoder();
+  const crcT = (() => { const t = new Uint32Array(256); for (let n=0;n<256;n++){ let c=n; for (let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+  const crc32 = b => { let c = 0xFFFFFFFF; for (let i=0;i<b.length;i++) c = crcT[(c^b[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; };
+  function zip(files){
+    const parts = [], merkez = []; let off = 0;
+    files.forEach(([ad, veri]) => {
+      const a = enc.encode(ad), d = typeof veri==="string" ? enc.encode(veri) : veri, c = crc32(d);
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true);
+      h.setUint32(14,c,true); h.setUint32(18,d.length,true); h.setUint32(22,d.length,true); h.setUint16(26,a.length,true);
+      parts.push(new Uint8Array(h.buffer), a, d);
+      const m = new DataView(new ArrayBuffer(46));
+      m.setUint32(0,0x02014b50,true); m.setUint16(4,20,true); m.setUint16(6,20,true); m.setUint16(8,0x0800,true);
+      m.setUint32(16,c,true); m.setUint32(20,d.length,true); m.setUint32(24,d.length,true); m.setUint16(28,a.length,true); m.setUint32(42,off,true);
+      merkez.push(new Uint8Array(m.buffer), a); off += 30 + a.length + d.length;
+    });
+    const mBoy = merkez.reduce((s,p)=>s+p.length,0), e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,mBoy,true); e.setUint32(16,off,true);
+    return new Blob([...parts, ...merkez, new Uint8Array(e.buffer)], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  }
+  const x = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,"");
+  const kol = i => { let s=""; i++; while(i){ const m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26); } return s; };
+  function sayfa(satirlar, gen, baslikSatiri){
+    const cols = gen && gen.length ? `<cols>${gen.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")}</cols>` : "";
+    const rows = satirlar.map((r,ri)=>`<row r="${ri+1}">${r.map((v,ci)=>{
+      const ref = kol(ci)+(ri+1), st = ri===baslikSatiri ? ' s="1"' : "";
+      if (v===null || v===undefined || v==="") return "";
+      return typeof v==="number" && isFinite(v) ? `<c r="${ref}"${st}><v>${v}</v></c>` : `<c r="${ref}" t="inlineStr"${st}><is><t xml:space="preserve">${x(v)}</t></is></c>`;
+    }).join("")}</row>`).join("");
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"${baslikSatiri===0?'><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView':"/"}></sheetViews>${cols}<sheetData>${rows}</sheetData></worksheet>`;
+  }
+  return function yaz(sayfalar){   // sayfalar: [[ad, satirlar, genislikler, baslikSatiri]]
+    const f = [
+      ["[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sayfalar.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`],
+      ["_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+      ["xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sayfalar.map((s,i)=>`<sheet name="${x(s[0]).slice(0,31)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets></workbook>`],
+      ["xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sayfalar.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}<Relationship Id="rId${sayfalar.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
+      ["xl/styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F6FB5"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`],
+      ...sayfalar.map((s,i)=>[`xl/worksheets/sheet${i+1}.xml`, sayfa(s[1], s[2], s[3])])
+    ];
+    return zip(f);
+  };
+})();
+function excelYap(g = P.grup){
+  const {y, m, gunler} = ayBilgi();
+  const L = grupKisileri(g);
+  const baslik = ["Sıra","Ad Soyad", g==="guvenlik"?"Vardiya":"Görev", ...gunler.map((d,i)=>`${i+1} ${GK[d.getDay()]}`), "Çalışılan gün","Hafta tatili","Yıllık izin","Rapor","Mazeret izni","Ücretsiz izin","Devamsız","Resmi tatil (çalışmadı)","Resmi tatilde çalıştı","Fazla mesai (saat)","Not"];
+  const satirlar = [baslik];
+  L.forEach(([key,k], si)=>{ const kodlar = gunler.map((d,i)=>hucre(key,k,d,i).kod); const say = c => kodlar.filter(x=>x===c).length; const kd = (P.doc.kisi||{})[key]||{};
+    satirlar.push([si+1, k.ad, g==="guvenlik" ? (k.vardiya||"") : (k.grup==="bahce"?"Bahçe":k.grup==="diger"?"Diğer":"Temizlik"), ...kodlar, say("X"), say("HT"), say("Yİ"), say("R"), say("Mİ"), say("Üİ"), say("D"), say("RT"), kodlar.filter((c,i)=>c==="X" && tatil(gunler[i])).length, parseFloat(String(kd.fm||"0").replace(",","."))||0, kd.not||""]); });
+  const on = (P.doc.onay||{})[g] || {};
+  const bilgi = [["Bizimevler 1 Sitesi · Puantaj"], ["Dönem", `${AY[m-1]} ${y}`], ["Grup", g==="guvenlik"?"Güvenlik":"Temizlik & Bahçe"],
+    ["Amir onayı", on.amir ? `${on.amir.by} · ${new Date(on.amir.ts).toLocaleString("tr-TR")}` : (g==="guvenlik"?"Yok":"—")],
+    ["Müdür onayı", on.mudur ? `${on.mudur.by} · ${new Date(on.mudur.ts).toLocaleString("tr-TR")}` : "Yok (taslak)"], [""], ["Kod","Anlamı"], ...Object.entries(KODLAR).map(([c,v])=>[c, v.ad]),
+    [""], ["Resmi tatiller", gunler.filter(d=>tatil(d)).map(d=>`${d.getDate()} ${AY[m-1]} ${tatil(d)}`).join(", ") || "Yok"]];
+  const gen = [5, 24, 12, ...gunler.map(()=>5), 9, 8, 8, 7, 9, 9, 8, 10, 10, 10, 24];
+  const blob = XLSXW([["Puantaj", satirlar, gen, 0], ["Bilgi", bilgi, [22, 60], -1]]);
+  return {blob, ad:`puantaj-${y}-${pad(m)}-${g==="guvenlik"?"guvenlik":"temizlik"}.xlsx`};
+}
+function indir({blob, ad}){ const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = ad; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 3000); }
+async function paylas(){
+  const g = P.grup;
+  if (!kilitli(g) && !confirm("Bu ay henüz müdür onaylı değil (taslak). Yine de gönderilsin mi?")) return;
+  const x = excelYap(g); const f = new File([x.blob], x.ad, {type:x.blob.type});
+  const {y, m} = ayBilgi();
+  const metin = `Bizimevler 1 · ${AY[m-1]} ${y} ${g==="guvenlik"?"güvenlik":"temizlik & bahçe"} puantajı ektedir.`;
+  try { if (navigator.canShare && navigator.canShare({files:[f]})){ await navigator.share({files:[f], title:x.ad, text:metin}); return; } } catch(e){ if (e && e.name==="AbortError") return; }
+  indir(x); toast("Excel indirildi. E-posta ya da WhatsApp ile muhasebeye ekleyin.");
+}
+
+/* ================= modallar ================= */
+function modal(html){ $("#mic").innerHTML = html; $("#modal").hidden = false; }
+function kapat(){ $("#modal").hidden = true; }
+$("#modal").addEventListener("mousedown", e => { if (e.target.id==="modal") kapat(); });
+function desenModal(){
+  const D = {...DESEN_VARSAYILAN, ...(P.ayar.desen||{})};
+  const yaz = () => Object.entries(D).map(([v, ds])=>{ const seq = ds.seq.split(","); const b = ymdT(ds.baz);
+    const on14 = Array.from({length:14}, (_,i)=>{ const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate()+i); const s = seq[((gunFark(d,b)%seq.length)+seq.length)%seq.length]; return `<span class="${s}" style="${s==="G"?"background:#fff4d6;color:#8a5a00":s==="N"?"background:#1d3557;color:#fff":"background:var(--panel2);color:var(--muted)"}">${d.getDate()}<br>${s==="G"?"☀":s==="N"?"☾":"–"}</span>`; }).join("");
+    return `<div class="vd" data-vd="${esc(v)}"><b>${esc(v)}</b> <span class="mut" style="font-size:12.5px">· ${VARDIYA.find(x=>x.ad===v)?.kisiler.map(x=>x[0].split(" ")[0]).join(", ")||""}</span>
+      <div class="desen">${seq.map((s,i)=>`<button type="button" class="g ${s}" data-dz="${esc(v)}|${i}">${s==="G"?"☀ G":s==="N"?"☾ N":"HT"}</button>`).join("")}
+        <button type="button" class="ibtn" data-dzek="${esc(v)}">＋</button><button type="button" class="ibtn" data-dzsil="${esc(v)}">－</button></div>
+      <label class="mut" style="font-size:13px;font-weight:600">Düzenin 1. günü <input class="inp" type="date" data-dzbaz="${esc(v)}" value="${esc(ds.baz)}"></label>
+      <div class="onizle">${on14}</div></div>`; }).join("");
+  const goster = () => { modal(`<div class="bas"><h3>Vardiya düzeni</h3><button class="ibtn" data-act="kapat">✕</button></div>
+    <p style="margin:0 0 10px">Her vardiyanın tekrar eden düzenini bir kez girin. Kutulara dokununca <b>☀ G</b> gündüz (08–20) → <b>☾ N</b> gece (20–08) → <b>HT</b> izin olarak değişir. "Düzenin 1. günü", ilk kutunun denk geldiği tarih. Altta önümüzdeki 14 gün görünür, doğru mu kontrol edin.</p>
+    ${yaz()}<button class="btn yesil" data-act="desenKaydet">✓ Kaydet</button>`);
+    $("#mic").onclick = e => { const b = e.target.closest("[data-dz],[data-dzek],[data-dzsil]"); if (!b) return;
+      if (b.dataset.dz){ const [v,i] = b.dataset.dz.split("|"); const s = D[v].seq.split(","); s[+i] = s[+i]==="G" ? "N" : s[+i]==="N" ? "HT" : "G"; D[v] = {...D[v], seq:s.join(",")}; }
+      if (b.dataset.dzek){ const v = b.dataset.dzek; D[v] = {...D[v], seq: D[v].seq + ",HT"}; }
+      if (b.dataset.dzsil){ const v = b.dataset.dzsil; const s = D[v].seq.split(","); if (s.length > 2){ s.pop(); D[v] = {...D[v], seq:s.join(",")}; } }
+      goster(); };
+    $("#mic").onchange = e => { const v = e.target.dataset.dzbaz; if (v && e.target.value){ D[v] = {...D[v], baz:e.target.value}; goster(); } };
+    DESEN_TASLAK = D; };
+  goster();
+}
+let DESEN_TASLAK = null;
+function kisiModal(key){
+  const k = key ? kisiler()[key] : {ad:"", grup:P.grup==="guvenlik"?"guvenlik":"temizlik", vardiya:"1. Vardiya", gunler:[1,2,3,4,5,6], aktif:true};
+  const gunSec = k.gunler || [1,2,3,4,5,6];
+  const izin = P.rol.tech || P.rol.tesis || (P.rol.yon && k.grup==="guvenlik");
+  modal(`<div class="bas"><h3>${key?"Kişiyi düzenle":"Kişi ekle"}</h3><button class="ibtn" data-act="kapat">✕</button></div>
+    <form class="form" id="kForm">
+      <label class="tam">Ad soyad (muhasebedeki gibi)<input class="inp" id="kAd" required maxlength="60" value="${esc(k.ad)}"></label>
+      <label>Grup<select class="sel" id="kGrup">${Object.entries(GRUP_AD).filter(([g])=>P.rol.tech||P.rol.tesis||g==="guvenlik").map(([g,a])=>`<option value="${g}" ${k.grup===g?"selected":""}>${a}</option>`).join("")}</select></label>
+      <label id="kVardL">Vardiya<select class="sel" id="kVard">${VARDIYA.map(v=>`<option ${k.vardiya===v.ad?"selected":""}>${v.ad}</option>`).join("")}</select></label>
+      <div class="tam" id="kGunL"><div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">Çalıştığı günler (temizlikte hafta sonu, çalışma listesinden gelir)</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${[1,2,3,4,5,6,0].map(g=>`<label style="flex-direction:row;align-items:center;gap:4px;border:1px solid var(--line);border-radius:10px;padding:6px 9px;color:var(--ink)"><input type="checkbox" value="${g}" ${gunSec.includes(g)?"checked":""}>${GK[g]}</label>`).join("")}</div></div>
+      <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="kAmir" ${k.amir?"checked":""}> Amir</label>
+      <div class="tam" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="submit" ${izin?"":"disabled"}>Kaydet</button>${key?`<button class="btn kirmizi" type="button" data-act="kisiCikar" data-k="${esc(key)}" ${izin?"":"disabled"}>İşten ayrıldı · listeden çıkar</button>`:""}</div>
+    </form>`);
+  const gor = () => { const g = $("#kGrup").value; $("#kVardL").hidden = g!=="guvenlik"; $("#kGunL").hidden = g==="guvenlik"; };
+  $("#kGrup").onchange = gor; gor();
+  $("#kForm").onsubmit = async e => { e.preventDefault();
+    const ad = $("#kAd").value.trim(); if (!ad) return;
+    const g = $("#kGrup").value;
+    const yeni = {...k, ad, grup:g, amir:$("#kAmir").checked, aktif:true};
+    if (g==="guvenlik"){ yeni.vardiya = $("#kVard").value; delete yeni.gunler; delete yeni.duzen; }
+    else { yeni.gunler = [...$("#kGunL").querySelectorAll("input:checked")].map(i=>+i.value); yeni.duzen = g==="temizlik" ? "temizlik" : "hafta"; delete yeni.vardiya; }
+    const id = key || anahtar(ad);
+    const K = kisiler(); K[id] = {...yeni, sira: yeni.sira ?? Object.keys(K).length};
+    try { P.ayar.kisiler = K; await DB.ayarYaz({kisiler:K}); toast("✓ Kaydedildi"); kapat(); ciz(); } catch(err){ hata(err); } };
+}
+
+/* ================= olaylar ================= */
+function hata(err){ console.error(err); toast(err && err.code==="permission-denied" ? "Yetki yok: Firebase kuralına puantaj bölümü eklenmeli" : "Kaydedilemedi: " + (err && (err.code||err.message) || "bağlantı")); }
+document.addEventListener("click", async e => {
+  const td = e.target.closest("td.c"); if (td){ popAc(td); return; }
+  if (!e.target.closest("#pop")) popKapat();
+  const t = e.target.closest("[data-act],[data-grup],[data-ay],[data-kod],[data-kisi]"); if (!t) return;
+  if (t.dataset.kod !== undefined && POP){ kodYaz(t.dataset.kod); return; }
+  if (t.dataset.grup){ P.grup = t.dataset.grup; ciz(); return; }
+  if (t.dataset.ay){ const [y,m] = P.ay.split("-").map(Number); const d = new Date(y, m-1 + (+t.dataset.ay), 1); P.ay = `${d.getFullYear()}-${pad(d.getMonth()+1)}`; ayDinle(); return; }
+  if (t.dataset.kisi){ e.preventDefault(); kisiModal(t.dataset.kisi); return; }
+  const a = t.dataset.act;
+  if (a==="kapat") kapat();
+  else if (a==="desen") desenModal();
+  else if (a==="desenKaydet"){ try { await DB.ayarYaz({desen:DESEN_TASLAK, desenOnay:true}); P.ayar.desen = DESEN_TASLAK; P.ayar.desenOnay = true; toast("✓ Vardiya düzeni kaydedildi"); kapat(); ciz(); } catch(err){ hata(err); } }
+  else if (a==="kisiEkle") kisiModal(null);
+  else if (a==="kisiCikar"){ if (!confirm("Bu kişi bu aydan sonra listede görünmesin mi? Geçmiş aylar etkilenmez.")) return; const K = kisiler(); K[t.dataset.k] = {...K[t.dataset.k], aktif:false, ayrilma:P.ay}; try { P.ayar.kisiler = K; await DB.ayarYaz({kisiler:K}); kapat(); ciz(); } catch(err){ hata(err); } }
+  else if (a==="onay") onayla(t.dataset.v);
+  else if (a==="kilitAc") kilitAc();
+  else if (a==="excel"){ indir(excelYap()); }
+  else if (a==="paylas") paylas();
+});
+let fmT = {};
+document.addEventListener("input", e => {
+  const k = e.target.dataset.fm || e.target.dataset.not; if (!k) return;
+  const alan = e.target.dataset.fm ? "fm" : "not", v = e.target.value.trim();
+  P.doc.kisi ||= {}; P.doc.kisi[k] ||= {}; P.doc.kisi[k][alan] = v;
+  clearTimeout(fmT[k+alan]); fmT[k+alan] = setTimeout(async()=>{ try { await kisilerKaydetIlk(); await DB.ayYaz(P.ay, {kisi:{[k]:{[alan]:v}}}); } catch(err){ hata(err); } }, 700);
+});
+addEventListener("scroll", popKapat, true);
+$("#temaBtn").onclick = () => { const r = document.documentElement; const koyu = r.dataset.theme ? r.dataset.theme==="dark" : matchMedia("(prefers-color-scheme: dark)").matches; r.dataset.theme = koyu ? "light" : "dark"; try { localStorage.setItem("pt-tema", r.dataset.theme); } catch(_){} };
+try { const tm = localStorage.getItem("pt-tema"); if (tm) document.documentElement.dataset.theme = tm; } catch(_){}
+if (/teknik\.html|devriye\.html/.test(document.referrer)) $("#geri").href = document.referrer.replace(/#.*$/,"") + "#panel";
+
+/* ================= veri ================= */
+let ayUnsub = null, qrSira = 0;
+function ayDinle(){
+  if (ayUnsub) ayUnsub(); P.doc = {kisi:{}, onay:{}, kesin:{}}; P.qr = {}; ciz();
+  ayUnsub = DB.ayDinle(P.ay, v => { P.doc = {kisi:{}, onay:{}, kesin:{}, ...(v||{})}; if (!POP && !(document.activeElement && document.activeElement.dataset && (document.activeElement.dataset.fm || document.activeElement.dataset.not))) ciz(); });
+  const {y, m} = ayBilgi(); const a = new Date(y, m-1, 1).getTime(), b = new Date(y, m, 1, 9).getTime(); const s = ++qrSira;
+  if (gorurGrup("guvenlik")) DB.devriye(a, b).then(L => { if (s !== qrSira) return; const Q = {};
+    L.forEach(r=>{ if (r.tip==="sorun") return; const d = new Date(r.ts), h = d.getHours(); if (h >= 8 && h < 19) return;
+      if (h < 8) d.setDate(d.getDate()-1); if (d.getMonth() !== m-1) return; const key = anahtar(r.gorevli); (Q[key] ||= {}); Q[key][d.getDate()] = (Q[key][d.getDate()]||0) + 1; });
+    P.qr = Q; ciz(); }).catch(err=>console.warn("devriye", err));
+}
+async function canli(){
+  const cfg = window.FB_CONFIG, V = "10.12.2", U = `https://www.gstatic.com/firebasejs/${V}/`;
+  const [app, fs, au] = await Promise.all([import(U+"firebase-app.js"), import(U+"firebase-firestore.js"), import(U+"firebase-auth.js")]);
+  const ap = app.initializeApp(cfg), db = fs.getFirestore(ap), auth = au.getAuth(ap);
+  DB = {
+    ayarDinle: cb => fs.onSnapshot(fs.doc(db,"puantaj","ayar"), s => cb(s.exists() ? s.data() : {}), e => { console.error(e); cb({}); if (e.code==="permission-denied") toast("Firebase kuralına puantaj bölümünü ekleyin"); }),
+    ayDinle: (ay, cb) => fs.onSnapshot(fs.doc(db,"puantaj",ay), s => cb(s.exists() ? s.data() : null), e => console.error(e)),
+    izinDinle: cb => fs.onSnapshot(fs.doc(db,"duyuru","izinler"), s => cb(s.exists() ? (s.data().liste||[]) : []), e => cb([])),
+    planDinle: cb => fs.onSnapshot(fs.doc(db,"duyuru","izin"), s => cb(s.exists() ? s.data() : null), e => cb(null)),
+    async ayarYaz(v){ await fs.setDoc(fs.doc(db,"puantaj","ayar"), v, {merge:true}); },
+    async ayYaz(ay, v){ await fs.setDoc(fs.doc(db,"puantaj",ay), v, {merge:true}); },
+    async kilitAc(ay, g){ await fs.updateDoc(fs.doc(db,"puantaj",ay), {[`onay.${g}.mudur`]: fs.deleteField(), [`kesin.${g}`]: fs.deleteField(), son:{by:P.kim, ts:Date.now(), not:"kilit açıldı"}}); },
+    async devriye(a, b){ return (await fs.getDocs(fs.query(fs.collection(db,"devriye"), fs.where("ts",">=",a), fs.where("ts","<",b)))).docs.map(d=>d.data()); }
+  };
+  $("#girisForm").onsubmit = async e => { e.preventDefault(); $("#gHata").textContent = "";
+    try { await au.signInWithEmailAndPassword(auth, $("#gEmail").value.trim(), $("#gSifre").value); } catch(_){ $("#gHata").textContent = "E-posta veya şifre hatalı."; } };
+  let bas = false;
+  au.onAuthStateChanged(auth, async u => {
+    if (!u || u.isAnonymous){ $("#app").hidden = true; $("#giris").hidden = false; return; }
+    const em = (u.email||"").toLowerCase();
+    P.rol.tech = (window.FB_TEKNISYEN||[]).map(x=>x.toLowerCase()).includes(em);
+    try { const r = await fs.getDoc(fs.doc(db,"ayar","roller")); const R = r.exists() ? r.data() : {}; const l = x => (x||[]).map(s=>String(s).toLowerCase().trim());
+      P.rol.tesis = l(R.tesis).includes(em); P.rol.yon = l(R.yonetim).includes(em); P.adlar = R.adlar || {}; } catch(e){ console.warn(e); }
+    if (!P.rol.tech && !P.rol.tesis && !P.rol.yon){ $("#app").hidden = true; $("#giris").hidden = false; $("#gHata").textContent = "Bu hesabın puantaj yetkisi yok."; return; }
+    P.kim = (P.adlar && P.adlar[em]) || (P.rol.tech ? "Teknisyen" : em.split("@")[0]);
+    $("#kimAd").textContent = P.rol.tech ? "Teknisyen" : P.rol.tesis ? "Müdür" : "Amir";
+    $("#giris").hidden = true; $("#app").hidden = false;
+    if (bas) return; bas = true;
+    DB.ayarDinle(v => { P.ayar = {kisiler:{}, desen:{}, ...v}; P.ayarGeldi = true; if (!POP) ciz(); });
+    DB.izinDinle(L => { P.izin = L; if (!POP) ciz(); });
+    DB.planDinle(v => { P.plan = planCoz(v); if (!POP) ciz(); });
+    ayDinle();
+  });
+}
+/* Test için bellek (FB_CONFIG yoksa) */
+function bellek(){
+  const mem = {ayar:{}, ay:{}}; const dinleyen = {};
+  const birlestir = (h, v) => { for (const [k,x] of Object.entries(v)){ if (x && typeof x==="object" && !Array.isArray(x)){ h[k] = birlestir(h[k] && typeof h[k]==="object" ? {...h[k]} : {}, x); } else h[k] = x; } return h; };
+  const t = new Date(); const ys = (g) => ymd(new Date(t.getFullYear(), t.getMonth(), g, 12));
+  DB = {
+    ayarDinle: cb => { dinleyen.ayar = cb; cb(mem.ayar); return ()=>{}; },
+    ayDinle: (ay, cb) => { dinleyen.ay = [ay, cb]; cb(mem.ay[ay] || null); return ()=>{}; },
+    izinDinle: cb => { cb(window.TEST_IZIN || [{ad:"Cihan Yıldırım", grup:"guvenlik", tur:"yillik", bas:ys(10), bit:ys(16)}, {ad:"RABİA", grup:"temizlik", tur:"rapor", bas:ys(4), bit:ys(5)}]); return ()=>{}; },
+    planDinle: cb => { cb(window.TEST_PLAN || {baz:new Date(2026,9,3,12).getTime(), cmt:[{ad:"ŞÜKRAN",blok:""},{ad:"DURSUN",blok:""},{ad:"GÜNNUR",blok:""},{ad:"SABRİYE",blok:""},{ad:"HATUN",blok:""}], paz:[{ad:"AYŞE",blok:""},{ad:"RABİA",blok:""},{ad:"GÜLTEN",blok:""},{ad:"MERAL",blok:""},{ad:"SEMRA",blok:""}]}); return ()=>{}; },
+    async ayarYaz(v){ mem.ayar = birlestir({...mem.ayar}, v); if (v.kisiler) mem.ayar.kisiler = v.kisiler; if (v.desen) mem.ayar.desen = v.desen; dinleyen.ayar && dinleyen.ayar(mem.ayar); },
+    async ayYaz(ay, v){ mem.ay[ay] = birlestir({...(mem.ay[ay]||{})}, v); if (dinleyen.ay && dinleyen.ay[0]===ay) dinleyen.ay[1](mem.ay[ay]); },
+    async kilitAc(ay, g){ const d = mem.ay[ay]; if (d.onay && d.onay[g]) delete d.onay[g].mudur; if (d.kesin) delete d.kesin[g]; dinleyen.ay[1](d); },
+    async devriye(a, b){ const L = []; const gece = (g, ad, n=6) => { for (let i=0;i<n;i++) L.push({gorevli:ad, ts:new Date(t.getFullYear(), t.getMonth(), g, 22, i*7).getTime()}); };
+      gece(3,"Yalçın Akyol"); gece(4,"Yalçın Akyol"); gece(5,"Rüstem Eryüksel"); gece(12,"Cihan Yıldırım"); gece(7,"Tayfun Özdemir"); return L.filter(r=>r.ts>=a && r.ts<b); }
+  };
+  P.rol = window.TEST_ROL || {tech:true, tesis:false, yon:false}; P.kim = "Test";
+  $("#kimAd").textContent = "Test"; $("#giris").hidden = true; $("#app").hidden = false;
+  DB.ayarDinle(v=>{ P.ayar = {kisiler:{}, desen:{}, ...v}; ciz(); }); DB.izinDinle(L=>{ P.izin = L; }); DB.planDinle(v=>{ P.plan = planCoz(v); }); ayDinle();
+}
+window.__PT = {P, oto, hucre, kisiler, excelYap};
+if (window.FB_CONFIG) canli().catch(e=>{ console.error(e); $("#giris").hidden = false; $("#gHata").textContent = "Bağlantı kurulamadı, sayfayı yenileyin."; });
+else bellek();
+</script>
+</body>
+</html>
