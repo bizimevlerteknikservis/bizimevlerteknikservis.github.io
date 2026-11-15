@@ -234,8 +234,9 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .app{padding-bottom:84px}
 .tvakis .son:empty{display:none}
 @media (min-height:700px){.mapwrap svg.map{max-height:calc(100vh - 300px)}}
-html.tv .tvbar{bottom:70px;left:16px;right:16px;height:4px;border-radius:2px}
-html.tv .tvbar span{display:none}
+html .tvbar{bottom:70px;left:16px;right:16px;height:4px;border-radius:2px}
+html .tvbar span{display:none}
+.tvakis .sesac{flex:none;height:100%;border:0;border-left:1px solid var(--line);background:var(--warn);color:#fff;font:800 15px var(--display);padding:0 16px;cursor:pointer;white-space:nowrap}
 .tvakis .son{flex:none;height:100%;display:flex;align-items:center;padding:0 18px;border-left:1px solid var(--line);font:700 15px var(--display);color:var(--muted);white-space:nowrap}
 .tvakis .bas{flex:none;height:100%;display:flex;align-items:center;padding:0 20px;background:var(--bad);color:#fff;font:800 17px var(--display);letter-spacing:.06em;white-space:nowrap}
 .tvakis .bas i{display:inline-block;width:10px;height:10px;border-radius:50%;background:#fff;margin-right:8px;animation:tvyan 1.4s infinite}
@@ -246,7 +247,7 @@ html.tv .tvbar span{display:none}
 .tvakis .serit b{color:var(--accent);margin-right:8px}
 .tvakis .serit u{text-decoration:none;color:var(--muted);margin:0 22px}
 @keyframes tvkay{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-@media (max-height:699px), (max-width:600px){.tvakis{height:42px;bottom:6px;left:8px;right:8px;border-radius:12px}.tvakis .bas{font-size:13px;padding:0 12px}.tvakis .serit{font-size:15px}.tvakis .son{display:none}.app{padding-bottom:56px}html.tv .tvbar{bottom:50px}}
+@media (max-height:699px), (max-width:600px){.tvakis{height:42px;bottom:6px;left:8px;right:8px;border-radius:12px}.tvakis .bas{font-size:13px;padding:0 12px}.tvakis .serit{font-size:15px}.tvakis .son{display:none}.app{padding-bottom:56px}html .tvbar{bottom:50px}.tvakis .sesac{font-size:13px;padding:0 10px}}
 
 .tvbasla{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(4,12,22,.86);color:#fff;text-align:center;padding:20px}
 .tvbasla button{font:800 34px/1.2 var(--display);padding:28px 48px;border-radius:24px;border:0;background:#2b7cd3;color:#fff;cursor:pointer;box-shadow:0 20px 60px rgba(0,0,0,.5)}
@@ -1400,9 +1401,10 @@ function tvBar(){
 }
 function tvAdim(){
   clearTimeout(TV.t); if (!TV.on) return;
+  if (DUZENLE){ TV.t = setTimeout(tvAdim, 10000); return; }
   const kalan = TV.durak - Date.now();
   if (kalan > 0){ TV.t = setTimeout(tvAdim, kalan); const b = tvBar(); b.querySelector("span").textContent = TV.durakYazi; tvSonYaz(TV.durakYazi); return; }
-  tvTema();
+  if (document.documentElement.classList.contains("tv")) tvTema();
   const plan = tvPlan(); TV.sira = TV.sira % plan.length;
   const [m, sn] = plan[TV.sira]; const sonraki = plan[(TV.sira+1) % plan.length][0];
   if (MODE !== m) modAc(m);
@@ -1415,17 +1417,35 @@ function tvAdim(){
 }
 async function tvKilit(){ try { if ("wakeLock" in navigator) TV.kilit = await navigator.wakeLock.request("screen"); } catch(e){} }
 document.addEventListener("visibilitychange", () => { if (TV.on && document.visibilityState==="visible") tvKilit(); });
+/* Ses kilidi: tarayıcılar ilk dokunuştan önce ses çaldırmaz. Sayfada herhangi bir yere ilk dokunuşta açılır. */
+function tvSesAc(){
+  try { TV.ses = TV.ses || new (window.AudioContext||window.webkitAudioContext)(); TV.ses.resume(); } catch(e){}
+  try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } catch(e){}
+  if (!TV.sesHazir){ TV.sesHazir = true; const b = $("#tvSesAc"); if (b) b.remove(); }
+}
+["pointerdown","keydown","touchstart"].forEach(t=>window.addEventListener(t, tvSesAc, {passive:true}));
+/* Otomatik mod: sayfa açılınca kendiliğinden başlar (tıklamadan). Tam TV: + tam ekran, düğmeler gizli. */
+function tvOtomatik(){
+  TV.on = true; tvKilit();
+  tvAkisCiz(); TV.sira = 0; tvAdim();
+}
 function tvBaslat(){
   $("#tvBasla") && $("#tvBasla").remove();
   TV.on = true; document.documentElement.classList.add("tv");
   try { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{}); } catch(e){}
-  tvKilit();
-  try { TV.ses = TV.ses || new (window.AudioContext||window.webkitAudioContext)(); TV.ses.resume(); } catch(e){}
-  try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } catch(e){}
+  tvKilit(); tvSesAc();
   if (DUZENLE) duzenleAc(false);
-  tvAkisCiz(); TV.sira = 0; tvAdim();
+  tvAkisCiz(); TV.sira = 0; TV.durak = 0; tvAdim();
   ticker("📺 TV ekranı açık · yeni arızada sesli uyarı verilecek");
 }
+/* Ekranı kullanan (kaydıran, dokunan) olursa otomatik geçiş 2 dk bekler */
+function tvMesgul(e){
+  if (!TV.on || (e && e.target && e.target.closest && e.target.closest("#tvBasla,#tvSesAc,.modes"))) return;
+  const once = TV.durak > Date.now();
+  if (TV.durak < Date.now() + 120000){ TV.durak = Date.now() + 120000; if (TV.durakYazi !== "🔔 Uyarı gösteriliyor" || !once) TV.durakYazi = "✋ Ekran kullanılıyor · 2 dk sonra otomatik devam"; }
+  if (!once) tvAdim();
+}
+["pointerdown","wheel","keydown"].forEach(t=>window.addEventListener(t, tvMesgul, {passive:true}));
 function tvGong(acil){
   const c = TV.ses; if (!c) return;
   const notalar = acil ? [880,660,880,660,880,660] : [784,1047,1319];
@@ -1495,7 +1515,7 @@ function tvAkisTohum(){
 }
 function tvAkisCiz(){
   let d = $("#tvAkis");
-  if (!d){ d = document.createElement("div"); d.id = "tvAkis"; d.className = "tvakis"; d.innerHTML = `<div class="bas"><i></i>CANLI</div><div class="ic"><div class="serit"></div></div><div class="son" id="tvSon"></div>`; document.body.appendChild(d); }
+  if (!d){ d = document.createElement("div"); d.id = "tvAkis"; d.className = "tvakis"; d.innerHTML = `<div class="bas"><i></i>CANLI</div><div class="ic"><div class="serit"></div></div><div class="son" id="tvSon"></div>${TV.sesHazir ? "" : `<button type="button" class="sesac" id="tvSesAc">🔈 Sesli uyarıyı aç</button>`}`; document.body.appendChild(d); }
   const yeni = TVA.liste.map(x=>x.k), ids = new Set(yeni), tohum = tvAkisTohum().filter(x=>!ids.has(x.k));
   const L = [...TVA.liste, ...tohum].sort((a,b)=>b.t-a.t).slice(0,12);
   const ic = L.length ? L.map(x=>`<b>${saat(new Date(x.t))}</b>${esc(x.k)}`).join("<u>•</u>") : "Olay bekleniyor · yeni bildirimler burada akar";
@@ -1521,6 +1541,7 @@ let ilk = (()=>{ try { return localStorage.getItem("bz1-mod"); } catch(e){ retur
 if (!ilk){ const h = new Date().getHours(); ilk = (h>=20 || h<7) ? "gece" : "gunduz"; }
 modAc(ilk);
 canliBaslat().catch(e=>{ console.error(e); ticker("Canlı bağlantı kurulamadı, sayfayı yenileyin."); });
+tvOtomatik();
 </script>
 
 </body>
