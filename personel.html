@@ -284,10 +284,10 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .y-sec-s[aria-pressed="true"]{border-color:#2b7cd3;background:rgba(43,124,211,.08)}.y-sec-s>span:first-child{font-size:20px}
 .y-sec-s>span:last-child{display:flex;flex-direction:column}.y-sec-s small{color:var(--muted,#6b7a90);font-size:12.5px}
 .t-sheet .prefs.bloklar .pref.genis{grid-column:span 2}
-#kontrolCerceve{position:fixed;inset:0;z-index:60;background:#0d1b2a}
+#kontrolCerceve{position:fixed;inset:0;z-index:60;background:#0d1b2a;display:flex;flex-direction:column}
 #kontrolCerceve[hidden]{display:none}
-#kontrolCerceve iframe{width:100%;height:100%;border:0;display:block}
-.kc-geri{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:2;background:rgba(255,255,255,.95);color:#12324f;font:600 14px/1 var(--display,system-ui);padding:11px 18px;border-radius:999px;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+#kontrolCerceve iframe{width:100%;flex:1;min-height:0;border:0;display:block}
+.kc-geri{flex:none;display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;background:#0d1b2a;color:#fff;font:700 15px/1 var(--display,system-ui);text-decoration:none;border-bottom:1px solid rgba(255,255,255,.12)}
 .t-meta.kimlik{flex-direction:column;align-items:flex-start;gap:2px;font-size:12.5px;color:var(--muted)}
 .duyuru-b{display:flex;flex-direction:column;gap:3px;padding:14px 16px;border-radius:16px;background:#fff1d6;border:2px solid #e8952b;color:#6b3d00;margin-bottom:12px}
 .duyuru-b b{font-size:17px}.duyuru-b small{opacity:.8}
@@ -2976,7 +2976,7 @@ function kontrolCerceve(ac){
   if (!ac){ if (k) k.hidden = true; return; }
   if (!k){
     k = document.createElement("div"); k.id = "kontrolCerceve";
-    k.innerHTML = `<a href="#panel" class="kc-geri">← Geri</a><iframe src="kontrol.html" title="Canlı Kontrol Merkezi"></iframe>`;
+    k.innerHTML = `<a href="#panel" class="kc-geri">← Geri · uygulamaya dön</a><iframe src="kontrol.html" title="Canlı Kontrol Merkezi"></iframe>`;
     document.body.appendChild(k);
   }
   k.hidden = false;
