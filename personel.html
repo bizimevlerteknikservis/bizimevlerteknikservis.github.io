@@ -1032,7 +1032,7 @@ function izinBenKart(){
     </section>`;
   return `${benim.length ? `<section class="step izin-k"><h2><span>🏖️</span>İzinleriniz</h2><div class="izin-ben">${benim.map(e=>`<div><small>${esc(IZIN_TUR[e.tur]||"İzin")}</small><b>${aralik(e)}</b>${isbasi(e)?`<em>İşbaşı: ${gunAy(isbasi(e))}</em>`:""}${e.not?`<em>${esc(e.not)}</em>`:""}</div>`).join("")}</div></section>` : ""}
     ${izinArkadas("temizlik", S.p.name)}
-    ${g.gonderildi ? `<div class="t-uyari yesil" style="margin:0 0 12px">✓ Bugün gelemeyeceğiniz bildirildi. Geçmiş olsun.</div>` : `<button class="cta ghost gel-btn" data-act="gelAc">🤒 Bugün işe gelemiyorum</button>`}`;
+`;
 }
 /* yönetim ekranı: izin listesi + bugün gelemeyenler */
 function yiPanel(isimler){
@@ -1041,10 +1041,7 @@ function yiPanel(isimler){
   const L = izinListe().slice().sort((a,b)=>a.bas.localeCompare(b.bas));
   const aktif = L.filter(e => (e.bit||e.bas) >= ymdS(new Date(Date.now()-30*GUN_MS)));
   const gel = (YI.gel||[]).filter(a => a.createdAt > Date.now() - 7*GUN_MS).sort((a,b)=>b.createdAt-a.createdAt);
-  return `<section class="card" style="margin-top:14px"><h3 style="margin-bottom:6px">🤒 İşe gelemeyeceğini bildirenler <small style="font-weight:500;color:var(--muted)">· son 7 gün</small></h3>
-      ${gel.length ? gel.map(a=>`<div class="izin-s${ymdS(new Date(a.createdAt))===bugun?" bugun":""}"><span><b>${esc(a.name)}</b> · ${esc(a.desc || (a.issues||[]).join(", "))}</span><b>${ymdS(new Date(a.createdAt))===bugun ? "Bugün" : gunAy(new Date(a.createdAt))} ${saatStr(a.createdAt)}</b></div>`).join("") : `<p class="hint">Bildirim yok.</p>`}
-    </section>
-    <section class="card" style="margin-top:14px"><h3 style="margin-bottom:6px">🏖️ Yıllık izin ve raporlar</h3>
+  return `<section class="card" style="margin-top:14px"><h3 style="margin-bottom:6px">🏖️ Yıllık izin ve raporlar</h3>
       <p class="hint">Eklediğiniz izin personelin telefonunda yayınlanır: kişi kendi iznini görür, aynı bölümdeki arkadaşları da kimin ne zaman gidip ne zaman döneceğini görür. Rapor/mazeret türü arkadaşlarına "İzinli" olarak görünür.</p>
       ${aktif.length ? aktif.map((e,i)=>`<div class="izin-s${(e.bas<=bugun && (e.bit||e.bas)>=bugun)?" bugun":""}${(e.bit||e.bas)<bugun?" gecmis":""}"><span>${e.grup==="guvenlik"?"🛡️":"🧹"} <b>${esc(e.ad)}</b> · ${esc(IZIN_TUR[e.tur]||"İzin")}${e.not?` <small>${esc(e.not)}</small>`:""}</span><span style="display:flex;gap:6px;align-items:center"><b>${aralik(e)}</b><button class="pill-btn cikis-btn" data-act="yiSil" data-id="${esc(e.id)}" style="padding:4px 10px">✕</button></span></div>`).join("") : `<p class="hint">Kayıtlı izin yok.</p>`}
       <div class="group-h" style="margin-top:12px">İzin ekle</div>
