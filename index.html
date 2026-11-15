@@ -1230,15 +1230,34 @@ function sesUygula(metin){
   // render önce formdaki eski değerleri okur; onları da güncelle ki seçim geri dönmesin
   [["p_block","block"],["p_kat","kat"],["p_alan","alan"],["p_desc","desc"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) el.value = p[k] || ""; });
 }
+/* iPhone (özellikle ana ekrana eklenmiş uygulama) ikinci kayıtta takılabiliyor: olay gelmezse bekçi zamanlayıcı
+   oturumu kapatır, durumu sıfırlar ve klavyenin mikrofonuyla yazma seçeneğini açar. */
+const SES_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function sesBitir(r, mesaj){
+  if (r && SES.r !== r) return;
+  clearTimeout(SES.tBas); clearTimeout(SES.tSus); clearTimeout(SES.tMax);
+  try { r && r.abort(); } catch(e){}
+  SES.r = null; SES.dinliyor = false;
+  const m = (SES.metin || SES.ara || "").trim();
+  if (m){ SES.metin = m; SES.hata = ""; sesUygula(m); }
+  else if (mesaj){ SES.hata = mesaj; if (SES_IOS) SES.klavye = true; }
+  render();
+}
 function sesBaslat(){
-  if (!SR){ SES.hata = "Bu telefonda sesli bildirim desteklenmiyor. Chrome ile açın."; render(); return; }
-  try { if (SES.r) SES.r.abort(); } catch(e){}
+  if (!SR){ SES.hata = "Bu telefonda sesli bildirim desteklenmiyor. Chrome ile açın."; SES.klavye = true; render(); return; }
+  if (SES.r){ const eski = SES.r; SES.r = null; try { eski.abort(); } catch(e){} }
   const r = new SR(); SES.r = r; r.lang = "tr-TR"; r.interimResults = true; r.continuous = false; r.maxAlternatives = 1;
-  SES.dinliyor = true; SES.metin = ""; SES.ara = ""; SES.hata = ""; SES.sonuc = null; render();
-  r.onresult = e => { let son = "", ara = ""; for (const x of e.results){ if (x.isFinal) son += x[0].transcript + " "; else ara += x[0].transcript; } if (son) SES.metin = (SES.metin + " " + son).trim(); SES.ara = ara; const el = document.getElementById("sesCanli"); if (el) el.textContent = (SES.metin + " " + SES.ara).trim() || "Dinliyorum…"; };
-  r.onerror = e => { SES.hata = e.error === "not-allowed" || e.error === "service-not-allowed" ? "Mikrofon izni verilmedi. Telefon ayarlarından Chrome'a mikrofon izni verin." : e.error === "no-speech" ? "Ses duyulmadı, tekrar deneyin." : e.error === "network" ? "İnternet bağlantısı gerekiyor." : ""; };
-  r.onend = () => { SES.dinliyor = false; const m = (SES.metin || SES.ara || "").trim(); if (m){ SES.metin = m; sesUygula(m); } render(); };
-  try { r.start(); } catch(e){ SES.dinliyor = false; SES.hata = "Mikrofon açılamadı."; render(); }
+  SES.dinliyor = true; SES.metin = ""; SES.ara = ""; SES.hata = ""; SES.sonuc = null; SES.basladi = false; render();
+  const takildi = "Mikrofon açılmadı. Tekrar basın" + (SES_IOS ? " ya da aşağıya klavyedeki 🎤 ile söyleyin." : ".");
+  const basla = () => { if (SES.r !== r) return; SES.basladi = true; clearTimeout(SES.tBas); };
+  r.onstart = basla; r.onaudiostart = basla; r.onspeechstart = basla;
+  r.onresult = e => { if (SES.r !== r) return; basla(); let son = "", ara = ""; for (const x of e.results){ if (x.isFinal) son += x[0].transcript + " "; else ara += x[0].transcript; } if (son) SES.metin = (SES.metin + " " + son).trim(); SES.ara = ara; const el = document.getElementById("sesCanli"); if (el) el.textContent = (SES.metin + " " + SES.ara).trim() || "Dinliyorum…";
+    clearTimeout(SES.tSus); SES.tSus = setTimeout(() => { if (SES.r === r){ try { r.stop(); } catch(_){} setTimeout(() => sesBitir(r), 1200); } }, 2200); };
+  r.onerror = e => { if (SES.r !== r) return; const h = e.error === "not-allowed" || e.error === "service-not-allowed" ? (SES_IOS ? "Mikrofon izni yok. Ayarlar → Safari → Mikrofon → İzin Ver." : "Mikrofon izni verilmedi. Telefon ayarlarından Chrome'a mikrofon izni verin.") : e.error === "no-speech" ? "Ses duyulmadı, tekrar deneyin." : e.error === "network" ? "İnternet bağlantısı gerekiyor." : e.error === "aborted" ? "" : takildi; sesBitir(r, h); };
+  r.onend = () => sesBitir(r, SES.basladi ? "" : takildi);
+  SES.tBas = setTimeout(() => { if (SES.r === r && !SES.basladi) sesBitir(r, takildi); }, 4000);
+  SES.tMax = setTimeout(() => { if (SES.r === r){ try { r.stop(); } catch(_){} setTimeout(() => sesBitir(r), 1200); } }, 20000);
+  try { r.start(); } catch(e){ sesBitir(r, takildi); }
 }
 function sesKart(){
   if (!SR) return "";
@@ -1248,6 +1267,7 @@ function sesKart(){
   return `<section class="step ses-k"><div class="ses-ust"><button class="ses-btn" data-act="sesBas">🎙️</button>
       <div><b>Konuşarak bildirin</b><small>Mikrofona basın, sorunu söyleyin. Örnek: <i>“C1 blok üçüncü kat merdiven lambası yanmıyor”</i></small></div></div>
     ${SES.hata ? `<p class="err">${esc(SES.hata)}</p>` : ""}
+    ${SES.klavye ? `<label class="f" style="margin-top:8px">Klavyedeki 🎤 tuşuna basıp söyleyin ya da yazın<textarea id="sesYazi" rows="2" placeholder="Örn. C1 blok merdiven lambası yanmıyor"></textarea></label><button class="cta ghost" data-act="sesYaziUygula" style="margin-top:6px">Anla ve doldur</button>` : ""}
     ${o ? `<div class="ses-sonuc"><small>Anladığım:</small><p>“${esc(SES.metin)}”</p>
       <div class="ses-cip">${o.cat ? `<span>${esc(catOf(o.cat).ad)}</span>` : `<span class="yok">Arıza türü anlaşılmadı</span>`}${(o.issues||[]).map(x=>`<span>${esc(x)}</span>`).join("")}
         ${p.yerTip==="blok" && p.block ? `<span>📍 ${esc(p.block)} Blok${p.kat?" · "+esc(p.kat):""}</span>` : p.alan ? `<span>📍 ${esc(p.alan)}</span>` : `<span class="yok">Yer anlaşılmadı</span>`}</div>
@@ -2755,7 +2775,8 @@ document.addEventListener("click", async e => {
       render(); }
     else if (act==="pKimlik"){ syncForm(); S.p.kimlikAc = true; render(); }
     else if (act==="sesBas"){ syncForm(); sesBaslat(); return; }
-    else if (act==="sesDur"){ try { SES.r && SES.r.stop(); } catch(e){} return; }
+    else if (act==="sesYaziUygula"){ const m = (document.getElementById("sesYazi")||{}).value || ""; if (!m.trim()) return; syncForm(); SES.metin = m.trim(); SES.hata = ""; SES.klavye = false; sesUygula(SES.metin); render(); return; }
+    else if (act==="sesDur"){ const r = SES.r; try { r && r.stop(); } catch(e){} setTimeout(() => { if (SES.r === r && SES.dinliyor) sesBitir(r); }, 1200); return; }
     else if (act==="pCat"){ syncForm(); if (S.p.cat !== v) S.p.issues = []; S.p.cat = v; render(); }
     else if (act==="pIss"){ syncForm(); const L = S.p.issues; const i = L.indexOf(v); i < 0 ? L.push(v) : L.splice(i,1); render(); }
     else if (act==="pYer"){ syncForm(); S.p.yerTip = v; render(); }
