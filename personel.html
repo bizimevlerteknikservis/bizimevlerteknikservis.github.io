@@ -295,6 +295,19 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .hizli-menu{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 14px}
 .hizli-menu a{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:14px;background:var(--card,#fff);border:1px solid var(--line,#e3e9f2);text-decoration:none;color:var(--ink);font-size:11.5px;font-weight:700;text-align:center;line-height:1.15}
 .hizli-menu a span{font-size:22px}
+.gv-kart{border:2px solid var(--accent,#2b7cd3);border-radius:18px;padding:14px;margin-bottom:12px;background:var(--card,#fff)}
+.gv-kart h2{margin:0 0 8px;font-size:16px}
+.gv{border-top:1px solid var(--line,#e3e9f2);padding:10px 0}
+.gv:first-of-type{border-top:0}
+.gv b{display:block;font-size:15px}
+.gv .gv-yer{display:inline-block;font-size:12.5px;font-weight:700;padding:2px 8px;border-radius:8px;background:#e7f0fb;color:#1b5ea8;margin-bottom:4px}
+.gv small{color:var(--muted,#5f7591);display:block;margin-top:2px}
+.gv .gv-btn{display:flex;gap:8px;margin-top:8px}
+.gv .gv-btn button{flex:1}
+.gv-durum{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px}
+.gv-yeni{background:#fdeaea;color:#b4232a}.gv-goruldu{background:#fdf1e1;color:#8a5200}.gv-yapildi{background:#e6f6ed;color:#14703f}.gv-iptal{background:#eceff3;color:#4a5a6d}
+.gv-sec{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+
 .izin-k h2{margin-bottom:8px}
 .izin-ben{display:grid;gap:8px;margin:6px 0 10px}
 .izin-ben div{padding:14px 16px;border-radius:14px;background:#e8f7ee;border:2px solid #2fa36b;display:flex;flex-direction:column}
@@ -625,6 +638,11 @@ function DemoStore(){
     listenGelemeyen: cb => sub(() => cb(mem.appts.filter(a => a.cat==="p_gelemiyorum"))),
     async setIzin(v){ mem.izin = v; save(); },
     async setDuyuru(v){ mem.duyuru = v; save(); },
+    listenGorev: cb => sub(() => cb((mem.gorev ||= []).filter(g => g.ts > Date.now() - 10*864e5))),
+    async gorevEkle(o){ (mem.gorev ||= []).push({id:"g"+Date.now().toString(36), ...o}); save(); },
+    async gorevGuncelle(id, p){ const g = (mem.gorev||[]).find(x=>x.id===id); if (g) Object.assign(g, p); save(); },
+    listenDizin: cb => sub(() => cb(mem.dizin || {liste: Object.values(mem.kodlar||{}).filter(k=>k.aktif!==false).map(k=>({ad:k.ad, rol:k.tip==="guvenlik"?"Güvenlik":k.rol}))})),
+    async setDizin(v){ mem.dizin = v; save(); },
     async logout(){ tech = false; save(); },
     isTesis: () => tech,
     isAsansor: () => tech,
@@ -699,6 +717,11 @@ function FirebaseStore(cfg){
     async setTesisAyar(p){ await fs.setDoc(fs.doc(db,"ayar","tesis"), p, {merge:true}); },
     listenDuyuru(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","devriye"), s => cb(s.exists() ? s.data() : null), e => { console.warn("duyuru", e && e.code); cb(null); }); },
     async setDuyuru(v){ await fs.setDoc(fs.doc(db,"duyuru","devriye"), v); },
+    listenGorev(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"gorev"), fs.where("ts",">=",Date.now() - 10*864e5)), s => cb(s.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.warn("gorev", e && e.code); cb([]); }); },
+    async gorevEkle(o){ await fs.addDoc(fs.collection(db,"gorev"), {...o, uid:user.uid}); },
+    async gorevGuncelle(id, p){ await fs.updateDoc(fs.doc(db,"gorev",id), p); },
+    listenDizin(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","personel"), s => cb(s.exists() ? s.data() : null), e => cb(null)); },
+    async setDizin(v){ await fs.setDoc(fs.doc(db,"duyuru","personel"), v); },
     // Firestore iç içe dizi kabul etmez: [ad, blok] çiftleri {ad, blok} nesnesi olarak saklanır
     listenIzin(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","izin"), s => cb(s.exists() ? izinOku(s.data()) : null), e => { console.warn("izin", e && e.code); cb(null); }); },
     async setIzin(v){ await fs.setDoc(fs.doc(db,"duyuru","izin"), izinYaz(v)); },
@@ -1296,7 +1319,7 @@ function vPersonelIc(){
         <label class="f">Ad soyad<input type="text" id="p_name" autocomplete="name" value="${esc(p.name)}"></label>
         <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
       </section>`;
-  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${(p.kod || p.kayitli) && !["devriye.html","teknik.html"].includes(appDosya()) ? (p.rol==="Temizlik" ? izinKart() : "") + izinBenKart() : ""}
+  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${p.kod || p.kayitli ? gorevKart({ad:p.name, rol:p.rol}) : ""}${(p.kod || p.kayitli) && !["devriye.html","teknik.html"].includes(appDosya()) ? (p.rol==="Temizlik" ? izinKart() : "") + izinBenKart() : ""}
   ${p.kod || p.kayitli ? sesKart() : ""}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.filter(k => rolKat(p.rol, k)).map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
@@ -1341,6 +1364,104 @@ function devHata(e){
   S.d.hata = c.includes("permission") ? "Sunucu kaydı reddetti (Firebase kuralı yayınlanmamış olabilir)" : c ? "Hata: " + c : (navigator.onLine ? "Bağlantı hatası" : "İnternet yok");
 }
 function devKuyruk(){ return yerel("bz1-devriye-kuyruk") || []; }
+/* =================== GÖREV VER (müdür/amir → personel) =================== */
+const GV = {un:null, liste:[], dizin:null, unD:null, f:{kime:"", yer:"", metin:""}, filtre:"acik", sonEklenen:null};
+const GV_GRUP = [["grup:Temizlik","🧹 Tüm temizlik"],["grup:"+BAHCIVAN,"🌿 Tüm bahçe"],["grup:Güvenlik","🛡️ Tüm güvenlik"]];
+const gvYetkili = () => store.isTech() || (store.isYetkili && store.isYetkili());
+function gorevBaslat(){
+  if (!GV.un && store.listenGorev) GV.un = store.listenGorev(L => { GV.liste = L.sort((a,b)=>b.ts-a.ts); if (["personel","devriye","gorev"].includes(S.view)) setTimeout(render,0); });
+  if (!GV.unD && store.listenDizin) GV.unD = store.listenDizin(v => { GV.dizin = v; if (S.view==="gorev") setTimeout(render,0); });
+}
+/* Teknisyen kod listesinden isim dizinini (kod numarası olmadan) yayınlar; amir ve müdür buradan kişi seçer */
+function dizinYayinla(){
+  if (!store.isTech() || !store.setDizin || !KOD.liste) return;
+  const liste = KOD.liste.filter(k=>k.aktif!==false && k.ad).map(k=>({ad:k.ad, rol:k.tip==="guvenlik" ? "Güvenlik" : (k.rol||"Diğer")})).sort((a,b)=>a.rol.localeCompare(b.rol,"tr") || a.ad.localeCompare(b.ad,"tr"));
+  const j = JSON.stringify(liste); if (j === GV.dizinJ) return; GV.dizinJ = j;
+  if (GV.dizin && JSON.stringify(GV.dizin.liste||[]) === j) return;
+  store.setDizin({liste, ts:Date.now()}).catch(e=>console.warn("dizin", e));
+}
+const gvBana = (g, ben) => g.durum!=="iptal" && (g.kime.tip==="grup" ? g.kime.rol===ben.rol : adSade(g.kime.ad)===adSade(ben.ad));
+const gvKimeAd = g => g.kime.tip==="grup" ? `Tüm ${g.kime.rol==="Güvenlik"?"güvenlik":g.kime.rol==="Temizlik"?"temizlik":g.kime.rol.toLocaleLowerCase("tr")}` : g.kime.ad;
+const gvDurumAd = {yeni:"Gönderildi", goruldu:"Görüldü", yapildi:"Yapıldı", iptal:"İptal"};
+const gvSaat = t => { const d = new Date(t), b = new Date(); return (d.toDateString()===b.toDateString() ? "" : `${d.getDate()} ${AYLAR_TR[d.getMonth()].slice(0,3)} `) + saatYaz(t); };
+function gorevKart(ben){
+  gorevBaslat();
+  if (!ben || !ben.ad) return "";
+  const L = GV.liste.filter(g => gvBana(g, ben) && (g.durum!=="yapildi" || g.yapildiTs > Date.now() - 6*36e5));
+  if (!L.length) return "";
+  return `<section class="gv-kart"><h2>📌 Size verilen görevler</h2>${L.map(g=>`<div class="gv">
+    ${g.yer?`<span class="gv-yer">📍 ${esc(g.yer)}</span>`:""}<b>${esc(g.metin)}</b>
+    <small>${esc(g.byAd||"Yönetim")} · ${gvSaat(g.ts)}${g.kime.tip==="grup"?` · ${esc(gvKimeAd(g))}`:""}</small>
+    ${g.durum==="yapildi" ? `<small style="color:#14703f;font-weight:700">✓ ${esc(g.yapildiAd||"")} yaptı · ${saatYaz(g.yapildiTs)}</small>` :
+      `<div class="gv-btn">${g.durum==="yeni" ? `<button class="cta ghost" data-act="gvGordum" data-v="${g.id}">👍 Gördüm</button>` : `<span class="gv-durum gv-goruldu" style="align-self:center">Görüldü</span>`}<button class="cta" data-act="gvYaptim" data-v="${g.id}">✓ Yaptım</button></div>`}
+  </div>`).join("")}</section>`;
+}
+async function gvPersonelGuncelle(id, durum){
+  const ben = S.view==="devriye" && S.d.kim ? {ad:S.d.kim.ad, kod:S.d.kim.kod} : {ad:S.p.name, kod:S.p.kod};
+  const g = GV.liste.find(x=>x.id===id); if (!g) return;
+  const p = durum==="goruldu" ? {durum, gorulduTs:Date.now(), gorulduAd:ben.ad, sonKod:ben.kod||""} : {durum, yapildiTs:Date.now(), yapildiAd:ben.ad, sonKod:ben.kod||"", ...(g.gorulduTs ? {} : {gorulduTs:Date.now(), gorulduAd:ben.ad})};
+  Object.assign(g, p); render();
+  try { await store.gorevGuncelle(id, p); toast(durum==="yapildi" ? "✓ Teşekkürler, iletildi" : "Görüldü olarak iletildi");
+    if (durum==="yapildi") tgGonder(`✅ Görev yapıldı · ${ben.ad}\n📍 ${g.yer||"-"} · ${g.metin}`); }
+  catch(e){ console.error(e); toast(e && e.code==="permission-denied" ? "Kaydedilemedi: kodunuzla giriş yapın" : "Kaydedilemedi, tekrar deneyin"); }
+}
+function gvSync(){ const a = document.getElementById("gv_kime"), y = document.getElementById("gv_yer"), m = document.getElementById("gv_metin"); if (a) GV.f.kime = a.value; if (y) GV.f.yer = y.value; if (m) GV.f.metin = m.value; }
+function vGorev(){
+  gorevBaslat();
+  if (!gvYetkili()) return `<div class="card"><h2>Görev ver</h2><p class="hint">Bu bölüm müdür, amir ve teknisyen içindir.</p><a class="cta" href="#panel" style="display:block;text-align:center;text-decoration:none">Giriş</a></div>`;
+  const f = GV.f, dz = (GV.dizin && GV.dizin.liste) || [];
+  const roller = [...new Set(dz.map(k=>k.rol))];
+  const kisiOpt = roller.map(r=>`<optgroup label="${esc(r)}">${dz.filter(k=>k.rol===r).map(k=>`<option value="kisi:${esc(k.ad)}|${esc(r)}" ${f.kime===`kisi:${k.ad}|${r}`?"selected":""}>${esc(k.ad)}</option>`).join("")}</optgroup>`).join("");
+  const yerler = [...AYAR.bloklar.map(b=>b+" Blok"), "Ortak alan", "Otopark", "Bahçe", "Çocuk parkı", "Spor sahası", "Sosyal tesis", "Güvenlik kulübesi", "Teknik bina"];
+  const acik = GV.liste.filter(g=>g.durum==="yeni"||g.durum==="goruldu"), biten = GV.liste.filter(g=>g.durum==="yapildi"||g.durum==="iptal");
+  const L = GV.filtre==="acik" ? acik : biten;
+  const son = GV.sonEklenen;
+  return `<a class="pill-btn" href="#panel" style="display:inline-block;text-decoration:none;color:var(--ink);margin-bottom:10px">← Menü</a>
+  <section class="step"><h2><span>📌</span>Görev ver</h2>
+    <label class="f">Kime<select id="gv_kime"><option value="">Seçin</option><optgroup label="Grup">${GV_GRUP.map(([v,a])=>`<option value="${v}" ${f.kime===v?"selected":""}>${a}</option>`).join("")}</optgroup>${kisiOpt}</select></label>
+    ${!dz.length ? `<p class="hint">Kişi listesi teknisyen panelinden yüklenir. Şimdilik grup seçebilirsiniz.</p>` : ""}
+    <label class="f">Nerede (isteğe bağlı)<select id="gv_yer"><option value="">Seçin</option>${yerler.map(y=>`<option ${f.yer===y?"selected":""}>${esc(y)}</option>`).join("")}</select></label>
+    <label class="f">Ne yapılacak<textarea id="gv_metin" rows="3" maxlength="400" placeholder="Örn. 5. kat merdiven kirlenmiş, silinmesi lazım">${esc(f.metin)}</textarea></label>
+    ${SR ? `<button class="cta ghost" data-act="gvSes" style="margin-bottom:8px">${GV.dinliyor ? "⏹ Dinliyorum… bitince basın" : "🎙️ Söyleyerek yaz"}</button>` : ""}
+    <button class="cta" data-act="gvGonder" ${GV.gonderiyor?"disabled":""}>📌 Görevi gönder</button>
+    ${son ? `<div class="gv" style="margin-top:12px;background:#e6f6ed;border-radius:12px;padding:10px">✓ Görev gönderildi: <strong>${esc(gvKimeAd(son))}</strong>. Personel uygulamayı açınca en üstte görür.
+      <button class="cta ghost" data-act="gvWa" style="margin-top:8px">📲 WhatsApp'tan da haber ver</button></div>` : ""}
+  </section>
+  <div class="prefs" style="margin:6px 0 10px"><button class="pref" data-act="gvFiltre" data-v="acik" aria-pressed="${GV.filtre==="acik"}">Açık (${acik.length})</button><button class="pref" data-act="gvFiltre" data-v="biten" aria-pressed="${GV.filtre==="biten"}">Biten (${biten.length})</button></div>
+  <div class="list">${L.length ? L.map(g=>`<div class="card gv" style="padding:12px;margin-bottom:8px">
+    <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div>${g.yer?`<span class="gv-yer">📍 ${esc(g.yer)}</span>`:""}<b>${esc(g.metin)}</b></div><span class="gv-durum gv-${g.durum}">${gvDurumAd[g.durum]}</span></div>
+    <small>👤 ${esc(gvKimeAd(g))} · veren ${esc(g.byAd||"")} · ${gvSaat(g.ts)}</small>
+    ${g.gorulduTs?`<small>👍 ${esc(g.gorulduAd||"")} gördü · ${gvSaat(g.gorulduTs)}</small>`:""}
+    ${g.yapildiTs?`<small style="color:#14703f;font-weight:700">✓ ${esc(g.yapildiAd||"")} yaptı · ${gvSaat(g.yapildiTs)} (${Math.max(1,Math.round((g.yapildiTs-g.ts)/6e4))} dk)</small>`:""}
+    ${g.durum==="yeni"||g.durum==="goruldu" ? `<div class="gv-btn"><button class="cta ghost" data-act="gvWa" data-v="${g.id}">📲 Hatırlat</button><button class="cta ghost" data-act="gvIptal" data-v="${g.id}">İptal</button></div>` : ""}
+  </div>`).join("") : `<div class="empty"><strong>${GV.filtre==="acik"?"Açık görev yok":"Son 10 günde biten görev yok"}</strong></div>`}</div>`;
+}
+function gvWaMetin(g){ const link = location.origin + location.pathname.replace(/[^/]*$/, "") + (g.kime.rol==="Güvenlik" ? "devriye.html" : "personel.html");
+  return `📌 Görev${g.kime.tip==="kisi" ? " · " + g.kime.ad : ""}\n${g.yer ? "📍 " + g.yer + "\n" : ""}${g.metin}\n\nYapınca uygulamada "Yaptım"a basın: ${link}`; }
+function gvSes(){
+  if (GV.dinliyor){ try { GV.r && GV.r.stop(); } catch(e){} GV.dinliyor = false; render(); return; }
+  gvSync(); const r = new SR(); GV.r = r; r.lang = "tr-TR"; r.interimResults = false; r.continuous = false;
+  GV.dinliyor = true; render(); let oldu = false;
+  const bitir = () => { clearTimeout(GV.t); GV.dinliyor = false; GV.r = null; render(); };
+  r.onresult = e => { oldu = true; const m = [...e.results].map(x=>x[0].transcript).join(" ").trim(); if (!m) return;
+    const n = sesNormal(m); const bm = n.match(/\b([A-Z]\d)\s*blok/i); if (bm && AYAR.bloklar.includes(bm[1].toUpperCase()) && !GV.f.yer) GV.f.yer = bm[1].toUpperCase() + " Blok";
+    GV.f.metin = ((GV.f.metin ? GV.f.metin + " " : "") + n.replace(/^\s*[A-Z]\d\s*blok(ta|da|un)?\s*/i, "")).trim(); };
+  r.onerror = () => bitir(); r.onend = () => bitir();
+  GV.t = setTimeout(() => { if (!oldu){ try { r.abort(); } catch(e){} toast("Mikrofon açılmadı, yazarak devam edin"); bitir(); } }, 6000);
+  try { r.start(); } catch(e){ bitir(); }
+}
+async function gvGonder(){
+  gvSync(); const f = GV.f;
+  if (!f.kime){ toast("Kime gideceğini seçin"); return; }
+  if (!f.metin.trim()){ toast("Ne yapılacağını yazın"); return; }
+  const [tip, deger] = f.kime.split(/:(.+)/);
+  const kime = tip==="grup" ? {tip:"grup", rol:deger} : {tip:"kisi", ad:deger.split("|")[0], rol:deger.split("|")[1]||""};
+  const o = {kime, yer:f.yer, metin:f.metin.trim().slice(0,400), durum:"yeni", ts:Date.now(), byAd: store.isTech() ? "Teknisyen" : (store.kim ? store.kim() : "Yönetim")};
+  GV.gonderiyor = true; render();
+  try { await store.gorevEkle(o); GV.sonEklenen = o; GV.f = {kime:f.kime, yer:"", metin:""}; toast("📌 Görev gönderildi"); }
+  catch(e){ console.error(e); toast(e && e.code==="permission-denied" ? "Yetki yok: Firebase kuralına görev bölümü eklenmeli" : "Gönderilemedi"); }
+  GV.gonderiyor = false; render();
+}
 /* =================== DEVRİYE DUYURUSU (hava: yağmur/kar → devriye iptal) =================== */
 const DUY = {v:null, un:null};
 const DUY_SEBEP = {yagmur:"🌧️ Yoğun yağmur", kar:"❄️ Kar / buzlanma", firtina:"💨 Fırtına", diger:"⚠️ Diğer"};
@@ -1449,6 +1570,7 @@ function vDevriyeIc(){
         <div class="grid2"><button class="cta ghost" data-act="dSorunKapat">Vazgeç</button><button class="cta danger" data-act="dSorunGonder">Sorunu bildir</button></div>
       </section>`
     : `<button class="cta ghost sorun-btn" data-act="dSorunAc">⚠️ Bu noktada sorun var</button>`}` : ""}
+  ${gorevKart({ad:d.kim.ad, rol:"Güvenlik"})}
   ${izinGuvenlik(d.kim.ad)}
   <button class="scan-btn" data-act="dTara"><svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>QR Okut</button>
   <p class="hint" style="text-align:center;margin:8px 0 14px">Telefonun kendi kamerasıyla okutursanız da kaydedilir.</p>
@@ -1653,6 +1775,7 @@ function vPanel(){
       <a class="cta" href="#personel" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px">📝 Arıza bildir (fotoğraflı)</a>
       <a class="cta" href="#tasinma" style="display:block;text-align:center;text-decoration:none">🚚 Taşınma & Tadilat</a>
       ${store.isTesis() ? `<a class="cta" href="#calisma" style="display:block;text-align:center;text-decoration:none;margin-top:10px">📅 Temizlik çalışma listesi</a><a class="cta" href="#izinler" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏖️ İzinler</a>` : ""}${store.isTesis() ? `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏢 Tesis takip</a>` : `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🛗 Asansör arızası</a>`}
+      <a class="cta" href="#gorev" style="display:block;text-align:center;text-decoration:none;margin-top:10px">📌 Görev ver</a>
       <a class="cta" href="puantaj.html" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🗓️ Puantaj</a>
       <a class="cta" href="#kontrol" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🗺️ Canlı Kontrol Merkezi</a>
       <button class="cta ghost" data-act="cikis" style="margin-top:10px">Çıkış yap</button></div>`;
@@ -1695,6 +1818,7 @@ function vPanel(){
     <a href="#izinler"><span>🏖️</span>İzinler</a>
     <a href="muhasebe.html"><span>💰</span>Muhasebe</a>
     <a href="puantaj.html"><span>🗓️</span>Puantaj</a>
+    <a href="#gorev"><span>📌</span>Görev ver</a>
   </div>
     <div class="summary">
       <div class="sum"><strong style="color:var(--wait)">${all.filter(a=>a.status==="bekliyor").length}</strong><span>Yeni</span></div>
@@ -2693,13 +2817,13 @@ async function yeniKod(){
 }
 function kodBaslat(){
   if (KOD.un || !store.isTech() || !store.listenKod) return;
-  KOD.un = store.listenKod(L => { KOD.liste = L.filter(k=>/^\d{6}$/.test(k.id)); const z = L.find(k=>k.id==="zorunlu"); S.kodZorunlu = !!(z && z.aktif); if (S.view==="panel") setTimeout(render,0); });
+  KOD.un = store.listenKod(L => { KOD.liste = L.filter(k=>/^\d{6}$/.test(k.id)); gorevBaslat(); setTimeout(dizinYayinla, 1500); const z = L.find(k=>k.id==="zorunlu"); S.kodZorunlu = !!(z && z.aktif); if (S.view==="panel") setTimeout(render,0); });
 }
 
 function render(){
   syncForm();
   const keep = document.activeElement && document.activeElement.id;
-  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="calisma" ? vCalisma() : S.view==="izinler" ? vIzinler() : S.view==="gtasinma" ? vGuvTasinma() : S.view==="personel" ? vPersonel() : S.view==="devriye" ? vDevriye() : vRandevu();
+  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="calisma" ? vCalisma() : S.view==="izinler" ? vIzinler() : S.view==="gorev" ? vGorev() : S.view==="gtasinma" ? vGuvTasinma() : S.view==="personel" ? vPersonel() : S.view==="devriye" ? vDevriye() : vRandevu();
   document.querySelector("nav.tabs").hidden = S.view==="personel" || S.view==="devriye" || S.view==="gtasinma" || (appDosya()==="teknik.html" && !store.isTech());
   $("#ustYazi").textContent = S.view==="personel" && appDosya()==="devriye.html" ? "Bizimevler 1 · Güvenlik" : S.view==="personel" ? "Bizimevler 1 · Personel" : S.view==="devriye" || S.view==="gtasinma" ? "Bizimevler 1 · Güvenlik" : (AYAR.ustYazi || "Teknik Servis");
   $("#siteName").textContent = S.view==="devriye" ? "Devriye" : S.view==="gtasinma" ? "Taşınma & Tadilat" : (AYAR.baslik || AYAR.siteAdi);
@@ -2708,6 +2832,7 @@ function render(){
     : S.view==="tesis" ? "Asansör, jeneratör, yakıt ve elektrik kesintisi takibi."
     : S.view==="tasinma" ? "Taşınma ve tadilat kayıtları · Pzt–Cmt 10:00–17:00, pazar yasak."
     : S.view==="gtasinma" ? "Bugün ve önümüzdeki günlerde kayıtlı taşınma ve tadilatlar."
+    : S.view==="gorev" ? "Personele görev ver, gördü mü yaptı mı anında takip et."
     : S.view==="personel" && appDosya()==="devriye.html" ? "Devriyede gördüğün arızayı fotoğrafıyla bildir, teknisyene anında gitsin."
     : S.view==="personel" ? "Sahada gördüğün arızayı ya da ihtiyacın olan malzemeyi 15 saniyede bildir."
     : S.view==="devriye" ? "Noktaya geldiğinde QR'ı okut, turun kaydedilsin."
@@ -2725,6 +2850,7 @@ function syncForm(){
   if (S.view === "calisma") clSync();
   if (S.view === "izinler") yiSync();
   if (S.view === "gtasinma") gtSync();
+  if (S.view === "gorev") gvSync();
   const gn = document.getElementById("gel_not"); if (gn && S.gel) S.gel.not = gn.value;
   const kg = document.getElementById("kodGir"); if (kg) S.kodTaslak = kg.value;
   [["kodAd","ad"],["kodRol","rol"],["kodVardiya","vardiya"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) KOD.form[k] = el.value; });
@@ -2775,6 +2901,13 @@ document.addEventListener("click", async e => {
       render(); }
     else if (act==="pKimlik"){ syncForm(); S.p.kimlikAc = true; render(); }
     else if (act==="sesBas"){ syncForm(); sesBaslat(); return; }
+    else if (act==="gvGonder"){ gvGonder(); return; }
+    else if (act==="gvSes"){ gvSes(); return; }
+    else if (act==="gvFiltre"){ gvSync(); GV.filtre = b.dataset.v; render(); return; }
+    else if (act==="gvGordum"){ gvPersonelGuncelle(b.dataset.v, "goruldu"); return; }
+    else if (act==="gvYaptim"){ gvPersonelGuncelle(b.dataset.v, "yapildi"); return; }
+    else if (act==="gvWa"){ const g = b.dataset.v ? GV.liste.find(x=>x.id===b.dataset.v) : GV.sonEklenen; if (g) window.open("https://wa.me/?text=" + encodeURIComponent(gvWaMetin(g)), "_blank"); return; }
+    else if (act==="gvIptal"){ if (!confirm("Görev iptal edilsin mi?")) return; const id = b.dataset.v; const g = GV.liste.find(x=>x.id===id); if (g) g.durum = "iptal"; render(); store.gorevGuncelle(id, {durum:"iptal", iptalTs:Date.now()}).catch(e=>{ console.error(e); toast("İptal edilemedi"); }); return; }
     else if (act==="sesYaziUygula"){ const m = (document.getElementById("sesYazi")||{}).value || ""; if (!m.trim()) return; syncForm(); SES.metin = m.trim(); SES.hata = ""; SES.klavye = false; sesUygula(SES.metin); render(); return; }
     else if (act==="sesDur"){ const r = SES.r; try { r && r.stop(); } catch(e){} setTimeout(() => { if (SES.r === r && SES.dinliyor) sesBitir(r); }, 1200); return; }
     else if (act==="pCat"){ syncForm(); if (S.p.cat !== v) S.p.issues = []; S.p.cat = v; render(); }
@@ -3016,7 +3149,7 @@ function route(){
     if (n) noktaOkut(n); else toast("QR kodu tanınmadı");
     return;
   }
-  S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma","calisma","izinler","gtasinma"].includes(h) ? h : "randevu";
+  S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma","calisma","izinler","gtasinma","gorev"].includes(h) ? h : "randevu";
   // B1 Teknik uygulamasında sakin arıza formu yok (amirler görmesin); teknisyen #randevu ile yine açabilir
   if (appDosya()==="teknik.html" && (S.view==="randevu"||S.view==="randevularim") && !store.isTech()){ S.view = "panel"; history.replaceState(null, "", location.pathname + "#panel"); }
   if (S.view !== "tesis"){ T.f = null; T.detay = null; }
