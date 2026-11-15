@@ -227,6 +227,25 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (prefers-reduced-motion:reduce){.nkt.yanip .cp-core{animation:yanip 1.4s ease-in-out infinite!important}}
+
+/* ============ TV ekranı ============ */
+.tvbasla{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:rgba(4,12,22,.86);color:#fff;text-align:center;padding:20px}
+.tvbasla button{font:800 34px/1.2 var(--display);padding:28px 48px;border-radius:24px;border:0;background:#2b7cd3;color:#fff;cursor:pointer;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.tvbasla p{margin-top:18px;font-size:18px;opacity:.75;max-width:640px}
+html.tv #edit, html.tv #cikisBtn, html.tv #temaBtn, html.tv #tvBtn, html.tv .editbar{display:none!important}
+html.tv .modes button{pointer-events:none}
+html.tv #panel{font-size:1.08em}
+.tvbar{position:fixed;left:0;right:0;bottom:0;height:5px;z-index:30;background:rgba(127,127,127,.18)}
+.tvbar i{display:block;height:100%;width:0;background:var(--accent)}
+.tvbar span{position:absolute;right:14px;bottom:9px;font:700 13px var(--display);color:var(--muted);background:var(--panel);padding:4px 10px;border-radius:999px;border:1px solid var(--line)}
+.tvuyari{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);z-index:55;min-width:min(760px,92vw);max-width:94vw;background:#c62f2b;color:#fff;border-radius:28px;padding:34px 44px;text-align:center;box-shadow:0 30px 120px rgba(0,0,0,.6),0 0 0 10px rgba(227,68,63,.25);opacity:0;transition:.35s;pointer-events:none}
+.tvuyari.on{opacity:1;transform:translate(-50%,-50%) scale(1);animation:tvnab 1.2s ease-in-out infinite}
+.tvuyari.warn{background:#c77412;box-shadow:0 30px 120px rgba(0,0,0,.6),0 0 0 10px rgba(232,150,44,.25)}
+.tvuyari.ok{background:#1d8a52;box-shadow:0 30px 120px rgba(0,0,0,.6),0 0 0 10px rgba(34,168,97,.25)}
+.tvuyari small{display:block;font:800 18px var(--display);letter-spacing:.18em;opacity:.85;margin-bottom:10px}
+.tvuyari b{display:block;font:800 clamp(30px,4.2vw,60px)/1.1 var(--display)}
+.tvuyari em{display:block;font-style:normal;font:600 clamp(18px,2vw,28px)/1.3 var(--display);margin-top:12px;opacity:.95}
+@keyframes tvnab{50%{box-shadow:0 30px 120px rgba(0,0,0,.6),0 0 0 26px rgba(255,255,255,.08)}}
 </style>
 <style>[hidden]{display:none!important}</style>
 </head>
@@ -258,6 +277,7 @@ window.FB_TEKNISYEN = ["teknisyenzeynel91@gmail.com"];</script>
       <span class="demo" title="Bu ekran örnek verilerle çalışan bir tanıtımdır">Demo · örnek veri</span>
       <button class="iconbtn" id="temaBtn" aria-label="Açık / koyu tema" title="Açık / koyu tema"></button>
       <button class="iconbtn" id="cikisBtn" aria-label="Çıkış yap" title="Çıkış yap" hidden><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
+      <button class="iconbtn" id="tvBtn" aria-label="TV ekranı" title="TV ekranı (sesli uyarı + otomatik geçiş)"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M8 2l4 4 4-4"/></svg></button>
       <button class="iconbtn" id="fs" aria-label="Tam ekran"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     </div>
   </header>
@@ -600,9 +620,9 @@ function tesisVeri(list){
   const yeni = list.filter(k=>TES.gorulen && !TES.gorulen.has(k.id));
   TES.gorulen = new Set(list.map(k=>k.id));
   yeni.forEach(k=>{
-    if (k.tur==="kesinti" && k.olay==="basladi"){ ticker("⚡ Elektrik kesildi"); feed("bad","Elektrik kesildi", k.by ? "Bildiren: "+k.by : "Tesis"); }
+    if (k.tur==="kesinti" && k.olay==="basladi"){ tvUyari({ust:"TESİS", baslik:"⚡ Elektrik kesildi", alt:k.by?"Bildiren: "+k.by:"", soz:"Dikkat. Elektrik kesildi.", mod:"tesis"}); ticker("⚡ Elektrik kesildi"); feed("bad","Elektrik kesildi", k.by ? "Bildiren: "+k.by : "Tesis"); }
     if (k.tur==="kesinti" && k.olay==="bitti"){ ticker("💡 Elektrik geldi"); feed("ok","Elektrik geldi", k.by ? "Bildiren: "+k.by : "Tesis"); }
-    if (k.tur==="ariza"){ ticker(`🛗 Asansör arızası · ${k.ekipman}${k.mahsur?" · MAHSUR VAR":""}`); feed("bad",`Asansör arızası · ${k.ekipman}`, k.not||""); }
+    if (k.tur==="ariza"){ tvUyari({ust: k.mahsur?"ACİL · MAHSUR VAR":"ASANSÖR ARIZASI", baslik:`🛗 ${k.ekipman.replace("-"," Blok · Asansör ")}`, alt: k.mahsur?"🚨 İçeride mahsur kalan var!":(k.not||""), soz: `${k.mahsur?"Dikkat! Acil! ":""}Asansör arızası. ${blokSoz(k.ekipman.split("-")[0])}, ${k.ekipman.split("-")[1]||""} numaralı asansör.${k.mahsur?" İçeride mahsur kalan var.":""}`, mod:"tesis", acil:!!k.mahsur}); ticker(`🛗 Asansör arızası · ${k.ekipman}${k.mahsur?" · MAHSUR VAR":""}`); feed("bad",`Asansör arızası · ${k.ekipman}`, k.not||""); }
   });
   if (MODE==="gece") devriyePanel(); else if (MODE==="gunduz") arizaPanel(); else if (MODE==="tesis"){ tesisCiz(); tesisPanel(); }
 }
@@ -1207,7 +1227,7 @@ function afetPanel(){
 }
 
 /* ============ Gerçek veriye bağlantı (yalnızca sitede, FB_CONFIG varsa) ============ */
-const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı / kilit",p_asansor:"Asansör",p_su:"Su / tesisat",p_hasar:"Kırık / hasar",p_bahce:"Bahçe / çevre",p_temiz:"Temizlik / koku",p_diger:"Diğer"};
+const PKAT_AD = {p_malzeme:"Malzeme talebi",p_isik:"Aydınlatma",p_kapi:"Kapı / kilit",p_asansor:"Asansör",p_su:"Su / tesisat",p_hasar:"Kırık / hasar",p_bahce:"Bahçe / çevre",p_temiz:"Temizlik / koku",p_diger:"Diğer",p_tasinma:"Taşınma / tadilat",p_gelemiyorum:"İşe gelemiyor"};
 async function canliBaslat(){
   const cfg = window.FB_CONFIG; if (!cfg) return;
   LIVE.on = true; ARZ.list = []; ARZ.gelen = 0; ARZ.cozulen = 0; ARZ.sureler = [];
@@ -1291,6 +1311,7 @@ async function canliBaslat(){
           if (MODE==="gunduz") ripple(x,y,cssv("--"+tone));
           ticker(`${a.s==="yeni"?"🔴":a.s==="isleniyor"?"🟠":"✅"} ${baslik} · ${a.yer} · ${a.k.split(":")[0]}`);
           feed(tone, `${baslik} · ${a.yer}`, `${a.k.split(":")[0]}${a.kim?" · "+a.kim:""}`);
+          if (!(a.id in onceki) && a.s==="yeni") tvArizaUyari(a);
         });
       }
       onceki = simdi;
@@ -1346,6 +1367,98 @@ $("#fs").onclick = async () => {
   try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); else await document.exitFullscreen(); } catch(e){}
   try { if ("wakeLock" in navigator) await navigator.wakeLock.request("screen"); } catch(e){}
 };
+
+
+/* ============ TV ekranı: otomatik geçiş + sesli uyarı ============ */
+const TV = {on:false, durak:0, sira:0, t:null, bas:0, sure:0, ses:null, kilit:null, uyT:null, kuyruk:[], konusuyor:false};
+const TV_AD = {gunduz:"Arıza", gece:"Devriye", tesis:"Tesis"};
+function tvGeceMi(){ const h = new Date().getHours(); return h>=21 || h<7; }
+function tvPlan(){ return tvGeceMi() ? [["gece",40],["gunduz",20],["tesis",20]] : [["gunduz",30],["tesis",20],["gece",20]]; }
+function tvTema(){ document.documentElement.setAttribute("data-tema", tvGeceMi() ? "koyu" : "acik"); if (typeof temaIkon==="function") temaIkon(); }
+function tvBar(){
+  let b = $("#tvbar"); if (!b){ b = document.createElement("div"); b.id="tvbar"; b.className="tvbar"; b.innerHTML="<i></i><span></span>"; document.body.appendChild(b); }
+  return b;
+}
+function tvAdim(){
+  clearTimeout(TV.t); if (!TV.on) return;
+  const kalan = TV.durak - Date.now();
+  if (kalan > 0){ TV.t = setTimeout(tvAdim, kalan); const b = tvBar(); b.querySelector("span").textContent = "🔔 Uyarı gösteriliyor"; return; }
+  tvTema();
+  const plan = tvPlan(); TV.sira = TV.sira % plan.length;
+  const [m, sn] = plan[TV.sira]; const sonraki = plan[(TV.sira+1) % plan.length][0];
+  if (MODE !== m) modAc(m);
+  TV.sira++;
+  const b = tvBar(), i = b.querySelector("i");
+  b.querySelector("span").textContent = `Sonraki: ${TV_AD[sonraki]}`;
+  i.style.transition = "none"; i.style.width = "0"; void i.offsetWidth;
+  i.style.transition = `width ${sn}s linear`; i.style.width = "100%";
+  TV.t = setTimeout(tvAdim, sn*1000);
+}
+async function tvKilit(){ try { if ("wakeLock" in navigator) TV.kilit = await navigator.wakeLock.request("screen"); } catch(e){} }
+document.addEventListener("visibilitychange", () => { if (TV.on && document.visibilityState==="visible") tvKilit(); });
+function tvBaslat(){
+  $("#tvBasla") && $("#tvBasla").remove();
+  TV.on = true; document.documentElement.classList.add("tv");
+  try { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{}); } catch(e){}
+  tvKilit();
+  try { TV.ses = TV.ses || new (window.AudioContext||window.webkitAudioContext)(); TV.ses.resume(); } catch(e){}
+  try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } catch(e){}
+  if (DUZENLE) duzenleAc(false);
+  TV.sira = 0; tvAdim();
+  ticker("📺 TV ekranı açık · yeni arızada sesli uyarı verilecek");
+}
+function tvGong(acil){
+  const c = TV.ses; if (!c) return;
+  const notalar = acil ? [880,660,880,660,880,660] : [784,1047,1319];
+  notalar.forEach((f,k)=>{
+    const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + k*(acil?.22:.18);
+    o.type = acil ? "square" : "sine"; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(acil?.18:.35, t+.02); g.gain.exponentialRampToValueAtTime(0.0001, t+(acil?.2:.9));
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t+1);
+  });
+}
+function tvSoyle(metin, tekrar){
+  try {
+    if (!("speechSynthesis" in window)) return;
+    const ses = speechSynthesis.getVoices().find(v=>/^tr/i.test(v.lang));
+    for (let k=0; k<(tekrar||1); k++){
+      const u = new SpeechSynthesisUtterance(metin); u.lang = "tr-TR"; u.rate = .92; u.volume = 1; if (ses) u.voice = ses;
+      speechSynthesis.speak(u);
+    }
+  } catch(e){}
+}
+function blokSoz(b){ return b ? `${String(b).replace(/^([A-Za-zÇĞİÖŞÜçğıöşü]+)\s*(\d+)$/, "$1 $2")} blok` : ""; }
+function tvUyari(o){
+  if (!TV.on) return;
+  tvGong(o.acil);
+  setTimeout(()=>tvSoyle(o.soz, o.acil ? 2 : 1), o.acil ? 1400 : 1000);
+  TV.durak = Date.now() + 60000;
+  if (o.mod && MODE !== o.mod) modAc(o.mod);
+  tvAdim();
+  let d = $("#tvUyari"); if (!d){ d = document.createElement("div"); d.id="tvUyari"; document.body.appendChild(d); }
+  d.className = "tvuyari " + (o.ton||"") ;
+  d.innerHTML = `<small>${esc(o.ust||"YENİ BİLDİRİM")}</small><b>${esc(o.baslik)}</b>${o.alt?`<em>${esc(o.alt)}</em>`:""}`;
+  requestAnimationFrame(()=>d.classList.add("on"));
+  clearTimeout(TV.uyT); TV.uyT = setTimeout(()=>d.classList.remove("on"), o.acil ? 25000 : 14000);
+}
+function tvArizaUyari(a){
+  const kat = a.k.split(":")[0], tas = /Taşınma/.test(kat);
+  const yer = a.b ? `${a.b} Blok${a.yer && a.yer.includes("·") ? " · "+a.yer.split("·").slice(1).join("·").trim() : ""}` : a.yer;
+  const yerSoz = a.b ? blokSoz(a.b) : (a.alan || a.yer || "");
+  tvUyari({
+    ust: tas ? "GÜVENLİK BİLDİRİMİ" : "YENİ ARIZA BİLDİRİMİ", ton: tas ? "warn" : "",
+    baslik: `${tas?"🚚":"🔴"} ${yer} · ${kat}`, alt: a.kim || "",
+    soz: tas ? `Güvenlik bildirimi. ${yerSoz}. ${kat}.` : `Yeni arıza bildirimi. ${yerSoz}. ${kat}.`,
+    mod: "gunduz", acil: /Asansör/.test(kat) && /mahsur/i.test(a.k)
+  });
+}
+$("#tvBtn").onclick = tvBaslat;
+window.addEventListener("keydown", e => { if (TV.on && e.key==="t") tvUyari({ust:"DENEME", baslik:"🔔 Sesli uyarı denemesi", alt:"Ses geliyorsa sistem hazır", soz:"Bu bir deneme uyarısıdır. Ses geliyorsa sistem hazır."}); });
+if (/[?&]tv=1/.test(location.search)){
+  const d = document.createElement("div"); d.id = "tvBasla"; d.className = "tvbasla";
+  d.innerHTML = `<div><button type="button">📺 TV ekranını başlat</button><p>Bir kez dokunun: tam ekran açılır, ekran kararmaz, ekranlar kendiliğinden değişir ve yeni arıza gelince <b>sesli uyarı</b> verilir.</p></div>`;
+  document.body.appendChild(d); d.querySelector("button").onclick = tvBaslat;
+}
 
 /* Başlangıç: saate göre mod */
 haritaKur();
