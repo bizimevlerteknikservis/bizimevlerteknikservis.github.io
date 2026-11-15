@@ -1279,7 +1279,7 @@ function vPersonelIc(){
         <label class="f">Ad soyad<input type="text" id="p_name" autocomplete="name" value="${esc(p.name)}"></label>
         <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
       </section>`;
-  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${(p.kod || p.kayitli) && appDosya()!=="devriye.html" ? (p.rol==="Temizlik" ? izinKart() : "") + izinBenKart() : ""}
+  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${(p.kod || p.kayitli) && !["devriye.html","teknik.html"].includes(appDosya()) ? (p.rol==="Temizlik" ? izinKart() : "") + izinBenKart() : ""}
   ${p.kod || p.kayitli ? sesKart() : ""}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.filter(k => rolKat(p.rol, k)).map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
