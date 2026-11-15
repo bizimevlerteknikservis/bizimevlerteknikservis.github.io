@@ -1354,6 +1354,7 @@ async function canliBaslat(){
 function modAc(m){
   MODE = m; temizle(); FEED = [];
   document.documentElement.setAttribute("data-mode", m);
+  if (typeof temaUygula === "function") temaUygula(m);
   if (typeof temaIkon === "function") setTimeout(temaIkon, 0);
   document.querySelectorAll(".modes button").forEach(b=>b.setAttribute("aria-pressed", b.dataset.mode===m));
   $("#afetBanner").hidden = true;
@@ -1377,8 +1378,11 @@ const IKON_AY = '<svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7
 const IKON_GUNES = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 function koyuMu(){ const t = document.documentElement.getAttribute("data-tema"); return t==="koyu" || (t!=="acik" && (MODE==="gece" || MODE==="afet")); }
 function temaIkon(){ const b = $("#temaBtn"); if (b) b.innerHTML = koyuMu() ? IKON_GUNES : IKON_AY; }
-(() => { let t = null; try { t = localStorage.getItem("bz1-tema"); } catch(e){} if (t) document.documentElement.setAttribute("data-tema", t); })();
-$("#temaBtn").onclick = () => { const yeni = koyuMu() ? "acik" : "koyu"; document.documentElement.setAttribute("data-tema", yeni); try { localStorage.setItem("bz1-tema", yeni); } catch(e){} temaIkon(); modAc(MODE); };
+/* Tema tercihi ekran başına saklanır: Devriye (gece) varsayılan koyu, Arıza/Tesis açık. Bir ekranda tema değiştirmek diğerlerini etkilemez. */
+const temaTercih = () => { try { return JSON.parse(localStorage.getItem("bz1-tema2") || "{}"); } catch(e){ return {}; } };
+function temaUygula(m){ if (document.documentElement.classList.contains("tv")) return; const t = temaTercih()[m]; if (t) document.documentElement.setAttribute("data-tema", t); else document.documentElement.removeAttribute("data-tema"); }
+try { localStorage.removeItem("bz1-tema"); } catch(e){}
+$("#temaBtn").onclick = () => { const yeni = koyuMu() ? "acik" : "koyu"; const T = temaTercih(); const varsayilanKoyu = MODE==="gece" || MODE==="afet"; if ((yeni==="koyu") === varsayilanKoyu) delete T[MODE]; else T[MODE] = yeni; try { localStorage.setItem("bz1-tema2", JSON.stringify(T)); } catch(e){} temaUygula(MODE); temaIkon(); modAc(MODE); };
 /* Saat */
 const GUN = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"], AY = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
 function saatGuncelle(){ const d=new Date(); $("#clock").firstChild.nodeValue = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; $("#date").textContent = `${d.getDate()} ${AY[d.getMonth()]} ${GUN[d.getDay()]}`; }
