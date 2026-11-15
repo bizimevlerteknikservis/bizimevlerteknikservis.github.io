@@ -2345,6 +2345,7 @@ function vTesis(){
       ${tAcikArizalar(H)}
       ${tJenKartlar(H, true)}
       ${tKesintiOzet(H)}
+      <button class="cta" data-t="sekme" data-v="asansor" style="margin-bottom:12px">📋 ${esc(firmaAd())} asansör karnesi</button>
       <div class="card"><h2>Aylık rapor</h2><p class="hint">Asansör arızaları, bakımlar, yakıt ve kesintiler. Yönetime sunmak için.</p>
         <div class="grid2"><button class="cta ghost" data-t="rapor" data-v="bu">📥 Bu ay</button><button class="cta ghost" data-t="rapor" data-v="gecen">📥 Geçen ay</button></div></div>`
     : T.sekme==="asansor" ? `${tAcikArizalar(H)}${tKarne()}${tAsansorIzgara(H)}`
