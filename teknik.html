@@ -617,7 +617,7 @@ async function fotoGoster(id){
 }
 function yerel(k, v){ try { if (v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); } catch(e){ return null; } }
 let toastT;
-function toast(m){ const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
+function toast(m, sure){ const t = $("#toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, sure || 2600); }
 
 /* =========================================================
    VERİ KATMANI — Demo (telefonda) veya Firebase (gerçek)
@@ -1516,7 +1516,9 @@ async function bildirimAc(sessiz){
     const izin = await Notification.requestPermission();
     if (izin !== "granted"){ if (!sessiz) toast("Bildirim izni verilmedi"); return; }
     const reg = await Promise.race([navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready), new Promise((_, no) => setTimeout(() => no({code:"sw"}), 15000))]);
-    const token = await store.bildirimToken(AYAR.vapid, reg);
+    let token;
+    try { token = await store.bildirimToken(AYAR.vapid, reg); }
+    catch(e1){ console.warn("ilk deneme", e1); await new Promise(r => setTimeout(r, 2500)); token = await store.bildirimToken(AYAR.vapid, reg); }   // bazı telefonlarda ilk abonelik boşa düşer
     if (!token) throw {code:"token"};
     const once = bldOku(); const ariza = once && once.token ? once.ariza !== false : true;
     if (once && once.token && once.token !== token) store.bildirimSil(once.token);
@@ -1524,7 +1526,8 @@ async function bildirimAc(sessiz){
     bldYaz({token, ariza, kim:kim.rol + "|" + kim.kod + "|" + kim.ad});
     if (!sessiz){ toast("🔔 Bildirimler açıldı"); reg.showNotification("Bizimevler 1", {body:"Bildirimler bu telefonda açık ✓", icon:"icons/" + (appDosya()==="devriye.html" ? "devriye" : appDosya()==="teknik.html" ? "teknik" : "personel") + "-192.png", tag:"bld-test"}).catch(()=>{}); }
     render();
-  } catch(e){ console.error(e); if (!sessiz) toast(e && e.code === "desteklenmiyor" ? "Bu tarayıcı bildirimi desteklemiyor" : e && e.code === "permission-denied" ? "Kaydedilemedi: kodunuzla giriş yapın" : "Bildirim açılamadı, tekrar deneyin"); }
+  } catch(e){ console.error(e); if (!sessiz){ const ayr = String((e && (e.code || e.name)) || "") + " " + String((e && e.message) || "").slice(0, 90);
+      toast(e && e.code === "desteklenmiyor" ? "Bu tarayıcı bildirimi desteklemiyor. Chrome ile açın." : e && e.code === "permission-denied" ? "Kaydedilemedi: kodunuzla giriş yapın" : e && e.code === "sw" ? "Uygulama hazırlanamadı. Sayfayı yenileyip tekrar deneyin." : /push service|AbortError/i.test(ayr) ? "Telefonun bildirim servisine ulaşılamadı. Chrome güncel mi, Google Play Hizmetleri açık mı? (" + ayr.trim() + ")" : "Bildirim açılamadı: " + ayr.trim(), 9000); } }
   finally { BLD.kayit = false; }
 }
 /* Açılışta: izin varsa kimliği tazele (telefon kimliği zamanla değişebilir; kişi/kod değiştiyse güncellenir) */
