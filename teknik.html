@@ -425,6 +425,7 @@ const AYAR = {
   demoPin: "1234",              // demo modunda teknisyen paneli PIN'i
   teknisyenEpostalari: ["teknisyenzeynel91@gmail.com"],  // Firebase'de teknisyen hesabı
   vapid: "",                    // telefon bildirimi: Firebase → Proje ayarları → Cloud Messaging → Web Push sertifikası (ortak anahtar)
+  bildirimSunucu: "",           // bildirim postacısı (Cloudflare Worker) adresi: https://….workers.dev
   // Firebase'den kopyaladığınız firebaseConfig nesnesini null yerine yapıştırın:
   // Yeni arıza bildirimi (Telegram)
   telegram: { token: "9094259666:AAGAotiIBjehLjHdHz70koqkNWRD-UR28Ag", chatId: "1380037672" },
@@ -738,6 +739,7 @@ function FirebaseStore(cfg){
       const ref = fs.doc(fs.collection(db,"appointments"));
       const rec = {...a, uid: user.uid, status: "bekliyor", note: "", createdAt: Date.now()};
       await fs.setDoc(ref, rec);
+      bildirimTetik("ariza", ref.id);
       return {...rec, id: ref.id};
     },
     async cancelMine(a){ await fs.updateDoc(fs.doc(db,"appointments",a.id), {status:"iptal"}); },
@@ -765,11 +767,11 @@ function FirebaseStore(cfg){
       const u1 = fs.onSnapshot(fs.query(fs.collection(db,"gorev"), fs.where("ts",">=",Date.now() - 10*864e5)), s => { A.son = s.docs.map(d=>({id:d.id, ...d.data()})); ver(); }, e => { console.warn("gorev", e && e.code); });
       const u2 = fs.onSnapshot(fs.query(fs.collection(db,"gorev"), fs.where("tur","==","talimat")), s => { A.tal = s.docs.map(d=>({id:d.id, ...d.data()})); ver(); }, e => { console.warn("talimat", e && e.code); });
       return () => { u1(); u2(); }; },
-    async gorevEkle(o){ await fs.addDoc(fs.collection(db,"gorev"), {...o, uid:user.uid}); },
+    async gorevEkle(o){ const r = await fs.addDoc(fs.collection(db,"gorev"), {...o, uid:user.uid}); bildirimTetik("gorev", r.id); },
     async mesaiEkle(o){ await fs.addDoc(fs.collection(db,"mesai"), {...o, uid:user.uid}); },
     async getSiteKonum(){ if (this._sk !== undefined) return this._sk; try { const s = await fs.getDoc(fs.doc(db,"duyuru","konum")); this._sk = s.exists() ? s.data() : null; } catch(e){ this._sk = null; } return this._sk; },
     listenMesaiBen(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"mesai"), fs.where("uid","==",user.uid)), s => cb(s.docs.map(d=>({id:d.id, ...d.data()})).filter(m => m.ts > Date.now() - 2*864e5)), e => { console.warn("mesai", e && e.code); cb([]); }); },
-    async gorevGuncelle(id, p){ await fs.updateDoc(fs.doc(db,"gorev",id), p); },
+    async gorevGuncelle(id, p){ await fs.updateDoc(fs.doc(db,"gorev",id), p); if (p.durum === "yapildi") bildirimTetik("yapildi", id); },
     listenDizin(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","personel"), s => cb(s.exists() ? s.data() : null), e => cb(null)); },
     async setDizin(v){ await fs.setDoc(fs.doc(db,"duyuru","personel"), v); },
     // Firestore iç içe dizi kabul etmez: [ad, blok] çiftleri {ad, blok} nesnesi olarak saklanır
@@ -1477,6 +1479,8 @@ async function mesaiKaydet(tip, nokta){
    Gönderen: Firebase sunucu fonksiyonu (functions/index.js) — görev, talimat, arıza ve "işe gelemiyorum" olunca.
    Telefonda gösteren: sw.js (push olayı). */
 const BLD = {kayit:false, tazelendi:false};
+/* Kayıt eklenince postacıya haber ver (içeriği postacı Firebase'den kendisi okur; bildirim kurulmadıysa hiçbir şey yapmaz) */
+function bildirimTetik(tur, id){ if (!AYAR.bildirimSunucu || !id) return; try { fetch(AYAR.bildirimSunucu, {method:"POST", body:JSON.stringify({tur, id}), keepalive:true}).catch(()=>{}); } catch(e){} }
 const bldOku = () => { try { return JSON.parse(localStorage.getItem("bz1-bildirim") || "null"); } catch(e){ return null; } };
 const bldYaz = v => { try { v ? localStorage.setItem("bz1-bildirim", JSON.stringify(v)) : localStorage.removeItem("bz1-bildirim"); } catch(e){} };
 const bldIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -1498,7 +1502,7 @@ function bildirimKart(){
       <div class="bld-b"><label class="bld-s"><input type="checkbox" data-act="bldAriza" ${k.ariza ? "checked" : ""}> Arızalar</label><button class="pill-btn" data-act="bldDene">Dene</button></div></section>`;
   }
   let neden = "";
-  if (!AYAR.vapid) neden = "Bildirim kurulumu henüz tamamlanmadı (teknisyen).";
+  if (!AYAR.vapid || !AYAR.bildirimSunucu) neden = "Bildirim kurulumu henüz tamamlanmadı (teknisyen).";
   else if (bldIOS() && !bldAnaEkran()) neden = "iPhone'da bildirim için önce uygulamayı ana ekrana ekleyin: Safari'de Paylaş ⬆️ → “Ana Ekrana Ekle”, sonra ana ekrandaki simgeden açın.";
   else if (!bldDestek()) neden = "Bu tarayıcı bildirimi desteklemiyor. Chrome ile açın.";
   else if (izin === "denied") neden = "Bildirim izni kapalı. Adres çubuğundaki 🔒 simgesi → İzinler → Bildirimler → İzin ver, sonra sayfayı yenileyin.";
