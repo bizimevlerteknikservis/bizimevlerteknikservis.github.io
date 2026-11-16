@@ -306,6 +306,14 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .karne-t th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#5f7591);padding:6px 4px;border-bottom:1px solid var(--line,#e3e9f2)}
 .karne-t td{padding:8px 4px;border-bottom:1px solid var(--line,#e3e9f2)}
 .karne-t tr.tk td{background:#fff7ea}.karne-t tr.kr td{background:#fdeaea}
+.bld-kart{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;border:2px dashed var(--line,#e3e9f2);border-radius:18px;padding:12px 14px;margin-bottom:12px;background:var(--card,#fff)}
+.bld-kart.ac{border-style:solid;border-color:#2b7cd3}
+.bld-kart>div:first-child{flex:1;min-width:200px}
+.bld-kart b{display:block;font-size:16px}.bld-kart small{color:var(--muted,#5f7591);font-size:13px;display:block}
+.bld-kart .cta{width:auto;flex:none;padding:12px 16px}
+.bld-b{display:flex;gap:8px;align-items:center}
+.bld-s{display:flex;gap:6px;align-items:center;font-size:14px;font-weight:600}
+.bld-s input{width:20px;height:20px}
 .mesai-kart{display:flex;align-items:center;gap:12px;justify-content:space-between;border:2px solid var(--line,#e3e9f2);border-radius:18px;padding:12px 14px;margin-bottom:12px;background:var(--card,#fff)}
 .mesai-kart.ic{border-color:#1e9d5b;background:#f1fbf5}
 .mesai-kart b{display:block;font-size:16px}.mesai-kart small{color:var(--muted,#5f7591);font-size:13px}
@@ -416,6 +424,7 @@ const AYAR = {
   acilTelefon: "0212 405 10 12",   // acil durumlar için WhatsApp numarası
   demoPin: "1234",              // demo modunda teknisyen paneli PIN'i
   teknisyenEpostalari: ["teknisyenzeynel91@gmail.com"],  // Firebase'de teknisyen hesabı
+  vapid: "",                    // telefon bildirimi: Firebase → Proje ayarları → Cloud Messaging → Web Push sertifikası (ortak anahtar)
   // Firebase'den kopyaladığınız firebaseConfig nesnesini null yerine yapıştırın:
   // Yeni arıza bildirimi (Telegram)
   telegram: { token: "9094259666:AAGAotiIBjehLjHdHz70koqkNWRD-UR28Ag", chatId: "1380037672" },
@@ -676,6 +685,10 @@ function DemoStore(){
     isAsansor: () => tech,
     isYetkili: () => tech,
     kim: () => "Teknisyen",
+    rolAd: () => tech ? "teknisyen" : null,
+    async bildirimToken(){ return "demo-" + (mem.uid || "x"); },
+    async bildirimKayit(o){ (mem.bildirim ||= {})[o.token] = {...o, ts:Date.now()}; save(); },
+    async bildirimSil(t){ if (mem.bildirim) delete mem.bildirim[t]; save(); },
     listenTasinma: (from, cb) => sub(() => cb((mem.tasinma||[]).filter(k=>k.bit>=from))),
     async addTasinma(r){ const id = "m" + Date.now().toString(36); (mem.tasinma ||= []).push({...r, id}); save(); return id; },
     async updateTasinma(id, p){ const r = (mem.tasinma||[]).find(x=>x.id===id); if (r){ Object.assign(r, p); save(); } },
@@ -686,13 +699,13 @@ function DemoStore(){
 
 function FirebaseStore(cfg){
   const V = "10.12.2", B = `https://www.gstatic.com/firebasejs/${V}/`;
-  let fs, au, db, auth, user = null, tech = false, tesisRol = false, yonRol = false;
+  let fs, au, db, auth, user = null, tech = false, tesisRol = false, yonRol = false, apRef = null;
   const rolListe = async () => { try { const r = await fs.getDoc(fs.doc(db,"ayar","roller")); return r.exists() ? r.data() : {}; } catch(e){ return {}; } };
   const listede = (L, e) => (L || []).map(x=>String(x).toLowerCase()).includes((e||"").toLowerCase());
   const ready = (async () => {
     const [app, f, a] = await Promise.all([import(B+"firebase-app.js"), import(B+"firebase-firestore.js"), import(B+"firebase-auth.js")]);
     fs = f; au = a;
-    const ap = app.initializeApp(cfg);
+    const ap = app.initializeApp(cfg); apRef = ap;
     try { db = f.initializeFirestore(ap, {localCache: f.persistentLocalCache({tabManager: f.persistentMultipleTabManager()})}); }
     catch(e){ db = f.getFirestore(ap); }   // telefonda saklama: internet yokken yazılanlar kaybolmaz
     auth = a.getAuth(ap);
@@ -809,6 +822,10 @@ function FirebaseStore(cfg){
     },
     async updateTasinma(id, p){ await fs.updateDoc(fs.doc(db,"tasinma",id), p); },
     kim: () => tech ? "Teknisyen" : ((auth && auth.currentUser && auth.currentUser.email) || "").split("@")[0],
+    rolAd: () => tech ? "teknisyen" : tesisRol ? "tesis" : yonRol ? "yonetim" : null,
+    async bildirimToken(vapid, reg){ await ready; const m = await import(B+"firebase-messaging.js"); if (!(await m.isSupported())) throw {code:"desteklenmiyor"}; return m.getToken(m.getMessaging(apRef), {vapidKey:vapid, serviceWorkerRegistration:reg}); },
+    async bildirimKayit(o){ await ready; await fs.setDoc(fs.doc(db,"bildirim",o.token), {...o, uid:user.uid, ts:Date.now()}); },
+    async bildirimSil(token){ await ready; try { await fs.deleteDoc(fs.doc(db,"bildirim",token)); } catch(e){ console.warn(e); } },
     async getRoller(){ const r = await fs.getDoc(fs.doc(db,"ayar","roller")); return r.exists() ? r.data() : {}; },
     async setRoller(p){ await fs.setDoc(fs.doc(db,"ayar","roller"), p, {merge:true}); }
   };
@@ -1357,7 +1374,7 @@ function vPersonelIc(){
         <label class="f">Ad soyad<input type="text" id="p_name" autocomplete="name" value="${esc(p.name)}"></label>
         <p class="hint">Bu bilgiler telefonunuzda hatırlanır, her seferinde yazmanız gerekmez.</p>
       </section>`;
-  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${p.kod ? mesaiKart() : ""}${p.kod || p.kayitli ? gorevKart({ad:p.name, rol:p.rol}) : ""}${(p.kod || p.kayitli) && appDosya()!=="devriye.html" && !store.isYetkili() && !store.isTech() ? `<a class="cta ghost" href="kontrol.html" style="display:block;text-align:center;text-decoration:none;margin-bottom:12px">🗺️ Canlı arıza ekranı · sesli uyarı</a>` : ""}${(p.kod || p.kayitli) && !["devriye.html","teknik.html"].includes(appDosya()) ? (p.rol==="Temizlik" ? izinKart() : "") + izinBenKart() : ""}
+  return `${kurBanner(appAdi("B1 Personel"))}${kimlik}${p.kod ? mesaiKart() + bildirimKart() : ""}${p.kod || p.kayitli ? gorevKart({ad:p.name, rol:p.rol}) : ""}${(p.kod || p.kayitli) && appDosya()!=="devriye.html" && !store.isYetkili() && !store.isTech() ? `<a class="cta ghost" href="kontrol.html" style="display:block;text-align:center;text-decoration:none;margin-bottom:12px">🗺️ Canlı arıza ekranı · sesli uyarı</a>` : ""}${(p.kod || p.kayitli) && !["devriye.html","teknik.html"].includes(appDosya()) ? (p.rol==="Temizlik" ? izinKart() : "") + izinBenKart() : ""}
   ${p.kod || p.kayitli ? sesKart() : ""}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.filter(k => rolKat(p.rol, k)).map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
@@ -1455,6 +1472,62 @@ async function mesaiKaydet(tip, nokta){
   catch(e){ console.error(e); toast(e && e.code==="permission-denied" ? "Kaydedilemedi: kodunuzla giriş yapın" : "Kaydedilemedi, internet bağlantısını kontrol edin"); if (d) d.querySelectorAll("button").forEach(x => x.disabled = false); }
   MS.kayit = false;
 }
+/* =================== TELEFON BİLDİRİMİ (uygulama kapalıyken de gelir) ===================
+   Telefon izin verir → Firebase Cloud Messaging kimliği alınır → "bildirim/{kimlik}" belgesine kim olduğu yazılır.
+   Gönderen: Firebase sunucu fonksiyonu (functions/index.js) — görev, talimat, arıza ve "işe gelemiyorum" olunca.
+   Telefonda gösteren: sw.js (push olayı). */
+const BLD = {kayit:false, tazelendi:false};
+const bldOku = () => { try { return JSON.parse(localStorage.getItem("bz1-bildirim") || "null"); } catch(e){ return null; } };
+const bldYaz = v => { try { v ? localStorage.setItem("bz1-bildirim", JSON.stringify(v)) : localStorage.removeItem("bz1-bildirim"); } catch(e){} };
+const bldIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const bldAnaEkran = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const bldDestek = () => "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+function bldKim(){
+  const r = store.rolAd && store.rolAd();
+  if (r) return {rol:r, ad: r==="teknisyen" ? "Zeynel (Teknisyen)" : (store.kim ? store.kim() : ""), grup:"", kod:""};
+  const b = mesaiBen(); if (b) return {rol:"personel", ad:b.ad, grup:b.grup, kod:b.kod};
+  return null;
+}
+function bildirimKart(){
+  const kim = bldKim(); if (!kim) return "";
+  const k = bldOku(), izin = "Notification" in window ? Notification.permission : "yok";
+  const ac = k && k.token && izin === "granted";
+  if (ac){
+    if (!BLD.tazelendi){ BLD.tazelendi = true; setTimeout(bildirimTazele, 1500); }
+    return `<section class="bld-kart ac"><div><b>🔔 Bildirimler açık</b><small>${kim.rol==="personel" ? "Görev, talimat" : "Görev sonuçları, işe gelemeyenler"}${k.ariza ? " ve arızalar" : ""} telefonunuza gelir.</small></div>
+      <div class="bld-b"><label class="bld-s"><input type="checkbox" data-act="bldAriza" ${k.ariza ? "checked" : ""}> Arızalar</label><button class="pill-btn" data-act="bldDene">Dene</button></div></section>`;
+  }
+  let neden = "";
+  if (!AYAR.vapid) neden = "Bildirim kurulumu henüz tamamlanmadı (teknisyen).";
+  else if (bldIOS() && !bldAnaEkran()) neden = "iPhone'da bildirim için önce uygulamayı ana ekrana ekleyin: Safari'de Paylaş ⬆️ → “Ana Ekrana Ekle”, sonra ana ekrandaki simgeden açın.";
+  else if (!bldDestek()) neden = "Bu tarayıcı bildirimi desteklemiyor. Chrome ile açın.";
+  else if (izin === "denied") neden = "Bildirim izni kapalı. Adres çubuğundaki 🔒 simgesi → İzinler → Bildirimler → İzin ver, sonra sayfayı yenileyin.";
+  return `<section class="bld-kart"><div><b>🔔 Telefonuma bildirim gelsin</b><small>${neden ? esc(neden) : (kim.rol==="personel" ? "Size görev ya da talimat verilince, arıza bildirilince telefonunuz öter — uygulama kapalı olsa bile." : "İşe gelemeyen, yeni arıza, verdiğiniz görev yapıldığında telefonunuz öter.")}</small></div>
+    ${neden ? "" : `<button class="cta" data-act="bldAc">Bildirimleri aç</button>`}</section>`;
+}
+async function bildirimAc(sessiz){
+  if (BLD.kayit) return; const kim = bldKim(); if (!kim || !AYAR.vapid) return;
+  BLD.kayit = true;
+  try {
+    const izin = await Notification.requestPermission();
+    if (izin !== "granted"){ if (!sessiz) toast("Bildirim izni verilmedi"); return; }
+    const reg = await Promise.race([navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready), new Promise((_, no) => setTimeout(() => no({code:"sw"}), 15000))]);
+    const token = await store.bildirimToken(AYAR.vapid, reg);
+    if (!token) throw {code:"token"};
+    const once = bldOku(); const ariza = once && once.token ? once.ariza !== false : true;
+    if (once && once.token && once.token !== token) store.bildirimSil(once.token);
+    await store.bildirimKayit({token, rol:kim.rol, ad:kim.ad, grup:kim.grup, kod:kim.kod, ariza, gorev:true, cihaz:(bldIOS() ? "iPhone" : /android/i.test(navigator.userAgent) ? "Android" : "Bilgisayar")});
+    bldYaz({token, ariza, kim:kim.rol + "|" + kim.kod + "|" + kim.ad});
+    if (!sessiz){ toast("🔔 Bildirimler açıldı"); reg.showNotification("Bizimevler 1", {body:"Bildirimler bu telefonda açık ✓", icon:"icons/" + (appDosya()==="devriye.html" ? "devriye" : appDosya()==="teknik.html" ? "teknik" : "personel") + "-192.png", tag:"bld-test"}).catch(()=>{}); }
+    render();
+  } catch(e){ console.error(e); if (!sessiz) toast(e && e.code === "desteklenmiyor" ? "Bu tarayıcı bildirimi desteklemiyor" : e && e.code === "permission-denied" ? "Kaydedilemedi: kodunuzla giriş yapın" : "Bildirim açılamadı, tekrar deneyin"); }
+  finally { BLD.kayit = false; }
+}
+/* Açılışta: izin varsa kimliği tazele (telefon kimliği zamanla değişebilir; kişi/kod değiştiyse güncellenir) */
+function bildirimTazele(){ const k = bldOku(), kim = bldKim(); if (!k || !kim || !AYAR.vapid || !("Notification" in window) || Notification.permission !== "granted") return; bildirimAc(true); }
+async function bildirimAriza(ac){ const k = bldOku(); if (!k) return; k.ariza = ac; bldYaz(k); const kim = bldKim(); if (!kim) return;
+  try { await store.bildirimKayit({token:k.token, rol:kim.rol, ad:kim.ad, grup:kim.grup, kod:kim.kod, ariza:ac, gorev:true, cihaz:(bldIOS() ? "iPhone" : /android/i.test(navigator.userAgent) ? "Android" : "Bilgisayar")}); toast(ac ? "Arıza bildirimleri açık" : "Arıza bildirimleri kapalı"); } catch(e){ toast("Kaydedilemedi"); } }
+document.addEventListener("change", e => { const c = e.target.closest('[data-act="bldAriza"]'); if (c) bildirimAriza(c.checked); });
 /* =================== GÖREV VER (müdür/amir → personel) =================== */
 const GV = {un:null, liste:[], dizin:null, unD:null, f:{kime:"", yer:"", metin:"", tur:"gorev", bitis:"hafta", tarih:""}, filtre:"acik", sonEklenen:null};
 const talAktif = g => g.tur==="talimat" && g.durum!=="iptal" && (!g.bitis || g.bitis > Date.now());
@@ -1709,6 +1782,7 @@ function vDevriyeIc(){
       </section>`
     : `<button class="cta ghost sorun-btn" data-act="dSorunAc">⚠️ Bu noktada sorun var</button>`}` : ""}
   ${mesaiKart()}
+  ${bildirimKart()}
   ${gorevKart({ad:d.kim.ad, rol:"Güvenlik"})}
   ${izinGuvenlik(d.kim.ad)}
   <button class="scan-btn" data-act="dTara"><svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>QR Okut</button>
@@ -1919,6 +1993,7 @@ function vPanel(){
       <a class="cta" href="#personel" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px">📝 Arıza bildir (fotoğraflı)</a>
       ${store.isTesis() ? `<a class="cta" href="#calisma" style="display:block;text-align:center;text-decoration:none;margin-top:10px">📅 Temizlik çalışma listesi</a><a class="cta" href="#izinler" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏖️ İzinler</a>` : ""}${store.isTesis() ? `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🏢 Tesis takip</a>` : `<a class="cta" href="#tesis" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🛗 Asansör arızası</a>`}
       <a class="cta" href="#gorev" style="display:block;text-align:center;text-decoration:none;margin-top:10px">📌 Görev ver</a>
+      <div style="margin-top:10px">${bildirimKart()}</div>
       <a class="cta" href="bizkontrol.html" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🤖 BİZKONTROL · günlük rapor</a>
       <a class="cta" href="puantaj.html" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🗓️ Puantaj</a>
       <a class="cta" href="#kontrol" style="display:block;text-align:center;text-decoration:none;margin-top:10px">🗺️ Canlı Kontrol Merkezi</a>
@@ -1964,6 +2039,7 @@ function vPanel(){
     <a href="puantaj.html"><span>🗓️</span>Puantaj</a>
     <a href="#gorev"><span>📌</span>Görev ver</a>
   </div>
+  ${bildirimKart()}
     <div class="summary">
       <div class="sum"><strong style="color:var(--wait)">${all.filter(a=>a.status==="bekliyor").length}</strong><span>Yeni</span></div>
       <div class="sum"><strong style="color:var(--ok)">${all.filter(a=>a.status==="onaylandi").length}</strong><span>İlgilenilen</span></div>
@@ -3153,6 +3229,8 @@ document.addEventListener("click", async e => {
     else if (act==="sesBas"){ syncForm(); sesBaslat(); return; }
     else if (act==="gvGonder"){ gvGonder(); return; }
     else if (act==="mesaiQr"){ taramaAc(); return; }
+    else if (act==="bldAc"){ bildirimAc(); return; }
+    else if (act==="bldDene"){ navigator.serviceWorker.ready.then(r => r.showNotification("Bizimevler 1", {body:"Deneme bildirimi ✓ Gerçek bildirimler de böyle görünür.", tag:"bld-test"})).catch(()=>toast("Gösterilemedi")); return; }
     else if (act==="mesaiQrAc"){ const m = document.getElementById("mesaiModal"); if (m) m.hidden = true; taramaAc(); return; }
     else if (act==="mesaiKaydet"){ mesaiKaydet(v, b.dataset.n); return; }
     else if (act==="mesaiKapat"){ const m = document.getElementById("mesaiModal"); if (m) m.hidden = true; return; }

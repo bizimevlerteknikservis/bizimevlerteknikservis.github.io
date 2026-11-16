@@ -1,0 +1,11 @@
+{
+  "name": "bizimevler-bildirim",
+  "description": "Bizimevler 1 - telefon bildirimleri (görev, talimat, arıza, işe gelemiyorum)",
+  "main": "index.js",
+  "private": true,
+  "engines": { "node": "20" },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^5.1.1"
+  }
+}
