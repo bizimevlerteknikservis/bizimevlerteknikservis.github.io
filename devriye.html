@@ -1855,11 +1855,11 @@ function pBildirimlerKart(){
   const durum = a => a.status === "bekliyor" ? `<span class="pb-d yeni">Yeni</span>` : a.status === "onaylandi" ? `<span class="pb-d ilg">İlgileniliyor</span>` : `<span class="pb-d tam">Çözüldü</span>`;
   const yer = a => a.alan || (a.block ? `${a.block} Blok${a.kat ? " · " + a.kat : ""}` : "Ortak alan");
   const gun = t => { const d = new Date(t), b = new Date(); return d.toDateString() === b.toDateString() ? saatYaz(t) : "Dün " + saatYaz(t); };
-  const goster = S.pbTum ? L : L.slice(0, 5);
+  const goster = S.pbTum ? L : L.slice(0, 2);
   return `<section class="d-kart pb-kart"><div class="d-bas"><h2>📋 Bildirimler</h2><span class="pb-say">Son 2 gün · ${L.length}</span></div>
     <div class="pb-liste">${goster.map(a => `<div class="pb${a.cat==="p_asansor" ? " as" : ""}"><span class="pb-ic" style="--c:${({p_isik:"#f08c00",p_kapi:"#7c3aed",p_asansor:"#0e9f9a",p_su:"#1d6ff2",p_hasar:"#e11d48",p_bahce:"#15a34a",p_malzeme:"#c2620c",p_temiz:"#d1338c"})[a.cat] || "#475569"}"><svg viewBox="0 0 24 24">${(PKAT.find(k => k.id === a.cat) || {ic:""}).ic}</svg></span>
       <div class="pb-m"><b>${esc(catOf(a.cat).ad)} · ${esc(yer(a))}</b><small>${esc([...(a.issues||[]).filter(x => x !== "Diğer"), a.desc].filter(Boolean).join(" — ").slice(0, 90))}</small><div class="pb-alt"><span class="pb-kim">👤 ${esc(a.name || "Personel")} · ${bolum(a.rol)}</span>${durum(a)}<time>${gun(a.createdAt)}</time></div></div></div>`).join("")}</div>
-    ${L.length > 5 ? `<button class="pill-btn" data-act="pbTum" style="margin-top:10px;width:100%">${S.pbTum ? "Daha az göster" : `Tümünü göster (${L.length})`}</button>` : ""}</section>`;
+    ${L.length > 2 ? `<button class="pill-btn" data-act="pbTum" style="margin-top:10px;width:100%">${S.pbTum ? "Daha az göster" : `+${L.length - 2} bildirim daha · tümünü göster`}</button>` : ""}</section>`;
 }
 function pDash(icerik){
   const ben = pDashKim(); if (!ben) return icerik;
