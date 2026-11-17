@@ -372,6 +372,22 @@ async function zamanli(env, sa) {
   return sonuc;
 }
 
+/* Hava: Atatürk Havalimanı (LTBA) gerçek ölçümü — METAR, NOAA aviationweather.gov. 10 dk önbellek.
+   LTBA ölçümü yoksa İstanbul Havalimanı (LTFM). Sadece okunur, hiçbir kayıt tutulmaz. */
+async function havaOlcum(ctx) {
+  const anahtar = new Request("https://bizimevler-hava.local/metar-v1");
+  const onbellek = caches.default;
+  const eski = await onbellek.match(anahtar); if (eski) return eski.json();
+  const r = await fetch("https://aviationweather.gov/api/data/metar?ids=LTBA,LTFM&format=json&hours=3", { headers: { "user-agent": "Bizimevler1-site/1.0" } });
+  if (!r.ok) throw new Error("metar " + r.status);
+  const L = await r.json();
+  const sec = id => (Array.isArray(L) ? L : []).filter(x => x.icaoId === id && x.temp != null).sort((a, b) => (b.obsTime || 0) - (a.obsTime || 0))[0];
+  const m = sec("LTBA") || sec("LTFM"); if (!m) throw new Error("ölçüm yok");
+  const v = { icao: m.icaoId, obsTime: m.obsTime, reportTime: m.reportTime, temp: m.temp, dewp: m.dewp, wdir: m.wdir, wspd: m.wspd, wgst: m.wgst || null, wxString: m.wxString || "", clouds: (m.clouds || []).map(c => ({ cover: c.cover, base: c.base })), rawOb: m.rawOb };
+  ctx.waitUntil(onbellek.put(anahtar, new Response(JSON.stringify(v), { headers: { "content-type": "application/json", "cache-control": "max-age=600" } })));
+  return v;
+}
+
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "content-type" };
 function hazirla(env) {
   const sa = JSON.parse(env.SERVICE_ACCOUNT);
@@ -386,6 +402,10 @@ export default {
   },
   async fetch(req, env, ctx) {
     if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
+    if (req.method === "GET" && new URL(req.url).searchParams.has("hava")) {
+      try { return new Response(JSON.stringify(await havaOlcum(ctx)), { headers: { "content-type": "application/json", "cache-control": "max-age=300", ...CORS } }); }
+      catch (e) { return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 502, headers: { "content-type": "application/json", ...CORS } }); }
+    }
     if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 2: mesai ve bakım kontrolü)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
     if (req.method !== "POST") return new Response("", { status: 405, headers: CORS });
     let g; try { g = JSON.parse(await req.text()); } catch (e) { return new Response("{}", { status: 400, headers: CORS }); }
