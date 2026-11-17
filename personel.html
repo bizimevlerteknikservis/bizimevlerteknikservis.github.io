@@ -449,6 +449,12 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .karne-t tr.tk td{background:#fff7ea}.karne-t tr.kr td{background:#fdeaea}
 .bld-kart{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;border:2px dashed var(--line,#e3e9f2);border-radius:18px;padding:12px 14px;margin-bottom:12px;background:var(--card,#fff)}
 .bld-kart.ac{border-style:solid;border-color:#2b7cd3}
+.bld-sayfa{position:fixed;inset:0;z-index:19;background:rgba(8,18,40,.45);display:flex;align-items:flex-end;justify-content:center;padding:0 12px calc(86px + env(safe-area-inset-bottom,0px))}
+.bld-ic{width:100%;max-width:560px;background:#fff;border-radius:22px;padding:14px 14px 4px;box-shadow:0 18px 40px rgba(6,16,40,.35)}
+.bld-ust{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.bld-ust b{font-size:16.5px}
+.bld-x{border:0;background:#eef2f8;border-radius:50%;width:34px;height:34px;font-size:15px;cursor:pointer}
+.bld-ic .bld-kart{border:0;padding:0;margin-bottom:12px}.bld-ic .bld-kart b{display:none}.bld-ic .bld-ince{margin:4px 0 14px;width:auto;gap:8px;padding:7px 8px 7px 12px;justify-content:space-between;flex-wrap:wrap;border-radius:18px}
+.d-alt-ic:has(>a:nth-child(5)) a{font-size:11.5px}
 .bld-ince{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:999px;background:#eaf2ff;border:1px solid #cfe0f7;font-size:13.5px;color:#1d4ed8;font-weight:700;width:fit-content;max-width:100%;margin:0 auto 4px}
 .bld-ince span{white-space:nowrap}
 .bld-ince .bld-s{font-size:13px;color:#14283b;gap:5px}.bld-ince .bld-s input{width:16px;height:16px}
@@ -1643,7 +1649,10 @@ function bldKim(){
   const b = mesaiBen(); if (b) return {rol:"personel", ad:b.ad, grup:b.grup, kod:b.kod};
   return null;
 }
-function bildirimKart(){
+function bldPersonelMenu(){ return !!(pDashKim() && ["personel","devriye","gtasinma"].includes(S.view)); }
+function bildirimAcikMi(){ const k = bldOku(); return !!(k && k.token && "Notification" in window && Notification.permission === "granted"); }
+function bildirimKart(zorla){
+  if (!zorla && bldPersonelMenu()) return "";   // personel ekranında alttaki menüde "Bildirim" sekmesinde
   const kim = bldKim(); if (!kim) return "";
   const k = bldOku(), izin = "Notification" in window ? Notification.permission : "yok";
   const ac = k && k.token && izin === "granted";
@@ -1896,11 +1905,13 @@ function pDash(icerik){
   <nav class="d-alt" aria-label="Ana menü"><div class="d-alt-ic">
     ${guv ? "" : `<a href="#" data-act="dUst">${ic("home")}<span>Ana Sayfa</span></a>`}
     ${guv ? `<a href="#devriye"${S.view==="devriye" ? ` aria-current="page"` : ""}>${ic("shield")}<span>Devriye</span></a>` : ""}
-    <a href="${S.view==="personel" ? "#" : bildirAdres}" ${S.view==="personel" ? `data-act="pBildirGit" aria-current="page"` : ""}>${ic("alert")}<span>${guv ? "Arıza" : "Arıza Bildir"}</span></a>
+    <a href="${S.view==="personel" ? "#" : bildirAdres}" ${S.view==="personel" ? `data-act="pBildirGit"${S.bldPanel ? "" : ` aria-current="page"`}` : ""}>${ic("alert")}<span>${guv ? "Arıza" : "Arıza Bildir"}</span></a>
     ${guv ? `<a href="#gtasinma"${S.view==="gtasinma" ? ` aria-current="page"` : ""}>${ic("building")}<span>Taşınma</span></a>` : ""}
     <a href="kontrol.html">${ic("radar")}<span>Canlı</span></a>
     ${guv ? "" : `<a href="#" data-act="pGorevGit">${ic("clip")}<span>Görevler</span>${gor + tal ? `<em>${gor + tal}</em>` : ""}</a>`}
-  </div></nav>`;
+    <a href="#" data-act="bldPanel"${S.bldPanel ? ` aria-current="page"` : ""}>${ic("bell")}<span>Bildirim</span>${bildirimAcikMi() ? "" : `<em>!</em>`}</a>
+  </div></nav>
+  ${S.bldPanel ? `<div class="bld-sayfa" data-act="bldPanelKapat"><div class="bld-ic" data-act="bldPanelIc"><div class="bld-ust"><b>🔔 Telefon bildirimleri</b><button class="bld-x" data-act="bldPanelKapat" aria-label="Kapat">✕</button></div>${bildirimKart(true) || `<p class="hint">Bildirim için önce kodunuzla giriş yapın.</p>`}</div></div>` : ""}`;
 }
 function vDash(isler, ayar){
   dashBaslat();
@@ -3737,6 +3748,9 @@ document.addEventListener("click", async e => {
     else if (act==="dAyar"){ e.preventDefault(); const el = document.getElementById("ayarlar"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); return; }
     else if (act==="dUst"){ e.preventDefault(); scrollTo({top:0, behavior:"smooth"}); return; }
     else if (act==="pGorevGit"){ e.preventDefault(); const el = document.querySelector(".gv-kart") || document.querySelector(".mesai-kart"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); else toast("Şu an görev ya da talimat yok"); return; }
+    else if (act==="bldPanel"){ e.preventDefault(); S.bldPanel = !S.bldPanel; render(); return; }
+    else if (act==="bldPanelKapat"){ if (e.target.closest(".bld-ic") && !e.target.closest(".bld-x")) return; S.bldPanel = false; render(); return; }
+    else if (act==="bldPanelIc"){ return; }
     else if (act==="pbTum"){ S.pbTum = !S.pbTum; render(); return; }
     else if (act==="pBildirGit"){ e.preventDefault(); const el = document.querySelector(".cats") || document.querySelector(".ses-kart") || document.querySelector(".step"); if (el) el.scrollIntoView({behavior:"smooth", block:"center"}); return; }
     else if (act==="bldDene"){ navigator.serviceWorker.ready.then(r => r.showNotification("Bizimevler 1", {body:"Deneme bildirimi ✓ Gerçek bildirimler de böyle görünür.", tag:"bld-test"})).catch(()=>toast("Gösterilemedi")); return; }
