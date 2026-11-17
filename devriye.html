@@ -179,12 +179,21 @@ section.step{display:grid;gap:12px;margin-bottom:14px;background:var(--surface);
 .step h2{margin:0;font:700 18px/1.2 var(--display);display:flex;align-items:center;gap:10px}
 .step h2 span{flex:0 0 28px;height:28px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(140deg,var(--accent),var(--accent-2));color:#fff;font:700 14px/1 var(--body)}
 .cats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.cat{--c:#64748b;border:1.5px solid var(--line);background:var(--surface);border-radius:16px;padding:14px 6px 12px;display:grid;justify-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:700;text-align:center;min-height:100px}
-.cat[data-v="elektrik"]{--c:#d98a00} .cat[data-v="su"]{--c:#1f80d0} .cat[data-v="kombi"]{--c:#e0573a}
-.cat[data-v="kapi"]{--c:#7a55d6} .cat[data-v="asansor"]{--c:#13958a} .cat[data-v="diger"]{--c:#64748b}
-.cat svg{width:46px;height:46px;padding:11px;border-radius:15px;background:color-mix(in srgb,var(--c) 13%,#fff);stroke:var(--c);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.cat[aria-pressed="true"]{border-color:transparent;background:linear-gradient(140deg,var(--accent),var(--accent-2));color:#fff;box-shadow:var(--shadow-lg)}
-.cat[aria-pressed="true"] svg{background:rgba(255,255,255,.2);stroke:#fff}
+.cat{--c:#475569;--c2:#94a3b8;position:relative;border:1.5px solid color-mix(in srgb,var(--c) 22%,#fff);background:linear-gradient(180deg,#fff,color-mix(in srgb,var(--c) 8%,#fff));border-radius:18px;padding:14px 6px 12px;display:grid;justify-items:center;align-content:center;gap:8px;cursor:pointer;font-size:14px;font-weight:700;text-align:center;min-height:104px;color:var(--ink);box-shadow:0 5px 14px -8px color-mix(in srgb,var(--c) 70%,transparent);transition:transform .12s,box-shadow .15s}
+.cat:active{transform:scale(.97)}
+.cat[data-v="elektrik"],.cat[data-v="p_isik"]{--c:#f08c00;--c2:#ffc93c}
+.cat[data-v="su"],.cat[data-v="p_su"]{--c:#1d6ff2;--c2:#5aa8ff}
+.cat[data-v="kombi"]{--c:#e5482c;--c2:#ff9a5a}
+.cat[data-v="kapi"],.cat[data-v="p_kapi"]{--c:#7c3aed;--c2:#a98bfa}
+.cat[data-v="asansor"],.cat[data-v="p_asansor"]{--c:#0e9f9a;--c2:#34d3c6}
+.cat[data-v="p_hasar"]{--c:#e11d48;--c2:#ff6b85}
+.cat[data-v="p_bahce"]{--c:#15a34a;--c2:#4ade80}
+.cat[data-v="p_malzeme"]{--c:#c2620c;--c2:#f6a43a}
+.cat[data-v="p_temiz"]{--c:#d1338c;--c2:#f47ec4}
+.cat[data-v="diger"],.cat[data-v="p_diger"]{--c:#475569;--c2:#94a3b8}
+.cat svg{width:50px;height:50px;padding:12px;border-radius:15px;background:linear-gradient(140deg,var(--c),var(--c2));stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;box-shadow:0 6px 14px -6px var(--c)}
+.cat[aria-pressed="true"]{border-color:var(--c);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,#fff),color-mix(in srgb,var(--c) 20%,#fff));box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 28%,transparent),0 8px 20px -8px var(--c)}
+.cat[aria-pressed="true"]::after{content:"✓";position:absolute;top:7px;right:8px;width:22px;height:22px;border-radius:50%;background:var(--c);color:#fff;font:800 13px/22px var(--body)}
 textarea,input[type=text],input[type=tel],input[type=email],input[type=password],input[type=number],input[type=date],input[type=time],input:not([type]),select{width:100%;border:1.5px solid var(--line);background:var(--sunk);border-radius:12px;padding:12px 14px;min-height:50px}
 textarea{min-height:92px;resize:vertical}
 textarea:focus,input:focus,select:focus{background:#fff}
@@ -583,7 +592,7 @@ const PKAT = [
   {id:"p_hasar", ad:"Kırık / hasar", ic:'<path d="M4 4h16v16H4z"/><path d="m4 4 7 8-3 3 6 5"/>'},
   {id:"p_bahce", ad:"Bahçe / peyzaj", ic:'<path d="M12 22V12"/><path d="M12 12c-4 0-7-3-7-7 4 0 7 3 7 7zM12 12c4 0 7-3 7-7-4 0-7 3-7 7z"/>'},
   {id:"p_malzeme", ad:"Malzeme talebi", ic:'<path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/>'},
-  {id:"p_temiz", ad:"Temizlik / koku", ic:'<path d="M3 21h18"/><path d="M7 21V10h10v11"/><path d="M12 10V3"/><path d="M9 6h6"/>'},
+  {id:"p_temiz", ad:"Temizlik / koku", ic:'<path d="M15 3 11 11"/><path d="M6 12h10l2 9H4z"/><path d="M9 16v5M12.5 16v5"/>'},
   {id:"p_diger", ad:"Diğer", ic:'<circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/>'}
 ];
 const PARIZA = {
