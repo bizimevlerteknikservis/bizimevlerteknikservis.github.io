@@ -1633,6 +1633,7 @@ const bldIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator
 const bldAnaEkran = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 const bldDestek = () => "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
 function bldKim(){
+  if (["personel.html","devriye.html"].includes(appDosya()) && ["personel","devriye","gtasinma"].includes(S.view)){ const b = mesaiBen(); if (b) return {rol:"personel", ad:b.ad, grup:b.grup, kod:b.kod}; }
   const r = store.rolAd && store.rolAd();
   if (r) return {rol:r, ad: r==="teknisyen" ? "Zeynel (Teknisyen)" : (store.kim ? store.kim() : ""), grup:"", kod:""};
   const b = mesaiBen(); if (b) return {rol:"personel", ad:b.ad, grup:b.grup, kod:b.kod};
@@ -1839,7 +1840,9 @@ function havaHTML(){
 }
 /* Personel / güvenlik ekranı: aynı koyu ana sayfa üst bandı + sayaçlar, altında mevcut içerik */
 function pDashKim(){
-  if (store.isTech() || (store.isYetkili && store.isYetkili())) return null;
+  // Personel/güvenlik uygulamasında kodla giriş yapan kişi her zaman personel görünümünü görür
+  // (aynı telefonda teknisyen/yönetim girişi açık olsa bile); teknik.html'den açılınca eski görünüm
+  if (appDosya()==="teknik.html" || ((store.isTech() || (store.isYetkili && store.isYetkili())) && !["personel.html","devriye.html"].includes(appDosya()))) return null;
   const b = mesaiBen(); if (!b) return null;
   const v = S.d && S.d.kim && S.d.kim.vardiya;
   return {...b, bolum: b.grup==="guvenlik" ? "Güvenlik" + (v ? " · " + v : "") : b.grup==="bahce" ? "Bahçe / Peyzaj" : "Temizlik"};
