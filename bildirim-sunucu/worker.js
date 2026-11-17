@@ -11,6 +11,12 @@
    - Kayıt son 15 dakikada oluşturulmamışsa ya da daha önce bildirildiyse hiçbir şey gönderilmez
      (bildirimLog/{tür_kayıt} belgesi bir kez yazılır) → kimse sahte ya da tekrar bildirim yollayamaz.
    - Site kayıtlarını değiştirmez; sadece okur, bildirimLog'a not düşer, geçersiz telefon kimliğini siler.
+     Tek istisna: gece unutulan mesai çıkışına "çıkış unutuldu" işareti (mesai kaydı, unutuldu:true) ekler.
+
+   Zamanlı kontrol (Cloudflare → Settings → Triggers → Cron: "0,15,30,45 * * * *"), her 15 dakikada:
+   - Vardiyası başladığı halde 15 dk içinde QR ile giriş yapmayan personeli amire/müdüre bildirir
+   - Mesai bitiminden 30 dk sonra çıkış okutmayan personele hatırlatma gönderir; 23:00'te "çıkış unutuldu" işareti koyar
+   - Her sabah 09:00'da bakımı yaklaşan/geçen ekipmanları ve azalan stoğu teknisyen ve müdüre bildirir
    ===================================================================== */
 const BAHCIVAN = "Bahçıvan / Peyzaj";
 const GRUP = { "Güvenlik": "guvenlik", "Temizlik": "temizlik", [BAHCIVAN]: "bahce" };
@@ -80,6 +86,21 @@ async function ilkKezMi(sa, anahtar) {
     headers: { authorization: "Bearer " + await erisim(sa), "content-type": "application/json" },
     body: JSON.stringify({ fields: { ts: { integerValue: String(Date.now()) } } }) });
   if (r.status === 409) return false; if (!r.ok) throw new Error("log " + r.status); return true;
+}
+/* Basit sorgu: [[alan, "EQUAL"|"GREATER_THAN_OR_EQUAL", değer], ...] */
+function fsDeger(v) { return typeof v === "number" ? (Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v }) : typeof v === "boolean" ? { booleanValue: v } : v === null ? { nullValue: null } : { stringValue: String(v) }; }
+async function fsSorgu(sa, koleksiyon, kosullar, alanlar_) {
+  const filtre = kosullar.map(([f, op, v]) => ({ fieldFilter: { field: { fieldPath: f }, op, value: fsDeger(v) } }));
+  const sorgu = { from: [{ collectionId: koleksiyon }], ...(filtre.length ? { where: filtre.length === 1 ? filtre[0] : { compositeFilter: { op: "AND", filters: filtre } } } : {}),
+    ...(alanlar_ ? { select: { fields: alanlar_.map(f => ({ fieldPath: f })) } } : {}) };
+  const r = await fetch(`${fsKok(sa)}:runQuery`, { method: "POST", headers: { authorization: "Bearer " + await erisim(sa), "content-type": "application/json" }, body: JSON.stringify({ structuredQuery: sorgu }) });
+  if (!r.ok) throw new Error("sorgu " + koleksiyon + " " + r.status);
+  return (await r.json()).filter(x => x.document).map(x => ({ id: belgeId(x.document.name), ...alanlar(x.document.fields) }));
+}
+async function fsEkle(sa, koleksiyon, veri) {
+  const fields = Object.fromEntries(Object.entries(veri).map(([k, v]) => [k, fsDeger(v)]));
+  const r = await fetch(`${fsKok(sa)}/${koleksiyon}`, { method: "POST", headers: { authorization: "Bearer " + await erisim(sa), "content-type": "application/json" }, body: JSON.stringify({ fields }) });
+  if (!r.ok) throw new Error("ekle " + koleksiyon + " " + r.status);
 }
 async function fsSil(sa, yol) { await fetch(`${fsKok(sa)}/${yol}`, { method: "DELETE", headers: { authorization: "Bearer " + await erisim(sa) } }).catch(() => {}); }
 
@@ -152,18 +173,224 @@ async function isle(env, sa, tur, id) {
     return gonder(env, sa, T.filter(t => t.rol === "teknisyen" && t.ariza !== false), { title: `🏠 Daire arızası · ${a.block || "?"}/${a.flat || "?"}`,
       body: kisa(`${KAT[a.cat] || "Arıza"}${(a.issues || []).length ? " — " + a.issues.join(", ") : ""}`, 160), tag: "daire-" + id }, "teknik.html#panel");
   }
+  if (tur === "vardiya" || tur === "vardiyaSonuc") {
+    const v = await fsOku(sa, "vardiya/" + encodeURIComponent(id));
+    if (!v) return { atla: "yok" };
+    const T = await telefonlar(sa);
+    const gun = x => { if (!x) return ""; const [y, m, g] = x.split("-"); return `${+g} ${AYAD[+m - 1]}`; };
+    if (tur === "vardiya") {
+      if (v.durum !== "bekliyor" || !(simdi - v.ts < TAZE_MS)) return { atla: "eski" };
+      if (!(await ilkKezMi(sa, "vardiya_" + id))) return { atla: "zaten bildirildi" };
+      return gonder(env, sa, T.filter(t => t.rol === "yonetim" || t.rol === "tesis"), { title: `🔁 Vardiya değişimi · ${kisa(v.ad, 40)}`,
+        body: kisa(`${gun(v.tarih)} yerine ${v.karsi} çalışsın${v.karsiTarih ? ` · karşılığında ${gun(v.karsiTarih)} kendisi çalışacak` : ""}. Onayınız bekleniyor.`, 180), tag: "vardiya-" + id, onemli: true }, "teknik.html#ik");
+    }
+    if (!["onay", "red"].includes(v.durum) || !(simdi - (v.karar || 0) < TAZE_MS)) return { atla: "eski" };
+    if (!(await ilkKezMi(sa, "vardiyaSonuc_" + id))) return { atla: "zaten bildirildi" };
+    const kisiler = [sade(v.ad), sade(v.karsi)];
+    return gonder(env, sa, T.filter(t => t.rol === "personel" && (t.kod === v.kod || kisiler.includes(sade(t.ad)))), {
+      title: v.durum === "onay" ? "✅ Vardiya değişimi onaylandı" : "❌ Vardiya değişimi reddedildi",
+      body: kisa(`${v.ad} ⇄ ${v.karsi} · ${gun(v.tarih)}${v.karsiTarih ? " / " + gun(v.karsiTarih) : ""}${v.kararNot ? " · " + v.kararNot : ""}`, 180), tag: "vardiya-" + id, onemli: true });
+  }
   return { atla: "bilinmeyen tür" };
 }
 
+/* =====================================================================
+   ZAMANLI KONTROL: mesai (gelmeyen, çıkış unutma) + sabah bakım/stok özeti
+   Beklenen çalışma günü puantaj.html'deki otomatik kuralın aynısıdır:
+   güvenlik vardiya düzeni (G gündüz / N gece / HT izin), temizlik hafta içi + hafta sonu çalışma listesi,
+   diğerleri çalışma günleri; resmi tatil (güvenlik hariç) ve İzinler'deki izin günleri çalışılmaz.
+   ===================================================================== */
+const AYAD = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+const TR = 3 * 36e5;   // Türkiye saati (UTC+3, yaz saati yok)
+const p2 = n => String(n).padStart(2, "0");
+const trGun = ts => { const d = new Date(ts + TR); return `${d.getUTCFullYear()}-${p2(d.getUTCMonth() + 1)}-${p2(d.getUTCDate())}`; };
+const trSaat = ts => { const d = new Date(ts + TR); return `${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}`; };
+const tsOf = (gun, saat) => Date.parse(`${gun}T${saat || "00:00"}:00+03:00`);
+const gunEkle = (gun, n) => trGun(tsOf(gun, "12:00") + n * 864e5);
+const haftaGunu = gun => new Date(tsOf(gun, "12:00") + TR).getUTCDay();
+const gunFarki = (a, b) => Math.round((tsOf(a, "12:00") - tsOf(b, "12:00")) / 864e5);
+const tsGun = v => typeof v === "number" ? trGun(v) : String(v || "").slice(0, 10);
+const anahtar = ad => String(ad || "").trim().toLocaleLowerCase("tr").replace(/[çğıöşü]/g, c => ({ ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u" }[c])).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const adKok = x => String(x || "").trim().split(/\s+/)[0].toLocaleUpperCase("tr");
+
+const SABIT_TATIL = { "01-01": 1, "04-23": 1, "05-01": 1, "05-19": 1, "07-15": 1, "08-30": 1, "10-29": 1 };
+const DINI_TATIL = new Set(["2026-03-20", "2026-03-21", "2026-03-22", "2026-05-27", "2026-05-28", "2026-05-29", "2026-05-30",
+  "2027-03-09", "2027-03-10", "2027-03-11", "2027-05-16", "2027-05-17", "2027-05-18", "2027-05-19"]);
+const tatil = gun => DINI_TATIL.has(gun) || !!SABIT_TATIL[gun.slice(5)];
+const VARDIYA_LISTE = [["1. Vardiya", ["Rüstem Eryüksel", "Ali Vesek", "Tayfun Özdemir", "Erkan Bavkir"]], ["2. Vardiya", ["Yakup Erol", "Cihan Yıldırım", "Serkan Çinibulak", "Mehmet Ünal"]],
+  ["3. Vardiya", ["Nejdet Baydemir", "Yalçın Akyol", "Berke Dursun Tuncer", "Yusuf Nazlım"]], ["Joker", ["Eray Polat"]]];
+const DESEN_VARSAYILAN = { "1. Vardiya": { seq: "G,G,N,N,HT,HT", baz: "2026-11-01" }, "2. Vardiya": { seq: "G,G,N,N,HT,HT", baz: "2026-10-30" }, "3. Vardiya": { seq: "G,G,N,N,HT,HT", baz: "2026-10-28" }, "Joker": { seq: "G,G,G,G,G,HT,HT", baz: "2026-11-02" } };
+const SAAT_VARSAYILAN = { temizlik: { bas: "08:00", bit: "17:00" }, bahce: { bas: "08:00", bit: "17:00" }, diger: { bas: "08:00", bit: "17:00" }, G: { bas: "08:00", bit: "20:00" }, N: { bas: "20:00", bit: "08:00" }, tolerans: 15, gelmeyen: true, cikis: true };
+const saatAyar = a => { const s = (a && a.saat) || {}; return { ...SAAT_VARSAYILAN, ...s, temizlik: { ...SAAT_VARSAYILAN.temizlik, ...(s.temizlik || {}) }, bahce: { ...SAAT_VARSAYILAN.bahce, ...(s.bahce || {}) },
+  diger: { ...SAAT_VARSAYILAN.diger, ...(s.diger || {}) }, G: { ...SAAT_VARSAYILAN.G, ...(s.G || {}) }, N: { ...SAAT_VARSAYILAN.N, ...(s.N || {}) } }; };
+
+/* Temizlik hafta sonu listesi (duyuru/izin) */
+const cift = L => (L || []).map(r => Array.isArray(r) ? r : [r.ad || "", r.blok || ""]);
+function planCoz(v) {
+  if (!v) return null;
+  if (v.cmt && v.paz && v.baz) return { baz: tsGun(v.baz), cmt: cift(v.cmt), paz: cift(v.paz) };
+  if (!v.gunler) return null; let baz = null, cmt = [], paz = [];
+  v.gunler.forEach(g => { const m = String(g.baslik || "").match(/(\d{1,2})[./](\d{1,2})[./](\d{4})/); if (!m) return; const gun = `${m[3]}-${p2(m[2])}-${p2(m[1])}`;
+    if (haftaGunu(gun) === 6) { cmt = cift(g.satir); baz = gun; } else if (haftaGunu(gun) === 0) { paz = cift(g.satir); if (!baz) baz = gunEkle(gun, -1); } });
+  return baz ? { baz, cmt, paz } : null;
+}
+const cmtBul = gun => { const g = haftaGunu(gun); return g === 0 ? gunEkle(gun, -1) : gunEkle(gun, 6 - g); };
+function haftaSonu(plan, gun) { const fark = Math.round(gunFarki(cmtBul(gun), cmtBul(plan.baz)) / 7); const tek = Math.abs(fark) % 2 === 1; return { cmtL: tek ? plan.paz : plan.cmt, pazL: tek ? plan.cmt : plan.paz }; }
+
+function kisiListesi(ayar, plan) {
+  const K = { ...((ayar && ayar.kisiler) || {}) };
+  if (!Object.keys(K).length) {
+    VARDIYA_LISTE.forEach(([v, L]) => L.forEach(ad => { K[anahtar(ad)] = { ad, grup: "guvenlik", vardiya: v, aktif: true }; }));
+    const T = plan ? [...plan.cmt, ...plan.paz].map(r => r[0]).filter(Boolean) : [];
+    [...new Set(T.map(adKok))].forEach(ad => { K[anahtar(ad)] = { ad, grup: "temizlik", duzen: "temizlik", aktif: true }; });
+  }
+  return Object.entries(K).filter(([, k]) => k.aktif !== false);
+}
+function izinli(izinler, k, gun) {
+  return izinler.some(e => e.bas <= gun && (e.bit || e.bas) >= gun && (
+    (k.grup === "guvenlik" && e.grup === "guvenlik" && anahtar(e.ad) === anahtar(k.ad)) ||
+    (k.grup !== "guvenlik" && (e.grup || "temizlik") !== "guvenlik" && adKok(e.ad) === adKok(k.ad))));
+}
+/* O gün çalışıyor mu, hangi vardiyada? → null | "G" | "N" | "gunduz" (personel) */
+function vardiyaTuru(ayar, plan, izinler, k, gun) {
+  let tur = null;
+  if (k.grup === "guvenlik") {
+    const ds = ((ayar && ayar.desen) || {})[k.vardiya] || DESEN_VARSAYILAN[k.vardiya];
+    if (ds) { const seq = ds.seq.split(","); const s = seq[((gunFarki(gun, tsGun(ds.baz)) % seq.length) + seq.length) % seq.length]; tur = s === "HT" ? null : s; }
+    else tur = haftaGunu(gun) === 0 ? null : "G";
+  } else if (k.duzen === "temizlik" || (k.grup === "temizlik" && !k.gunler)) {
+    const g = haftaGunu(gun);
+    if (g >= 1 && g <= 5) tur = "gunduz";
+    else if (plan) { const h = haftaSonu(plan, gun), L = g === 6 ? h.cmtL : h.pazL; tur = L.some(([ad]) => adKok(ad) === adKok(k.ad)) ? "gunduz" : null; }
+  } else tur = (k.gunler || [1, 2, 3, 4, 5, 6]).includes(haftaGunu(gun)) ? "gunduz" : null;
+  if (tur && tatil(gun) && k.grup !== "guvenlik") tur = null;
+  if (tur && izinli(izinler, k, gun)) tur = null;
+  return tur;
+}
+/* Onaylı vardiya değişimleri: o gün kim kimin yerine */
+function degisimUygula(degisim, k, gun, tur, turBul) {
+  for (const v of degisim) {
+    for (const [g, ben, o] of [[v.tarih, v.ad, v.karsi], [v.karsiTarih, v.karsi, v.ad]]) {
+      if (!g || g !== gun) continue;
+      if (anahtar(ben) === anahtar(k.ad)) return null;                              // izinli: yerine öteki çalışıyor
+      if (anahtar(o) === anahtar(k.ad)) return turBul(ben) || "G";                     // ötekinin vardiyasını devralıyor
+    }
+  }
+  return tur;
+}
+function vardiyaSaat(S, k, tur, gun) {
+  const s = tur === "G" || tur === "N" ? S[tur] : (S[k.grup] || S.temizlik);
+  const bas = tsOf(gun, s.bas); let bit = tsOf(gun, s.bit); if (bit <= bas) bit += 864e5;
+  return { bas, bit };
+}
+const kayitKisinin = (k, r) => k.grup === "guvenlik" ? anahtar(r.ad) === anahtar(k.ad) : (r.grup !== "guvenlik" && adKok(r.ad) === adKok(k.ad));
+
+async function mesaiKontrol(env, sa, simdi) {
+  const [ayar, izinDoc, planDoc] = await Promise.all([fsOku(sa, "puantaj/ayar"), fsOku(sa, "duyuru/izinler"), fsOku(sa, "duyuru/izin")]);
+  const S = saatAyar(ayar); if (!S.gelmeyen && !S.cikis) return { atla: "kapalı" };
+  const plan = planCoz(planDoc), izinler = (izinDoc && izinDoc.liste) || [];
+  const bugun = trGun(simdi), dun = gunEkle(bugun, -1);
+  const [mesai, degisim, gelemez] = await Promise.all([
+    fsSorgu(sa, "mesai", [["ts", "GREATER_THAN_OR_EQUAL", simdi - 14 * 864e5]], ["ad", "grup", "kod", "tip", "ts", "uid", "unutuldu"]),
+    fsSorgu(sa, "vardiya", [["durum", "EQUAL", "onay"]], ["ad", "karsi", "tarih", "karsiTarih"]).catch(() => []),
+    fsSorgu(sa, "appointments", [["cat", "EQUAL", "p_gelemiyorum"]], ["name", "rol", "createdAt", "status"]).catch(() => [])]);
+  const kisiler = kisiListesi(ayar, plan);
+  const turBugun = {}; const turBul = gun => ad => { const x = kisiler.find(([, k]) => anahtar(k.ad) === anahtar(ad)); return x ? vardiyaTuru(ayar, plan, izinler, x[1], gun) : null; };
+  const tol = (+S.tolerans || 15) * 60e3;
+  const gelmeyen = [], hatirlat = [], unut = [];
+  for (const [key, k] of kisiler) {
+    const R = mesai.filter(r => kayitKisinin(k, r)).sort((a, b) => a.ts - b.ts);
+    if (!R.length) continue;                                         // QR kullanmaya başlamamış kişi: uyarı yok
+    // 1) Gelmeyen: bugün (ve gece vardiyası için) başlangıç + tolerans geçti, giriş yok
+    for (const gun of [bugun, dun]) {
+      let tur = vardiyaTuru(ayar, plan, izinler, k, gun); tur = degisimUygula(degisim, k, gun, tur, turBul(gun));
+      if (gun === bugun) turBugun[key] = tur;
+      if (!tur) continue;
+      const { bas } = vardiyaSaat(S, k, tur, gun);
+      if (!(simdi >= bas + tol && simdi < bas + 4 * 36e5)) continue;
+      if (R.some(r => r.tip === "giris" && r.ts >= bas - 3 * 36e5 && r.ts <= simdi)) continue;
+      if (gelemez.some(a => a.status !== "iptal" && Math.abs(a.createdAt - bas) < 20 * 36e5 && (k.grup === "guvenlik" ? anahtar(a.name) === anahtar(k.ad) : adKok(a.name) === adKok(k.ad)))) continue;
+      gelmeyen.push({ key, k, tur, bas, gun });
+    }
+    // 2) Çıkış unutma: son kayıt giriş, vardiya bitti
+    const son = R[R.length - 1];
+    if (son.tip === "giris" && simdi - son.ts < 30 * 36e5) {
+      const gGun = trGun(son.ts), saat = trSaat(son.ts);
+      let tur = k.grup === "guvenlik" ? (saat >= "16:00" || saat < "04:00" ? "N" : "G") : "gunduz";
+      const gun = tur === "N" && saat < "04:00" ? gunEkle(gGun, -1) : gGun;
+      const { bit } = vardiyaSaat(S, k, tur, gun);
+      const unutSaat = tur === "N" ? bit + 3 * 36e5 : Math.max(bit + 3 * 36e5, tsOf(gun, "23:00"));
+      if (S.cikis && simdi >= bit + 30 * 60e3 && simdi < unutSaat) hatirlat.push({ k, r: son, bit });
+      if (simdi >= unutSaat) unut.push({ k, r: son, bit });
+    }
+  }
+  const sonuc = { gelmeyen: gelmeyen.length, hatirlat: hatirlat.length, unut: unut.length };
+  if (!gelmeyen.length && !hatirlat.length && !unut.length) return sonuc;
+  const T = await telefonlar(sa);
+  // Gelmeyenler: güvenlik → amirler + müdür; diğerleri → müdür + teknisyen. Kişi başına bir kez.
+  const yeniG = [];
+  if (S.gelmeyen) for (const x of gelmeyen) if (await ilkKezMi(sa, `gelmedi_${x.gun}_${x.tur}_${x.key}`.slice(0, 120))) yeniG.push(x);
+  for (const [grupGuv, alici] of [[true, ["yonetim", "tesis"]], [false, ["tesis", "teknisyen"]]]) {
+    const L = yeniG.filter(x => (x.k.grup === "guvenlik") === grupGuv); if (!L.length) continue;
+    await gonder(env, sa, T.filter(t => alici.includes(t.rol)), { title: `⏰ İşe giriş yapılmadı · ${L.length} kişi`,
+      body: kisa(L.map(x => `${x.k.ad} (${x.tur === "N" ? "gece " : x.tur === "G" ? "gündüz " : ""}${trSaat(x.bas)})`).join(", ") + " · QR ile giriş okutulmadı.", 180), tag: "gelmedi-" + bugun, onemli: true }, "puantaj.html");
+  }
+  for (const x of hatirlat) {
+    if (!(await ilkKezMi(sa, "cikis_" + x.r.id))) continue;
+    const hedef = T.filter(t => t.rol === "personel" && ((x.r.kod && t.kod === x.r.kod) || sade(t.ad) === sade(x.k.ad)));
+    if (hedef.length) await gonder(env, sa, hedef, { title: "🏁 Çıkış okutmayı unuttunuz mu?", body: `Mesainiz ${trSaat(x.bit)}'de bitti. Çıkarken QR'ı okutun.`, tag: "cikis-" + x.r.id });
+  }
+  for (const x of unut) {
+    if (!(await ilkKezMi(sa, "unutuldu_" + x.r.id))) continue;
+    await fsEkle(sa, "mesai", { ad: x.r.ad || x.k.ad, grup: x.r.grup || x.k.grup, kod: x.r.kod || "", uid: x.r.uid || "", tip: "cikis", unutuldu: true, girisId: x.r.id, ts: simdi, nokta: "sistem" });
+  }
+  return sonuc;
+}
+
+/* Sabah 09:00: bakım takvimi (ayar/tesis.takvimOzet, uygulama hesaplar) + stok */
+async function sabahOzet(env, sa, simdi) {
+  const a = await fsOku(sa, "ayar/tesis"); if (!a) return { atla: "ayar yok" };
+  const bugun = trGun(simdi);
+  const L = ((a.takvimOzet && a.takvimOzet.liste) || []).map(x => ({ ...x, kalan: x.sonraki ? gunFarki(trGun(x.sonraki), bugun) : null }))
+    .filter(x => x.sonraki && (x.kalan < 0 ? true : [30, 14, 7, 3, 1, 0].includes(x.kalan)));
+  const S = Object.values(a.stok || {}).filter(x => x && x.ad && x.min != null && (+x.adet || 0) <= +x.min);
+  if (!L.length && !S.length) return { atla: "yok" };
+  if (!(await ilkKezMi(sa, "sabah_" + bugun))) return { atla: "zaten bildirildi" };
+  const T = (await telefonlar(sa)).filter(t => t.rol === "teknisyen" || t.rol === "tesis");
+  const gecen = L.filter(x => x.kalan < 0), yakin = L.filter(x => x.kalan >= 0).sort((x, y) => x.kalan - y.kalan);
+  const parca = [];
+  if (gecen.length) parca.push("Süresi geçti: " + gecen.map(x => x.ad).join(", "));
+  if (yakin.length) parca.push(yakin.map(x => `${x.ad} ${x.kalan === 0 ? "bugün" : x.kalan + " gün"}`).join(", "));
+  if (S.length) parca.push("Stok azaldı: " + S.map(x => `${x.ad} (${+x.adet || 0})`).join(", "));
+  return gonder(env, sa, T, { title: gecen.length ? `🔧 Bakım zamanı geçti · ${gecen.length}` : L.length ? "📅 Yaklaşan bakımlar" : "📦 Stok azaldı", body: kisa(parca.join(" · "), 190), tag: "sabah-" + bugun }, "teknik.html#tesis");
+}
+
+async function zamanli(env, sa) {
+  const simdi = Date.now(), s = trSaat(simdi), sonuc = {};
+  try { sonuc.mesai = await mesaiKontrol(env, sa, simdi); } catch (e) { sonuc.mesai = { hata: String(e.message || e) }; }
+  if (s >= "09:00" && s < "09:30") { try { sonuc.sabah = await sabahOzet(env, sa, simdi); } catch (e) { sonuc.sabah = { hata: String(e.message || e) }; } }
+  return sonuc;
+}
+
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "content-type" };
+function hazirla(env) {
+  const sa = JSON.parse(env.SERVICE_ACCOUNT);
+  if (!env.SITE) env = { ...env, SITE: "https://bizimevlerteknikservis.github.io/" };
+  return { sa, env };
+}
 export default {
+  // Cloudflare Cron Trigger (her 15 dakikada bir)
+  async scheduled(olay, env, ctx) {
+    let h; try { h = hazirla(env); } catch (e) { console.error("SERVICE_ACCOUNT eksik"); return; }
+    ctx.waitUntil(zamanli(h.env, h.sa).then(s => console.log(JSON.stringify(s))));
+  },
   async fetch(req, env, ctx) {
     if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
-    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
+    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 2: mesai ve bakım kontrolü)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
     if (req.method !== "POST") return new Response("", { status: 405, headers: CORS });
     let g; try { g = JSON.parse(await req.text()); } catch (e) { return new Response("{}", { status: 400, headers: CORS }); }
     const tur = String(g.tur || ""), id = String(g.id || "");
-    if (!/^(gorev|yapildi|ariza)$/.test(tur) || !/^[A-Za-z0-9_-]{4,64}$/.test(id)) return new Response("{}", { status: 400, headers: CORS });
+    if (!/^(gorev|yapildi|ariza|vardiya|vardiyaSonuc)$/.test(tur) || !/^[A-Za-z0-9_-]{4,64}$/.test(id)) return new Response("{}", { status: 400, headers: CORS });
     let sa; try { sa = JSON.parse(env.SERVICE_ACCOUNT); } catch (e) { return new Response(JSON.stringify({ hata: "SERVICE_ACCOUNT gizli değişkeni eksik" }), { status: 500, headers: CORS }); }
     if (!env.SITE) env = { ...env, SITE: "https://bizimevlerteknikservis.github.io/" };
     try { const s = await isle(env, sa, tur, id); return new Response(JSON.stringify(s), { headers: { "content-type": "application/json", ...CORS } }); }

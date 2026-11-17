@@ -164,9 +164,11 @@ table.pt{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:10
     <div class="seg" id="grupSeg"></div>
     <span style="flex:1"></span>
     <button class="ibtn" data-act="desen">⚙️ Vardiya düzeni</button>
+    <button class="ibtn" data-act="saat" title="Mesai başlangıç-bitiş saatleri ve otomatik uyarılar">⏰ Mesai saatleri</button>
     <button class="ibtn" data-act="kisiEkle">＋ Kişi</button>
     <button class="ibtn" data-act="siteKonum" title="Giriş-çıkış konum kontrolü için site merkezini kaydet">📍 Site konumu</button>
     <button class="btn ikincil" data-act="excel">⬇ Excel</button>
+    <button class="btn ikincil" data-act="rapor" title="Aylık özet: çalışılan gün, saat, geç kalma, izinler · PDF olarak kaydedilir">🖨️ Aylık rapor (PDF)</button>
     <button class="btn" data-act="paylas">📤 Muhasebeye gönder</button>
   </div>
   <div id="ust"></div>
@@ -221,7 +223,7 @@ const VARDIYA = [
 const DESEN_VARSAYILAN = {"1. Vardiya":{seq:"G,G,N,N,HT,HT", baz:"2026-11-01"}, "2. Vardiya":{seq:"G,G,N,N,HT,HT", baz:"2026-10-30"}, "3. Vardiya":{seq:"G,G,N,N,HT,HT", baz:"2026-10-28"}, "Joker":{seq:"G,G,G,G,G,HT,HT", baz:"2026-11-02"}};
 
 /* ================= durum ================= */
-const P = { ay:null, grup:"guvenlik", ayar:{kisiler:{}, desen:{}}, doc:{kisi:{}, onay:{}, kesin:{}}, izin:[], plan:null, qr:{}, mesai:[], rol:{tech:false, tesis:false, yon:false}, kim:"", ayarGeldi:false };
+const P = { ay:null, grup:"guvenlik", ayar:{kisiler:{}, desen:{}}, doc:{kisi:{}, onay:{}, kesin:{}}, izin:[], plan:null, qr:{}, mesai:[], degisim:[], rol:{tech:false, tesis:false, yon:false}, kim:"", ayarGeldi:false };
 let DB = null;
 const now = new Date(); P.ay = `${now.getFullYear()}-${pad(now.getMonth()+1)}`;
 const ayBilgi = () => { const [y,m] = P.ay.split("-").map(Number); const n = new Date(y, m, 0).getDate(); return {y, m, n, gunler: Array.from({length:n}, (_,i)=>new Date(y, m-1, i+1, 12))}; };
@@ -256,8 +258,32 @@ function planCoz(v){
 }
 const gunFark = (a, b) => Math.round((new Date(a).setHours(12,0,0,0) - new Date(b).setHours(12,0,0,0)) / GUN);
 
-/* Bir kişinin bir gününün otomatik kodu ve nedeni */
+/* Onaylı vardiya değişimi (güvenlik): o gün talep eden izinli, yerine geçen onun vardiyasında çalışır */
 function oto(key, k, d){
+  const s = ymd(d), o = otoTemel(key, k, d);
+  for (const v of P.degisim){
+    for (const [g, ben, ot] of [[v.tarih, v.ad, v.karsi], [v.karsiTarih, v.karsi, v.ad]]){
+      if (!g || g !== s) continue;
+      if (anahtar(ben) === anahtar(k.ad)) return {kod:"HT", neden:`Vardiya değişimi: yerine ${ot} çalıştı`, gece:false, degisim:true};
+      if (anahtar(ot) === anahtar(k.ad)){ const x = Object.entries(kisiler()).find(([,kk]) => anahtar(kk.ad) === anahtar(ben)); const b = x ? otoTemel(x[0], x[1], d) : {gece:false};
+        return {kod:"X", neden:`Vardiya değişimi: ${ben} yerine çalıştı`, gece:!!b.gece, degisim:true}; }
+    }
+  }
+  return o;
+}
+/* Mesai saatleri (⏰): uyarılar ve geç kalma hesabı için. Bildirim sunucusu da aynı ayarı okur. */
+const SAAT_VARSAYILAN = {temizlik:{bas:"08:00", bit:"17:00"}, bahce:{bas:"08:00", bit:"17:00"}, diger:{bas:"08:00", bit:"17:00"}, G:{bas:"08:00", bit:"20:00"}, N:{bas:"20:00", bit:"08:00"}, tolerans:15, gelmeyen:true, cikis:true};
+function saatAyar(){ const x = P.ayar.saat || {}, D = SAAT_VARSAYILAN; return {...D, ...x, temizlik:{...D.temizlik, ...(x.temizlik||{})}, bahce:{...D.bahce, ...(x.bahce||{})}, diger:{...D.diger, ...(x.diger||{})}, G:{...D.G, ...(x.G||{})}, N:{...D.N, ...(x.N||{})}}; }
+/* O günkü girişte kaç dakika geç kalmış (tolerans içindeyse 0) */
+function gecDk(k, d, o, gece){
+  if (!o || !o.giris) return 0; const S = saatAyar();
+  const v = k.grup==="guvenlik" ? (gece ? S.N : S.G) : (S[k.grup] || S.temizlik);
+  const [h, dk] = String(v.bas).split(":").map(Number); const bas = new Date(d); bas.setHours(h, dk, 0, 0);
+  const fark = Math.round((o.giris - bas.getTime())/6e4);
+  return fark > (+S.tolerans || 15) && fark < 8*60 ? fark : 0;
+}
+/* Bir kişinin bir gününün otomatik kodu ve nedeni (vardiya değişimi hariç) */
+function otoTemel(key, k, d){
   let kod = "X", neden = "", gece = false;
   if (k.grup==="guvenlik"){
     const ds = (P.ayar.desen||{})[k.vardiya] || DESEN_VARSAYILAN[k.vardiya];
@@ -303,6 +329,7 @@ function mesaiGun(k){
   const sup = r => !r.konum ? "konum alınamadı" : (msUzak(r) > 400 ? `siteden ${msUzak(r) >= 1000 ? (msUzak(r)/1000).toFixed(1).replace(".",",")+" km" : msUzak(r)+" m"} uzakta` : "");
   L.forEach(r => {
     if (r.tip==="giris"){ if (acik) ekle(acik.ts, {giris:acik.ts, cikis:null, gs:sup(acik), gk:acik}); acik = r; }
+    else if (r.unutuldu){ if (acik){ ekle(acik.ts, {giris:acik.ts, cikis:null, unutuldu:true, gs:sup(acik), gk:acik}); acik = null; } }   // sistem işareti: çıkış okutulmadı
     else { if (acik && r.ts - acik.ts <= 18*36e5){ ekle(acik.ts, {giris:acik.ts, cikis:r.ts, gs:sup(acik), cs:sup(r), gk:acik, ck:r}); acik = null; } else ekle(r.ts, {giris:null, cikis:r.ts, cs:sup(r), ck:r}); }
   });
   if (acik) ekle(acik.ts, {giris:acik.ts, cikis:null, acik: Date.now() - acik.ts < 18*36e5, gs:sup(acik), gk:acik});
@@ -322,7 +349,7 @@ function msKonum(r){
 }
 const saatKisa = t => { const d = new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const msDk = o => o.giris && o.cikis ? Math.round((o.cikis - o.giris)/6e4) : 0;
-const msMetin = L => (L||[]).map(o => `🕘 ${o.giris ? "Giriş " + saatKisa(o.giris) : "Giriş yok"} · ${o.cikis ? "Çıkış " + saatKisa(o.cikis) : (o.acik ? "hâlâ işte" : "çıkış yok")}${msDk(o) ? ` (${Math.floor(msDk(o)/60)} sa ${msDk(o)%60} dk)` : ""}${o.gs ? `\n⚠️ Giriş: ${o.gs}` : ""}${o.cs ? `\n⚠️ Çıkış: ${o.cs}` : ""}`).join("\n");
+const msMetin = L => (L||[]).map(o => `🕘 ${o.giris ? "Giriş " + saatKisa(o.giris) : "Giriş yok"} · ${o.cikis ? "Çıkış " + saatKisa(o.cikis) : (o.acik ? "hâlâ işte" : o.unutuldu ? "çıkış unutuldu" : "çıkış yok")}${msDk(o) ? ` (${Math.floor(msDk(o)/60)} sa ${msDk(o)%60} dk)` : ""}${o.gs ? `\n⚠️ Giriş: ${o.gs}` : ""}${o.cs ? `\n⚠️ Çıkış: ${o.cs}` : ""}`).join("\n");
 const qrGun = (k, gi) => ((P.qr[anahtar(k.ad)]||{})[gi+1]) || 0;
 const kilitli = g => !!(((P.doc.onay||{})[g]||{}).mudur);
 
@@ -390,10 +417,12 @@ function kontrolCiz(L, gunler){
     if (ms && ms.some(o=>o.giris) && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: puantajda <b>${h.kod}</b> ama <b>işe giriş yapmış</b> (${saatKisa(ms.find(o=>o.giris).giris)}). Çalıştıysa X yapın.`);
     if (MSG.var && MSG.ilk && h.kod==="X" && !ms && d < bugun0 && d >= new Date(MSG.ilk).setHours(0,0,0,0)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: puantajda X ama <b>giriş kaydı yok</b>. Gelmediyse D, izinliyse ilgili kodu seçin.`);
     if (ms && ms.some(msSupheli)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: <b>şüpheli giriş-çıkış</b> · ${ms.filter(msSupheli).map(o=>[o.gs&&"giriş "+o.gs, o.cs&&"çıkış "+o.cs].filter(Boolean).join(", ")).join(" · ")}`);
-    if (ms && ms.some(o=>o.giris && !o.cikis && !o.acik)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: giriş ${saatKisa(ms.find(o=>o.giris&&!o.cikis).giris)} var, <b>çıkış okutulmamış</b>.`);
+    if (ms && ms.some(o=>o.giris && !o.cikis && !o.acik)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: giriş ${saatKisa(ms.find(o=>o.giris&&!o.cikis).giris)} var, <b>çıkış okutulmamış</b>${ms.some(o=>o.unutuldu) ? " (sistem gece kapattı)" : ""}. Çalıştığı saati FM/Not'a yazın.`);
     if (P.grup==="guvenlik"){ const q = qrGun(k, i); if (q && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: puantajda <b>${h.kod}</b> ama o gece <b>QR okutmuş</b> (${q}). Çalıştıysa X yapın, fazla mesaiyse FM'e yazın.`); }
     if (h.elle && h.oto && ["Yİ","R","Mİ","Üİ"].includes(h.oto) && h.kod==="X") M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: İzinler'de <b>${h.oto}</b> görünüyor ama elle X yapılmış.`);
   }); });
+  const {y:yy, m:mm} = ayBilgi(), ayon = `${yy}-${pad(mm)}`;
+  P.degisim.filter(v => String(v.tarih).startsWith(ayon) || String(v.karsiTarih||"").startsWith(ayon)).forEach(v => M.unshift(`🔁 <b>Vardiya değişimi (onaylı):</b> ${esc(v.ad)} ⇄ ${esc(v.karsi)} · ${+v.tarih.slice(8)} ${AY[mm-1]}${v.karsiTarih ? ` / ${+v.karsiTarih.slice(8)} ${AY[+v.karsiTarih.slice(5,7)-1]}` : ""} · puantaja otomatik işlendi`));
   const izSay = P.izin.filter(e=>{ const {y,m} = ayBilgi(); const a = `${y}-${pad(m)}-01`, b = `${y}-${pad(m)}-31`; return e.bas <= b && (e.bit||e.bas) >= a; }).length;
   $("#kontrol").innerHTML = `<h2>Kontrol edilecekler</h2>${M.length ? `<ul class="kontrol">${M.slice(0,30).map(x=>`<li>${x}</li>`).join("")}</ul>` : `<p class="ok" style="margin:0;font-weight:600">✓ Çelişki yok.</p>`}
     <p class="mut" style="font-size:12.5px;margin:10px 0 0">Bu ay İzinler bölümünden ${izSay} kayıt otomatik işlendi. Hücrelerin üstüne gelince (telefonda dokununca) nereden geldiği yazar.</p>`;
@@ -410,7 +439,7 @@ function popAc(td){
   pop.innerHTML = `<h4>${esc(k.ad)} · ${d.getDate()} ${AY[d.getMonth()]} ${GK[d.getDay()]}<small>${esc(o.neden)}${tatil(d)?" · "+tatil(d):""}</small></h4>
     <div class="kodlar">${Object.keys(KODLAR).map(c=>`<button class="k-${c}" data-kod="${c}" aria-pressed="${h.kod===c}" title="${KODLAR[c].ad}">${c}</button>`).join("")}</div>
     <button class="btn ikincil oto" data-kod="">↺ Otomatik (${o.kod})</button>
-    ${(mesaiGun(k).G[gi+1]||[]).map(m=>`<div class="pms">🕘 ${m.giris?`Giriş ${saatKisa(m.giris)} ${msKonum(m.gk)}`:"Giriş yok"}<br>🏁 ${m.cikis?`Çıkış ${saatKisa(m.cikis)} ${msKonum(m.ck)}`:m.acik?"hâlâ işte":"çıkış yok"}</div>`).join("")}
+    ${(mesaiGun(k).G[gi+1]||[]).map(m=>`<div class="pms">🕘 ${m.giris?`Giriş ${saatKisa(m.giris)} ${msKonum(m.gk)}`:"Giriş yok"}<br>🏁 ${m.cikis?`Çıkış ${saatKisa(m.cikis)} ${msKonum(m.ck)}`:m.acik?"hâlâ işte":m.unutuldu?"çıkış unutuldu (sistem kapattı)":"çıkış yok"}</div>`).join("")}
     <p>${Object.entries(KODLAR).map(([c,v])=>`${c}: ${v.ad}`).join(" · ")}</p>`;
   pop.hidden = false;
   const r = td.getBoundingClientRect(), w = 250, hh = pop.offsetHeight;
@@ -504,7 +533,7 @@ function excelYap(g = P.grup){
     [""], ["Resmi tatiller", gunler.filter(d=>tatil(d)).map(d=>`${d.getDate()} ${AY[m-1]} ${tatil(d)}`).join(", ") || "Yok"]];
   const gen = [5, 24, 12, ...gunler.map(()=>5), 9, 8, 8, 7, 9, 9, 8, 10, 10, 10, 10, 24];
   const gc = [["Ad Soyad","Tarih","Giriş","Çıkış","Süre (saat)","Not"]];
-  L.forEach(([key,k]) => { const G = mesaiGun(k).G; Object.keys(G).map(Number).sort((a,b)=>a-b).forEach(g => G[g].forEach(o => gc.push([k.ad, `${g} ${AY[m-1]} ${y}`, o.giris ? saatKisa(o.giris) : "", o.cikis ? saatKisa(o.cikis) : "", msDk(o) ? Math.round(msDk(o)/6)/10 : "", [!o.giris ? "Giriş okutulmamış" : !o.cikis ? (o.acik ? "Hâlâ işte" : "Çıkış okutulmamış") : "", o.gs ? "Giriş " + o.gs : "", o.cs ? "Çıkış " + o.cs : ""].filter(Boolean).join(" · ")]))); });
+  L.forEach(([key,k]) => { const G = mesaiGun(k).G; Object.keys(G).map(Number).sort((a,b)=>a-b).forEach(g => G[g].forEach(o => gc.push([k.ad, `${g} ${AY[m-1]} ${y}`, o.giris ? saatKisa(o.giris) : "", o.cikis ? saatKisa(o.cikis) : "", msDk(o) ? Math.round(msDk(o)/6)/10 : "", [!o.giris ? "Giriş okutulmamış" : !o.cikis ? (o.acik ? "Hâlâ işte" : o.unutuldu ? "Çıkış unutuldu (sistem kapattı)" : "Çıkış okutulmamış") : "", o.gs ? "Giriş " + o.gs : "", o.cs ? "Çıkış " + o.cs : ""].filter(Boolean).join(" · ")]))); });
   const blob = XLSXW([["Puantaj", satirlar, gen, 0], ["Giriş-Çıkış", gc, [24, 16, 9, 9, 11, 22], 0], ["Bilgi", bilgi, [22, 60], -1]]);
   return {blob, ad:`puantaj-${y}-${pad(m)}-${g==="guvenlik"?"guvenlik":"temizlik"}.xlsx`};
 }
@@ -545,6 +574,72 @@ function desenModal(){
   goster();
 }
 let DESEN_TASLAK = null;
+function saatModal(){
+  const S = saatAyar(), yaz = (id, v) => `<input class="inp" type="time" id="${id}" value="${esc(v)}" style="width:110px">`;
+  const sat = (ad, k) => `<tr><td style="padding:6px 8px 6px 0"><b>${ad}</b></td><td>${yaz("sb_"+k, S[k].bas)}</td><td style="padding:0 6px">–</td><td>${yaz("se_"+k, S[k].bit)}</td></tr>`;
+  modal(`<div class="bas"><h3>⏰ Mesai saatleri ve uyarılar</h3><button class="ibtn" data-act="kapat">✕</button></div>
+    <p style="margin:0 0 10px" class="mut">Vardiya başladığı halde QR ile giriş yapılmazsa amire/müdüre bildirim gider; mesai bitince çıkış okutmayana hatırlatma gider, gece 23:00'te "çıkış unutuldu" işareti düşer. Sadece QR kullanmaya başlamış kişiler için çalışır; izinli, hafta tatilinde ya da "işe gelemiyorum" bildirmiş kişiye uyarı gitmez.</p>
+    <table>${sat("🧹 Temizlik","temizlik")}${sat("🌿 Bahçe","bahce")}${sat("👷 Diğer","diger")}${sat("🛡️ Güvenlik gündüz","G")}${sat("🛡️ Güvenlik gece","N")}</table>
+    <label class="mut" style="display:block;margin:12px 0 6px;font-weight:600">Geç sayılma toleransı (dakika) <input class="inp" type="number" min="0" max="120" id="s_tol" value="${+S.tolerans}" style="width:80px"></label>
+    <label style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="s_gel" ${S.gelmeyen?"checked":""}> İşe giriş yapmayanı amire/müdüre bildir</label>
+    <label style="display:flex;gap:8px;align-items:center;margin:8px 0 14px"><input type="checkbox" id="s_cik" ${S.cikis?"checked":""}> Çıkış okutmayı unutana hatırlat</label>
+    <button class="btn yesil" data-act="saatKaydet">✓ Kaydet</button>`);
+}
+async function saatKaydet(){
+  if (!duzenler()) return;
+  const v = {tolerans: Math.max(0, Math.min(120, +$("#s_tol").value || 0)), gelmeyen: $("#s_gel").checked, cikis: $("#s_cik").checked};
+  for (const k of ["temizlik","bahce","diger","G","N"]) v[k] = {bas: $("#sb_"+k).value || SAAT_VARSAYILAN[k].bas, bit: $("#se_"+k).value || SAAT_VARSAYILAN[k].bit};
+  try { await DB.ayarYaz({saat:v}); P.ayar.saat = v; toast("✓ Mesai saatleri kaydedildi"); kapat(); ciz(); } catch(err){ hata(err); }
+}
+/* Aylık rapor: muhasebeye hazır özet (yazdır → PDF olarak kaydet) */
+function raporSatirlar(g){
+  const {gunler} = ayBilgi();
+  return grupKisileri(g).map(([key, k]) => {
+    const MSG = mesaiGun(k), kd = ((P.doc.kisi||{})[key]) || {};
+    const T = {X:0, HT:0, "Yİ":0, R:0, "Mİ":0, "Üİ":0, D:0, RT:0, RTc:0, dk:0, gec:0, gecDk:0, unut:0, degisim:0};
+    gunler.forEach((d, i) => { const h = hucre(key, k, d, i), ms = MSG.G[i+1] || [];
+      if (T[h.kod] !== undefined) T[h.kod]++; if (h.kod==="X" && tatil(d)) T.RTc++; if (h.degisim) T.degisim++;
+      ms.forEach(o => { T.dk += msDk(o); if (o.giris && !o.cikis && !o.acik) T.unut++; });
+      const ilk = ms.find(o => o.giris); const gd = h.kod==="X" ? gecDk(k, d, ilk, h.gece) : 0; if (gd){ T.gec++; T.gecDk += gd; } });
+    return {k, T, fm: parseFloat(String(kd.fm||"0").replace(",","."))||0, not: kd.not||"", qr: MSG.var};
+  });
+}
+function raporHTML(){
+  const {y, m} = ayBilgi(), S = saatAyar();
+  const gruplar = ["guvenlik","temizlik"].filter(gorurGrup);
+  const saat = dk => dk ? (dk/60).toFixed(1).replace(".",",") : "—";
+  const bolum = g => {
+    const R = raporSatirlar(g), on = (P.doc.onay||{})[g] || {};
+    const top = R.reduce((t, r) => { for (const x in r.T) t[x] = (t[x]||0) + r.T[x]; t.fm = (t.fm||0) + r.fm; return t; }, {});
+    return `<section><h2>${g==="guvenlik" ? "Güvenlik" : "Temizlik & Bahçe"} · ${AY[m-1]} ${y}</h2>
+      <p class="durum">${on.mudur ? `✓ Müdür onaylı: ${esc(on.mudur.by)} · ${new Date(on.mudur.ts).toLocaleDateString("tr-TR")}` : "TASLAK · müdür onayı yok"}${g==="guvenlik" ? ` · Amir onayı: ${on.amir ? esc(on.amir.by) : "yok"}` : ""}</p>
+      <table><thead><tr><th>#</th><th class="sol">Ad Soyad</th><th class="sol">${g==="guvenlik"?"Vardiya":"Görev"}</th><th>Çalışılan gün</th><th>Çalışılan saat<small>QR</small></th><th>Geç kalınan gün<small>+${+S.tolerans} dk sonrası</small></th><th>Hafta tatili</th><th>Yıllık izin</th><th>Rapor</th><th>Mazeret / ücretsiz</th><th>Devamsız</th><th>Resmi tatilde çalışma</th><th>Fazla mesai (sa)</th><th>Çıkış unutulan</th><th class="sol">Not</th></tr></thead>
+      <tbody>${R.map((r, i) => `<tr><td>${i+1}</td><td class="sol"><b>${esc(r.k.ad)}</b></td><td class="sol">${esc(g==="guvenlik" ? (r.k.vardiya||"") : (r.k.grup==="bahce"?"Bahçe":r.k.grup==="diger"?"Diğer":"Temizlik"))}</td>
+        <td><b>${r.T.X}</b></td><td>${r.qr ? saat(r.T.dk) : "<span class='mut'>QR yok</span>"}</td><td class="${r.T.gec?"kir":""}">${r.T.gec ? `${r.T.gec}<small>top. ${r.T.gecDk} dk</small>` : "0"}</td><td>${r.T.HT}</td><td>${r.T["Yİ"]}</td><td>${r.T.R}</td><td>${r.T["Mİ"] + r.T["Üİ"]}</td><td class="${r.T.D?"kir":""}">${r.T.D}</td><td>${r.T.RTc}</td><td>${r.fm || 0}</td><td>${r.T.unut}</td><td class="sol">${esc(r.not)}${r.T.degisim ? `${r.not?" · ":""}${r.T.degisim} gün vardiya değişimi` : ""}</td></tr>`).join("")}</tbody>
+      <tfoot><tr><td></td><td class="sol" colspan="2"><b>Toplam · ${R.length} kişi</b></td><td><b>${top.X||0}</b></td><td>${saat(top.dk)}</td><td>${top.gec||0}</td><td>${top.HT||0}</td><td>${top["Yİ"]||0}</td><td>${top.R||0}</td><td>${(top["Mİ"]||0)+(top["Üİ"]||0)}</td><td>${top.D||0}</td><td>${top.RTc||0}</td><td>${(top.fm||0).toString().replace(".",",")}</td><td>${top.unut||0}</td><td></td></tr></tfoot></table>
+      <div class="imza">${g==="guvenlik" ? "<div>Güvenlik amiri</div>" : ""}<div>Tesis müdürü</div><div>Muhasebe</div></div></section>`;
+  };
+  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Puantaj raporu ${AY[m-1]} ${y}</title><style>
+    @page{size:A4 landscape;margin:12mm}*{box-sizing:border-box}body{font:12px/1.4 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;margin:0;padding:16px;background:#fff}
+    header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:12px}header h1{margin:0;font-size:20px}header small{color:#555}
+    h2{font-size:15px;margin:16px 0 2px}.durum{margin:0 0 8px;color:#555;font-size:11.5px}
+    table{width:100%;border-collapse:collapse}th,td{border:1px solid #bbb;padding:4px 5px;text-align:center;vertical-align:middle}th{background:#f1f3f6;font-size:10.5px;font-weight:700}th small,td small{display:block;font-weight:400;color:#666;font-size:9.5px}
+    .sol{text-align:left}tfoot td{background:#f7f7f7;font-weight:700}.kir{color:#b42318;font-weight:700}.mut{color:#888}
+    section{page-break-after:always}section:last-of-type{page-break-after:auto}
+    .imza{display:flex;gap:24px;margin-top:28px}.imza div{flex:1;border-top:1px solid #333;padding-top:4px;text-align:center;color:#333;min-height:40px}
+    .not{margin-top:10px;color:#555;font-size:10.5px}.btns{position:sticky;top:0;background:#fff;padding:8px 0;display:flex;gap:8px}.btns button{font:600 14px sans-serif;padding:10px 16px;border-radius:10px;border:0;background:#2b7cd3;color:#fff}
+    @media print{.btns{display:none}body{padding:0}}</style></head><body>
+    <div class="btns"><button onclick="print()">🖨️ Yazdır / PDF kaydet</button><button onclick="close()" style="background:#666">Kapat</button></div>
+    <header><div><h1>Bizimevler 1 Sitesi · Aylık Puantaj Raporu</h1><small>${AY[m-1]} ${y} · Hazırlanma: ${new Date().toLocaleString("tr-TR")} · ${esc(P.kim||"")}</small></div><small>Kaynak: puantaj tablosu + QR giriş-çıkış</small></header>
+    ${gruplar.map(bolum).join("")}
+    <p class="not">Çalışılan saat QR giriş-çıkış kayıtlarından hesaplanır; çıkışı okutulmayan günler saate eklenmez. Geç kalma, mesai saatleri ayarındaki başlangıç + ${+S.tolerans} dakikadan sonra yapılan giriştir. Kodlar: Yİ yıllık izin, R rapor, Mİ mazeret, Üİ ücretsiz izin, D devamsız.</p>
+    </body></html>`;
+}
+function raporAc(){
+  const html = raporHTML(), w = window.open("", "_blank");
+  if (w){ w.document.open(); w.document.write(html); w.document.close(); setTimeout(() => { try { w.focus(); w.print(); } catch(e){} }, 400); return; }
+  const {y, m} = ayBilgi(); indir({blob: new Blob([html], {type:"text/html"}), ad:`puantaj-raporu-${y}-${pad(m)}.html`}); toast("Rapor indirildi: açıp Yazdır → PDF olarak kaydet");
+}
 function kisiModal(key){
   const k = key ? kisiler()[key] : {ad:"", grup:P.grup==="guvenlik"?"guvenlik":"temizlik", vardiya:"1. Vardiya", gunler:[1,2,3,4,5,6], aktif:true};
   const gunSec = k.gunler || [1,2,3,4,5,6];
@@ -585,6 +680,9 @@ document.addEventListener("click", async e => {
   const a = t.dataset.act;
   if (a==="kapat") kapat();
   else if (a==="desen") desenModal();
+  else if (a==="saat") saatModal();
+  else if (a==="saatKaydet") saatKaydet();
+  else if (a==="rapor") raporAc();
   else if (a==="desenKaydet"){ try { await DB.ayarYaz({desen:DESEN_TASLAK, desenOnay:true}); P.ayar.desen = DESEN_TASLAK; P.ayar.desenOnay = true; toast("✓ Vardiya düzeni kaydedildi"); kapat(); ciz(); } catch(err){ hata(err); } }
   else if (a==="kisiEkle") kisiModal(null);
   else if (a==="siteKonum"){
@@ -634,6 +732,7 @@ async function canli(){
     ayDinle: (ay, cb) => fs.onSnapshot(fs.doc(db,"puantaj",ay), s => cb(s.exists() ? s.data() : null), e => console.error(e)),
     izinDinle: cb => fs.onSnapshot(fs.doc(db,"duyuru","izinler"), s => cb(s.exists() ? (s.data().liste||[]) : []), e => cb([])),
     planDinle: cb => fs.onSnapshot(fs.doc(db,"duyuru","izin"), s => cb(s.exists() ? s.data() : null), e => cb(null)),
+    degisimDinle: cb => fs.onSnapshot(fs.query(fs.collection(db,"vardiya"), fs.where("durum","==","onay")), s => cb(s.docs.map(d=>({id:d.id, ...d.data()}))), e => cb([])),
     async ayarYaz(v){ await fs.setDoc(fs.doc(db,"puantaj","ayar"), v, {merge:true}); },
     async ayYaz(ay, v){ await fs.setDoc(fs.doc(db,"puantaj",ay), v, {merge:true}); },
     async kilitAc(ay, g){ await fs.updateDoc(fs.doc(db,"puantaj",ay), {[`onay.${g}.mudur`]: fs.deleteField(), [`kesin.${g}`]: fs.deleteField(), son:{by:P.kim, ts:Date.now(), not:"kilit açıldı"}}); },
@@ -659,6 +758,7 @@ async function canli(){
     DB.ayarDinle(v => { P.ayar = {kisiler:{}, desen:{}, ...v}; P.ayarGeldi = true; if (!POP) ciz(); });
     DB.izinDinle(L => { P.izin = L; if (!POP) ciz(); });
     DB.planDinle(v => { P.plan = planCoz(v); if (!POP) ciz(); });
+    DB.degisimDinle(L => { P.degisim = L; if (!POP) ciz(); });
     if (DB.konumDinle) DB.konumDinle(v => { P.siteKonum = v; MS_CACHE.clear(); if (!POP) ciz(); });
     ayDinle();
   });
@@ -672,6 +772,7 @@ function bellek(){
     ayarDinle: cb => { dinleyen.ayar = cb; cb(mem.ayar); return ()=>{}; },
     ayDinle: (ay, cb) => { dinleyen.ay = [ay, cb]; cb(mem.ay[ay] || null); return ()=>{}; },
     izinDinle: cb => { cb(window.TEST_IZIN || [{ad:"Cihan Yıldırım", grup:"guvenlik", tur:"yillik", bas:ys(10), bit:ys(16)}, {ad:"RABİA", grup:"temizlik", tur:"rapor", bas:ys(4), bit:ys(5)}]); return ()=>{}; },
+    degisimDinle: cb => { cb(window.TEST_DEGISIM || []); return ()=>{}; },
     planDinle: cb => { cb(window.TEST_PLAN || {baz:new Date(2026,9,3,12).getTime(), cmt:[{ad:"ŞÜKRAN",blok:""},{ad:"DURSUN",blok:""},{ad:"GÜNNUR",blok:""},{ad:"SABRİYE",blok:""},{ad:"HATUN",blok:""}], paz:[{ad:"AYŞE",blok:""},{ad:"RABİA",blok:""},{ad:"GÜLTEN",blok:""},{ad:"MERAL",blok:""},{ad:"SEMRA",blok:""}]}); return ()=>{}; },
     async ayarYaz(v){ mem.ayar = birlestir({...mem.ayar}, v); if (v.kisiler) mem.ayar.kisiler = v.kisiler; if (v.desen) mem.ayar.desen = v.desen; dinleyen.ayar && dinleyen.ayar(mem.ayar); },
     async ayYaz(ay, v){ mem.ay[ay] = birlestir({...(mem.ay[ay]||{})}, v); if (dinleyen.ay && dinleyen.ay[0]===ay) dinleyen.ay[1](mem.ay[ay]); },
@@ -689,9 +790,9 @@ function bellek(){
   };
   P.rol = window.TEST_ROL || {tech:true, tesis:false, yon:false}; P.kim = "Test";
   $("#kimAd").textContent = "Test"; $("#giris").hidden = true; $("#app").hidden = false;
-  DB.ayarDinle(v=>{ P.ayar = {kisiler:{}, desen:{}, ...v}; ciz(); }); DB.izinDinle(L=>{ P.izin = L; }); DB.planDinle(v=>{ P.plan = planCoz(v); }); DB.konumDinle(v=>{ P.siteKonum = v; }); ayDinle();
+  DB.ayarDinle(v=>{ P.ayar = {kisiler:{}, desen:{}, ...v}; ciz(); }); DB.izinDinle(L=>{ P.izin = L; }); DB.planDinle(v=>{ P.plan = planCoz(v); }); DB.degisimDinle(L=>{ P.degisim = L; }); DB.konumDinle(v=>{ P.siteKonum = v; }); ayDinle();
 }
-window.__PT = {P, oto, hucre, kisiler, excelYap};
+window.__PT = {P, oto, hucre, kisiler, excelYap, raporHTML, gecDk, saatAyar};
 if (window.FB_CONFIG) canli().catch(e=>{ console.error(e); $("#giris").hidden = false; $("#gHata").textContent = "Bağlantı kurulamadı, sayfayı yenileyin."; });
 else bellek();
 </script>

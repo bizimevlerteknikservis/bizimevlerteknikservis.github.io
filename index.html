@@ -449,6 +449,30 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .karne-t tr.tk td{background:#fff7ea}.karne-t tr.kr td{background:#fdeaea}
 .bld-kart{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;border:2px dashed var(--line,#e3e9f2);border-radius:18px;padding:12px 14px;margin-bottom:12px;background:var(--card,#fff)}
 .bld-kart.ac{border-style:solid;border-color:#2b7cd3}
+.vd-bas{display:flex;justify-content:space-between;align-items:center;gap:8px}.vd-bas h2{margin:0}
+.vd-liste{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.vd-s{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--sunk);border:1px solid var(--line);flex-wrap:wrap}
+.vd-s>div:first-child{flex:1;min-width:190px}.vd-s b{display:block;font-size:14.5px}.vd-s b i{font-style:normal;font-weight:600;color:var(--muted);font-size:12px}.vd-s small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}.vd-s small b{display:inline;font-size:inherit}
+.vd-b{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.pill-btn.vd-ok{background:#16a34a;color:#fff;border-color:#16a34a}
+.d-kart.vd-onay.bek{box-shadow:0 0 0 2px #f59e0b inset,var(--shadow)}.vd-form{margin-top:10px}
+.tk-liste{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.tk{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;border:1px solid var(--line);border-left:5px solid #22a55b;background:var(--surface)}
+.tk.yakin{border-left-color:#e3a21b}.tk.gecti{border-left-color:#d64040;background:rgba(214,64,64,.06)}.tk.yok{border-left-color:#9aa8bb}
+.tk-ik{font-size:22px;flex:none}.tk-m{flex:1;min-width:0}.tk-m b{display:block;font-size:14.5px}.tk-m small{display:block;color:var(--muted);font-size:12.5px}
+.tk-sag{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px;max-width:150px;flex:none}
+.tk-k{width:100%;text-align:right;font-weight:800;font-size:13px;color:#16803c;white-space:nowrap}.tk.yakin .tk-k{color:#b26b00}.tk.gecti .tk-k{color:#c62828}.tk.yok .tk-k{color:var(--muted)}
+.tk-sil{border:0;background:none;color:var(--muted);font-size:14px;cursor:pointer;padding:4px 6px}
+.tk-form{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.tk-form h3{margin:0 0 8px;font-size:15.5px}
+.sk-liste{display:flex;flex-direction:column;gap:8px}
+.sk{display:flex;align-items:center;gap:10px;padding:8px 10px 8px 12px;border-radius:14px;border:1px solid var(--line);background:var(--surface)}
+.sk.az{border-color:#f0b4b4;background:rgba(214,64,64,.06)}
+.sk-ad{flex:1;min-width:0;text-align:left;background:none;border:0;padding:0;cursor:pointer;color:inherit;font:inherit}.sk-ad b{display:block;font-size:15px}.sk-ad small{color:var(--muted);font-size:12.5px}
+.sk-say{display:flex;align-items:center;gap:6px;flex:none}.sk-say button{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);background:var(--sunk);font:700 21px/1 var(--body);cursor:pointer;color:var(--ink)}.sk-say button:disabled{opacity:.35}
+.sk-say strong{min-width:36px;text-align:center;font-size:19px}.sk.az .sk-say strong{color:#c62828}
+.bs-s{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);text-decoration:none;color:inherit}.bs-kart .d-bas+.bs-s{border-top:0}
+.bs-s span{font-size:19px;flex:none}.bs-s b{flex:1;min-width:0;font-size:14px}.bs-s em{font-style:normal;font-weight:700;font-size:12.5px;color:#b26b00;text-align:right;max-width:55%}.bs-s.gecti em{color:#c62828}
+.tr-s{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line)}.tr-kart .d-bas+.tr-s{border-top:0}
+.tr-s em{font-style:normal;flex:none;min-width:40px;height:30px;border-radius:10px;background:#fde8e8;color:#c62828;font:800 14px/30px var(--body);text-align:center}.tr-s b{display:block;font-size:14px}.tr-s small{display:block;color:var(--muted);font-size:12.5px}
 .bld-sayfa{position:fixed;inset:0;z-index:19;background:rgba(8,18,40,.45);display:flex;align-items:flex-end;justify-content:center;padding:0 12px calc(86px + env(safe-area-inset-bottom,0px))}
 .bld-ic{width:100%;max-width:560px;background:#fff;border-radius:22px;padding:14px 14px 4px;box-shadow:0 18px 40px rgba(6,16,40,.35)}
 .bld-ust{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.bld-ust b{font-size:16.5px}
@@ -833,6 +857,11 @@ function DemoStore(){
     listenMesaiBen: cb => sub(() => cb((mem.mesai||[]).filter(m => m.uid===mem.uid && m.ts > Date.now() - 2*864e5))),
     async gorevEkle(o){ (mem.gorev ||= []).push({id:"g"+Date.now().toString(36)+Math.random().toString(36).slice(2,5), ...o}); save(); },
     async gorevGuncelle(id, p){ const g = (mem.gorev||[]).find(x=>x.id===id); if (g) for (const [k,v] of Object.entries(p)){ if (k.includes(".")){ const [a,b2] = k.split("."); (g[a] ||= {})[b2] = v; } else g[k] = v; } save(); },
+    async vardiyaEkle(o){ const id = "v"+Date.now().toString(36); (mem.vardiya ||= []).push({id, uid:mem.uid, ...o}); save(); return id; },
+    listenVardiya: cb => sub(() => cb((mem.vardiya||[]).filter(v => v.ts > Date.now() - 45*864e5).map(v => ({...v})))),
+    async vardiyaGuncelle(id, p){ Object.assign((mem.vardiya||[]).find(v => v.id === id) || {}, p); save(); },
+    async stokYaz(id, o){ const a = (mem.tesisAyar ||= {}); a.stok = {...(a.stok||{}), [id]:o}; save(); },
+    async stokDegis(id, n){ const a = (mem.tesisAyar ||= {}); const st = (a.stok ||= {}); st[id] = {...(st[id]||{}), adet:(+(st[id]||{}).adet||0) + n, ts:Date.now()}; save(); },
     listenDizin: cb => sub(() => cb(mem.dizin || {liste: Object.values(mem.kodlar||{}).filter(k=>k.aktif!==false).map(k=>({ad:k.ad, rol:k.tip==="guvenlik"?"Güvenlik":k.rol}))})),
     async setDizin(v){ mem.dizin = v; save(); },
     async logout(){ tech = false; save(); },
@@ -928,6 +957,11 @@ function FirebaseStore(cfg){
     async getSiteKonum(){ if (this._sk !== undefined) return this._sk; try { const s = await fs.getDoc(fs.doc(db,"duyuru","konum")); this._sk = s.exists() ? s.data() : null; } catch(e){ this._sk = null; } return this._sk; },
     listenMesaiBen(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"mesai"), fs.where("uid","==",user.uid)), s => cb(s.docs.map(d=>({id:d.id, ...d.data()})).filter(m => m.ts > Date.now() - 2*864e5)), e => { console.warn("mesai", e && e.code); cb([]); }); },
     async gorevGuncelle(id, p){ await fs.updateDoc(fs.doc(db,"gorev",id), p); if (p.durum === "yapildi") bildirimTetik("yapildi", id); },
+    async vardiyaEkle(o){ const r = await fs.addDoc(fs.collection(db,"vardiya"), {...o, uid:user.uid}); bildirimTetik("vardiya", r.id); return r.id; },
+    listenVardiya(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"vardiya"), fs.where("ts",">=",Date.now() - 45*864e5)), s => cb(s.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.warn("vardiya", e && e.code); cb([]); }); },
+    async vardiyaGuncelle(id, p){ await fs.updateDoc(fs.doc(db,"vardiya",id), p); if (p.durum === "onay" || p.durum === "red") bildirimTetik("vardiyaSonuc", id); },
+    async stokYaz(id, o){ await fs.setDoc(fs.doc(db,"ayar","tesis"), {stok:{[id]:o}}, {merge:true}); },
+    async stokDegis(id, n){ await fs.updateDoc(fs.doc(db,"ayar","tesis"), {[`stok.${id}.adet`]: fs.increment(n), [`stok.${id}.ts`]: Date.now()}); },
     listenDizin(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","personel"), s => cb(s.exists() ? s.data() : null), e => cb(null)); },
     async setDizin(v){ await fs.setDoc(fs.doc(db,"duyuru","personel"), v); },
     // Firestore iç içe dizi kabul etmez: [ad, blok] çiftleri {ad, blok} nesnesi olarak saklanır
@@ -1915,6 +1949,7 @@ function pDash(icerik){
 }
 function vDash(isler, ayar){
   dashBaslat();
+  if (store.isTech() || (store.isTesis && store.isTesis())) tesisBaslat();
   const tech = store.isTech(), tesis = store.isTesis && store.isTesis();
   const L = tech ? S.all : IK.pers;
   const yeni = L.filter(a => a.status==="bekliyor" && !["p_tasinma","p_gelemiyorum"].includes(a.cat)).length;
@@ -1928,6 +1963,7 @@ function vDash(isler, ayar){
     T("#devriye", "shield", "mavi", "Devriye", "QR okut"),
     T("#personel", "alert", "kirmizi", "Arıza Bildir"),
     (tech || tesis) && T("#tesis", "building", "turuncu", "Tesis Takip"),
+    (tech || tesis) && `<a class="d-tile altin" href="#tesis" data-act="tSekmeGit" data-v="takvim"><i>${ic("wrench")}</i><b>Bakım & Stok</b><small>Takvim · depo</small></a>`,
     T("#ik", "users", "mor", "Personel", "İzin · Puantaj"),
     T("#gorev", "clip", "camgobegi", "Görev Ver"),
     (tech || tesis) && T("#calisma", "broom", "yesil", "Temizlik", "Çalışma listesi"),
@@ -1965,6 +2001,9 @@ function vDashGovde(tech, tiles, son, isler, ayar, yeni){
       <div class="d-grid">${tiles.join("")}</div>
     </section>
     ${tech ? "" : pBildirimlerKart()}
+    ${vardiyaOnayKart(false)}
+    ${bakimStokKart()}
+    ${tekrarKart(tech)}
     ${asWaKart()}
     <a class="d-kart d-harita" href="#kontrol">
       <div class="d-bas"><h2><i class="d-nokta"></i>Canlı Site Haritası</h2><span class="d-link">Haritayı aç ${ic("sag")}</span></div>
@@ -2006,6 +2045,7 @@ function vIK(){
       ${T("bizkontrol.html", "chart", "lacivert", "Devam", "Rapor")}
       ${T("puantaj.html", "qr", "mavi", "QR Mesai", "Giriş-çıkış")}
     </div></section>
+  ${vardiyaOnayKart(true)}
   <section class="d-kart"><div class="d-bas"><h2><i class="d-nokta"></i>Şu an işte · ${ice.length}</h2></div>
     ${ice.length ? `<div class="d-liste">${ice.map(m => `<div><b>${esc(m.ad)}</b><small>${grupAd(m.grup)}</small><time>${saatYaz(m.ts)}</time></div>`).join("")}</div>` : `<p class="hint" style="margin:0">QR ile giriş yapmış kimse yok.</p>`}
   </section>
@@ -2014,6 +2054,182 @@ function vIK(){
     ${izinli.length ? `<div class="d-liste">${izinli.map(z => `<div><b>${esc(z.ad)}</b><small>${esc({yillik:"Yıllık izin", rapor:"Rapor", mazeret:"Mazeret", ucretsiz:"Ücretsiz"}[z.tur] || z.tur || "İzin")}</small><time>${z.bit.slice(8)}.${z.bit.slice(5,7)}'e kadar</time></div>`).join("")}</div>` : `<p class="hint" style="margin:0">Bugün izinli kimse yok.</p>`}
   </section>`;
 }
+/* =================== FORM ALANLARI (yeniden çizimde kaybolmasın) =================== */
+const FX = {};
+const fx = id => esc(FX[id] ?? "");
+document.addEventListener("input", e => { const id = e.target && e.target.id; if (id && /^(vd|tk|sk)_/.test(id)) FX[id] = e.target.value; });
+document.addEventListener("change", e => { const id = e.target && e.target.id; if (id && /^(vd|tk|sk)_/.test(id)) FX[id] = e.target.value; });
+
+/* =================== VARDİYA DEĞİŞİMİ (güvenlik ister → amir/müdür onaylar → puantaja işlenir) =================== */
+const VD = {un:null, liste:[], ac:false, gonder:false};
+function vardiyaBaslat(){ if (!VD.un && store.listenVardiya) VD.un = store.listenVardiya(L => { VD.liste = L.sort((a,b)=>b.ts-a.ts); if (["devriye","panel","ik"].includes(S.view)) setTimeout(render,0); }); }
+const vdGun = x => { if (!x) return ""; const [y,m,g] = x.split("-").map(Number); return `${g} ${AY[m-1]} ${GUN[new Date(y,m-1,g,12).getDay()]}`; };
+const vdDurum = v => v.durum==="onay" ? `<span class="chip" data-s="tamamlandi">Onaylandı</span>` : v.durum==="red" ? `<span class="chip" data-s="iptal">Reddedildi</span>` : v.durum==="iptal" ? `<span class="chip" data-s="iptal">İptal</span>` : `<span class="chip" data-s="bekliyor">Onay bekliyor</span>`;
+function guvAdlari(ben){ const st = new Set(); VARDIYA.forEach(v => v.kisiler.forEach(([ad]) => st.add(ad))); ((GV.dizin && GV.dizin.liste) || []).filter(x => x.rol==="Güvenlik").forEach(x => st.add(x.ad));
+  return [...st].filter(ad => adSade(ad) !== adSade(ben)).sort((a,b) => a.localeCompare(b,"tr")); }
+function vardiyaKart(kim){
+  if (!kim || !kim.kod || !store.vardiyaEkle) return ""; vardiyaBaslat(); gorevBaslat();
+  const benim = v => v.kod === kim.kod || adSade(v.ad) === adSade(kim.ad);
+  const L = VD.liste.filter(v => benim(v) || adSade(v.karsi) === adSade(kim.ad)).filter(v => v.durum !== "iptal").slice(0, 4);
+  const bugun = ymdS(new Date());
+  return `<section class="card vd-kart"><div class="vd-bas"><h2>🔁 Vardiya değişimi</h2>${VD.ac ? "" : `<button class="pill-btn" data-act="vdAc">Değişim iste</button>`}</div>
+    ${L.length ? `<div class="vd-liste">${L.map(v => `<div class="vd-s"><div><b>${benim(v) ? `${vdGun(v.tarih)} · yerinize ${esc(v.karsi)}` : `${vdGun(v.tarih)} · ${esc(v.ad)} yerine siz`}</b>${v.karsiTarih ? `<small>Karşılığında ${vdGun(v.karsiTarih)} ${benim(v) ? "siz onun yerine" : "o sizin yerinize"}</small>` : ""}</div>
+        <div class="vd-b">${vdDurum(v)}${v.durum==="bekliyor" && benim(v) ? `<button class="pill-btn" data-act="vdIptal" data-id="${v.id}">İptal</button>` : ""}</div></div>`).join("")}</div>`
+      : VD.ac ? "" : `<p class="hint" style="margin:6px 0 0">Bir gün çalışamayacaksanız bir arkadaşınızla değişin, amir onaylasın. Onaylanınca puantaja kendiliğinden işlenir.</p>`}
+    ${VD.ac ? `<div class="vd-form">
+      <label class="f">Çalışamayacağınız gün<input type="date" id="vd_tarih" min="${bugun}" value="${fx("vd_tarih")}"></label>
+      <label class="f">Yerinize kim çalışacak?<select id="vd_karsi"><option value="">Seçin</option>${guvAdlari(kim.ad).map(a => `<option ${FX.vd_karsi===a?"selected":""}>${esc(a)}</option>`).join("")}</select></label>
+      <label class="f">Karşılığında siz onun yerine hangi gün çalışacaksınız? (isteğe bağlı)<input type="date" id="vd_karsiTarih" min="${bugun}" value="${fx("vd_karsiTarih")}"></label>
+      <label class="f">Not (isteğe bağlı)<input id="vd_not" maxlength="120" placeholder="Örn. hastane randevum var" value="${fx("vd_not")}"></label>
+      <div class="grid2"><button class="cta ghost" data-act="vdKapat">Vazgeç</button><button class="cta" data-act="vdGonder" ${VD.gonder?"disabled":""}>${VD.gonder ? "Gönderiliyor…" : "Amire gönder"}</button></div></div>` : ""}
+  </section>`;
+}
+function vardiyaOnayKart(tam){
+  if (!gvYetkili() || !store.listenVardiya) return ""; vardiyaBaslat();
+  const bek = VD.liste.filter(v => v.durum === "bekliyor");
+  if (!bek.length && !tam) return "";
+  const son = tam ? VD.liste.filter(v => v.durum === "onay" || v.durum === "red").slice(0, 6) : [];
+  const sat = v => `<div class="vd-s"><div><b>${esc(v.ad)}${v.vardiya ? ` <i>${esc(v.vardiya)}</i>` : ""}</b><small>${vdGun(v.tarih)} yerine <b>${esc(v.karsi)}</b> çalışacak${v.karsiTarih ? ` · karşılığında ${vdGun(v.karsiTarih)} kendisi çalışacak` : ""}${v.not ? ` · “${esc(v.not)}”` : ""}${v.karan ? ` · karar: ${esc(v.karan)}` : ""}</small></div>
+    ${v.durum==="bekliyor" ? `<div class="vd-b"><button class="pill-btn vd-ok" data-act="vdOnay" data-v="onay" data-id="${v.id}">✓ Onayla</button><button class="pill-btn cikis-btn" data-act="vdOnay" data-v="red" data-id="${v.id}">Reddet</button></div>` : `<div class="vd-b">${vdDurum(v)}</div>`}</div>`;
+  return `<section class="d-kart vd-onay${bek.length ? " bek" : ""}"><div class="d-bas"><h2>🔁 Vardiya değişimi${bek.length ? ` · ${bek.length} onay bekliyor` : ""}</h2></div>
+    ${bek.length ? `<div class="vd-liste">${bek.map(sat).join("")}</div>` : `<p class="hint" style="margin:0">Onay bekleyen talep yok. Güvenlik görevlileri uygulamadan değişim isteyince burada çıkar ve telefonunuza bildirim gelir.</p>`}
+    ${son.length ? `<div class="group-h" style="margin-top:10px">Son kararlar</div><div class="vd-liste">${son.map(sat).join("")}</div>` : ""}</section>`;
+}
+
+/* =================== BAKIM TAKVİMİ (tüm periyodik işler tek listede) =================== */
+const JEN_BAKIM_GUN = 180;
+const TK_ONERI = [["Havuz bakımı / su analizi",30],["Su deposu temizliği",180],["Paratoner kontrolü",365],["Doğalgaz / kazan bakımı",365],["Elektrik tesisatı periyodik kontrolü",365],["İlaçlama",90],["Jeneratör yük testi",30],["Çatı / yağmur oluğu temizliği",180]];
+const tkListe = () => (Array.isArray(T.ayar.takvim) ? T.ayar.takvim : []).filter(x => !x.silindi);
+const tsYmd = x => { if (!x) return 0; const [y,m,g] = String(x).split("-").map(Number); return new Date(y, m-1, g, 12).getTime(); };
+const gunKalan = ts => Math.round((new Date(ts).setHours(12,0,0,0) - new Date().setHours(12,0,0,0)) / 864e5);
+const periyotYaz = g => !g ? "" : g >= 360 ? "yılda bir" : g >= 175 ? "6 ayda bir" : g >= 88 ? "3 ayda bir" : g >= 28 && g <= 35 ? "ayda bir" : `${g} günde bir`;
+function takvimHesap(H){
+  H = H || tesisHesap();
+  const L = [], enEski = arr => arr.some(x => !x) ? 0 : Math.min(...arr), eksik = arr => arr.filter(x => !x).length;
+  const asB = ASANSOR.map(a => H.sonBakim[a.id] ? H.sonBakim[a.id].ts : 0), asM = enEski(asB);
+  L.push({id:"as-bakim", ik:"🛗", ad:"Asansör aylık bakımı", gun:BAKIM_GUN, son:asM, sonraki: asM ? asM + BAKIM_GUN*864e5 : 0, alt: eksik(asB) ? `${eksik(asB)} asansörün bakım kaydı yok` : `${ASANSOR.length} asansör · en eskisine göre`, sekme:"asansor"});
+  const et = ASANSOR.map(a => tsYmd(((T.ayar.etiket||{})[a.id]||{}).tarih)), etV = et.filter(Boolean), etM = etV.length ? Math.min(...etV) : 0;
+  L.push({id:"as-muayene", ik:"🏷️", ad:"Asansör yıllık muayenesi (etiket)", gun:365, son:etM, sonraki: etM ? etM + 365*864e5 : 0, alt: eksik(et) ? `${eksik(et)} asansörün muayene tarihi girilmemiş (asansöre dokunup girin)` : `${ASANSOR.length} asansör`, sekme:"asansor"});
+  const hb = HIDRO.map(h => H.hid.bakim[h.id] ? H.hid.bakim[h.id].ts : 0), hM = enEski(hb);
+  L.push({id:"hid", ik:"💧", ad:"Hidrofor bakımı", gun:HID_BAKIM_GUN, son:hM, sonraki: hM ? hM + HID_BAKIM_GUN*864e5 : 0, alt: eksik(hb) ? `${eksik(hb)} hidroforun bakım kaydı yok` : `${HIDRO.length} hidrofor · en eskisine göre`, sekme:"hidrofor"});
+  jenler().forEach(j => { const sb = H.sonBakim[j.id]; L.push({id:"jen-"+j.id, ik:"⚡", ad:`${j.ad} bakımı`, gun:JEN_BAKIM_GUN, son: sb ? sb.ts : 0, sonraki: sb ? sb.ts + JEN_BAKIM_GUN*864e5 : 0, alt:j.bolge||"", sekme:"jen"}); });
+  const Y = H.yangin, yS = Y.L.filter(e => e.sonraki).map(e => e.sonraki);
+  L.push({id:"yangin", ik:"🧯", ad:"Yangın tüpleri ve ekipmanları", gun: Y.L.length ? null : 365, son:0, sonraki: yS.length ? Math.min(...yS) : 0,
+    alt: Y.L.length ? `${Y.L.length} ekipman · en yakın süreye göre${Y.yok.length ? ` · ${Y.yok.length} tarihsiz` : ""}` : "Ekipman listesi girilmemiş (Yangın sekmesinden ekleyin)", sekme:"yangin"});
+  tkListe().forEach(x => { const son = tsYmd(x.son); L.push({id:x.id, ik:"🔧", ad:x.ad, gun:+x.gun, son, sonraki: son ? son + (+x.gun)*864e5 : 0, alt:x.not||"", ozel:true}); });
+  L.forEach(x => { x.kalan = x.sonraki ? gunKalan(x.sonraki) : null; x.durum = x.kalan === null ? "yok" : x.kalan < 0 ? "gecti" : x.kalan <= 30 ? "yakin" : "tamam"; });
+  return L.sort((a,b) => (a.sonraki || 9e15) - (b.sonraki || 9e15));
+}
+/* Sunucunun sabah bildirimi için özet (sadece değişince yazılır) */
+let TK_OZ = null;
+function takvimOzetYaz(){
+  if (!(store.isTech() || (store.isTesis && store.isTesis())) || !T.kayitGeldi || !T.ayarGeldi || !store.setTesisAyar) return;
+  clearTimeout(TK_OZ); TK_OZ = setTimeout(() => { try {
+    const liste = takvimHesap().filter(x => x.sonraki).map(x => ({ad:x.ad, sonraki:x.sonraki}));
+    if (JSON.stringify(((T.ayar.takvimOzet||{}).liste) || []) === JSON.stringify(liste)) return;
+    store.setTesisAyar({takvimOzet:{liste, ts:Date.now()}}).catch(e => console.warn("takvim özeti", e && e.code));
+  } catch(e){ console.warn(e); } }, 3000);
+}
+const tkKalanYaz = x => x.durum==="yok" ? "tarih yok" : x.kalan < 0 ? `${-x.kalan} gün geçti` : x.kalan === 0 ? "bugün" : `${x.kalan} gün`;
+function tTakvim(H){
+  const L = takvimHesap(H), g = L.filter(x => x.durum==="gecti"), y = L.filter(x => x.durum==="yakin");
+  return `${g.length ? `<div class="t-uyari kirmizi">🔧 <b>${g.length} işin zamanı geçti:</b> ${g.map(x => esc(x.ad)).join(", ")}</div>` : ""}${y.length ? `<div class="t-uyari turuncu">⏳ <b>30 gün içinde:</b> ${y.map(x => `${esc(x.ad)} (${tkKalanYaz(x)})`).join(", ")}</div>` : ""}${!g.length && !y.length ? `<div class="t-uyari yesil">✓ Önümüzdeki 30 günde bakımı gelen iş yok</div>` : ""}
+  <div class="card"><h2>📅 Bakım takvimi</h2>
+    <p class="hint">Asansör, hidrofor, jeneratör ve yangın ekipmanları kendi kayıtlarından hesaplanır. Diğer periyodik işleri aşağıdan ekleyin. Süre 30, 14, 7, 3, 1 gün kala ve geçince sabah 09:00'da size ve müdüre bildirim gelir.</p>
+    <div class="tk-liste">${L.map(x => `<div class="tk ${x.durum}"><span class="tk-ik">${x.ik}</span>
+      <div class="tk-m"><b>${esc(x.ad)}</b><small>${x.son ? `Son: ${tarihGun(x.son)}` : "Son yapılma tarihi yok"}${x.gun ? ` · ${periyotYaz(x.gun)}` : ""}${x.alt ? ` · ${esc(x.alt)}` : ""}</small></div>
+      <div class="tk-sag"><span class="tk-k">${tkKalanYaz(x)}</span>${x.ozel ? `<button class="pill-btn" data-t="tkYapildi" data-v="${x.id}">✓ Yapıldı</button><button class="tk-sil" data-t="tkSil" data-v="${x.id}" aria-label="Sil">✕</button>` : `<button class="pill-btn" data-t="sekme" data-v="${x.sekme}">Aç ›</button>`}</div></div>`).join("")}</div>
+    ${T.tkf ? `<div class="tk-form"><h3>Periyodik iş ekle</h3>
+      <div class="prefs">${TK_ONERI.map((o,i) => `<button class="pref" data-t="tkOneri" data-v="${i}" aria-pressed="${FX.tk_ad===o[0]}">${esc(o[0])}</button>`).join("")}</div>
+      <label class="f">Ne yapılacak?<input id="tk_ad" maxlength="60" value="${fx("tk_ad")}" placeholder="Örn. Su deposu temizliği"></label>
+      <div class="grid2"><label class="f">Kaç günde bir?<select id="tk_gun">${[[30,"Ayda bir"],[90,"3 ayda bir"],[180,"6 ayda bir"],[365,"Yılda bir"],[730,"2 yılda bir"]].map(([d,a]) => `<option value="${d}" ${String(FX.tk_gun||"365")===String(d)?"selected":""}>${a}</option>`).join("")}</select></label>
+      <label class="f">Son yapıldığı tarih<input type="date" id="tk_son" value="${fx("tk_son")}"></label></div>
+      <label class="f">Not (firma, telefon…)<input id="tk_not" maxlength="80" value="${fx("tk_not")}"></label>
+      <div class="grid2"><button class="cta ghost" data-t="tkKapat">Vazgeç</button><button class="cta" data-t="tkKaydet">Ekle</button></div></div>`
+      : `<button class="cta ghost" data-t="tkForm" style="margin-top:12px">+ Periyodik iş ekle</button>`}
+  </div>`;
+}
+/* =================== STOK (depo malzemesi) =================== */
+const SK_ONERI = ["LED ampul","Sigorta","Kilit / barel","Priz","Elektrik anahtarı","Kablo (m)","Silikon","Vida / dübel","Pil","Armatür","İzole bant","Conta"];
+const skListe = () => Object.entries(T.ayar.stok||{}).filter(([,x]) => x && x.ad && !x.silindi).map(([id,x]) => ({id, ...x})).sort((a,b) => a.ad.localeCompare(b.ad,"tr"));
+const skAz = x => x.min !== null && x.min !== undefined && x.min !== "" && (+x.adet||0) <= +x.min;
+function tStok(){
+  const L = skListe(), az = L.filter(skAz), f = T.skf, x0 = f && f !== "yeni" ? (T.ayar.stok||{})[f] || {} : null;
+  return `${az.length ? `<div class="t-uyari kirmizi">📦 <b>${az.length} malzeme azaldı:</b> ${az.map(x => `${esc(x.ad)} (${+x.adet||0})`).join(", ")}<br><button class="pill-btn" data-t="skAlinacak" style="margin-top:8px">📲 Alınacaklar listesini paylaş</button></div>` : L.length ? `<div class="t-uyari yesil">✓ Azalan malzeme yok</div>` : ""}
+  <div class="card"><h2>📦 Malzeme stoğu</h2>
+    <p class="hint">Kullandıkça − ile düşün, satın alınca + ile ekleyin. Adet "en az" sayısına inince kırmızı olur ve sabah bildirimi gelir. Düzenlemek için malzeme adına dokunun.</p>
+    ${L.length ? `<div class="sk-liste">${L.map(x => `<div class="sk${skAz(x) ? " az" : ""}"><button class="sk-ad" data-t="skForm" data-v="${x.id}"><b>${esc(x.ad)}</b><small>${x.min !== null && x.min !== undefined ? `en az ${x.min}` : "sınır yok"} · ${esc(x.birim||"adet")}</small></button>
+      <div class="sk-say"><button data-t="skDegis" data-v="-1" data-id="${x.id}" ${(+x.adet||0) <= 0 ? "disabled" : ""} aria-label="Azalt">−</button><strong>${+x.adet||0}</strong><button data-t="skDegis" data-v="1" data-id="${x.id}" aria-label="Artır">+</button></div></div>`).join("")}</div>` : `<p class="hint">Henüz malzeme eklenmedi.</p>`}
+    ${f ? `<div class="tk-form"><h3>${x0 ? "Malzemeyi düzenle" : "Malzeme ekle"}</h3>
+      ${x0 ? "" : `<div class="prefs">${SK_ONERI.map((o,i) => `<button class="pref" data-t="skOneri" data-v="${i}" aria-pressed="${FX.sk_ad===o}">${esc(o)}</button>`).join("")}</div>`}
+      <label class="f">Malzeme<input id="sk_ad" maxlength="50" value="${fx("sk_ad")}" placeholder="Örn. LED ampul 9W"></label>
+      <div class="grid3"><label class="f">Eldeki<input id="sk_adet" type="number" min="0" inputmode="numeric" value="${fx("sk_adet")}"></label>
+      <label class="f">En az<input id="sk_min" type="number" min="0" inputmode="numeric" value="${fx("sk_min")}" placeholder="—"></label>
+      <label class="f">Birim<select id="sk_birim">${["adet","metre","kutu","paket","litre","kg"].map(u => `<option ${(FX.sk_birim||"adet")===u?"selected":""}>${u}</option>`).join("")}</select></label></div>
+      <div class="grid2"><button class="cta ghost" data-t="skKapat">Vazgeç</button><button class="cta" data-t="skKaydet">Kaydet</button></div>
+      ${x0 ? `<button class="pill-btn cikis-btn" data-t="skSil" style="margin-top:10px">Malzemeyi sil</button>` : ""}</div>`
+      : `<button class="cta ghost" data-t="skForm" data-v="" style="margin-top:12px">+ Malzeme ekle</button>`}
+  </div>`;
+}
+async function tkSkTik(t, v, id, b){
+  const onay = (yazi) => { if (b.dataset.onay === "1") return true; b.dataset.onay = "1"; b.textContent = yazi; return false; };
+  if (t==="tkForm"){ T.tkf = true; render(); }
+  else if (t==="tkKapat"){ T.tkf = false; render(); }
+  else if (t==="tkOneri"){ const o = TK_ONERI[+v]; FX.tk_ad = o[0]; FX.tk_gun = String(o[1]); render(); }
+  else if (t==="tkKaydet"){
+    const ad = String(FX.tk_ad||"").trim(), gun = +(FX.tk_gun || 365); if (!ad){ toast("Ne yapılacağını yazın"); return; }
+    const L = [...(Array.isArray(T.ayar.takvim) ? T.ayar.takvim : []), {id:"tk"+Date.now().toString(36), ad:ad.slice(0,60), gun, son:FX.tk_son||"", not:String(FX.tk_not||"").trim().slice(0,80)}];
+    try { await store.setTesisAyar({takvim:L}); T.tkf = false; ["tk_ad","tk_gun","tk_son","tk_not"].forEach(k => delete FX[k]); toast("✓ Takvime eklendi"); render(); } catch(e){ toast("Kaydedilemedi"); }
+  }
+  else if (t==="tkYapildi" || t==="tkSil"){
+    if (!onay(t==="tkSil" ? "Sil?" : "Bugün yapıldı mı?")) return;
+    const L = (Array.isArray(T.ayar.takvim) ? T.ayar.takvim : []).map(x => x.id !== v ? x : t==="tkSil" ? {...x, silindi:true} : {...x, son:ymdS(new Date())});
+    try { await store.setTesisAyar({takvim:L}); toast(t==="tkSil" ? "Silindi" : "✓ Kaydedildi, sonraki tarih güncellendi"); render(); } catch(e){ toast("Kaydedilemedi"); }
+  }
+  else if (t==="skForm"){ T.skf = v || "yeni"; const x = v ? (T.ayar.stok||{})[v] || {} : {}; FX.sk_ad = x.ad || ""; FX.sk_adet = x.adet != null ? String(x.adet) : ""; FX.sk_min = x.min != null ? String(x.min) : ""; FX.sk_birim = x.birim || "adet"; render(); }
+  else if (t==="skKapat"){ T.skf = null; render(); }
+  else if (t==="skOneri"){ FX.sk_ad = SK_ONERI[+v]; if (/\(m\)/.test(FX.sk_ad)) FX.sk_birim = "metre"; render(); }
+  else if (t==="skKaydet"){
+    const ad = String(FX.sk_ad||"").trim(); if (!ad){ toast("Malzeme adını yazın"); return; }
+    const sid = T.skf !== "yeni" ? T.skf : "s" + Date.now().toString(36);
+    const o = {ad:ad.slice(0,50), adet:Math.max(0, parseInt(FX.sk_adet)||0), min: String(FX.sk_min??"").trim()==="" ? null : Math.max(0, parseInt(FX.sk_min)||0), birim:FX.sk_birim||"adet", ts:Date.now()};
+    try { await store.stokYaz(sid, o); T.skf = null; toast("✓ Kaydedildi"); render(); } catch(e){ console.error(e); toast("Kaydedilemedi"); }
+  }
+  else if (t==="skSil"){ if (!onay("Silinsin mi? Tekrar basın")) return; try { await store.stokYaz(T.skf, {...((T.ayar.stok||{})[T.skf]||{}), silindi:true}); T.skf = null; toast("Silindi"); render(); } catch(e){ toast("Silinemedi"); } }
+  else if (t==="skDegis"){ const x = (T.ayar.stok||{})[id]; if (!x || (+v < 0 && (+x.adet||0) <= 0) || b.disabled) return; b.disabled = true;
+    try { await store.stokDegis(id, +v); } catch(e){ toast("Kaydedilemedi"); } render(); }
+  else if (t==="skAlinacak"){
+    const metin = "📦 Bizimevler 1 · alınacak malzemeler\n" + skListe().filter(skAz).map(x => `• ${x.ad}: ${+x.adet||0} ${x.birim||"adet"} kaldı (en az ${x.min})`).join("\n");
+    if (navigator.share){ try { await navigator.share({text:metin}); } catch(e){} } else { try { await navigator.clipboard.writeText(metin); toast("Liste kopyalandı"); } catch(e){} }
+  }
+}
+/* Ana sayfa: zamanı gelen bakımlar ve azalan stok */
+function bakimStokKart(){
+  if (!(store.isTech() || (store.isTesis && store.isTesis())) || !T.kayitGeldi) return "";
+  const L = takvimHesap().filter(x => x.durum==="gecti" || (x.durum==="yakin" && x.kalan <= 7)), az = skListe().filter(skAz);
+  if (!L.length && !az.length) return "";
+  return `<section class="d-kart bs-kart"><div class="d-bas"><h2>🔧 Bakım & stok</h2><a class="d-link" href="#tesis" data-act="tSekmeGit" data-v="takvim">Takvim ${ic("sag")}</a></div>
+    ${L.map(x => `<a class="bs-s ${x.durum}" href="#tesis" data-act="tSekmeGit" data-v="takvim"><span>${x.ik}</span><b>${esc(x.ad)}</b><em>${tkKalanYaz(x)}${x.kalan >= 0 ? " kaldı" : ""}</em></a>`).join("")}
+    ${az.length ? `<a class="bs-s gecti" href="#tesis" data-act="tSekmeGit" data-v="stok"><span>📦</span><b>Stok azaldı</b><em>${az.map(x => esc(x.ad)).join(", ")}</em></a>` : ""}</section>`;
+}
+/* =================== TEKRAR EDEN ARIZA (aynı yer + aynı tür, 30 günde 3+) =================== */
+function tekrarListe(tech){
+  const sinir = Date.now() - 30*864e5, say = {};
+  ((tech ? S.all : IK.pers) || []).filter(a => a.createdAt > sinir && a.status !== "iptal" && !a.sample && !["p_malzeme","p_tasinma","p_gelemiyorum"].includes(a.cat)).forEach(a => {
+    const yer = a.src === "personel" ? (a.alan || (a.block ? `${a.block} Blok${a.kat ? " · " + a.kat : ""}` : "")) : (a.block ? `${a.block} Blok · Daire ${a.flat || "?"}` : "");
+    if (!yer) return; const o = say[yer + "|" + a.cat] ||= {yer, cat:a.cat, n:0, son:0, acik:false}; o.n++; o.son = Math.max(o.son, a.createdAt); if (acik(a)) o.acik = true; });
+  return Object.values(say).filter(o => o.n >= 3).sort((a,b) => b.n - a.n || b.son - a.son);
+}
+function tekrarKart(tech){
+  const L = tekrarListe(tech).slice(0, 5);
+  const as = (store.isTech() || (store.isTesis && store.isTesis())) && T.kayitGeldi ? kronikler() : [];
+  if (!L.length && !as.length) return "";
+  const once = t => gunOnce(t) === 0 ? "bugün" : gunOnce(t) + " gün önce";
+  return `<section class="d-kart tr-kart"><div class="d-bas"><h2>♻️ Tekrar eden arızalar</h2><span class="pb-say">Son 30 gün</span></div>
+    ${L.map(o => `<div class="tr-s"><em>${o.n}×</em><div><b>${esc(o.yer)} — ${esc(catOf(o.cat).ad)}</b><small>Son bildirim ${once(o.son)}${o.acik ? " · şu an açık" : ""}. Sürekli tekrarlıyorsa parça değişimi ya da kalıcı çözüm gerekebilir.</small></div></div>`).join("")}
+    ${as.map(([eid, n]) => `<div class="tr-s"><em>${n}×</em><div><b>🛗 ${esc(asAd(eid))}</b><small>${KRONIK_GUN} günde ${n} kez arızalandı. ${esc(firmaAd())} ile kalıcı çözüm konuşulmalı.</small></div></div>`).join("")}</section>`;
+}
+
 /* =================== GÖREV VER (müdür/amir → personel) =================== */
 const GV = {un:null, liste:[], dizin:null, unD:null, f:{kime:"", yer:"", metin:"", tur:"gorev", bitis:"hafta", tarih:""}, filtre:"acik", sonEklenen:null};
 const talAktif = g => g.tur==="talimat" && g.durum!=="iptal" && (!g.bitis || g.bitis > Date.now());
@@ -2271,6 +2487,7 @@ function vDevriyeIc(){
   ${bildirimKart()}
   ${gorevKart({ad:d.kim.ad, rol:"Güvenlik"})}
   ${izinGuvenlik(d.kim.ad)}
+  ${vardiyaKart(d.kim)}
   <button class="scan-btn" data-act="dTara"><svg viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>QR Okut</button>
   <p class="hint" style="text-align:center;margin:8px 0 14px">Telefonun kendi kamerasıyla okutursanız da kaydedilir.</p>
   ${!navigator.onLine ? `<p class="kuyruk">📵 İnternet yok. Okutmaya devam edin, hepsi telefonda saklanıyor ve internet gelince kendiliğinden gönderilecek.</p>` : ""}
@@ -2948,9 +3165,9 @@ function tesisHesap(){
 function tesisBaslat(){
   if (T.basladi || !store.isAsansor()) return;
   T.basladi = true;
-  const ciz = () => { if (S.view==="tesis" || S.view==="panel") setTimeout(render, 0); };
-  T.un = store.listenTesis(list => { T.kayit = list; T.kayitGeldi = true; pAsAktar(); ciz(); });
-  T.unA = store.listenTesisAyar(a => { T.ayar = a || {}; ciz(); });
+  const ciz = () => { if (S.view==="tesis" || S.view==="panel") setTimeout(render, 0); };   // panel: ana sayfadaki bakım/stok uyarısı
+  T.un = store.listenTesis(list => { T.kayit = list; T.kayitGeldi = true; pAsAktar(); ciz(); takvimOzetYaz(); });
+  T.unA = store.listenTesisAyar(a => { T.ayar = a || {}; T.ayarGeldi = true; ciz(); takvimOzetYaz(); });
   if (store.listenPersonelAsansor) T.unP = store.listenPersonelAsansor(L => { T.pAs = L; T.kayitGeldi && pAsAktar(); });
 }
 /* Temizlik, güvenlik, bahçe ve amirlerin personel formundan bildirdiği asansör arızaları asansör takibine (ve karneye) otomatik işlenir.
@@ -2989,7 +3206,7 @@ function vTesis(){
   if (H.hid.tamirde.length) uyar.push(`<div class="t-uyari turuncu">🔩 <b>${H.hid.tamirde.length} hidrofor pompası</b> tamirde</div>`);
   if (H.yangin.gecti.length) uyar.push(`<div class="t-uyari kirmizi">🧯 <b>${H.yangin.gecti.length} yangın ekipmanının</b> kontrol süresi geçti</div>`);
   if (H.yangin.yakin.length) uyar.push(`<div class="t-uyari turuncu">🧯 <b>${H.yangin.yakin.length} yangın ekipmanının</b> süresi ${Y_YAKLASAN} gün içinde doluyor</div>`);
-  const sek = {ozet:"Özet", asansor:"Asansörler", hidrofor:"Hidrofor", jen:"Jeneratörler", yangin:"🧯 Yangın", kesinti:"Kesintiler"};
+  const sek = {ozet:"Özet", takvim:"📅 Bakım takvimi", stok:"📦 Stok", asansor:"Asansörler", hidrofor:"Hidrofor", jen:"Jeneratörler", yangin:"🧯 Yangın", kesinti:"Kesintiler"};
   return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
       <h2 style="margin:0;font:600 22px/1.2 var(--display)">Tesis takip</h2>
       <a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">${store.isTech() ? "← İş paneli" : "← Menü"}</a></div>
@@ -3015,6 +3232,8 @@ function vTesis(){
     : T.sekme==="jen" ? `${tJenKartlar(H, false)}`
     : T.sekme==="hidrofor" ? tHidrofor(H)
     : T.sekme==="yangin" ? tYangin(H)
+    : T.sekme==="takvim" ? tTakvim(H)
+    : T.sekme==="stok" ? tStok()
     : `${tKesintiOzet(H, true)}`}
     ${T.sekme==="ozet" || T.sekme==="jen" ? tAyarlar() : ""}
     ${T.f ? tForm() : ""}
@@ -3068,6 +3287,7 @@ function tKarne(){
     ${R.L.length ? `<div class="tblwrap" style="overflow-x:auto"><table class="karne-t"><thead><tr><th>Asansör</th><th>Arıza</th><th>Arızalı kaldı</th><th>Ort. geliş</th></tr></thead><tbody>
       ${R.L.map(o=>`<tr class="${o.sayi>=KRONIK_ESIK?"kr":o.sayi>=2?"tk":""}"><td><b>${esc(asAd(o.id))}</b>${o.acik?` <span class="chip" data-s="bekliyor">açık</span>`:""}${o.mahsur?` 🚨`:""}</td><td>${o.sayi}${o.sayi>=2?` <small>${o.sayi>=KRONIK_ESIK?"♻️":"↻"}</small>`:""}</td><td>${sureYaz(o.dk)}</td><td>${o.gelis.length?sureYaz(Math.round(o.gelis.reduce((a,b)=>a+b,0)/o.gelis.length)):"—"}</td></tr>`).join("")}
     </tbody></table></div>` : `<div class="t-uyari yesil">✓ Bu dönemde asansör arızası yok</div>`}
+    <p class="hint" style="margin-bottom:4px">⏱️ Ortalama çözüm süresi (arızanın açılışından çözülmesine kadar): <b>${s(R.cozumOrt)}</b>${R.bildirmeOrt!==null?` · Firmaya bildirme: <b>${sureYaz(R.bildirmeOrt)}</b>`:""}</p>
     <p class="hint">Geliş süresi: "${esc(F)}'a bildirildi"den "Servis geldi"ye kadar. Doğru ölçülmesi için arıza adımlarını zamanında işaretleyin.${R.bildirmeOrt!==null?` Bizim firmaya bildirme süremiz ortalama ${sureYaz(R.bildirmeOrt)}.`:""}</p>
     <div class="grid2"><button class="cta ghost" data-t="karnePaylas">📲 Özeti paylaş</button><button class="cta ghost" data-t="karneExcel">⬇ Excel</button></div>
   </div>`;
@@ -3077,7 +3297,7 @@ function karneMetin(){
   return [`🛗 ${F} asansör karnesi · ${R.ayAd}`, `Bizimevler 1 Sitesi · ${ASANSOR.length} asansör`, ``,
     `• Arıza: ${R.ar.length}${R.mahsur?` (${R.mahsur} mahsur kalma)`:""}`,
     `• Ortalama geliş süresi: ${R.gelisOrt===null?"—":sureYaz(R.gelisOrt)}${R.gelisMax!==null?` (en uzun ${sureYaz(R.gelisMax)})`:""}`,
-    `• Toplam arızalı kalma: ${sureYaz(R.toplamDk)}`, `• Çalışır durumda: %${R.calisma.toFixed(1)}`,
+    `• Ortalama çözüm süresi: ${R.cozumOrt===null?"—":sureYaz(R.cozumOrt)}`, `• Toplam arızalı kalma: ${sureYaz(R.toplamDk)}`, `• Çalışır durumda: %${R.calisma.toFixed(1)}`,
     R.tekrar.length ? `• Tekrarlayan: ${R.tekrar.map(o=>`${asAd(o.id)} ${o.sayi} kez`).join(", ")}` : "",
     R.kronik.length ? `♻️ Kronik (${KRONIK_GUN} gün): ${R.kronik.map(([id,n])=>`${asAd(id)} ${n} kez`).join(", ")}` : ""].filter(x=>x!=="").join("\n");
 }
@@ -3327,6 +3547,7 @@ document.addEventListener("click", async e => {
   const t = b.dataset.t, v = b.dataset.v, id = b.dataset.id; tSync();
   if (/^yf?[A-Z]/.test(t)){ await yTik(t, v, id, b); return; }
   if (t==="sekme"){ T.sekme = v; T.yf = null; T.yd = null; render(); }
+  else if (/^(tk|sk)[A-Z]/.test(t)){ await tkSkTik(t, v, id, b); return; }
   else if (t==="karneAy"){ T.karneAy = v; render(); }
   else if (t==="karnePaylas"){ const m = karneMetin(); if (navigator.share) navigator.share({text:m}).catch(()=>{}); else window.open("https://wa.me/?text=" + encodeURIComponent(m), "_blank"); }
   else if (t==="karneExcel"){ karneExcel(); }
@@ -3540,6 +3761,10 @@ document.addEventListener("click", async e => {
 const KOD = { liste:[], un:null, form:{tip:"personel", ad:"", rol:"Temizlik", vardiya:"1. Vardiya"}, yeni:null };
 const kodSakla = (tip, v) => yerel("bz1-kod-" + tip, v);
 const kodAl = tip => yerel("bz1-kod-" + tip);
+/* Yanlış kod denemesi sınırı: 5 yanlışta 5 dk, 8'de 15 dk, 10 ve üstünde 1 saat bekleme (bu telefonda) */
+const KOD_DENEME = "bz1-kod-deneme";
+function kodKilit(){ const d = yerel(KOD_DENEME); return d && d.kilit && d.kilit > Date.now() ? d.kilit - Date.now() : 0; }
+function kodYanlis(){ const d = yerel(KOD_DENEME) || {n:0}; d.n = (d.n||0) + 1; d.kilit = d.n >= 5 ? Date.now() + (d.n >= 10 ? 60 : d.n >= 8 ? 15 : 5)*60e3 : 0; yerel(KOD_DENEME, d); return d; }
 function kodGirisEkrani(tip){
   const g = tip === "guvenlik";
   return `<section class="step kod-giris">
@@ -3596,10 +3821,10 @@ function kodPanel(){
       <div class="kod-btn">
         ${k.aktif===false ? `<button class="pill-btn" data-act="kodAktif" data-id="${k.id}" data-v="1">Aktif yap</button>`
           : `<button class="pill-btn" data-act="kodPaylas" data-id="${k.id}">📤 Gönder</button>
-             <button class="pill-btn cikis-btn" data-act="kodAktif" data-id="${k.id}" data-v="0">Pasif yap</button>`}
+             <button class="pill-btn cikis-btn" data-act="kodAktif" data-id="${k.id}" data-v="0">İşten ayrıldı · kapat</button>`}
       </div></div>`;
   return `<details class="card t-ayar" style="margin-top:14px" id="kodKart" ${S.kodAcik?"open":""}><summary><b>🔑 Personel ve güvenlik kodları</b> · ${L.filter(k=>k.aktif!==false).length} aktif</summary>
-    <p class="hint">Personel ve güvenlik uygulamaları sadece geçerli kodla çalışır. İşten ayrılan kişiyi <b>Pasif yap</b>: telefonundaki uygulama anında durur.</p>
+    <p class="hint">Personel ve güvenlik uygulamaları sadece geçerli kodla çalışır. İşten ayrılan kişide <b>İşten ayrıldı · kapat</b>'a basın: kodu tek tuşla kapanır, telefonundaki uygulama açılışta durur, bildirimleri kesilir. Yanlış kod denemesi 5'i geçince o telefon 5 dakika (tekrarlarsa 1 saate kadar) bekletilir.</p>
     ${KOD.yeni ? `<div class="t-uyari yesil">✓ <b>${esc(KOD.yeni.ad)}</b> için kod: <b style="font-size:20px;letter-spacing:2px">${esc(KOD.yeni.id)}</b></div>` : ""}
     <div class="prefs"><button class="pref" data-act="kodTip" data-v="personel" aria-pressed="${f.tip==="personel"}">👷 Personel</button><button class="pref" data-act="kodTip" data-v="guvenlik" aria-pressed="${f.tip==="guvenlik"}">🛡️ Güvenlik</button></div>
     <div class="grid2" style="margin-top:8px">
@@ -3775,16 +4000,36 @@ document.addEventListener("click", async e => {
     else if (act==="kur"){ if (KUR){ KUR.prompt(); const r = await KUR.userChoice; KUR = null; render(); } }
     else if (act==="kodGir"){
       syncForm(); const kod = String(S.kodTaslak||"").replace(/\D/g,"");
+      const kilit = kodKilit(); if (kilit){ S.kodHata = `Çok fazla yanlış deneme. ${Math.ceil(kilit/60000)} dakika sonra tekrar deneyin.`; render(); return; }
       if (kod.length !== 6){ S.kodHata = "Kod 6 haneli olmalı"; render(); return; }
       S.kodBakiyor = true; S.kodHata = ""; render();
       try {
         const k = await kodDogrula(v, kod);
-        if (!k) S.kodHata = "Kod geçersiz ya da pasif. Teknisyene başvurun.";
-        else { kodUygula(v, kod, k); S.kodTaslak = ""; toast(`Hoş geldiniz ${k.ad.split(" ")[0]}`);
+        if (!k){ const d = kodYanlis(); S.kodHata = d.kilit ? `Çok fazla yanlış deneme. ${Math.ceil((d.kilit - Date.now())/60000)} dakika sonra tekrar deneyin.` : `Kod geçersiz ya da pasif. Teknisyene başvurun.${d.n >= 2 ? ` (${5 - d.n} deneme hakkınız kaldı)` : ""}`; }
+        else { yerel(KOD_DENEME, null); kodUygula(v, kod, k); S.kodTaslak = ""; toast(`Hoş geldiniz ${k.ad.split(" ")[0]}`);
           if (v==="guvenlik" && S.d.bekleyen){ const n = S.d.bekleyen; S.d.bekleyen = null; S.kodBakiyor = false; render(); noktaOkut(n); return; } }
       } catch(err){ console.error(err); S.kodHata = "Kontrol edilemedi. İnternet bağlantınızı kontrol edin."; }
       S.kodBakiyor = false; render();
     }
+    else if (act==="vdAc"){ VD.ac = true; render(); return; }
+    else if (act==="vdKapat"){ VD.ac = false; render(); return; }
+    else if (act==="vdGonder"){
+      const kim = S.d && S.d.kim; if (!kim || !kim.kod || VD.gonder) return;
+      const tarih = FX.vd_tarih || "", karsi = FX.vd_karsi || "", karsiTarih = FX.vd_karsiTarih || "", not = String(FX.vd_not||"").trim().slice(0,120);
+      if (!tarih || !karsi){ toast("Günü ve yerinize çalışacak kişiyi seçin"); return; }
+      if (karsiTarih && karsiTarih === tarih){ toast("Karşılık günü farklı bir gün olmalı"); return; }
+      VD.gonder = true; render();
+      try { await store.vardiyaEkle({ad:kim.ad, kod:kim.kod, vardiya:kim.vardiya||"", karsi, tarih, karsiTarih, not, durum:"bekliyor", ts:Date.now()});
+        VD.ac = false; ["vd_tarih","vd_karsi","vd_karsiTarih","vd_not"].forEach(k => delete FX[k]); toast("✓ Talebiniz amire gönderildi"); }
+      catch(err){ console.error(err); toast(err && err.code==="permission-denied" ? "Gönderilemedi: yetki yok (kurallar güncellenmeli)" : "Gönderilemedi, internet bağlantısını kontrol edin"); }
+      VD.gonder = false; render(); return;
+    }
+    else if (act==="vdIptal"){ if (b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = "Emin misiniz?"; return; }
+      try { await store.vardiyaGuncelle(id, {durum:"iptal"}); toast("Talep iptal edildi"); } catch(err){ toast("İptal edilemedi"); } return; }
+    else if (act==="vdOnay"){ if (b.disabled) return; b.disabled = true;
+      try { await store.vardiyaGuncelle(id, {durum:v, karar:Date.now(), karan:(store.kim && store.kim()) || (store.isTech() ? "Teknisyen" : "Amir")}); toast(v==="onay" ? "✓ Onaylandı · puantaja işlendi" : "Reddedildi"); }
+      catch(err){ console.error(err); b.disabled = false; toast("Kaydedilemedi"); } return; }
+    else if (act==="tSekmeGit"){ T.sekme = v || "ozet"; T.yf = null; T.yd = null; T.tkf = false; T.skf = null; }
     else if (act==="kodGirAc"){ if (v==="personel") S.p.kodGir = true; else S.d.kodGir = true; render(); }
     else if (act==="kodZorunlu"){
       if (b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = "Emin misiniz? Tekrar basın"; return; }
@@ -3889,7 +4134,7 @@ document.addEventListener("click", async e => {
     }
     else if (act==="kodAktif"){
       if (v==="0" && b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = "Emin misiniz?"; return; }
-      await store.updateKod(id, {aktif: v==="1"}); toast(v==="1" ? "Aktif yapıldı" : "Pasif yapıldı · uygulaması durdu");
+      await store.updateKod(id, v==="1" ? {aktif:true} : {aktif:false, pasifTs:Date.now()}); toast(v==="1" ? "Aktif yapıldı" : "Kod kapatıldı · uygulaması ve bildirimleri durdu");
     }
     else if (act==="kodGuvToplu"){
       if (b.dataset.onay !== "1"){ b.dataset.onay = "1"; b.textContent = "Emin misiniz? Tekrar basın"; return; }
