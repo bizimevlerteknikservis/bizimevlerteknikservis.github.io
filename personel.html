@@ -134,6 +134,15 @@ body.dash #demoBand{max-width:560px;margin:10px auto 0}
 .d-canli time{flex:none;padding:5px 9px;border-radius:9px;background:rgba(255,255,255,.08);font:600 13px/1 var(--mono);color:#c9d8f2}
 .d-ses{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:rgba(255,190,40,.12)}
 .d-ses svg{width:20px;height:20px;stroke:#ffc23a;fill:#ffc23a;stroke-width:1.8;stroke-linecap:round}
+.asw-s{grid-template-columns:1fr auto!important;align-items:center}
+.asw-s b{grid-column:1}.asw-s small{grid-column:1}
+.asw-b{grid-column:2;grid-row:1/3;border:0;border-radius:12px;padding:10px 12px;background:#1fa855;color:#fff;font:700 13.5px/1.1 var(--body);cursor:pointer;white-space:nowrap}
+.asw-b.tamam{background:#e8f6ee;color:#167a3f}
+.asw-ic{text-align:left;max-height:92vh;overflow:auto}
+.asw-ic textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:10px;font:14px/1.45 var(--body);resize:vertical;background:var(--sunk)}
+.asw-sec{display:flex;gap:6px;margin-bottom:8px}
+.asw-sec button{flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px;font-weight:700;cursor:pointer}
+.asw-sec button[aria-pressed="true"]{background:#14283b;color:#fff;border-color:#14283b}
 .d-kart+.d-kart{margin-top:14px}.d-govde>.d-kart+.d-kart{margin-top:0}
 .d-bolum{background:transparent;padding:6px 0 0;scroll-margin-top:12px}
 .d-bolum>.d-bas h2{font-size:19px}
@@ -1636,9 +1645,87 @@ function bildirimTazele(){ const k = bldOku(), kim = bldKim(); if (!k || !kim ||
 async function bildirimAriza(ac){ const k = bldOku(); if (!k) return; k.ariza = ac; bldYaz(k); const kim = bldKim(); if (!kim) return;
   try { await store.bildirimKayit({token:k.token, rol:kim.rol, ad:kim.ad, grup:kim.grup, kod:kim.kod, ariza:ac, gorev:true, cihaz:(bldIOS() ? "iPhone" : /android/i.test(navigator.userAgent) ? "Android" : "Bilgisayar")}); toast(ac ? "Arıza bildirimleri açık" : "Arıza bildirimleri kapalı"); } catch(e){ toast("Kaydedilemedi"); } }
 document.addEventListener("change", e => { const c = e.target.closest('[data-act="bldAriza"]'); if (c) bildirimAriza(c.checked); });
+/* =================== ASANSÖR ARIZASI → WhatsApp asansör grubuna hazır mesaj =================== */
+const ASW = {kisa:false, k:null, foto:null};
+/* Açık asansör arızaları: Tesis kayıtları + henüz tesis kaydına dönüşmemiş personel bildirimleri */
+function asWaListe(){
+  const T_ = (T.kayit || []).filter(k => k.tur==="ariza" && !k.cozuldu);
+  const bagli = new Set(T_.flatMap(k => k.bildirenler || []));
+  const L = store.isTech() ? S.all : IK.pers;
+  const ap = (L || []).filter(a => (a.cat==="p_asansor" || a.cat==="asansor") && acik(a) && Date.now() - a.createdAt < 2*864e5 && !bagli.has(a.id));
+  return [
+    ...T_.map(k => ({id:k.id, tip:"tesis", blok:String(k.ekipman||"").split("-")[0], no:String(k.ekipman||"").split("-")[1], ariza:k.not || "", ts:k.ts, kim:(k.bildirenAd && k.bildirenAd.length ? k.bildirenAd.join(", ") : k.by) || "", mahsur:!!k.mahsur, fotoAid:(k.bildirenler && k.bildirenler[0]) || (k.fotoSayi ? k.id : null), bildirildi:k.bildirildi || null})),
+    ...ap.map(a => ({id:a.id, tip:"appt", blok:a.block || "", no:a.asNo || "", ariza:[...(a.issues||[]).filter(x=>x!=="Diğer"), a.desc].filter(Boolean).join(" — "), ts:a.createdAt, kim:a.src==="personel" ? (a.name || "Site personeli") : "Site sakini", mahsur:/mahsur/i.test(a.desc||""), fotoAid:a.fotoSayi ? a.id : null, bildirildi:null}))
+  ].sort((a,b) => b.ts - a.ts);
+}
+function asWaMetin(k, kisa){
+  const d = new Date(k.ts), tarih = `${d.getDate()} ${AYLAR_TR[d.getMonth()]} ${d.getFullYear()} – ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  const asansor = k.no && k.no !== "?" ? `${k.no}. asansör` : "Belirtilmedi (blok genel / ilgili kabin)";
+  const ariza = (k.ariza || "Asansör arızalı").trim();
+  if (kisa) return [`🚨 ASANSÖR ARIZASI – Bizimevler 1`, `📍 ${k.blok} Blok${k.no && k.no !== "?" ? " · " + k.no + ". asansör" : ""}`, k.mahsur ? `🆘 İÇERİDE MAHSUR KALAN VAR` : null, `⚠️ ${ariza}`, `🕒 ${tarih}`, ``, `Lütfen arızanın alındığını teyit ediniz.`].filter(x => x !== null).join("\n");
+  return [
+    `BİZİMEVLER 1 – TEKNİK SERVİS`,
+    `🚨 ASANSÖR ARIZA BİLDİRİMİ`,
+    k.mahsur ? `🆘 İÇERİDE MAHSUR KALAN VAR – ACİL MÜDAHALE` : null,
+    `📍 Blok: ${k.blok}`,
+    `🛗 Asansör: ${asansor}`,
+    `⚠️ Arıza: ${ariza}`,
+    `🕒 Bildirim: ${tarih}`,
+    `👤 Bildiren: ${k.kim || "Teknik Servis / Site Personeli"}`,
+    ASW.foto ? `📷 Fotoğraf: Ekli` : null,
+    ``,
+    `Asansör firmasından ricamız:`,
+    `Arızanın alındığına dair teyit verilmesini ve teknik ekibin müdahale durumunun bildirilmesini rica ederiz.`,
+    ``,
+    `BİZİMEVLER 1 SİTE YÖNETİMİ`
+  ].filter(x => x !== null).join("\n");
+}
+function asWaKart(){
+  const L = asWaListe(); if (!L.length) return "";
+  return `<section class="d-kart"><div class="d-bas"><h2>🛗 Açık asansör arızaları · ${L.length}</h2></div>
+    <div class="d-liste">${L.slice(0, 6).map(k => `<div class="asw-s"><b>${esc(k.blok)} Blok${k.no && k.no !== "?" ? " · " + esc(k.no) + ". asansör" : ""}${k.mahsur ? ` <span class="chip" data-s="iptal">Mahsur</span>` : ""}</b>
+      <small>${esc(k.ariza || "Asansör arızalı")} · ${saatYaz(k.ts)}${k.bildirildi ? ` · ✓ firmaya bildirildi ${saatYaz(k.bildirildi)}` : ""}</small>
+      <button class="asw-b${k.bildirildi ? " tamam" : ""}" data-act="asWa" data-v="${k.tip}:${esc(k.id)}">📲 ${k.bildirildi ? "Tekrar gönder" : "Gruba gönder"}</button></div>`).join("")}</div></section>`;
+}
+async function asWaAc(anahtar){
+  const [tip, id] = String(anahtar).split(/:(.+)/);
+  const k = asWaListe().find(x => x.tip === tip && x.id === id); if (!k) { toast("Arıza bulunamadı"); return; }
+  ASW.k = k; ASW.foto = null; ASW.fotoYuk = !!(k.fotoAid && store.getFoto);
+  let d = document.getElementById("aswModal"); if (!d){ d = document.createElement("div"); d.id = "aswModal"; d.className = "mesai-modal"; document.body.appendChild(d); }
+  const ciz = () => {
+    d.innerHTML = `<div class="mesai-ic asw-ic"><h3 style="margin:0 0 4px">📲 Asansör grubuna gönder</h3>
+      <p class="hint" style="margin:0 0 10px">Paylaş'a basınca WhatsApp'ı seçin, sonra <b>asansör grubunu</b> seçip gönderin.</p>
+      <div class="asw-sec"><button data-act="asWaTur" data-v="uzun" aria-pressed="${!ASW.kisa}">Resmi mesaj</button><button data-act="asWaTur" data-v="kisa" aria-pressed="${ASW.kisa}">Kısa mesaj</button></div>
+      <textarea id="aswMetin" rows="${ASW.kisa ? 7 : 14}">${esc(asWaMetin(k, ASW.kisa))}</textarea>
+      ${ASW.foto ? `<p class="hint" style="margin:6px 0 0">📷 Fotoğraf mesaja eklenecek</p>` : ASW.fotoYuk ? `<p class="hint" style="margin:6px 0 0">📷 Fotoğraf yükleniyor…</p>` : ""}
+      <button class="cta" data-act="asWaGonder" style="margin-top:10px;background:#1fa855">📲 WhatsApp'ta paylaş</button>
+      <button class="pill-btn" data-act="asWaKapat" style="margin-top:8px">Vazgeç</button></div>`;
+  };
+  ASW.ciz = ciz; ciz(); d.hidden = false;
+  if (k.fotoAid && store.getFoto){
+    try { const f = await store.getFoto(k.fotoAid); if (f && f[0] && ASW.k === k){ const r = await fetch(f[0]); const bl = await r.blob(); ASW.foto = new File([bl], "asansor-ariza.jpg", {type: bl.type || "image/jpeg"}); ciz(); } }
+    catch(e){ console.warn("foto", e); }
+    if (ASW.k === k){ ASW.fotoYuk = false; ciz(); }
+  }
+}
+async function asWaGonder(){
+  const k = ASW.k; if (!k) return;
+  const metin = ($("#aswMetin") && $("#aswMetin").value) || asWaMetin(k, ASW.kisa);
+  let gitti = false;
+  try {
+    if (ASW.foto && navigator.canShare && navigator.canShare({files:[ASW.foto]})){ await navigator.share({text: metin, files:[ASW.foto]}); gitti = true; }
+    else if (navigator.share){ await navigator.share({text: metin}); gitti = true; }
+    else { window.open("https://wa.me/?text=" + encodeURIComponent(metin), "_blank"); gitti = true; }
+  } catch(e){ if (e && e.name === "AbortError") return; window.open("https://wa.me/?text=" + encodeURIComponent(metin), "_blank"); gitti = true; }
+  if (gitti && k.tip === "tesis" && !k.bildirildi && store.updateTesis){
+    try { await store.updateTesis(k.id, {bildirildi: Date.now()}); toast("✓ Firmaya bildirildi olarak işaretlendi (karneye işlenir)"); } catch(e){ console.warn(e); }
+  }
+  const m = document.getElementById("aswModal"); if (m) m.hidden = true;
+}
 /* =================== ANA SAYFA (teknisyen + yönetim) — koyu kahraman bant, sayaçlar, işlem menüsü =================== */
 const IK = {un:null, mesai:[], unP:null, pers:[]};
 function dashBaslat(){
+  if (store.isAsansor && store.isAsansor()) try { tesisBaslat(); } catch(e){}
   if (!IK.un && store.listenMesaiSon) IK.un = store.listenMesaiSon(L => { IK.mesai = L; if (["panel","ik"].includes(S.view)) setTimeout(render,0); });
   if (!store.isTech() && !IK.unP && store.listenPersonelSon) IK.unP = store.listenPersonelSon(L => { IK.pers = L; if (S.view==="panel") setTimeout(render,0); });
   try { yiBaslat(); } catch(e){}
@@ -1728,6 +1815,7 @@ function vDash(isler, ayar){
       <div class="d-bas"><h2>İşlem Menüsü</h2>${tech ? `<a class="d-link" href="#panel" data-act="dFiltre" data-v="acik">Arıza listesi ${ic("sag")}</a>` : ""}</div>
       <div class="d-grid">${tiles.join("")}</div>
     </section>
+    ${asWaKart()}
     <a class="d-kart d-harita" href="#kontrol">
       <div class="d-bas"><h2><i class="d-nokta"></i>Canlı Site Haritası</h2><span class="d-link">Haritayı aç ${ic("sag")}</span></div>
       <div class="d-foto" style="background-image:url(harita-hd.jpg)"><span>${ic("pin")}Bizimevler 1</span></div>
@@ -2709,7 +2797,7 @@ function tesisHesap(){
 function tesisBaslat(){
   if (T.basladi || !store.isAsansor()) return;
   T.basladi = true;
-  const ciz = () => { if (S.view==="tesis") setTimeout(render, 0); };
+  const ciz = () => { if (S.view==="tesis" || S.view==="panel") setTimeout(render, 0); };
   T.un = store.listenTesis(list => { T.kayit = list; T.kayitGeldi = true; pAsAktar(); ciz(); });
   T.unA = store.listenTesisAyar(a => { T.ayar = a || {}; ciz(); });
   if (store.listenPersonelAsansor) T.unP = store.listenPersonelAsansor(L => { T.pAs = L; T.kayitGeldi && pAsAktar(); });
@@ -2891,6 +2979,7 @@ function tAcikArizalar(H){
       </div>
       <div class="actions">
         <button class="act primary" data-t="adim" data-id="${a.id}" data-v="${adim[0]}">${adim[1]}</button>
+        <button class="act" data-act="asWa" data-v="tesis:${esc(a.id)}" style="background:#1fa855;color:#fff;border-color:#1fa855">📲 Gruba gönder</button>
         ${tel ? `<a class="act" href="tel:${esc(tel)}">📞 Omak'ı ara</a>` : ""}
       </div></article>`; }).join("")}</div>`;
 }
@@ -3499,6 +3588,10 @@ document.addEventListener("click", async e => {
     else if (act==="gvGonder"){ gvGonder(); return; }
     else if (act==="mesaiQr"){ taramaAc(); return; }
     else if (act==="bldAc"){ bildirimAc(); return; }
+    else if (act==="asWa"){ e.preventDefault(); asWaAc(b.dataset.v); return; }
+    else if (act==="asWaTur"){ ASW.kisa = b.dataset.v === "kisa"; if (ASW.ciz) ASW.ciz(); return; }
+    else if (act==="asWaGonder"){ asWaGonder(); return; }
+    else if (act==="asWaKapat"){ const m = document.getElementById("aswModal"); if (m) m.hidden = true; return; }
     else if (act==="dFiltre"){ e.preventDefault(); if (!store.isTech()){ location.hash = "#kontrol"; return; } S.filter = b.dataset.v; render(); requestAnimationFrame(() => { const el = document.getElementById("isler"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); }); return; }
     else if (act==="dBildirim"){ e.preventDefault(); if (store.isTech()){ S.filter = "yeni"; render(); } requestAnimationFrame(() => { const el = document.getElementById(store.isTech() ? "isler" : "ayarlar"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); }); return; }
     else if (act==="dAyar"){ e.preventDefault(); const el = document.getElementById("ayarlar"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); return; }
