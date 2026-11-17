@@ -1589,7 +1589,7 @@ async function mesaiKaydet(tip, nokta){
   const d = document.getElementById("mesaiModal");
   if (d) d.querySelectorAll("button").forEach(x => x.disabled = true);
   const konum = await konumAl();
-  const o = {ad:ben.ad, kod:ben.kod, grup:ben.grup, tip, nokta, ts:Date.now(), konum: konum || null};
+  const o = {ad:ben.ad, kod:ben.kod, grup:ben.grup, tip, nokta, ts:Date.now(), konum: konum || null, ...(MS.fotoIle ? {foto:true} : {})}; MS.fotoIle = false;
   if (konum && store.getSiteKonum){ try { const m = await store.getSiteKonum(); if (m && m.lat){ o.uzakM = Math.round(mesafeM(konum, m)); } } catch(e){} }
   try { await store.mesaiEkle(o); MS.liste.unshift(o);
     const not = !konum ? `<p class="t-uyari turuncu" style="margin:8px 0">📍 Konum alınamadı. Kayıt "konumsuz" olarak işaretlendi; telefonun konum iznini açın.</p>` : o.uzakM > 400 ? `<p class="t-uyari kirmizi" style="margin:8px 0">📍 Konumunuz siteden ${o.uzakM >= 1000 ? (o.uzakM/1000).toFixed(1).replace(".",",") + " km" : o.uzakM + " m"} uzakta görünüyor. Kayıt amire işaretli gider.</p>` : "";
@@ -2329,7 +2329,7 @@ document.addEventListener("visibilitychange", () => { if (document.hidden && TAR
 async function fotoIleOku(inp){
   const f = inp.files && inp.files[0]; inp.value = ""; if (!f) return;
   // Sadece az önce çekilmiş fotoğraf kabul edilir; galeriden eski fotoğraf okutulamaz
-  if (f.lastModified && Date.now() - f.lastModified > 3*6e4){ $("#scanMsg").textContent = "Galeriden fotoğraf okutulamaz. QR'ı şimdi, noktanın başında çekin."; return; }
+  if (f.lastModified && Date.now() - f.lastModified > 3*6e4){ $("#scanMsg").textContent = "Galeriden fotoğraf okutulamaz. QR'ı şimdi, kamerayla çekin."; return; }
   $("#scanMsg").textContent = "Fotoğraf okunuyor…";
   try {
     const url = URL.createObjectURL(f);
@@ -2345,7 +2345,8 @@ async function fotoIleOku(inp){
       }
     }
     URL.revokeObjectURL(url);
-    if (txt && mesaiCoz(txt)){ $("#scanMsg").textContent = "Giriş-çıkış QR'ı fotoğraftan okutulamaz. Kamerayı QR afişine tutun."; return; }
+    // Canlı kamera açılmayan telefonlar için: sadece az önce çekilen fotoğraf (galeri yukarıda reddedildi); konum yine kaydedilir
+    if (txt && mesaiCoz(txt)){ taramaKapat(); MS.fotoIle = true; mesaiAc(mesaiCoz(txt)); return; }
     const n = txt && qrCoz(txt);
     if (n){ taramaKapat(); noktaOkut(n); return; }
     $("#scanMsg").textContent = txt ? "Bu QR bir devriye noktasına ait değil" : "Fotoğrafta QR bulunamadı. Biraz daha yakından, net çekin.";
