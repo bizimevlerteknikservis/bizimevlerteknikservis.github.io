@@ -640,7 +640,9 @@ function arizaPanel(){
   const ort = Math.round(ARZ.sureler.reduce((x,y)=>x+y,0)/Math.max(1,ARZ.sureler.length));
   const blokSay = {}; ARZ.list.forEach(a=>{ const k = a.b || a.alan; blokSay[k]=(blokSay[k]||0)+1; });
   const enCok = Object.entries(blokSay).sort((a,b)=>b[1]-a[1]).slice(0,3);
-  $("#panel").innerHTML = `${tesisKart()}${tasKart()}
+  $("#panel").innerHTML = `
+    <div class="card"><h2>Açık işler</h2><div class="rows">${acik.slice(0,8).map(a=>`<div class="row"><div><b>${esc(yerOf(a))}</b> · ${esc(a.k)}${a.kim?`<small style="display:block;color:var(--muted);font-size:12.5px">👷 ${esc(a.kim)}</small>`:""}${a.foto?`<button class="fotobtn" data-foto="${esc(a.id)}">📷 Fotoğraf${a.foto>1?` (${a.foto})`:""}</button>`:""}</div><span class="pill" style="background:${cssv(a.s==="yeni"?"--bad":"--warn")}">${a.s==="yeni"?"Yeni":"İlgileniliyor"} · ${dkOnce(a.t)} dk</span></div>`).join("") || `<div class="row"><b>Açık iş yok</b><em>✓</em></div>`}</div></div>
+    ${tesisKart()}${tasKart()}
     <div class="card"><h2>Bugün</h2>
       <div class="kpis">
         <div class="kpi"><strong>${ARZ.gelen}</strong><span>${LIVE.on?"Bugün gelen":"Gelen arıza"}</span></div>
@@ -648,7 +650,6 @@ function arizaPanel(){
         <div class="kpi"><strong style="color:var(--bad)">${acik.length}</strong><span>Açık iş</span></div>
         <div class="kpi"><strong>${Math.floor(ort/60)}<small style="font-size:18px">sa</small> ${ort%60}<small style="font-size:18px">dk</small></strong><span>Ort. çözüm süresi</span></div>
       </div></div>
-    <div class="card"><h2>Açık işler</h2><div class="rows">${acik.slice(0,8).map(a=>`<div class="row"><div><b>${esc(yerOf(a))}</b> · ${esc(a.k)}${a.kim?`<small style="display:block;color:var(--muted);font-size:12.5px">👷 ${esc(a.kim)}</small>`:""}${a.foto?`<button class="fotobtn" data-foto="${esc(a.id)}">📷 Fotoğraf${a.foto>1?` (${a.foto})`:""}</button>`:""}</div><span class="pill" style="background:${cssv(a.s==="yeni"?"--bad":"--warn")}">${a.s==="yeni"?"Yeni":"İlgileniliyor"} · ${dkOnce(a.t)} dk</span></div>`).join("") || `<div class="row"><b>Açık iş yok</b><em>✓</em></div>`}</div></div>
     <div class="card"><h2>Canlı akış</h2><ul class="feed" id="feed">${feedHTML()}</ul>
       ${enCok.length?`<p class="note">En çok bildirim: ${enCok.map(([b,n])=>`${b} (${n})`).join(", ")}</p>`:""}</div>`;
 }
