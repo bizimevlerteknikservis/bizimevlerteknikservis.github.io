@@ -1648,14 +1648,22 @@ document.addEventListener("change", e => { const c = e.target.closest('[data-act
 /* =================== ASANSÖR ARIZASI → WhatsApp asansör grubuna hazır mesaj =================== */
 const ASW = {kisa:false, k:null, foto:null};
 /* Açık asansör arızaları: Tesis kayıtları + henüz tesis kaydına dönüşmemiş personel bildirimleri */
+/* Bildiren: isim yazılmaz, sadece bölümü */
+function asBolum(a){
+  if (!a) return null;
+  if (a.src !== "personel") return "Site sakini";
+  return a.rol === "Güvenlik" ? "Güvenlik" : a.rol === BAHCIVAN ? "Bahçe / Peyzaj" : a.rol === "Temizlik" ? "Temizlik" : "Site personeli";
+}
 function asWaListe(){
   const T_ = (T.kayit || []).filter(k => k.tur==="ariza" && !k.cozuldu);
   const bagli = new Set(T_.flatMap(k => k.bildirenler || []));
   const L = store.isTech() ? S.all : IK.pers;
+  const tumAp = [...(L || []), ...(T.pAs || [])];
+  const bolumOf = k => { const B_ = [...new Set((k.bildirenler || []).map(id => asBolum(tumAp.find(a => a.id === id))).filter(Boolean))]; return B_.length ? B_.join(", ") : (k.kaynak === "personel" ? "Site personeli" : "Teknik Servis"); };
   const ap = (L || []).filter(a => (a.cat==="p_asansor" || a.cat==="asansor") && acik(a) && Date.now() - a.createdAt < 2*864e5 && !bagli.has(a.id));
   return [
-    ...T_.map(k => ({id:k.id, tip:"tesis", blok:String(k.ekipman||"").split("-")[0], no:String(k.ekipman||"").split("-")[1], ariza:k.not || "", ts:k.ts, kim:(k.bildirenAd && k.bildirenAd.length ? k.bildirenAd.join(", ") : k.by) || "", mahsur:!!k.mahsur, fotoAid:(k.bildirenler && k.bildirenler[0]) || (k.fotoSayi ? k.id : null), bildirildi:k.bildirildi || null})),
-    ...ap.map(a => ({id:a.id, tip:"appt", blok:a.block || "", no:a.asNo || "", ariza:[...(a.issues||[]).filter(x=>x!=="Diğer"), a.desc].filter(Boolean).join(" — "), ts:a.createdAt, kim:a.src==="personel" ? (a.name || "Site personeli") : "Site sakini", mahsur:/mahsur/i.test(a.desc||""), fotoAid:a.fotoSayi ? a.id : null, bildirildi:null}))
+    ...T_.map(k => ({id:k.id, tip:"tesis", blok:String(k.ekipman||"").split("-")[0], no:String(k.ekipman||"").split("-")[1], ariza:k.not || "", ts:k.ts, kim:bolumOf(k), mahsur:!!k.mahsur, fotoAid:(k.bildirenler && k.bildirenler[0]) || (k.fotoSayi ? k.id : null), bildirildi:k.bildirildi || null})),
+    ...ap.map(a => ({id:a.id, tip:"appt", blok:a.block || "", no:a.asNo || "", ariza:[...(a.issues||[]).filter(x=>x!=="Diğer"), a.desc].filter(Boolean).join(" — "), ts:a.createdAt, kim:asBolum(a), mahsur:/mahsur/i.test(a.desc||""), fotoAid:a.fotoSayi ? a.id : null, bildirildi:null}))
   ].sort((a,b) => b.ts - a.ts);
 }
 function asWaMetin(k, kisa){
