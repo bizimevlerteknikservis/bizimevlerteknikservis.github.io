@@ -57,6 +57,102 @@ button{-webkit-appearance:none;appearance:none}
 .hero h1{margin:6px 0 0;font:800 30px/1.08 var(--display);letter-spacing:-.015em;text-wrap:balance}
 .hero p{margin:0;font-size:16px;color:rgba(255,255,255,.86);max-width:30ch}
 #modeTag{background:rgba(255,255,255,.18);color:#fff;border:0;padding:6px 12px}
+/* ===== Ana sayfa (teknisyen/yönetim) ===== */
+body.dash{background:#eaf0f8}
+body.dash header.hero{display:none}
+body.dash .wrap{max-width:none;margin:0;padding:0 0 calc(104px + env(safe-area-inset-bottom,0px))}
+body.dash #demoBand{max-width:560px;margin:10px auto 0}
+.d-ic{max-width:620px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.d-hero{position:relative;color:#fff;padding:calc(14px + env(safe-area-inset-top,0px)) 0 74px;border-radius:0 0 30px 30px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(5,16,38,.62) 0%,rgba(7,22,52,.78) 45%,rgba(6,18,44,.97) 100%),url(harita-hd.jpg) center 35%/cover,#0a1f44}
+.d-hero::after{content:"";position:absolute;inset:auto -10% -40px -10%;height:120px;background:radial-gradient(ellipse at center,rgba(56,140,255,.35),transparent 70%);pointer-events:none}
+.d-hero .d-ic{position:relative;z-index:1}
+.d-ust{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.d-marka{display:flex;align-items:center;gap:9px;color:#9fd0ff}
+.d-marka svg{width:38px;height:38px}
+.d-marka b{display:block;color:#fff;font:800 19px/1 var(--display);letter-spacing:.02em}
+.d-marka small{display:block;color:rgba(255,255,255,.75);font:600 11px/1.4 var(--body);letter-spacing:.28em;margin-top:3px}
+.d-sag{display:flex;align-items:center;gap:8px}
+.d-durum{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:999px;background:rgba(8,40,40,.55);border:1px solid rgba(80,220,140,.45);font:600 13px/1 var(--body);backdrop-filter:blur(6px)}
+.d-durum i{width:9px;height:9px;border-radius:50%;background:#43e07d;box-shadow:0 0 0 0 rgba(67,224,125,.7);animation:dNabiz 2s infinite}
+.d-durum.kapali{border-color:rgba(255,120,120,.5)}.d-durum.kapali i{background:#ff6b6b;animation:none}
+@keyframes dNabiz{0%{box-shadow:0 0 0 0 rgba(67,224,125,.6)}70%{box-shadow:0 0 0 8px rgba(67,224,125,0)}100%{box-shadow:0 0 0 0 rgba(67,224,125,0)}}
+.d-zil{position:relative;width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(120,180,255,.6);background:rgba(20,50,100,.55);display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(6px)}
+.d-zil svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d-zil em,.d-alt em{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#ef3b4a;color:#fff;font:700 11.5px/20px var(--body);font-style:normal;text-align:center;box-shadow:0 0 0 2px #0b1d40}
+.d-kim{display:flex;align-items:center;gap:12px;margin-top:20px}
+.d-av{width:50px;height:50px;border-radius:50%;background:linear-gradient(140deg,#1f6fe0,#5aa8ff);display:grid;place-items:center;box-shadow:0 0 0 3px rgba(255,255,255,.12);flex:none}
+.d-av svg{width:26px;height:26px;stroke:#fff;fill:#fff;stroke-width:1.5}
+.d-kim b{display:block;font:700 18px/1.25 var(--display)}
+.d-kim small{display:block;color:rgba(255,255,255,.78);font-size:14px}
+.d-hero h1{margin:18px 0 4px;font:800 38px/1.02 var(--display);letter-spacing:-.02em}
+.d-hero p{margin:0;color:rgba(232,242,255,.85);font-size:15.5px;max-width:34ch}
+.d-say{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:20px}
+.d-s{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 4px 10px;border-radius:18px;text-decoration:none;color:#fff;
+  background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.04));border:1.5px solid var(--c);box-shadow:0 0 18px -6px var(--c),inset 0 1px 0 rgba(255,255,255,.15);backdrop-filter:blur(8px)}
+.d-s svg{width:28px;height:28px;stroke:var(--c);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.d-s strong{font:800 26px/1.1 var(--display)}
+.d-s span{font-size:12px;line-height:1.2;text-align:center;color:rgba(255,255,255,.9)}
+.d-s.kirmizi{--c:#ff4d5e}.d-s.turuncu{--c:#ffa21f}.d-s.yesil{--c:#22d39a}.d-s.mavi{--c:#4aa3ff}
+.d-govde{position:relative;margin-top:-46px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;z-index:2}
+.d-grid>*,.d-govde>*{min-width:0}
+.d-kart{display:block;background:rgba(255,255,255,.96);border-radius:24px;padding:16px;box-shadow:0 10px 30px rgba(20,50,100,.12);text-decoration:none;color:inherit;border:1px solid #e3ebf5}
+.d-bas{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.d-bas h2{margin:0;display:flex;align-items:center;gap:10px;font:800 20px/1.2 var(--display);color:#10233f}
+.d-kart>.d-bas h2::before{content:"";width:5px;height:22px;border-radius:3px;background:#2563eb}
+.d-harita>.d-bas h2::before{display:none}
+.d-link{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:#eaf2ff;color:#1d4ed8;font:700 13.5px/1 var(--body);text-decoration:none;white-space:nowrap}
+.d-link svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.d-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.d-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:104px;padding:12px 6px;border-radius:18px;text-decoration:none;color:#14243d;text-align:center;
+  background:linear-gradient(180deg,#fff,var(--bg2));border:1px solid var(--bd);box-shadow:0 4px 12px -6px var(--sh)}
+.d-tile i{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--ic);box-shadow:0 6px 14px -6px var(--sh)}
+.d-tile i svg{width:25px;height:25px;stroke:#fff;fill:none;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+.d-tile b{font:700 14.5px/1.15 var(--display)}
+.d-tile small{font-size:12px;color:#5b6b82;line-height:1.1}
+.d-tile:active{transform:scale(.97)}
+.d-tile.mavi{--ic:linear-gradient(140deg,#1d6ff2,#4aa3ff);--bg2:#eef5ff;--bd:#d9e7fb;--sh:#2b74e6}
+.d-tile.kirmizi{--ic:linear-gradient(140deg,#e7253a,#ff6a6a);--bg2:#fff1f2;--bd:#fadadd;--sh:#e5303f}
+.d-tile.turuncu{--ic:linear-gradient(140deg,#f2750c,#ffb02e);--bg2:#fff6ec;--bd:#f9e2c7;--sh:#f08a1c}
+.d-tile.mor{--ic:linear-gradient(140deg,#7c3aed,#a78bfa);--bg2:#f5f1ff;--bd:#e4dcfb;--sh:#7c4dea}
+.d-tile.camgobegi{--ic:linear-gradient(140deg,#0e9f9a,#2fd0c3);--bg2:#ecfbf9;--bd:#cdeee9;--sh:#14a89f}
+.d-tile.yesil{--ic:linear-gradient(140deg,#12a150,#3ad07a);--bg2:#eefbf3;--bd:#d0efdc;--sh:#17a456}
+.d-tile.lacivert{--ic:linear-gradient(140deg,#1e3a8a,#3b82f6);--bg2:#eff4ff;--bd:#d9e3fa;--sh:#2747a8}
+.d-tile.altin{--ic:linear-gradient(140deg,#b7791f,#f2c14e);--bg2:#fdf8ec;--bd:#f1e4c4;--sh:#c08a22}
+.d-tile.pembe{--ic:linear-gradient(140deg,#9333ea,#e05cd3);--bg2:#fbf1ff;--bd:#eedcf9;--sh:#a03be6}
+.d-nokta{width:12px;height:12px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.18);display:inline-block}
+.d-foto{position:relative;height:150px;border-radius:16px;background-size:cover;background-position:center 40%}
+.d-foto span{position:absolute;left:12px;bottom:12px;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:rgba(8,20,40,.75);color:#fff;font:700 13.5px/1 var(--body)}
+.d-foto svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.2}
+.d-canli{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:20px;background:linear-gradient(90deg,#0b1a3c,#13264f);color:#fff;text-decoration:none;box-shadow:0 10px 26px -10px rgba(11,26,60,.7);border:1px solid rgba(90,140,255,.35)}
+.d-canli b{flex:none;display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;background:#e5243b;font:800 12.5px/1 var(--body);letter-spacing:.04em}
+.d-canli b::before{content:"";width:8px;height:8px;border-radius:50%;background:#fff;animation:dNabiz2 1.2s infinite}
+@keyframes dNabiz2{50%{opacity:.25}}
+.d-ayr{width:2px;height:22px;background:#e5243b;border-radius:1px;flex:none}
+.d-ui{width:22px;height:22px;flex:none;stroke:#ff4d5e;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.d-m{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14.5px}
+.d-canli time{flex:none;padding:5px 9px;border-radius:9px;background:rgba(255,255,255,.08);font:600 13px/1 var(--mono);color:#c9d8f2}
+.d-ses{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:rgba(255,190,40,.12)}
+.d-ses svg{width:20px;height:20px;stroke:#ffc23a;fill:#ffc23a;stroke-width:1.8;stroke-linecap:round}
+.d-kart+.d-kart{margin-top:14px}.d-govde>.d-kart+.d-kart{margin-top:0}
+.d-bolum{background:transparent;padding:6px 0 0;scroll-margin-top:12px}
+.d-bolum>.d-bas h2{font-size:19px}
+.d-liste{display:grid;gap:0;border:1px solid #e3ebf5;border-radius:14px;overflow:hidden}
+.d-liste>div{display:grid;grid-template-columns:1fr auto;column-gap:10px;padding:10px 12px;border-top:1px solid #edf2f8}
+.d-liste>div:first-child{border-top:0}
+.d-liste small{grid-column:1;color:#5f7387;font-size:12.5px}
+.d-liste time{grid-column:2;grid-row:1/3;align-self:center;color:#5f7387;font:600 12.5px/1 var(--mono)}
+.d-alt{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:0 0 env(safe-area-inset-bottom,0px);background:linear-gradient(180deg,#0e1f45,#091633);border-radius:26px 26px 0 0;box-shadow:0 -10px 30px rgba(6,16,40,.35)}
+.d-alt-ic{max-width:620px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.d-alt a{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:11px 0 12px;color:#9fb3d6;text-decoration:none;font:600 12.5px/1 var(--body)}
+.d-alt a svg{width:25px;height:25px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.d-alt a[aria-current="page"]{color:#fff}.d-alt a[aria-current="page"] svg{stroke:#4aa3ff}
+.d-alt a[aria-current="page"]::after{content:"";position:absolute;bottom:4px;width:44px;height:3px;border-radius:2px;background:#3b8cff}
+.d-alt em{top:4px;right:calc(50% - 24px);box-shadow:0 0 0 2px #0e1f45}
+body:not(.dash) .d-alt{display:none}
+@media (max-width:380px){.d-hero h1{font-size:32px}.d-s strong{font-size:22px}.d-s span{font-size:11px}.d-tile{min-height:96px}.d-tile b{font-size:13.5px}}
+@media (min-width:700px){.d-tile{min-height:120px}}
+
 
 .wrap{position:relative;max-width:560px;margin:-40px auto 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 128px}
 .pill-btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:9px 15px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;box-shadow:0 1px 2px rgba(20,60,100,.05)}
@@ -424,6 +520,7 @@ const AYAR = {
   acilTelefon: "0212 405 10 12",   // acil durumlar için WhatsApp numarası
   demoPin: "1234",              // demo modunda teknisyen paneli PIN'i
   teknisyenEpostalari: ["teknisyenzeynel91@gmail.com"],  // Firebase'de teknisyen hesabı
+  teknisyenAd: "Zeynel Sarı",
   vapid: "BBAd4z3re49GlXKtq50ai2EcUMrleMh0ApjueNziDqIl6CzxPj-qJFndjEPk7TH-ceaeVp9DZDI5HWK9_f_Uu_I",                    // telefon bildirimi: Firebase → Proje ayarları → Cloud Messaging → Web Push sertifikası (ortak anahtar)
   bildirimSunucu: "https://bizimevler1bildirim.teknisyenzeynel91.workers.dev",           // bildirim postacısı (Cloudflare Worker) adresi: https://….workers.dev
   // Firebase'den kopyaladığınız firebaseConfig nesnesini null yerine yapıştırın:
@@ -675,6 +772,8 @@ function DemoStore(){
     async setDuyuru(v){ mem.duyuru = v; save(); },
     listenGorev: cb => sub(() => cb((mem.gorev ||= []).filter(g => g.ts > Date.now() - 10*864e5 || g.tur==="talimat"))),
     async mesaiEkle(o){ (mem.mesai ||= []).push({id:"m"+Date.now().toString(36), uid:mem.uid, ...o}); save(); },
+    listenMesaiSon: cb => sub(() => cb((mem.mesai||[]).filter(m => m.ts > Date.now() - 20*36e5))),
+    listenPersonelSon: cb => sub(() => cb((mem.appts||[]).filter(a => a.src==="personel" && a.createdAt > Date.now() - 30*864e5))),
     async getSiteKonum(){ return mem.siteKonum || null; },
     listenMesaiBen: cb => sub(() => cb((mem.mesai||[]).filter(m => m.uid===mem.uid && m.ts > Date.now() - 2*864e5))),
     async gorevEkle(o){ (mem.gorev ||= []).push({id:"g"+Date.now().toString(36)+Math.random().toString(36).slice(2,5), ...o}); save(); },
@@ -769,6 +868,8 @@ function FirebaseStore(cfg){
       return () => { u1(); u2(); }; },
     async gorevEkle(o){ const r = await fs.addDoc(fs.collection(db,"gorev"), {...o, uid:user.uid}); bildirimTetik("gorev", r.id); },
     async mesaiEkle(o){ await fs.addDoc(fs.collection(db,"mesai"), {...o, uid:user.uid}); },
+    listenMesaiSon(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"mesai"), fs.where("ts",">=",Date.now() - 20*36e5)), s => cb(s.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.warn("mesai son", e && e.code); cb([]); }); },
+    listenPersonelSon(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"appointments"), fs.where("src","==","personel")), s => cb(s.docs.map(d=>({id:d.id, ...d.data()})).filter(a => a.createdAt > Date.now() - 30*864e5)), e => { console.warn("personel son", e && e.code); cb([]); }); },
     async getSiteKonum(){ if (this._sk !== undefined) return this._sk; try { const s = await fs.getDoc(fs.doc(db,"duyuru","konum")); this._sk = s.exists() ? s.data() : null; } catch(e){ this._sk = null; } return this._sk; },
     listenMesaiBen(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"mesai"), fs.where("uid","==",user.uid)), s => cb(s.docs.map(d=>({id:d.id, ...d.data()})).filter(m => m.ts > Date.now() - 2*864e5)), e => { console.warn("mesai", e && e.code); cb([]); }); },
     async gorevGuncelle(id, p){ await fs.updateDoc(fs.doc(db,"gorev",id), p); if (p.durum === "yapildi") bildirimTetik("yapildi", id); },
@@ -1068,10 +1169,10 @@ const ymdS = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}
 const ymdTarih = x => { const [y,m,d] = String(x||"").split("-").map(Number); return y ? new Date(y, m-1, d, 12) : null; };
 const aralik = e => { const a = ymdTarih(e.bas), b = ymdTarih(e.bit) || a; return a ? (ymdS(a) === ymdS(b) ? gunAy(a) : `${gunAy(a)} – ${gunAy(b)}`) : ""; };
 function yiBaslat(){
-  if (!YI.un && store.listenIzinler) YI.un = store.listenIzinler(v => { YI.v = v; if (["personel","calisma","devriye","izinler"].includes(S.view)) setTimeout(render,0); });
+  if (!YI.un && store.listenIzinler) YI.un = store.listenIzinler(v => { YI.v = v; if (["personel","calisma","devriye","izinler","ik"].includes(S.view)) setTimeout(render,0); });
 }
 function gelBaslat(){
-  if (!YI.unG && store.listenGelemeyen && (store.isTech() || store.isTesis() || (store.isYetkili && store.isYetkili()))) YI.unG = store.listenGelemeyen(L => { YI.gel = L; if (S.view==="izinler") setTimeout(render,0); });
+  if (!YI.unG && store.listenGelemeyen && (store.isTech() || store.isTesis() || (store.isYetkili && store.isYetkili()))) YI.unG = store.listenGelemeyen(L => { YI.gel = L; if (S.view==="izinler" || S.view==="ik") setTimeout(render,0); });
 }
 const izinListe = () => (YI.v && Array.isArray(YI.v.liste)) ? YI.v.liste : [];
 function guvIsimler(){
@@ -1535,6 +1636,146 @@ function bildirimTazele(){ const k = bldOku(), kim = bldKim(); if (!k || !kim ||
 async function bildirimAriza(ac){ const k = bldOku(); if (!k) return; k.ariza = ac; bldYaz(k); const kim = bldKim(); if (!kim) return;
   try { await store.bildirimKayit({token:k.token, rol:kim.rol, ad:kim.ad, grup:kim.grup, kod:kim.kod, ariza:ac, gorev:true, cihaz:(bldIOS() ? "iPhone" : /android/i.test(navigator.userAgent) ? "Android" : "Bilgisayar")}); toast(ac ? "Arıza bildirimleri açık" : "Arıza bildirimleri kapalı"); } catch(e){ toast("Kaydedilemedi"); } }
 document.addEventListener("change", e => { const c = e.target.closest('[data-act="bldAriza"]'); if (c) bildirimAriza(c.checked); });
+/* =================== ANA SAYFA (teknisyen + yönetim) — koyu kahraman bant, sayaçlar, işlem menüsü =================== */
+const IK = {un:null, mesai:[], unP:null, pers:[]};
+function dashBaslat(){
+  if (!IK.un && store.listenMesaiSon) IK.un = store.listenMesaiSon(L => { IK.mesai = L; if (["panel","ik"].includes(S.view)) setTimeout(render,0); });
+  if (!store.isTech() && !IK.unP && store.listenPersonelSon) IK.unP = store.listenPersonelSon(L => { IK.pers = L; if (S.view==="panel") setTimeout(render,0); });
+  try { yiBaslat(); } catch(e){}
+}
+/* QR ile giriş yapmış, henüz çıkış yapmamış kişiler */
+function ikIceride(){
+  const son = {}; IK.mesai.slice().sort((a,b)=>a.ts-b.ts).forEach(m => { const k = (m.ad||"").trim(); if (k) son[k] = m; });
+  return Object.values(son).filter(m => m.tip==="giris" && Date.now() - m.ts < 18*36e5).sort((a,b)=>a.ts-b.ts);
+}
+const IC = {
+  shield:'<path d="M12 3l7 3v6c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  alert:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  wrench:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
+  check:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+  users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c2.8.2 5 2.6 5 5.8"/>',
+  building:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 21v-4h6v4M8 7h2M14 7h2M8 11h2M14 11h2"/>',
+  clip:'<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 13l2 2 4-4"/>',
+  broom:'<path d="M15 3 11 11"/><path d="M6 12h10l2 9H4z"/><path d="M9 16v5M12.5 16v5"/>',
+  chart:'<path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/>',
+  radar:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4"/>',
+  wallet:'<rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18M16 15h2"/>',
+  cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h2M12 14h2M16 14h.01M8 17h2M12 17h2"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
+  home:'<path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/>',
+  pin:'<path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+  ses:'<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>',
+  sag:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  izin:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M9 15l2 2 4-4"/>',
+  kul:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>',
+  qr:'<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"/>'
+};
+const ic = (k, c) => `<svg viewBox="0 0 24 24" class="${c||""}" aria-hidden="true">${IC[k]}</svg>`;
+function dashAd(){
+  if (store.isTech()) return AYAR.teknisyenAd || "Teknisyen";
+  const k = String(store.kim ? store.kim() : "").replace(/[._-]+/g, " ").trim();
+  return k ? k.split(" ").map(w => w.charAt(0).toLocaleUpperCase("tr") + w.slice(1)).join(" ") : "Yönetim";
+}
+function dashSon(L){
+  const a = L.filter(x => x.status !== "iptal" && !["p_tasinma","p_gelemiyorum"].includes(x.cat)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0))[0];
+  if (!a || Date.now() - a.createdAt > 24*36e5) return null;
+  const yer = a.src==="personel" ? (a.alan || (a.block ? a.block + " BLOK" : "Ortak alan")) : (a.block ? a.block + " BLOK" : "Daire");
+  return {m:`${yer.toLocaleUpperCase("tr")} – ${catOf(a.cat).ad} bildirildi`, t:saatYaz(a.createdAt)};
+}
+function vDash(isler, ayar){
+  dashBaslat();
+  const tech = store.isTech(), tesis = store.isTesis && store.isTesis();
+  const L = tech ? S.all : IK.pers;
+  const yeni = L.filter(a => a.status==="bekliyor" && !["p_tasinma","p_gelemiyorum"].includes(a.cat)).length;
+  const isl = L.filter(a => a.status==="onaylandi").length;
+  const bugun = ymd(new Date());
+  const coz = L.filter(a => a.status==="tamamlandi" && a.completedAt && ymd(new Date(a.completedAt))===bugun).length;
+  const ic_ = ikIceride().length;
+  const son = dashSon(L);
+  const T = (href, k, renk, ad, alt) => `<a class="d-tile ${renk}" href="${href}"><i>${ic(k)}</i><b>${ad}</b>${alt ? `<small>${alt}</small>` : ""}</a>`;
+  const tiles = [
+    T("#devriye", "shield", "mavi", "Devriye", "QR okut"),
+    T("#personel", "alert", "kirmizi", "Arıza Bildir"),
+    (tech || tesis) && T("#tesis", "building", "turuncu", "Tesis Takip"),
+    T("#ik", "users", "mor", "Personel", "İzin · Puantaj"),
+    T("#gorev", "clip", "camgobegi", "Görev Ver"),
+    (tech || tesis) && T("#calisma", "broom", "yesil", "Temizlik", "Çalışma listesi"),
+    T("bizkontrol.html", "chart", "lacivert", "BizKontrol", "Rapor"),
+    tech && T("muhasebe.html", "wallet", "altin", "Muhasebe"),
+    T("#kontrol", "radar", "pembe", "Canlı Kontrol", "Merkezi")
+  ].filter(Boolean);
+  const h = new Date().getHours(), selam = h < 6 ? "İyi geceler" : h < 12 ? "Günaydın" : h < 18 ? "İyi günler" : "İyi akşamlar";
+  return `<section class="d-hero"><div class="d-ic">
+    <div class="d-ust">
+      <div class="d-marka"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M5 35V19h7v16M14 35V9h9v26M25 35V15h8v20M3 35h34" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M17 13h3M17 17h3M17 21h3M17 25h3M27 19h2M27 23h2M27 27h2M7 23h2M7 27h2" stroke="currentColor" stroke-width="1.8"/></svg><span><b>BİZİMEVLER 1</b><small>AVCILAR</small></span></div>
+      <div class="d-sag"><span class="d-durum${navigator.onLine ? "" : " kapali"}"><i></i>${navigator.onLine ? "Sistem aktif" : "Çevrimdışı"}</span>
+        <button class="d-zil" data-act="dBildirim" aria-label="Bildirimler">${ic("bell")}${yeni ? `<em>${yeni}</em>` : ""}</button></div>
+    </div>
+    <div class="d-kim"><span class="d-av">${ic("kul")}</span><div><b>${selam}, ${esc(dashAd())} 👋</b><small>Bizimevler 1 ${tech ? "Teknik Servis Paneli" : "Yönetim Paneli"}</small></div></div>
+    <h1>Teknik Servis</h1>
+    <p>${tech ? "Gelen arızaları gör, durumlarını güncelle, sahayı tek ekrandan yönet." : "Personel, devriye ve arıza durumunu tek ekrandan takip et."}</p>
+    <div class="d-say">
+      <a class="d-s kirmizi" href="#panel" data-act="dFiltre" data-v="yeni">${ic("alert")}<strong>${yeni}</strong><span>Açık arıza</span></a>
+      <a class="d-s turuncu" href="#panel" data-act="dFiltre" data-v="isleniyor">${ic("wrench")}<strong>${isl}</strong><span>İşlemde</span></a>
+      <a class="d-s yesil" href="#panel" data-act="dFiltre" data-v="tamam">${ic("check")}<strong>${coz}</strong><span>Bugün çözülen</span></a>
+      <a class="d-s mavi" href="#ik">${ic("users")}<strong>${ic_}</strong><span>Şu an işte</span></a>
+    </div>
+  </div></section>
+  <div class="d-ic d-govde">
+    <section class="d-kart">
+      <div class="d-bas"><h2>İşlem Menüsü</h2>${tech ? `<a class="d-link" href="#panel" data-act="dFiltre" data-v="acik">Arıza listesi ${ic("sag")}</a>` : ""}</div>
+      <div class="d-grid">${tiles.join("")}</div>
+    </section>
+    <a class="d-kart d-harita" href="#kontrol">
+      <div class="d-bas"><h2><i class="d-nokta"></i>Canlı Site Haritası</h2><span class="d-link">Haritayı aç ${ic("sag")}</span></div>
+      <div class="d-foto" style="background-image:url(harita-hd.jpg)"><span>${ic("pin")}Bizimevler 1</span></div>
+    </a>
+    <a class="d-canli" href="#kontrol"><b>CANLI</b><span class="d-ayr"></span>${son ? `${ic("alert","d-ui")}<span class="d-m">${esc(son.m)}</span><time>${son.t}</time>` : `<span class="d-m" style="opacity:.75">Son 24 saatte yeni arıza bildirimi yok</span>`}<i class="d-ses">${ic("ses")}</i></a>
+    ${isler ? `<section id="isler" class="d-bolum"><div class="d-bas"><h2>Arıza işleri</h2></div>${isler}</section>` : ""}
+    <section id="ayarlar" class="d-bolum"><div class="d-bas"><h2>Ayarlar</h2></div>
+      ${bildirimKart()}
+      ${ayar || ""}
+      <button class="cta ghost" data-act="cikis" style="margin-top:12px">Çıkış yap</button>
+    </section>
+  </div>
+  <nav class="d-alt" aria-label="Ana menü"><div class="d-alt-ic">
+    <a href="#panel" data-act="dUst" aria-current="page">${ic("home")}<span>Ana Sayfa</span></a>
+    <a href="bizkontrol.html">${ic("chart")}<span>Raporlar</span></a>
+    <a href="#panel" data-act="dBildirim">${ic("bell")}<span>Bildirimler</span>${yeni ? `<em>${yeni}</em>` : ""}</a>
+    <a href="#panel" data-act="dAyar">${ic("gear")}<span>Ayarlar</span></a>
+  </div></nav>`;
+}
+/* Personel işleri: izin · puantaj · görev · çalışma listesi · şu an işte */
+function vIK(){
+  dashBaslat();
+  const tech = store.isTech(), tesis = store.isTesis && store.isTesis(), yon = store.isYetkili && store.isYetkili();
+  if (!tech && !yon) return `<div class="card"><h2>Yetki gerekli</h2><p class="hint">Bu bölüm teknisyen, müdür ve amirler içindir.</p><a class="cta" href="#panel" style="display:block;text-align:center;text-decoration:none">Girişe dön</a></div>`;
+  const ice = ikIceride();
+  const bugunS = ymd(new Date());
+  const izinli = ((YI.v && YI.v.liste) || []).filter(z => z.bas <= bugunS && z.bit >= bugunS);
+  const gel = (YI.gel || []).filter(a => a.createdAt > Date.now() - 20*36e5 && a.status !== "iptal");
+  const grupAd = g => g==="guvenlik" ? "Güvenlik" : g==="bahce" ? "Bahçe" : "Temizlik";
+  const T = (href, k, renk, ad, alt) => `<a class="d-tile ${renk}" href="${href}"><i>${ic(k)}</i><b>${ad}</b>${alt ? `<small>${alt}</small>` : ""}</a>`;
+  return `<div class="d-bas" style="margin:4px 0 12px"><a class="d-link" href="#panel">‹ Ana sayfa</a></div>
+  <section class="d-kart"><div class="d-bas"><h2>Personel işleri</h2></div>
+    <div class="d-grid">
+      ${(tech || tesis) ? T("#izinler", "izin", "mor", "İzinler", "Yıllık · rapor") : ""}
+      ${T("puantaj.html", "clock", "yesil", "Puantaj", "Aylık · Excel")}
+      ${T("#gorev", "clip", "camgobegi", "Görev Ver")}
+      ${(tech || tesis) ? T("#calisma", "broom", "turuncu", "Çalışma", "Hafta sonu") : ""}
+      ${T("bizkontrol.html", "chart", "lacivert", "Devam", "Rapor")}
+      ${T("puantaj.html", "qr", "mavi", "QR Mesai", "Giriş-çıkış")}
+    </div></section>
+  <section class="d-kart"><div class="d-bas"><h2><i class="d-nokta"></i>Şu an işte · ${ice.length}</h2></div>
+    ${ice.length ? `<div class="d-liste">${ice.map(m => `<div><b>${esc(m.ad)}</b><small>${grupAd(m.grup)}</small><time>${saatYaz(m.ts)}</time></div>`).join("")}</div>` : `<p class="hint" style="margin:0">QR ile giriş yapmış kimse yok.</p>`}
+  </section>
+  ${gel.length ? `<section class="d-kart"><div class="d-bas"><h2>🚫 Bugün gelemeyen · ${gel.length}</h2></div><div class="d-liste">${gel.map(a => `<div><b>${esc(a.name||"")}</b><small>${esc(a.desc||"")}</small><time>${saatYaz(a.createdAt)}</time></div>`).join("")}</div></section>` : ""}
+  <section class="d-kart"><div class="d-bas"><h2>🏖️ Bugün izinli · ${izinli.length}</h2>${(tech || tesis) ? `<a class="d-link" href="#izinler">İzinler ${ic("sag")}</a>` : ""}</div>
+    ${izinli.length ? `<div class="d-liste">${izinli.map(z => `<div><b>${esc(z.ad)}</b><small>${esc({yillik:"Yıllık izin", rapor:"Rapor", mazeret:"Mazeret", ucretsiz:"Ücretsiz"}[z.tur] || z.tur || "İzin")}</small><time>${z.bit.slice(8)}.${z.bit.slice(5,7)}'e kadar</time></div>`).join("")}</div>` : `<p class="hint" style="margin:0">Bugün izinli kimse yok.</p>`}
+  </section>`;
+}
 /* =================== GÖREV VER (müdür/amir → personel) =================== */
 const GV = {un:null, liste:[], dizin:null, unD:null, f:{kime:"", yer:"", metin:"", tur:"gorev", bitis:"hafta", tarih:""}, filtre:"acik", sonEklenen:null};
 const talAktif = g => g.tur==="talimat" && g.durum!=="iptal" && (!g.bitis || g.bitis > Date.now());
@@ -1994,7 +2235,8 @@ function vRandevularim(){
 }
 
 function vPanel(){
-  if (!store.isTech() && store.isYetkili && store.isYetkili()){
+  if (!store.isTech() && store.isYetkili && store.isYetkili()) return vDash();
+  if (!store.isTech() && store.isYetkili && store.isYetkili() && false){
     return `<div class="card"><h2>Hoş geldiniz${store.kim ? ", " + esc(store.kim()) : ""}</h2><p class="hint">Daire arızaları sadece teknisyene açıktır. Yetkili olduğunuz bölümler:</p>
       <a class="cta" href="#devriye" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px">🛡️ Devriye (QR okut)</a>
       <a class="cta" href="#personel" style="display:block;text-align:center;text-decoration:none;margin-bottom:10px">📝 Arıza bildir (fotoğraflı)</a>
@@ -2033,6 +2275,23 @@ function vPanel(){
     list.filter(a=>a.status==="onaylandi").forEach(a => ekle("İlgilenilenler", a));
   } else list.forEach(a => ekle(ad[S.filter], a));
   const bugunBiten = all.filter(a => a.status==="tamamlandi" && a.completedAt && ymd(new Date(a.completedAt))===bugun).length;
+  if (!S.panelEski) return vDash(`
+    <div class="summary">
+      <div class="sum"><strong style="color:var(--wait)">${all.filter(a=>a.status==="bekliyor").length}</strong><span>Yeni</span></div>
+      <div class="sum"><strong style="color:var(--ok)">${all.filter(a=>a.status==="onaylandi").length}</strong><span>İlgilenilen</span></div>
+      <div class="sum"><strong style="color:var(--done)">${bugunBiten}</strong><span>Bugün biten</span></div>
+    </div>
+    <div class="filters">${Object.keys(ad).map(k=>`<button class="pill-btn" data-act="filtre" data-v="${k}" aria-current="${S.filter===k}">${ad[k]}</button>`).join("")}</div>
+    ${list.length ? gruplar.map(g=>`<div class="group-h">${esc(g.b)}</div><div class="list">${g.l.map(a=>fis(a,true)).join("")}</div>`).join("")
+      : `<div class="empty"><strong>Bu filtrede iş yok</strong>Sakinler arıza bildirdikçe burada görünür.</div>`}`, `
+    <details class="card t-ayar" id="rolKart" ${S.rolAcik?"open":""}><summary><b>👥 Yönetim erişimi</b> · Kontrol Merkezi'ne kim girebilir</summary>
+      <p class="hint">Buraya yazılan e-postalar <b>sadece Canlı Kontrol Merkezi'ni</b> görebilir (personel bildirimleri, devriye, tesis durumu, raporlar). <b>Daire arızalarını ve bu paneli göremezler.</b> Her satıra bir e-posta.</p>
+      <textarea id="rolListe" rows="4" placeholder="mudur@ornek.com&#10;yonetim@ornek.com">${esc(S.rolTaslak ?? (S.roller||[]).join("\n"))}</textarea>
+      <p class="hint" style="margin-top:12px"><b>🏢 Tesis takibe de girebilenler</b> · Bu e-postalar ayrıca <b>Tesis takip</b> sayfasına girip asansör, jeneratör, hidrofor ve kesinti kaydı yapabilir. (Daire arızalarını yine göremezler.)</p>
+      <textarea id="rolTesis" rows="2" placeholder="ali@ornek.com">${esc(S.rolTesisTaslak ?? (S.rolTesis||[]).join("\n"))}</textarea>
+      <button class="cta ghost" data-act="rolKaydet" style="margin-top:8px">Kaydet</button>
+      <p class="hint">Sonra Firebase → Authentication → <b>Add user</b> ile bu e-postalara birer şifre tanımlayın.</p></details>
+    ${kodPanel()}`);
   return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="margin:0;font:600 22px/1.2 var(--display)">İş paneli</h2><button class="pill-btn cikis-btn" style="margin-left:auto" data-act="cikis"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Çıkış yap</button></div>
   <div class="hizli-menu">
     <a href="#devriye"><span>🛡️</span>Devriye</a>
@@ -3156,16 +3415,19 @@ function kodBaslat(){
 function render(){
   syncForm();
   const keep = document.activeElement && document.activeElement.id;
-  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="calisma" ? vCalisma() : S.view==="izinler" ? vIzinler() : S.view==="gorev" ? vGorev() : S.view==="gtasinma" ? vGuvTasinma() : S.view==="personel" ? vPersonel() : S.view==="devriye" ? vDevriye() : vRandevu();
-  document.querySelector("nav.tabs").hidden = S.view==="personel" || S.view==="devriye" || S.view==="gtasinma" || (appDosya()==="teknik.html" && !store.isTech());
+  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="calisma" ? vCalisma() : S.view==="izinler" ? vIzinler() : S.view==="ik" ? vIK() : S.view==="gorev" ? vGorev() : S.view==="gtasinma" ? vGuvTasinma() : S.view==="personel" ? vPersonel() : S.view==="devriye" ? vDevriye() : vRandevu();
+  const dash = S.view==="panel" && (store.isTech() || (store.isYetkili && store.isYetkili())) && !S.panelEski;
+  document.body.classList.toggle("dash", dash);
+  document.querySelector("nav.tabs").hidden = dash || S.view==="personel" || S.view==="devriye" || S.view==="gtasinma" || (appDosya()==="teknik.html" && !store.isTech());
   $("#ustYazi").textContent = S.view==="personel" && appDosya()==="devriye.html" ? "Bizimevler 1 · Güvenlik" : S.view==="personel" ? "Bizimevler 1 · Personel" : S.view==="devriye" || S.view==="gtasinma" ? "Bizimevler 1 · Güvenlik" : (AYAR.ustYazi || "Teknik Servis");
-  $("#siteName").textContent = S.view==="devriye" ? "Devriye" : S.view==="gtasinma" ? "Taşınma & Tadilat" : (AYAR.baslik || AYAR.siteAdi);
+  $("#siteName").textContent = S.view==="ik" ? "Personel" : S.view==="devriye" ? "Devriye" : S.view==="gtasinma" ? "Taşınma & Tadilat" : (AYAR.baslik || AYAR.siteAdi);
   $("#heroSub").textContent = S.view==="randevularim" ? "Bildirimlerinin durumunu ve teknisyen notlarını buradan takip et."
     : S.view==="panel" ? "Gelen arızaları gör, durumlarını güncelle."
     : S.view==="tesis" ? "Asansör, jeneratör, yakıt ve elektrik kesintisi takibi."
     : S.view==="tasinma" ? "Taşınma ve tadilat kayıtları · Pzt–Cmt 10:00–17:00, pazar yasak."
     : S.view==="gtasinma" ? "Bugün ve önümüzdeki günlerde kayıtlı taşınma ve tadilatlar."
     : S.view==="gorev" ? "Personele görev ver, gördü mü yaptı mı anında takip et."
+    : S.view==="ik" ? "İzinler, puantaj, görevler ve kimin işte olduğu tek yerde."
     : S.view==="personel" && appDosya()==="devriye.html" ? "Devriyede gördüğün arızayı fotoğrafıyla bildir, teknisyene anında gitsin."
     : S.view==="personel" ? "Sahada gördüğün arızayı ya da ihtiyacın olan malzemeyi 15 saniyede bildir."
     : S.view==="devriye" ? "Noktaya geldiğinde QR'ı okut, turun kaydedilsin."
@@ -3237,6 +3499,10 @@ document.addEventListener("click", async e => {
     else if (act==="gvGonder"){ gvGonder(); return; }
     else if (act==="mesaiQr"){ taramaAc(); return; }
     else if (act==="bldAc"){ bildirimAc(); return; }
+    else if (act==="dFiltre"){ e.preventDefault(); if (!store.isTech()){ location.hash = "#kontrol"; return; } S.filter = b.dataset.v; render(); requestAnimationFrame(() => { const el = document.getElementById("isler"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); }); return; }
+    else if (act==="dBildirim"){ e.preventDefault(); if (store.isTech()){ S.filter = "yeni"; render(); } requestAnimationFrame(() => { const el = document.getElementById(store.isTech() ? "isler" : "ayarlar"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); }); return; }
+    else if (act==="dAyar"){ e.preventDefault(); const el = document.getElementById("ayarlar"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); return; }
+    else if (act==="dUst"){ e.preventDefault(); scrollTo({top:0, behavior:"smooth"}); return; }
     else if (act==="bldDene"){ navigator.serviceWorker.ready.then(r => r.showNotification("Bizimevler 1", {body:"Deneme bildirimi ✓ Gerçek bildirimler de böyle görünür.", tag:"bld-test"})).catch(()=>toast("Gösterilemedi")); return; }
     else if (act==="mesaiQrAc"){ const m = document.getElementById("mesaiModal"); if (m) m.hidden = true; taramaAc(); return; }
     else if (act==="mesaiKaydet"){ mesaiKaydet(v, b.dataset.n); return; }
@@ -3491,7 +3757,7 @@ function route(){
     if (n) noktaOkut(n); else toast("QR kodu tanınmadı");
     return;
   }
-  S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma","calisma","izinler","gtasinma","gorev"].includes(h) ? h : "randevu";
+  S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma","calisma","izinler","gtasinma","gorev","ik"].includes(h) ? h : "randevu";
   // B1 Teknik uygulamasında sakin arıza formu yok (amirler görmesin); teknisyen #randevu ile yine açabilir
   if (appDosya()==="teknik.html" && (S.view==="randevu"||S.view==="randevularim") && !store.isTech()){ S.view = "panel"; history.replaceState(null, "", location.pathname + "#panel"); }
   if (S.view !== "tesis"){ T.f = null; T.detay = null; }
