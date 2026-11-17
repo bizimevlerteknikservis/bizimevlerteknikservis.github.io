@@ -342,7 +342,7 @@ const msSupheli = o => !!(o.gs || o.cs);
 /* Konum etiketi: dokununca Google Haritalar'da açılır */
 function msKonum(r){
   if (!r) return "";
-  if (!r.konum || !r.konum.lat) return `<span class="kz yok">📍 konum yok</span>`;
+  if (!r.konum || !r.konum.lat){ const n = {izin:"izin kapalı", kapali:"telefonda konum kapalı", zaman:"bulunamadı", yok:"desteklenmiyor"}[r.konumHata]; return `<span class="kz yok" title="QR okutulduğunda telefon konum vermedi${n ? ": " + n : ""}. Bu, uzakta olduğu anlamına gelmez.">📍 konum yok${n ? ` · ${n}` : ""}</span>`; }
   const bilinmez = !(P.siteKonum && P.siteKonum.lat) && r.uzakM == null;
   const m = msUzak(r), uzak = !bilinmez && m > 400, yaz = bilinmez ? "haritada gör" : m >= 1000 ? (m/1000).toFixed(1).replace(".",",")+" km uzakta" : uzak ? m+" m uzakta" : "sitede";
   return `<a class="kz${uzak?" uzak":""}" href="https://maps.google.com/?q=${r.konum.lat},${r.konum.lng}" target="_blank" rel="noopener">📍 ${yaz}</a>`;

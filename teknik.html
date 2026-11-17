@@ -1675,11 +1675,12 @@ async function mesaiKaydet(tip, nokta){
   const ben = mesaiBen(); if (!ben || MS.kayit) return; MS.kayit = true;
   const d = document.getElementById("mesaiModal");
   if (d) d.querySelectorAll("button").forEach(x => x.disabled = true);
-  const konum = await konumAl();
-  const o = {ad:ben.ad, kod:ben.kod, grup:ben.grup, tip, nokta, ts:Date.now(), konum: konum || null, ...(MS.fotoIle ? {foto:true} : {})}; MS.fotoIle = false;
+  if (d){ const h = d.querySelector(".mesai-ic"); if (h && !h.querySelector(".ms-konum")) h.insertAdjacentHTML("beforeend", `<p class="hint ms-konum" style="margin:10px 0 0">📍 Konum alınıyor, birkaç saniye…</p>`); }
+  const konum = await konumAl(true);
+  const o = {ad:ben.ad, kod:ben.kod, grup:ben.grup, tip, nokta, ts:Date.now(), konum: konum || null, ...(konum ? {} : {konumHata:KONUM_HATA || "zaman"}), ...(MS.fotoIle ? {foto:true} : {})}; MS.fotoIle = false;
   if (konum && store.getSiteKonum){ try { const m = await store.getSiteKonum(); if (m && m.lat){ o.uzakM = Math.round(mesafeM(konum, m)); } } catch(e){} }
   try { await store.mesaiEkle(o); MS.liste.unshift(o);
-    const not = !konum ? `<p class="t-uyari turuncu" style="margin:8px 0">📍 Konum alınamadı. Kayıt "konumsuz" olarak işaretlendi; telefonun konum iznini açın.</p>` : o.uzakM > 400 ? `<p class="t-uyari kirmizi" style="margin:8px 0">📍 Konumunuz siteden ${o.uzakM >= 1000 ? (o.uzakM/1000).toFixed(1).replace(".",",") + " km" : o.uzakM + " m"} uzakta görünüyor. Kayıt amire işaretli gider.</p>` : "";
+    const not = !konum ? `<p class="t-uyari turuncu" style="margin:8px 0">📍 Konum alınamadı: ${KONUM_NEDEN[o.konumHata] || "bilinmeyen neden"}. Kayıt "konumsuz" olarak işaretlendi. ${o.konumHata==="izin" ? "Adres çubuğundaki 🔒 → İzinler → Konum → İzin ver." : o.konumHata==="kapali" ? "Telefonun üst menüsünden Konum'u açın." : "Bir dahaki sefere kulübe kapısının dışında okutun."}</p>` : o.uzakM > 400 ? `<p class="t-uyari kirmizi" style="margin:8px 0">📍 Konumunuz siteden ${o.uzakM >= 1000 ? (o.uzakM/1000).toFixed(1).replace(".",",") + " km" : o.uzakM + " m"} uzakta görünüyor. Kayıt amire işaretli gider.</p>` : "";
     if (d) d.innerHTML = `<div class="mesai-ic"><div style="font-size:54px">${tip==="giris"?"✅":"🏁"}</div><h3>${tip==="giris"?"Giriş kaydedildi":"Çıkış kaydedildi"}</h3><div class="mesai-saat">${saatYaz(o.ts)}</div>${not}<p>${tip==="giris"?"İyi çalışmalar!":"Emeğinize sağlık, iyi dinlenmeler."}</p><button class="cta" data-act="mesaiKapat">Tamam</button></div>`;
     if (navigator.vibrate) navigator.vibrate(80); render(); }
   catch(e){ console.error(e); toast(e && e.code==="permission-denied" ? "Kaydedilemedi: kodunuzla giriş yapın" : "Kaydedilemedi, internet bağlantısını kontrol edin"); if (d) d.querySelectorAll("button").forEach(x => x.disabled = false); }
@@ -2608,14 +2609,25 @@ function qrCoz(txt){
   const n = DEV_N["n"+String(+m[1]).padStart(2,"0")];
   return n && n.k === m[2].toLowerCase() ? n : null;
 }
-function konumAl(){
-  return new Promise(res => {
-    if (!navigator.geolocation) return res(null);
-    const t = setTimeout(()=>res(null), 4000);
-    navigator.geolocation.getCurrentPosition(p => { clearTimeout(t); res({lat:+p.coords.latitude.toFixed(6), lng:+p.coords.longitude.toFixed(6), acc:Math.round(p.coords.accuracy)}); },
-      () => { clearTimeout(t); res(null); }, {enableHighAccuracy:true, timeout:3800, maximumAge:30000});
+/* Konum: önce GPS, bulamazsa Wi-Fi/baz istasyonu (kapalı mekânda hızlı). Alınamazsa nedeni KONUM_HATA'da:
+   "izin" (izin verilmemiş), "kapali" (telefonda konum kapalı / servis yok), "zaman" (süre doldu), "yok" (tarayıcı desteklemiyor) */
+let KONUM_HATA = "";
+function konumAl(uzun){
+  const tek = (yuksek, sure) => new Promise(res => {
+    const t = setTimeout(() => res({hata:"zaman"}), sure + 300);
+    navigator.geolocation.getCurrentPosition(p => { clearTimeout(t); res({lat:+p.coords.latitude.toFixed(6), lng:+p.coords.longitude.toFixed(6), acc:Math.round(p.coords.accuracy), ...(yuksek ? {} : {kaba:true})}); },
+      e => { clearTimeout(t); res({hata: e && e.code === 1 ? "izin" : e && e.code === 2 ? "kapali" : "zaman"}); }, {enableHighAccuracy:yuksek, timeout:sure, maximumAge: yuksek ? 30000 : 120000});
   });
+  return (async () => {
+    KONUM_HATA = "";
+    if (!navigator.geolocation){ KONUM_HATA = "yok"; return null; }
+    let r = await tek(true, uzun ? 9000 : 3000);
+    if (r.hata && r.hata !== "izin") r = await tek(false, uzun ? 6000 : 2000);
+    if (r.hata){ KONUM_HATA = r.hata; return null; }
+    return r;
+  })();
 }
+const KONUM_NEDEN = {izin:"konum izni verilmemiş", kapali:"telefonda konum kapalı", zaman:"konum bulunamadı (kapalı mekân)", yok:"tarayıcı konum vermiyor"};
 async function devKaydet(rec){
   try { const d = await store.addDevriye(rec); return d === "bekliyor" ? "bekliyor" : true; }
   catch(e){ console.error(e); devHata(e); const q = devKuyruk(); q.push(rec); yerel("bz1-devriye-kuyruk", q); return false; }
