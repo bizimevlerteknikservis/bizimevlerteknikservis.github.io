@@ -422,6 +422,14 @@ function kontrolCiz(L, gunler){
     if (h.elle && h.oto && ["Yİ","R","Mİ","Üİ"].includes(h.oto) && h.kod==="X") M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: İzinler'de <b>${h.oto}</b> görünüyor ama elle X yapılmış.`);
   }); });
   const {y:yy, m:mm} = ayBilgi(), ayon = `${yy}-${pad(mm)}`;
+  // QR ile giriş yapıp puantaj listesinde olmayan kişiler (örn. bahçıvan eklenmemişse)
+  const tumK = Object.values(kisiler()).filter(k => k.aktif !== false), guvTab = P.grup === "guvenlik", gor = new Set();
+  P.mesai.filter(r => r.ad && !r.unutuldu && (r.grup === "guvenlik") === guvTab).forEach(r => {
+    const var_ = guvTab ? tumK.some(k => k.grup === "guvenlik" && anahtar(k.ad) === anahtar(r.ad)) : tumK.some(k => k.grup !== "guvenlik" && adKok(k.ad) === adKok(r.ad));
+    const id = guvTab ? anahtar(r.ad) : adKok(r.ad); if (var_ || gor.has(id)) return; gor.add(id);
+    const g = r.grup || "temizlik";
+    M.unshift(`👤 <b>${esc(r.ad)}</b> (${GRUP_AD[g] || g}) QR ile giriş yapıyor ama <b>puantaj listesinde yok</b>. <button class="ibtn" data-act="kisiHizli" data-ad="${esc(r.ad)}" data-g="${esc(g)}" style="margin-left:6px">＋ Listeye ekle</button>`);
+  });
   P.degisim.filter(v => String(v.tarih).startsWith(ayon) || String(v.karsiTarih||"").startsWith(ayon)).forEach(v => M.unshift(`🔁 <b>Vardiya değişimi (onaylı):</b> ${esc(v.ad)} ⇄ ${esc(v.karsi)} · ${+v.tarih.slice(8)} ${AY[mm-1]}${v.karsiTarih ? ` / ${+v.karsiTarih.slice(8)} ${AY[+v.karsiTarih.slice(5,7)-1]}` : ""} · puantaja otomatik işlendi`));
   const izSay = P.izin.filter(e=>{ const {y,m} = ayBilgi(); const a = `${y}-${pad(m)}-01`, b = `${y}-${pad(m)}-31`; return e.bas <= b && (e.bit||e.bas) >= a; }).length;
   $("#kontrol").innerHTML = `<h2>Kontrol edilecekler</h2>${M.length ? `<ul class="kontrol">${M.slice(0,30).map(x=>`<li>${x}</li>`).join("")}</ul>` : `<p class="ok" style="margin:0;font-weight:600">✓ Çelişki yok.</p>`}
@@ -640,8 +648,8 @@ function raporAc(){
   if (w){ w.document.open(); w.document.write(html); w.document.close(); setTimeout(() => { try { w.focus(); w.print(); } catch(e){} }, 400); return; }
   const {y, m} = ayBilgi(); indir({blob: new Blob([html], {type:"text/html"}), ad:`puantaj-raporu-${y}-${pad(m)}.html`}); toast("Rapor indirildi: açıp Yazdır → PDF olarak kaydet");
 }
-function kisiModal(key){
-  const k = key ? kisiler()[key] : {ad:"", grup:P.grup==="guvenlik"?"guvenlik":"temizlik", vardiya:"1. Vardiya", gunler:[1,2,3,4,5,6], aktif:true};
+function kisiModal(key, on){
+  const k = key ? kisiler()[key] : {ad:"", grup:P.grup==="guvenlik"?"guvenlik":"temizlik", vardiya:"1. Vardiya", gunler:[1,2,3,4,5,6], aktif:true, ...(on||{})};
   const gunSec = k.gunler || [1,2,3,4,5,6];
   const izin = P.rol.tech || P.rol.tesis || (P.rol.yon && k.grup==="guvenlik");
   modal(`<div class="bas"><h3>${key?"Kişiyi düzenle":"Kişi ekle"}</h3><button class="ibtn" data-act="kapat">✕</button></div>
@@ -685,6 +693,7 @@ document.addEventListener("click", async e => {
   else if (a==="rapor") raporAc();
   else if (a==="desenKaydet"){ try { await DB.ayarYaz({desen:DESEN_TASLAK, desenOnay:true}); P.ayar.desen = DESEN_TASLAK; P.ayar.desenOnay = true; toast("✓ Vardiya düzeni kaydedildi"); kapat(); ciz(); } catch(err){ hata(err); } }
   else if (a==="kisiEkle") kisiModal(null);
+  else if (a==="kisiHizli") kisiModal(null, {ad:t.dataset.ad || "", grup:t.dataset.g || "temizlik"});
   else if (a==="siteKonum"){
     if (!(P.rol.tech || P.rol.tesis)){ toast("Site konumunu müdür ya da teknisyen kaydeder"); return; }
     if (!confirm("Şu an sitenin ortasında mısınız? Bulunduğunuz yer, giriş-çıkışların kontrol edileceği site merkezi olarak kaydedilecek.")) return;
