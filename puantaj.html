@@ -143,7 +143,79 @@ table.pt{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:10
 .giris{max-width:380px;margin:12vh auto;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:var(--shadow)}
 .giris input{width:100%;margin-top:10px}
 .mut{color:var(--muted)}.ok{color:var(--ok)}.bad{color:var(--bad)}
-@media (max-width:640px){.brand h1{font-size:19px}.tw{max-height:none}.pt th.ad,.pt td.ad{min-width:118px;max-width:130px;padding:5px 7px}}
+/* ---- modern düzen ---- */
+.bosluk{flex:1}
+.islem{display:flex;gap:8px;align-items:center}
+.menu{position:relative}
+.menu summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px}.menu summary::-webkit-details-marker{display:none}
+.menu .ok-a{font-size:11px;color:var(--muted)}
+.menu-ic{position:absolute;right:0;top:calc(100% + 6px);z-index:30;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 40px rgba(10,30,60,.18);padding:6px;width:280px}
+.menu-ic button{display:block;width:100%;text-align:left;border:0;background:transparent;border-radius:12px;padding:10px 12px;cursor:pointer}
+.menu-ic button:hover{background:var(--panel2)}.menu-ic b{display:block;font-size:14px}.menu-ic small{color:var(--muted);font-size:12px}
+.ozet{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.oz{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);min-width:0;text-align:left;cursor:default}
+.oz small{display:block;font-size:12px;font-weight:700;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oz strong{display:block;font-size:26px;font-weight:800;line-height:1.15;margin-top:2px;font-variant-numeric:tabular-nums}
+.oz em{display:block;font-style:normal;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oz.yesil strong{color:var(--ok)}.oz.turuncu strong{color:var(--warn)}.oz.kirmizi strong{color:var(--bad)}.oz.mavi strong{color:var(--accent)}
+button.oz{cursor:pointer;font:inherit;color:inherit}button.oz:hover{border-color:var(--accent)}
+.iste-l{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 12px}.iste-l .ik{display:inline-flex;align-items:center;gap:6px;background:var(--okbg);color:var(--ok);border-radius:999px;padding:4px 6px 4px 12px;font-size:13px;font-weight:600}
+.iste-l .ik small{opacity:.75;font-weight:500}
+/* onay şeridi */
+.serit{display:flex;align-items:center;gap:0;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:10px 12px;margin-bottom:12px;box-shadow:var(--shadow)}
+.serit .adim{background:transparent;border:0;padding:4px 6px}
+.serit .adim .no{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:13px;background:var(--panel2);color:var(--muted);border:2px solid var(--line);flex:none}
+.serit .adim.tamam .no{background:var(--ok);border-color:var(--ok);color:#fff}
+.serit .adim.sira .no{border-color:var(--accent);color:var(--accent)}
+.serit .cizgi{flex:0 0 28px;height:2px;background:var(--line);margin:0 2px}.serit .cizgi.tamam{background:var(--ok)}
+.serit .eylem{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* filtre */
+.filtre{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.ara{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:0 10px;font-size:14px}
+.ara input{border:0;background:transparent;padding:8px 2px;width:170px;outline:none}
+.cips{display:flex;gap:6px;flex-wrap:wrap}
+.cip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 12px;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted)}
+.cip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+.cip.sorun[aria-pressed="false"] b{color:var(--bad)}
+.ibtn.kucuk{padding:6px 10px;font-size:13px}
+.pt tr.flas td{animation:flas 1.6s ease}
+@keyframes flas{0%,40%{background:var(--accbg)}100%{}}
+.pt td.ad .sorun-n{display:inline-block;margin-left:6px;background:var(--badbg);color:var(--bad);border-radius:999px;font-size:10.5px;font-weight:800;padding:0 6px;vertical-align:1px}
+/* lejant */
+.lejd{margin-top:8px}.lejd summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);padding:4px 2px}
+/* kontrol */
+#kontrol h2 .say{display:inline-block;margin-left:6px;background:var(--badbg);color:var(--bad);border-radius:999px;padding:1px 9px;letter-spacing:0;font-size:12px}
+.kgen{list-style:none;padding:0;margin:0 0 10px}.kgen li{padding:8px 10px;border-radius:10px;background:var(--panel2);margin-bottom:6px;font-size:13.5px}
+.kk{border:1px solid var(--line);border-radius:14px;margin-bottom:8px;overflow:hidden}
+.kk summary{list-style:none;display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;flex-wrap:wrap}.kk summary::-webkit-details-marker{display:none}
+.kk summary b{font-size:14.5px}.kk summary .n{background:var(--badbg);color:var(--bad);border-radius:999px;padding:1px 8px;font-size:12px;font-weight:800}
+.kk summary .t{font-size:12px;color:var(--muted);background:var(--panel2);border-radius:999px;padding:2px 8px}
+.kk summary .ok-a{margin-left:auto;color:var(--muted);transition:.2s}.kk[open] summary .ok-a{transform:rotate(180deg)}
+.kk ul{list-style:none;margin:0;padding:0 8px 8px}
+.kk li{display:flex;gap:10px;align-items:flex-start;padding:8px 6px;border-top:1px solid var(--line);font-size:13.5px}
+.kk li .g{flex:none;min-width:52px;font-weight:800;color:var(--ink)}
+.kk li .m{flex:1;color:var(--ink)}
+.kk li button{flex:none;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:4px 10px;font-weight:700;font-size:12.5px;cursor:pointer;color:var(--accent)}
+@media (max-width:1100px){.ozet{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:640px){
+  .brand h1{font-size:19px}.tw{max-height:calc(100vh - 120px)}
+  .pt th.ad,.pt td.ad{min-width:112px;max-width:122px;padding:5px 7px}.pt td.ad b{font-size:12.5px}
+  .bar{gap:6px}.ay{flex:1}.ay b{flex:1;min-width:0}.seg{width:100%}.seg button{flex:1}
+  .bosluk{display:none}
+  .islem{width:100%;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}.islem>*{flex:none}
+  .menu-ic{position:fixed;left:12px;right:12px;top:auto;width:auto}
+  header.top{flex-wrap:nowrap;gap:10px}.top .sag{flex-wrap:nowrap}.logo{width:40px;height:40px;font-size:20px}.brand{min-width:0}.brand small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ozet{display:flex;overflow-x:auto;gap:8px;margin:0 -14px 12px;padding:0 14px 4px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+  .oz{flex:0 0 138px;padding:9px 11px;scroll-snap-align:start;border-radius:14px}.oz strong{font-size:21px}.oz small{font-size:11.5px}.oz em{font-size:11px}
+  .serit{padding:8px 10px;flex-wrap:wrap;row-gap:8px}.serit .adim{padding:2px 2px;flex:none;font-size:12.5px;gap:5px}.serit .adim small{display:none}.serit .adim .no{width:22px;height:22px;font-size:11.5px}
+  .serit .cizgi{flex:1 1 6px;min-width:6px}.serit .eylem{margin-left:0;width:100%}.serit .eylem:not(:has(*)){display:none}.serit .eylem .btn{flex:1;padding:9px 10px;font-size:13.5px}
+  .serit .adim:last-of-type div{max-width:76px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #bugunBtn{padding:6px 9px}
+  .kk li{flex-wrap:wrap}.kk li .m{flex:1 1 60%}
+  .ara{flex:1 1 100%}.ara input{width:100%}
+  .filtre .bosluk{display:block}
+  .uyari{font-size:12.5px;padding:9px 12px}
+}
 </style>
 </head>
 <body>
@@ -162,18 +234,30 @@ table.pt{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:10
   <div class="bar">
     <div class="ay"><button data-ay="-1" aria-label="Önceki ay">‹</button><b id="ayAd"></b><button data-ay="1" aria-label="Sonraki ay">›</button></div>
     <div class="seg" id="grupSeg"></div>
-    <span style="flex:1"></span>
-    <button class="ibtn" data-act="desen">⚙️ Vardiya düzeni</button>
-    <button class="ibtn" data-act="saat" title="Mesai başlangıç-bitiş saatleri ve otomatik uyarılar">⏰ Mesai saatleri</button>
-    <button class="ibtn" data-act="kisiEkle">＋ Kişi</button>
-    <button class="ibtn" data-act="siteKonum" title="Giriş-çıkış konum kontrolü için site merkezini kaydet">📍 Site konumu</button>
-    <button class="btn ikincil" data-act="excel">⬇ Excel</button>
-    <button class="btn ikincil" data-act="rapor" title="Aylık özet: çalışılan gün, saat, geç kalma, izinler · PDF olarak kaydedilir">🖨️ Aylık rapor (PDF)</button>
-    <button class="btn" data-act="paylas">📤 Muhasebeye gönder</button>
+    <span class="bosluk"></span>
+    <div class="islem">
+      <details class="menu" id="ayarMenu"><summary class="ibtn">⚙️ Ayarlar <span class="ok-a">▾</span></summary>
+        <div class="menu-ic">
+          <button data-act="desen"><b>⚙️ Vardiya düzeni</b><small>Güvenlik gündüz / gece / izin sırası</small></button>
+          <button data-act="saat"><b>⏰ Mesai saatleri</b><small>Giriş-çıkış saatleri, geç kalma, uyarılar</small></button>
+          <button data-act="kisiEkle"><b>＋ Kişi ekle</b><small>Listeye yeni personel</small></button>
+          <button data-act="siteKonum"><b>📍 Site konumu</b><small>QR konum kontrolünün merkezi</small></button>
+        </div>
+      </details>
+      <button class="ibtn" data-act="excel">⬇ Excel</button>
+      <button class="ibtn" data-act="rapor" title="Aylık özet: çalışılan gün, saat, geç kalma, izinler · PDF olarak kaydedilir">🖨️ Rapor (PDF)</button>
+      <button class="btn" data-act="paylas">📤 Muhasebeye gönder</button>
+    </div>
   </div>
   <div id="ust"></div>
+  <div class="filtre">
+    <label class="ara">🔍<input id="ara" type="search" placeholder="Kişi ara…" autocomplete="off"></label>
+    <div class="cips" id="cips"></div>
+    <span class="bosluk"></span>
+    <button class="ibtn kucuk" data-act="bugunGit" id="bugunBtn">📍 Bugüne git</button>
+  </div>
   <div class="tw" id="tw"></div>
-  <div class="lej" id="lej"></div>
+  <details class="lejd"><summary>Kodlar ve işaretler ne anlama geliyor?</summary><div class="lej" id="lej"></div></details>
   <div class="card" style="margin-top:12px" id="kontrol"></div>
 </div>
 <div class="pop" id="pop" hidden></div>
@@ -360,27 +444,53 @@ function ciz(){
   const gruplar = ["guvenlik","temizlik"].filter(gorurGrup);
   if (!gruplar.includes(P.grup)) P.grup = gruplar[0];
   $("#grupSeg").innerHTML = gruplar.map(g=>`<button aria-pressed="${P.grup===g}" data-grup="${g}">${g==="guvenlik"?"🛡️ Güvenlik":"🧹 Temizlik & Bahçe"}</button>`).join("");
-  const L = grupKisileri(P.grup);
+  let L = grupKisileri(P.grup);
   const bugun = ymd(new Date());
   const kil = kilitli(P.grup);
   // üst bilgi: onay adımları + uyarılar
   const on = (P.doc.onay||{})[P.grup] || {};
-  const adimH = (ok, baslik, kim) => `<div class="adim ${ok?"tamam":""}">${ok?"✓":"○"} <div>${baslik}<small>${ok?`${esc(ok.by)} · ${new Date(ok.ts).toLocaleString("tr-TR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}`:kim}</small></div></div>`;
+  const adimH = (ok, baslik, kim, no, sira) => `<div class="adim ${ok?"tamam":sira?"sira":""}"><span class="no">${ok?"✓":no}</span> <div>${baslik}<small>${ok?`${esc(ok.by)} · ${new Date(ok.ts).toLocaleString("tr-TR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}`:kim}</small></div></div>`;
   const desenYok = P.grup==="guvenlik" && !P.ayar.desenOnay;
   const simdiAy = P.ay === `${new Date().getFullYear()}-${pad(new Date().getMonth()+1)}`;
   const iste = simdiAy ? L.map(([key,k]) => { const MSG = mesaiGun(k); const o = Object.values(MSG.G).flat().find(x=>x.acik); return o ? `<span class="ik">${esc(k.ad.split(" ")[0])} <small>${saatKisa(o.giris)}</small> ${msKonum(o.gk)}</span>` : null; }).filter(Boolean) : [];
   const msVar = L.some(([key,k]) => mesaiGun(k).var);
+  // kontrol listesi önce: hangi satırlarda sorun var
+  const KS = kontrolCiz(L, gunler);
+  // özet kartları
+  const bi = simdiAy ? gunler.findIndex(d => ymd(d) === bugun) : -1;
+  let gerek = 0, izinli = 0, dkTop = 0, xTop = 0;
+  L.forEach(([key,k]) => { const MSG = mesaiGun(k); Object.values(MSG.G).flat().forEach(o => { dkTop += msDk(o); });
+    gunler.forEach((d,i) => { const h = hucre(key, k, d, i); if (h.kod==="X") xTop++; if (i === bi){ if (h.kod==="X") gerek++; if (["Yİ","R","Mİ","Üİ"].includes(h.kod)) izinli++; } }); });
+  const oz = (cls, bas, deger, alt, act) => `<${act?`button data-act="${act}"`:"div"} class="oz ${cls}"><small>${bas}</small><strong>${deger}</strong><em>${alt}</em></${act?"button":"div"}>`;
+  const sonrakiNo = P.grup==="guvenlik" ? (on.amir ? (on.mudur ? 3 : 2) : 1) : (on.mudur ? 2 : 1);
   $("#ust").innerHTML = `
-    ${simdiAy && msVar ? `<div class="iste">🟢 <b>Şu an işte (${iste.length}):</b> ${iste.length ? iste.join("") : "kimse giriş yapmamış"}</div>` : ""}
+    <div class="ozet">
+      ${oz("yesil", "🟢 Şu an işte", simdiAy && msVar ? iste.length : "—", simdiAy ? (msVar ? `bugün ${gerek} kişi çalışmalı` : "QR kullanılmıyor") : "geçmiş / gelecek ay")}
+      ${oz("mavi", "🏖️ Bugün izinli", simdiAy ? izinli : "—", simdiAy ? "yıllık · rapor · mazeret" : `${AY[m-1]} ${y}`)}
+      ${oz("", "📅 Çalışılan gün", xTop, `${L.length} kişi · bu ay toplam`)}
+      ${oz("", "⏱️ QR çalışma", dkTop ? (dkTop/60).toFixed(0) + " sa" : "—", dkTop ? "giriş-çıkış kayıtlarından" : "QR kaydı yok")}
+      ${oz(KS.toplam ? "kirmizi" : "yesil", "⚠️ Kontrol edilecek", KS.toplam || "✓", KS.toplam ? `${KS.kisi} kişide · aşağıda` : "çelişki yok", KS.toplam ? "kontrolGit" : "")}
+    </div>
+    ${simdiAy && iste.length ? `<div class="iste-l">${iste.join("")}</div>` : ""}
     ${desenYok ? `<div class="uyari">⚠️ Güvenlik vardiya düzeni örnek olarak dolduruldu (2 gündüz · 2 gece · 2 izin). Bir kez kendi düzeninize göre ayarlayın, sonraki aylar kendiliğinden dolar. <button class="btn" data-act="desen">Vardiya düzenini ayarla</button></div>` : ""}
     ${kil ? `<div class="uyari" style="background:var(--okbg);color:var(--ok)">🔒 Bu ay müdür onaylı, değişiklik kapalı. ${P.rol.tech||P.rol.tesis?`<button class="btn kirmizi" data-act="kilitAc">Kilidi aç</button>`:""}</div>` : ""}
-    <div class="onay" style="margin-bottom:12px">
-      ${P.grup==="guvenlik" ? adimH(on.amir, "Amir onayı", "Nejdet · Rüstem · Yakup") : ""}
-      ${adimH(on.mudur, "Müdür onayı", "Tuğrul")}
-      ${P.grup==="guvenlik" && !on.amir && !kil ? `<button class="btn yesil" data-act="onay" data-v="amir">✓ Amir olarak onayla</button>` : ""}
-      ${(P.rol.tech||P.rol.tesis) && !kil && (P.grup!=="guvenlik" || on.amir) ? `<button class="btn yesil" data-act="onay" data-v="mudur">✓ Müdür onayı · kesinleştir</button>` : ""}
-      ${(P.rol.tech||P.rol.tesis) && !kil && P.grup==="guvenlik" && !on.amir ? `<span class="mut" style="font-size:12.5px">Müdür onayı amir onayından sonra açılır</span>` : ""}
+    <div class="serit">
+      ${P.grup==="guvenlik" ? adimH(on.amir, "Amir onayı", "Nejdet · Rüstem · Yakup", 1, sonrakiNo===1) + `<span class="cizgi ${on.amir?"tamam":""}"></span>` : ""}
+      ${adimH(on.mudur, "Müdür onayı", "Tuğrul · kesinleştirir", P.grup==="guvenlik" ? 2 : 1, !on.mudur && (P.grup!=="guvenlik" || on.amir))}
+      <span class="cizgi ${on.mudur?"tamam":""}"></span>
+      ${adimH(null, "Muhasebeye gönder", on.mudur ? "hazır" : "onaydan sonra", P.grup==="guvenlik" ? 3 : 2, !!on.mudur)}
+      <div class="eylem">
+        ${P.grup==="guvenlik" && !on.amir && !kil ? `<button class="btn yesil" data-act="onay" data-v="amir">✓ Amir olarak onayla</button>` : ""}
+        ${(P.rol.tech||P.rol.tesis) && !kil && (P.grup!=="guvenlik" || on.amir) ? `<button class="btn yesil" data-act="onay" data-v="mudur">✓ Müdür onayı · kesinleştir</button>` : ""}
+        ${on.mudur ? `<button class="btn" data-act="paylas">📤 Muhasebeye gönder</button>` : ""}
+      </div>
     </div>`;
+  // filtre çipleri ve arama
+  const tumSay = L.length, sorunSay = L.filter(([key]) => KS.anahtarlar.has(key)).length;
+  $("#cips").innerHTML = `<button class="cip" data-act="filtre" data-v="" aria-pressed="${!P.filtre}">Tümü · ${tumSay}</button><button class="cip sorun" data-act="filtre" data-v="sorun" aria-pressed="${P.filtre==="sorun"}">⚠️ Sorunlu · <b>${sorunSay}</b></button>`;
+  $("#bugunBtn").hidden = !simdiAy;
+  const ara = (P.ara || "").trim().toLocaleLowerCase("tr");
+  L = L.filter(([key,k]) => (!ara || k.ad.toLocaleLowerCase("tr").includes(ara)) && (P.filtre !== "sorun" || KS.anahtarlar.has(key)));
   // tablo
   const bas = `<thead><tr><th class="ad">${L.length} kişi</th>${gunler.map((d,i)=>{ const t = tatil(d), yr = yarim(d), hs = d.getDay()===0||d.getDay()===6;
       return `<th class="${t?"tat":hs?"hs":""}${ymd(d)===bugun?" bugun":""}" title="${esc(t||yr||"")}"><b>${i+1}</b>${GK[d.getDay()]}${t?"<br>🇹🇷":yr?"<br>½":""}</th>`; }).join("")}
@@ -399,27 +509,35 @@ function ciz(){
       return `<td class="c k-${h.kod}${h.elle?" elle":""}${uyar?" uyar":""}${t?" tat":""}${ymd(d)===bugun?" bugun":""}" data-k="${esc(key)}" data-g="${i}" title="${esc(`${d.getDate()} ${AY[d.getMonth()]} · ${KODLAR[h.kod]?.ad||h.kod}\n${h.neden}${q?`\n✓ QR okuttu (${q})`:""}${ms?`\n${msMetin(ms)}`:""}`)}">${h.gece&&h.kod==="X"?`<i class="gece">☾</i>`:""}${q?`<i class="qr"></i>`:""}${ms?`<i class="ms${ms.some(msSupheli)?" supheli":ms.some(o=>!o.giris||(!o.cikis&&!o.acik))?" eksik":""}"></i>`:""}<span>${h.kod}</span></td>`; }).join("");
     const kd = ((P.doc.kisi||{})[key]) || {};
     const z = v => `<td class="top${v?"":" zero"}">${v}</td>`;
-    sat.push(`<tr><td class="ad"><a data-kisi="${esc(key)}"><b>${esc(k.ad)}${k.amir?" ⭐":""}</b><small>${esc(k.grup==="guvenlik"?(k.vardiya||""):k.grup==="bahce"?"Bahçe":k.grup==="diger"?"Diğer":"Temizlik")}</small></a></td>${hc}
+    sat.push(`<tr data-satir="${esc(key)}"><td class="ad"><a data-kisi="${esc(key)}"><b>${esc(k.ad)}${k.amir?" ⭐":""}${KS.say[key] ? `<span class="sorun-n" title="Kontrol edilecek">${KS.say[key]}</span>` : ""}</b><small>${esc(k.grup==="guvenlik"?(k.vardiya||""):k.grup==="bahce"?"Bahçe":k.grup==="diger"?"Diğer":"Temizlik")}</small></a></td>${hc}
       ${z(T.X)}${z(T.HT)}${z(T["Yİ"])}${z(T.R)}${z(T.MU)}${z(T.D)}${z(T.RTc)}
       <td class="top${T.DK?"":" zero"}" title="QR giriş-çıkışa göre toplam çalışma">${T.DK ? (T.DK/60).toFixed(1).replace(".",",") : "—"}</td>
       <td class="fm"><input inputmode="decimal" data-fm="${esc(key)}" value="${esc(kd.fm||"")}" ${kil?"disabled":""} placeholder="0"></td>${P.grup==="guvenlik"?z(T.QR):""}
       <td class="not"><input data-not="${esc(key)}" value="${esc(kd.not||"")}" ${kil?"disabled":""} maxlength="80"></td></tr>`);
   });
-  $("#tw").innerHTML = L.length ? `<table class="pt">${bas}<tbody>${sat.join("")}</tbody></table>` : `<div style="padding:30px;text-align:center" class="mut">Bu grupta kişi yok. "＋ Kişi" ile ekleyin.</div>`;
+  const twSol = $("#tw").scrollLeft, twUst = $("#tw").scrollTop;
+  $("#tw").innerHTML = L.length ? `<table class="pt">${bas}<tbody>${sat.join("")}</tbody></table>` : `<div style="padding:30px;text-align:center" class="mut">${P.ara || P.filtre ? "Filtreye uyan kişi yok." : "Bu grupta kişi yok. Ayarlar → ＋ Kişi ekle ile ekleyin."}</div>`;
+  // ilk açılışta bugünün sütununa kaydır (telefonda tablo dar); sonraki çizimlerde konumu koru
+  const anahtarAy = P.ay + P.grup;
+  if (P.kaydir !== anahtarAy){ P.kaydir = anahtarAy; if (simdiAy) bugunGit(false); } else { $("#tw").scrollLeft = twSol; $("#tw").scrollTop = twUst; }
   $("#lej").innerHTML = Object.entries(KODLAR).map(([k,v])=>`<span><b class="k-${k}">${k}</b>${v.ad}</span>`).join("") +
     `<span>☾ Gece vardiyası</span><span><i style="width:14px;height:4px;border-radius:2px;background:#2b7cd3;display:inline-block"></i> QR giriş-çıkış var</span><span><i style="width:14px;height:4px;border-radius:2px;background:#d9851b;display:inline-block"></i> Giriş/çıkış eksik</span><span><i style="width:14px;height:4px;border-radius:2px;background:#d63a35;display:inline-block"></i> Konum şüpheli</span>${P.grup==="guvenlik"?`<span><i style="width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block"></i> QR okuttu</span>`:""}<span><b style="text-decoration:underline">X</b> Elle değiştirildi</span><span>🇹🇷 Resmi tatil · ½ yarım gün</span>`;
-  kontrolCiz(L, gunler);
+}
+function bugunGit(yumusak){
+  const tw = $("#tw"), th = tw.querySelector("thead th.bugun"), ad = tw.querySelector("thead th.ad"); if (!th) return;
+  tw.scrollTo({left: Math.max(0, th.offsetLeft - (ad ? ad.offsetWidth : 0) - th.offsetWidth * 2), behavior: yumusak ? "smooth" : "auto"});
 }
 function kontrolCiz(L, gunler){
-  const M = [];
+  const M = [], KM = {};
   const bugun0 = new Date(); bugun0.setHours(0,0,0,0);
-  L.forEach(([key,k])=>{ const MSG = mesaiGun(k); gunler.forEach((d,i)=>{ const h = hucre(key, k, d, i); const ms = MSG.G[i+1];
-    if (ms && ms.some(o=>o.giris) && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: puantajda <b>${h.kod}</b> ama <b>işe giriş yapmış</b> (${saatKisa(ms.find(o=>o.giris).giris)}). Çalıştıysa X yapın.`);
-    if (MSG.var && MSG.ilk && h.kod==="X" && !ms && d < bugun0 && d >= new Date(MSG.ilk).setHours(0,0,0,0)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: puantajda X ama <b>giriş kaydı yok</b>. Gelmediyse D, izinliyse ilgili kodu seçin.`);
-    if (ms && ms.some(msSupheli)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: <b>şüpheli giriş-çıkış</b> · ${ms.filter(msSupheli).map(o=>[o.gs&&"giriş "+o.gs, o.cs&&"çıkış "+o.cs].filter(Boolean).join(", ")).join(" · ")}`);
-    if (ms && ms.some(o=>o.giris && !o.cikis && !o.acik)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: giriş ${saatKisa(ms.find(o=>o.giris&&!o.cikis).giris)} var, <b>çıkış okutulmamış</b>${ms.some(o=>o.unutuldu) ? " (sistem gece kapattı)" : ""}. Çalıştığı saati FM/Not'a yazın.`);
-    if (P.grup==="guvenlik"){ const q = qrGun(k, i); if (q && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod)) M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: puantajda <b>${h.kod}</b> ama o gece <b>QR okutmuş</b> (${q}). Çalıştıysa X yapın, fazla mesaiyse FM'e yazın.`); }
-    if (h.elle && h.oto && ["Yİ","R","Mİ","Üİ"].includes(h.oto) && h.kod==="X") M.push(`<b>${esc(k.ad)}</b> · ${d.getDate()} ${AY[d.getMonth()]}: İzinler'de <b>${h.oto}</b> görünüyor ama elle X yapılmış.`);
+  L.forEach(([key,k])=>{ const MSG = mesaiGun(k); const ekle = (i, tur, metin) => (KM[key] ||= {k, L:[]}).L.push({i, tur, metin});
+    gunler.forEach((d,i)=>{ const h = hucre(key, k, d, i); const ms = MSG.G[i+1]; const M = {push: x => ekle(i, x.tur, x.m)};
+    if (ms && ms.some(o=>o.giris) && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod)) M.push({tur:"calismis", m:`Puantajda <b>${h.kod}</b> ama <b>işe giriş yapmış</b> (${saatKisa(ms.find(o=>o.giris).giris)}). Çalıştıysa X yapın.`});
+    if (MSG.var && MSG.ilk && h.kod==="X" && !ms && d < bugun0 && d >= new Date(MSG.ilk).setHours(0,0,0,0)) M.push({tur:"girisyok", m:`Puantajda X ama <b>giriş kaydı yok</b>. Gelmediyse D, izinliyse ilgili kodu seçin.`});
+    if (ms && ms.some(msSupheli)) M.push({tur:"supheli", m:`<b>Şüpheli giriş-çıkış</b> · ${ms.filter(msSupheli).map(o=>[o.gs&&"giriş "+o.gs, o.cs&&"çıkış "+o.cs].filter(Boolean).join(", ")).join(" · ")}`});
+    if (ms && ms.some(o=>o.giris && !o.cikis && !o.acik)) M.push({tur:"cikisyok", m:`Giriş ${saatKisa(ms.find(o=>o.giris&&!o.cikis).giris)} var, <b>çıkış okutulmamış</b>${ms.some(o=>o.unutuldu) ? " (sistem gece kapattı)" : ""}. Çalıştığı saati FM/Not'a yazın.`});
+    if (P.grup==="guvenlik"){ const q = qrGun(k, i); if (q && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod)) M.push({tur:"calismis", m:`Puantajda <b>${h.kod}</b> ama o gece <b>QR okutmuş</b> (${q}). Çalıştıysa X yapın, fazla mesaiyse FM'e yazın.`}); }
+    if (h.elle && h.oto && ["Yİ","R","Mİ","Üİ"].includes(h.oto) && h.kod==="X") M.push({tur:"izin", m:`İzinler'de <b>${h.oto}</b> görünüyor ama elle X yapılmış.`});
   }); });
   const {y:yy, m:mm} = ayBilgi(), ayon = `${yy}-${pad(mm)}`;
   // QR ile giriş yapıp puantaj listesinde olmayan kişiler (örn. bahçıvan eklenmemişse)
@@ -432,8 +550,18 @@ function kontrolCiz(L, gunler){
   });
   P.degisim.filter(v => String(v.tarih).startsWith(ayon) || String(v.karsiTarih||"").startsWith(ayon)).forEach(v => M.unshift(`🔁 <b>Vardiya değişimi (onaylı):</b> ${esc(v.ad)} ⇄ ${esc(v.karsi)} · ${+v.tarih.slice(8)} ${AY[mm-1]}${v.karsiTarih ? ` / ${+v.karsiTarih.slice(8)} ${AY[+v.karsiTarih.slice(5,7)-1]}` : ""} · puantaja otomatik işlendi`));
   const izSay = P.izin.filter(e=>{ const {y,m} = ayBilgi(); const a = `${y}-${pad(m)}-01`, b = `${y}-${pad(m)}-31`; return e.bas <= b && (e.bit||e.bas) >= a; }).length;
-  $("#kontrol").innerHTML = `<h2>Kontrol edilecekler</h2>${M.length ? `<ul class="kontrol">${M.slice(0,30).map(x=>`<li>${x}</li>`).join("")}</ul>` : `<p class="ok" style="margin:0;font-weight:600">✓ Çelişki yok.</p>`}
-    <p class="mut" style="font-size:12.5px;margin:10px 0 0">Bu ay İzinler bölümünden ${izSay} kayıt otomatik işlendi. Hücrelerin üstüne gelince (telefonda dokununca) nereden geldiği yazar.</p>`;
+  const TUR = {girisyok:"giriş yok", calismis:"çalışmış görünüyor", cikisyok:"çıkış eksik", supheli:"şüpheli konum", izin:"izin çelişkisi"};
+  const kisiL = Object.entries(KM).sort((a,b) => b[1].L.length - a[1].L.length);
+  const toplam = kisiL.reduce((t,[,x]) => t + x.L.length, 0);
+  const gunAd = i => `${gunler[i].getDate()} ${AY[gunler[i].getMonth()].slice(0,3)}`;
+  $("#kontrol").innerHTML = `<h2>Kontrol edilecekler${toplam ? `<span class="say">${toplam}</span>` : ""}</h2>
+    ${M.length ? `<ul class="kgen">${M.map(x=>`<li>${x}</li>`).join("")}</ul>` : ""}
+    ${kisiL.length ? kisiL.map(([key, x], n) => { const tc = {}; x.L.forEach(o => tc[o.tur] = (tc[o.tur]||0) + 1);
+      return `<details class="kk" ${kisiL.length <= 2 || n === 0 ? "open" : ""}><summary><b>${esc(x.k.ad)}</b><span class="n">${x.L.length}</span>${Object.entries(tc).map(([t,c]) => `<span class="t">${c} ${TUR[t]||t}</span>`).join("")}<span class="ok-a">▾</span></summary>
+        <ul>${x.L.map(o => `<li><span class="g">${gunAd(o.i)}</span><span class="m">${o.metin}</span><button data-act="git" data-k="${esc(key)}" data-g="${o.i}">Düzelt</button></li>`).join("")}</ul></details>`; }).join("")
+      : !M.length ? `<p class="ok" style="margin:0;font-weight:600">✓ Çelişki yok.</p>` : ""}
+    <p class="mut" style="font-size:12.5px;margin:10px 0 0">Bu ay İzinler bölümünden ${izSay} kayıt otomatik işlendi. Hücreye dokununca kodu değiştirebilir, nereden geldiğini görebilirsiniz.</p>`;
+  return {toplam: toplam + M.length, kisi: kisiL.length, anahtarlar: new Set(kisiL.map(([k]) => k)), say: Object.fromEntries(kisiL.map(([k,x]) => [k, x.L.length]))};
 }
 
 /* ================= hücre seçici ================= */
@@ -693,6 +821,15 @@ document.addEventListener("click", async e => {
   else if (a==="rapor") raporAc();
   else if (a==="desenKaydet"){ try { await DB.ayarYaz({desen:DESEN_TASLAK, desenOnay:true}); P.ayar.desen = DESEN_TASLAK; P.ayar.desenOnay = true; toast("✓ Vardiya düzeni kaydedildi"); kapat(); ciz(); } catch(err){ hata(err); } }
   else if (a==="kisiEkle") kisiModal(null);
+  else if (a==="filtre"){ P.filtre = t.dataset.v || ""; ciz(); }
+  else if (a==="bugunGit") bugunGit(true);
+  else if (a==="kontrolGit") $("#kontrol").scrollIntoView({behavior:"smooth", block:"start"});
+  else if (a==="git"){
+    if (P.filtre || P.ara){ P.filtre = ""; P.ara = ""; $("#ara").value = ""; ciz(); }
+    const td = document.querySelector(`#tw td.c[data-k="${CSS.escape(t.dataset.k)}"][data-g="${t.dataset.g}"]`); if (!td) return;
+    td.scrollIntoView({behavior:"smooth", block:"center", inline:"center"}); const tr = td.closest("tr"); tr.classList.remove("flas"); void tr.offsetWidth; tr.classList.add("flas");
+    setTimeout(() => popAc(td), 450);
+  }
   else if (a==="kisiHizli") kisiModal(null, {ad:t.dataset.ad || "", grup:t.dataset.g || "temizlik"});
   else if (a==="siteKonum"){
     if (!(P.rol.tech || P.rol.tesis)){ toast("Site konumunu müdür ya da teknisyen kaydeder"); return; }
@@ -708,6 +845,9 @@ document.addEventListener("click", async e => {
   else if (a==="excel"){ indir(excelYap()); }
   else if (a==="paylas") paylas();
 });
+let araT = null;
+document.addEventListener("input", e => { if (e.target && e.target.id === "ara"){ clearTimeout(araT); araT = setTimeout(() => { P.ara = e.target.value; ciz(); }, 180); } });
+document.addEventListener("click", e => { const m = document.getElementById("ayarMenu"); if (m && m.open && (!m.contains(e.target) || e.target.closest(".menu-ic button"))) setTimeout(() => { m.open = false; }, 0); });
 let fmT = {};
 document.addEventListener("input", e => {
   const k = e.target.dataset.fm || e.target.dataset.not; if (!k) return;
