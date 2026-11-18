@@ -173,6 +173,17 @@ async function isle(env, sa, tur, id) {
     return gonder(env, sa, T.filter(t => t.rol === "teknisyen" && t.ariza !== false), { title: `🏠 Daire arızası · ${a.block || "?"}/${a.flat || "?"}`,
       body: kisa(`${KAT[a.cat] || "Arıza"}${(a.issues || []).length ? " — " + a.issues.join(", ") : ""}`, 160), tag: "daire-" + id }, "teknik.html#panel");
   }
+  // Teknisyen not yazdı ya da durumu değiştirdi → arızayı bildiren kişiye haber
+  if (tur === "arizaGuncel") {
+    const a = await fsOku(sa, "appointments/" + encodeURIComponent(id));
+    if (!a || a.src !== "personel" || a.status === "iptal" || !(simdi - (a.guncelTs || 0) < TAZE_MS)) return { atla: "eski ya da yok" };
+    if (!(await ilkKezMi(sa, `guncel_${id}_${a.guncelTs}`))) return { atla: "zaten bildirildi" };
+    const hedef = (await telefonlar(sa)).filter(t => (a.kod && t.kod === a.kod) || (a.uid && t.uid === a.uid));
+    if (!hedef.length) return { atla: "bildirenin telefonu kayıtlı değil" };
+    const yer = a.alan || (a.block ? `${a.block} Blok${a.kat ? " · " + a.kat : ""}` : "Ortak alan");
+    const baslik = a.status === "tamamlandi" ? "✅ Bildirdiğiniz arıza çözüldü" : a.status === "onaylandi" ? "🔧 Arızanızla ilgileniliyor" : "💬 Arızanıza teknisyen notu";
+    return gonder(env, sa, hedef, { title: baslik, body: kisa(`${KAT[a.cat] || "Arıza"} · ${yer}${a.note ? " — " + a.note : ""}`, 190), tag: "guncel-" + id });
+  }
   if (tur === "vardiya" || tur === "vardiyaSonuc") {
     const v = await fsOku(sa, "vardiya/" + encodeURIComponent(id));
     if (!v) return { atla: "yok" };
@@ -406,11 +417,11 @@ export default {
       try { return new Response(JSON.stringify(await havaOlcum(ctx)), { headers: { "content-type": "application/json", "cache-control": "max-age=300", ...CORS } }); }
       catch (e) { return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 502, headers: { "content-type": "application/json", ...CORS } }); }
     }
-    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 2: mesai ve bakım kontrolü)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
+    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 3: mesai, bakım, arıza notu)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
     if (req.method !== "POST") return new Response("", { status: 405, headers: CORS });
     let g; try { g = JSON.parse(await req.text()); } catch (e) { return new Response("{}", { status: 400, headers: CORS }); }
     const tur = String(g.tur || ""), id = String(g.id || "");
-    if (!/^(gorev|yapildi|ariza|vardiya|vardiyaSonuc)$/.test(tur) || !/^[A-Za-z0-9_-]{4,64}$/.test(id)) return new Response("{}", { status: 400, headers: CORS });
+    if (!/^(gorev|yapildi|ariza|arizaGuncel|vardiya|vardiyaSonuc)$/.test(tur) || !/^[A-Za-z0-9_-]{4,64}$/.test(id)) return new Response("{}", { status: 400, headers: CORS });
     let sa; try { sa = JSON.parse(env.SERVICE_ACCOUNT); } catch (e) { return new Response(JSON.stringify({ hata: "SERVICE_ACCOUNT gizli değişkeni eksik" }), { status: 500, headers: CORS }); }
     if (!env.SITE) env = { ...env, SITE: "https://bizimevlerteknikservis.github.io/" };
     try { const s = await isle(env, sa, tur, id); return new Response(JSON.stringify(s), { headers: { "content-type": "application/json", ...CORS } }); }

@@ -4318,8 +4318,11 @@ document.addEventListener("click", async e => {
       try { await store.setRoller({yonetim: L, tesis: TL}); S.roller = L; S.rolTesis = TL; $("#rolListe").value = L.join("\n"); $("#rolTesis").value = TL.join("\n"); toast(`${L.length} yönetim · ${TL.length} tesis hesabı kaydedildi`); render(); } catch(err){ console.error(err); toast("Kaydedilemedi: Firebase kurallarını kontrol edin"); }
     }
     else if (act==="filtre"){ syncForm(); S.filter = v; render(); }
-    else if (act==="durum"){ syncForm(); const a = find(S.all); const patch = {status: v}; if (v==="tamamlandi") patch.completedAt = Date.now(); if (S.notes[id] !== undefined) patch.note = S.notes[id]; await store.update(a, patch); toast(DURUM[v] + " olarak işaretlendi"); }
-    else if (act==="not"){ syncForm(); const a = find(S.all); await store.update(a, {note: S.notes[id] ?? ""}); toast("Not kaydedildi"); }
+    else if (act==="durum"){ syncForm(); const a = find(S.all); const patch = {status: v}; if (v==="tamamlandi") patch.completedAt = Date.now(); if (S.notes[id] !== undefined) patch.note = S.notes[id];
+      if (a.src === "personel" && v !== "iptal") patch.guncelTs = Date.now(); await store.update(a, patch); if (patch.guncelTs) bildirimTetik("arizaGuncel", a.id); toast(DURUM[v] + " olarak işaretlendi"); }
+    else if (act==="not"){ syncForm(); const a = find(S.all); const yeniNot = String(S.notes[id] ?? "").trim(); const patch = {note: yeniNot};
+      const bildir = a.src === "personel" && yeniNot && yeniNot !== String(a.note||"").trim(); if (bildir) patch.guncelTs = Date.now();
+      await store.update(a, patch); if (bildir) bildirimTetik("arizaGuncel", a.id); toast(bildir ? "Not kaydedildi · bildirene bildirim gitti" : "Not kaydedildi"); }
     else if (act==="iptal"){
       syncForm();
       if (S.armed !== id){ S.armed = id; render(); return; }
