@@ -17,6 +17,8 @@
    - Vardiyası başladığı halde 15 dk içinde QR ile giriş yapmayan personeli amire/müdüre bildirir
    - Mesai bitiminden 30 dk sonra çıkış okutmayan personele hatırlatma gönderir; 23:00'te "çıkış unutuldu" işareti koyar
    - Her sabah 09:00'da bakımı yaklaşan/geçen ekipmanları ve azalan stoğu teknisyen ve müdüre bildirir
+   - YEDEK: her gece 03:00'te son günün kayıtlarını, her ayın 1'inde (03:15–04:15) tam yedeği Telegram'a dosya olarak gönderir.
+     Gerekli gizli değişkenler: TELEGRAM_TOKEN, TELEGRAM_CHAT. Fotoğraflar yedeğe girmez (yer kaplar).
    ===================================================================== */
 const BAHCIVAN = "Bahçıvan / Peyzaj";
 const GRUP = { "Güvenlik": "guvenlik", "Temizlik": "temizlik", [BAHCIVAN]: "bahce" };
@@ -358,6 +360,73 @@ async function mesaiKontrol(env, sa, simdi) {
   return sonuc;
 }
 
+/* =====================================================================
+   YEDEK → Telegram (dosya). Firestore'dan gelen yanıt hiç çözümlenmeden (işlemci sınırı için) dosyaya eklenir.
+   Sadece eklenen kayıtlar (mesai, devriye) günlük + aylık; değişebilenler son 60 gün günlük + ayda bir tümü.
+   Geri yükleme: Teknisyen paneli → 💾 Yedek → "Yedekten geri yükle".
+   ===================================================================== */
+async function sorguHam(sa, koleksiyon, kosullar, ust) {
+  const filtre = (kosullar || []).map(([f, op, v]) => ({ fieldFilter: { field: { fieldPath: f }, op, value: fsDeger(v) } }));
+  const sorgu = { from: [{ collectionId: koleksiyon }], ...(filtre.length ? { where: filtre.length === 1 ? filtre[0] : { compositeFilter: { op: "AND", filters: filtre } } } : {}) };
+  const r = await fetch(`${fsKok(sa)}${ust ? "/" + ust : ""}:runQuery`, { method: "POST", headers: { authorization: "Bearer " + await erisim(sa), "content-type": "application/json" }, body: JSON.stringify({ structuredQuery: sorgu }) });
+  if (!r.ok) throw new Error("yedek " + koleksiyon + " " + r.status);
+  return r.arrayBuffer();
+}
+async function yedekGonder(env, sa, ad, parcalar, aciklama, simdi) {
+  if (!env.TELEGRAM_TOKEN || !env.TELEGRAM_CHAT) throw new Error("TELEGRAM_TOKEN / TELEGRAM_CHAT eklenmemiş");
+  const govde = ['{"bicim":"bz1-yedek-rest-1","proje":' + JSON.stringify(sa.project_id) + ',"tarih":' + simdi + ',"ad":' + JSON.stringify(ad) + ',"veri":{'];
+  parcalar.forEach(([k, buf], i) => { govde.push((i ? "," : "") + JSON.stringify(k) + ":", buf); });
+  govde.push("}}");
+  const dosya = new Blob(govde, { type: "application/json" });
+  const fd = new FormData();
+  fd.append("chat_id", String(env.TELEGRAM_CHAT)); fd.append("disable_notification", "true");
+  fd.append("caption", `💾 ${aciklama} · ${(dosya.size / 1024).toFixed(0)} KB\nGeri yüklemek için: Teknisyen paneli → 💾 Yedek → Yedekten geri yükle`);
+  fd.append("document", dosya, `${ad}.json`);
+  const r = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/sendDocument`, { method: "POST", body: fd });
+  if (!r.ok) throw new Error("telegram " + r.status + " " + (await r.text()).slice(0, 120));
+  return dosya.size;
+}
+async function yedekDurumYaz(sa, veri) {
+  const fields = Object.fromEntries(Object.entries(veri).map(([k, v]) => [k, fsDeger(v)]));
+  const maske = Object.keys(veri).map(k => "updateMask.fieldPaths=" + encodeURIComponent(k)).join("&");
+  await fetch(`${fsKok(sa)}/ayar/yedek?${maske}`, { method: "PATCH", headers: { authorization: "Bearer " + await erisim(sa), "content-type": "application/json" }, body: JSON.stringify({ fields }) }).catch(() => {});
+}
+/* Değişebilen koleksiyonlar (tarih alanıyla) ve küçük koleksiyonlar (her seferinde tümü) */
+const YEDEK_DEGISKEN = [["appointments", "createdAt"], ["tesis", "ts"], ["gorev", "ts"], ["tasinma", "ts"], ["vardiya", "ts"]];
+const YEDEK_KUCUK = [["puantaj"], ["kod"], ["ayar"], ["duyuru"], ["muhasebe"], ["daireler", "muhasebe/veri"], ["giderler", "muhasebe/veri"]];
+const YEDEK_EKLENEN = [["mesai", "ts"], ["devriye", "ts"]];
+const kucukAd = ([k, ust]) => ust ? ust.replace(/\//g, "_") + "_" + k : k;
+async function yedekCalis(env, sa, simdi) {
+  const s = trSaat(simdi), bugun = trGun(simdi), ayBasi = bugun.endsWith("-01");
+  const dilim = s >= "03:00" && s < "03:15" ? 0 : ayBasi && s >= "03:15" && s < "04:30" ? 1 + Math.floor((parseInt(s.slice(0, 2)) * 60 + parseInt(s.slice(3)) - 195) / 15) : -1;
+  if (dilim < 0 || dilim > 5) return null;
+  if (!(await ilkKezMi(sa, `yedek_${bugun}_${dilim}`))) return { atla: "alındı" };
+  try {
+    let ad, aciklama, parcalar = [];
+    if (dilim === 0) {           // günlük: son 26 saatte eklenenler + son 60 günün değişebilen kayıtları + küçükler
+      for (const [k, f] of YEDEK_EKLENEN) parcalar.push([k, await sorguHam(sa, k, [[f, "GREATER_THAN_OR_EQUAL", simdi - 26 * 36e5]])]);
+      for (const [k, f] of YEDEK_DEGISKEN) parcalar.push([k, await sorguHam(sa, k, [[f, "GREATER_THAN_OR_EQUAL", simdi - 60 * 864e5]])]);
+      for (const x of YEDEK_KUCUK) parcalar.push([kucukAd(x), await sorguHam(sa, x[0], [], x[1])]);
+      ad = `yedek-gunluk-${bugun}`; aciklama = `Günlük yedek ${bugun}`;
+    } else {                     // ayın 1'i: tam yedek, beş parça hâlinde
+      const onceki = trGun(tsOf(bugun, "12:00") - 5 * 864e5).slice(0, 7), bas = tsOf(onceki + "-01", "00:00"), bit = tsOf(bugun, "00:00");
+      if (dilim === 1) parcalar.push(["appointments", await sorguHam(sa, "appointments", [])]);
+      if (dilim === 2) for (const [k] of YEDEK_DEGISKEN.slice(1)) parcalar.push([k, await sorguHam(sa, k, [])]);
+      if (dilim === 3) parcalar.push(["mesai", await sorguHam(sa, "mesai", [["ts", "GREATER_THAN_OR_EQUAL", bas], ["ts", "LESS_THAN", bit]])]);
+      if (dilim === 4) parcalar.push(["devriye", await sorguHam(sa, "devriye", [["ts", "GREATER_THAN_OR_EQUAL", bas], ["ts", "LESS_THAN", bit]])]);
+      if (dilim === 5) for (const x of YEDEK_KUCUK) parcalar.push([kucukAd(x), await sorguHam(sa, x[0], [], x[1])]);
+      const ne = ["", "arızalar (tümü)", "tesis, görev, taşınma, vardiya (tümü)", `mesai ${onceki}`, `devriye ${onceki}`, "puantaj, kodlar, ayarlar, muhasebe (tümü)"][dilim];
+      ad = `yedek-aylik-${onceki}-${dilim}`; aciklama = `Aylık tam yedek ${dilim}/5 · ${ne}`;
+    }
+    const boyut = await yedekGonder(env, sa, ad, parcalar, aciklama, simdi);
+    await yedekDurumYaz(sa, { son: simdi, sonAd: ad, sonBoyut: boyut, hata: "" });
+    return { ad, boyut };
+  } catch (e) {
+    await yedekDurumYaz(sa, { hata: String(e.message || e).slice(0, 200), hataTs: simdi });
+    throw e;
+  }
+}
+
 /* Sabah 09:00: bakım takvimi (ayar/tesis.takvimOzet, uygulama hesaplar) + stok */
 async function sabahOzet(env, sa, simdi) {
   const a = await fsOku(sa, "ayar/tesis"); if (!a) return { atla: "ayar yok" };
@@ -379,6 +448,7 @@ async function sabahOzet(env, sa, simdi) {
 async function zamanli(env, sa) {
   const simdi = Date.now(), s = trSaat(simdi), sonuc = {};
   try { sonuc.mesai = await mesaiKontrol(env, sa, simdi); } catch (e) { sonuc.mesai = { hata: String(e.message || e) }; }
+  try { const y = await yedekCalis(env, sa, simdi); if (y) sonuc.yedek = y; } catch (e) { sonuc.yedek = { hata: String(e.message || e) }; }
   if (s >= "09:00" && s < "09:30") { try { sonuc.sabah = await sabahOzet(env, sa, simdi); } catch (e) { sonuc.sabah = { hata: String(e.message || e) }; } }
   return sonuc;
 }
@@ -417,10 +487,23 @@ export default {
       try { return new Response(JSON.stringify(await havaOlcum(ctx)), { headers: { "content-type": "application/json", "cache-control": "max-age=300", ...CORS } }); }
       catch (e) { return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 502, headers: { "content-type": "application/json", ...CORS } }); }
     }
-    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 3: mesai, bakım, arıza notu)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
+    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 4: mesai, bakım, arıza notu, yedek)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
     if (req.method !== "POST") return new Response("", { status: 405, headers: CORS });
     let g; try { g = JSON.parse(await req.text()); } catch (e) { return new Response("{}", { status: 400, headers: CORS }); }
     const tur = String(g.tur || ""), id = String(g.id || "");
+    if (tur === "yedekDene") {
+      let sa2; try { sa2 = JSON.parse(env.SERVICE_ACCOUNT); } catch (e) { return new Response(JSON.stringify({ hata: "SERVICE_ACCOUNT" }), { status: 500, headers: { "content-type": "application/json", ...CORS } }); }
+      const simdi = Date.now();
+      if (!(await ilkKezMi(sa2, "yedekDene_" + Math.floor(simdi / 36e5)))) return new Response(JSON.stringify({ atla: "Son 1 saatte denendi" }), { headers: { "content-type": "application/json", ...CORS } });
+      try {
+        const parcalar = [];
+        for (const [k, f] of YEDEK_EKLENEN) parcalar.push([k, await sorguHam(sa2, k, [[f, "GREATER_THAN_OR_EQUAL", simdi - 26 * 36e5]])]);
+        for (const x of YEDEK_KUCUK) parcalar.push([kucukAd(x), await sorguHam(sa2, x[0], [], x[1])]);
+        const ad = `yedek-deneme-${trGun(simdi)}`, boyut = await yedekGonder(env, sa2, ad, parcalar, "Deneme yedeği (son 26 saat + ayarlar)", simdi);
+        await yedekDurumYaz(sa2, { son: simdi, sonAd: ad, sonBoyut: boyut, hata: "" });
+        return new Response(JSON.stringify({ ok: true, boyut }), { headers: { "content-type": "application/json", ...CORS } });
+      } catch (e) { await yedekDurumYaz(sa2, { hata: String(e.message || e).slice(0, 200), hataTs: simdi }); return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 500, headers: { "content-type": "application/json", ...CORS } }); }
+    }
     if (!/^(gorev|yapildi|ariza|arizaGuncel|vardiya|vardiyaSonuc)$/.test(tur) || !/^[A-Za-z0-9_-]{4,64}$/.test(id)) return new Response("{}", { status: 400, headers: CORS });
     let sa; try { sa = JSON.parse(env.SERVICE_ACCOUNT); } catch (e) { return new Response(JSON.stringify({ hata: "SERVICE_ACCOUNT gizli değişkeni eksik" }), { status: 500, headers: CORS }); }
     if (!env.SITE) env = { ...env, SITE: "https://bizimevlerteknikservis.github.io/" };

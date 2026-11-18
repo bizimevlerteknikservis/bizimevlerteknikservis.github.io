@@ -474,6 +474,9 @@ nav.tabs a[aria-current="page"]{color:#fff;background:linear-gradient(140deg,var
 .karne-t tr.tk td{background:#fff7ea}.karne-t tr.kr td{background:#fdeaea}
 .bld-kart{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;border:2px dashed var(--line,#e3e9f2);border-radius:18px;padding:12px 14px;margin-bottom:12px;background:var(--card,#fff)}
 .bld-kart.ac{border-style:solid;border-color:#2b7cd3}
+.yd-plan{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}.yd-plan h3{margin:0 0 6px;font-size:15.5px}
+.yd-s{display:flex;align-items:center;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line);font-size:14px}.yd-s span{flex:1}.yd-s em{font-style:normal;color:var(--muted);font-size:12.5px}.yd-s input{width:18px;height:18px}
+.cta.kirmizi-btn{background:#c62828;border-color:#c62828;color:#fff}
 .vd-bas{display:flex;justify-content:space-between;align-items:center;gap:8px}.vd-bas h2{margin:0}
 .vd-liste{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .vd-s{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--sunk);border:1px solid var(--line);flex-wrap:wrap}
@@ -874,6 +877,9 @@ function DemoStore(){
     async addTesis(r){ const id = "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,5); (mem.tesis ||= []).push({...r, id, uid: mem.uid}); save(); return id; },
     async updateTesis(id, p){ const r = (mem.tesis||[]).find(x=>x.id===id); if (r){ Object.assign(r, p); save(); } },
     async setTesisAyar(p){ mem.tesisAyar = {...(mem.tesisAyar||{}), ...p}; save(); },
+    async yedekDurum(){ return mem.yedekDurum || null; },
+    async yedekAl(ilerle){ ilerle && ilerle("appointments"); return {appointments:(mem.appts||[]).map(a => ({_id:a.id, ...a})), mesai:(mem.mesai||[]).map((m,i) => ({_id:"m"+i, ...m}))}; },
+    async yedekYukle(L, ilerle){ for (const b of L){ const [k, id] = [b.yol.split("/")[0], b.yol.split("/").pop()]; if (k === "appointments"){ const i = (mem.appts||[]).findIndex(a => a.id === id); const v = {...b.veri, id}; if (i >= 0) mem.appts[i] = v; else (mem.appts ||= []).push(v); } } save(); ilerle && ilerle(L.length); },
     listenDuyuru: cb => sub(() => cb(mem.duyuru || null)),
     listenIzin: cb => sub(() => cb(mem.izin || null)),
     listenIzinler: cb => sub(() => cb(mem.izinler || null)),
@@ -975,6 +981,20 @@ function FirebaseStore(cfg){
     },
     async updateTesis(id, p){ await fs.updateDoc(fs.doc(db,"tesis",id), p); },
     async setTesisAyar(p){ await fs.setDoc(fs.doc(db,"ayar","tesis"), p, {merge:true}); },
+    async yedekDurum(){ try { const d = await fs.getDoc(fs.doc(db,"ayar","yedek")); return d.exists() ? d.data() : null; } catch(e){ return null; } },
+    /* Tüm veri (fotoğraflar ve telefon kimlikleri hariç). Tarih nesneleri {__ts: ms} olarak yazılır. */
+    async yedekAl(ilerle){
+      const duz = v => v && typeof v.toMillis === "function" ? {__ts:v.toMillis()} : Array.isArray(v) ? v.map(duz) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k,x]) => [k, duz(x)])) : v;
+      const out = {};
+      for (const yol of YEDEK_KOLEKSIYON){ ilerle && ilerle(yol); const sn = await fs.getDocs(fs.collection(db, ...yol.split("/"))); out[yol] = sn.docs.map(d => ({_id:d.id, ...duz(d.data())})); }
+      return out;
+    },
+    async yedekYukle(L, ilerle){
+      const ac = v => v && typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 1 && typeof v.__ts === "number" ? fs.Timestamp.fromMillis(v.__ts) : Array.isArray(v) ? v.map(ac) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k,x]) => [k, ac(x)])) : v;
+      for (let i = 0; i < L.length; i += 400){
+        const b = fs.writeBatch(db); L.slice(i, i + 400).forEach(x => b.set(fs.doc(db, ...x.yol.split("/")), ac(x.veri))); await b.commit(); ilerle && ilerle(Math.min(L.length, i + 400));
+      }
+    },
     listenDuyuru(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","devriye"), s => cb(s.exists() ? s.data() : null), e => { console.warn("duyuru", e && e.code); cb(null); }); },
     async setDuyuru(v){ await fs.setDoc(fs.doc(db,"duyuru","devriye"), v); },
     listenGorev(cb){
@@ -2179,6 +2199,90 @@ function vIK(){
     ${izinli.length ? `<div class="d-liste">${izinli.map(z => `<div><b>${esc(z.ad)}</b><small>${esc({yillik:"Yıllık izin", rapor:"Rapor", mazeret:"Mazeret", ucretsiz:"Ücretsiz"}[z.tur] || z.tur || "İzin")}</small><time>${z.bit.slice(8)}.${z.bit.slice(5,7)}'e kadar</time></div>`).join("")}</div>` : `<p class="hint" style="margin:0">Bugün izinli kimse yok.</p>`}
   </section>`;
 }
+/* =================== YEDEK (teknisyen) =================== */
+const YEDEK_KOLEKSIYON = ["appointments","tesis","gorev","tasinma","vardiya","mesai","devriye","puantaj","kod","ayar","duyuru","muhasebe","muhasebe/veri/daireler","muhasebe/veri/giderler"];
+const YEDEK_AD = {appointments:"Arızalar (daire + personel)", tesis:"Tesis kayıtları", gorev:"Görev ve talimatlar", tasinma:"Taşınma / tadilat", vardiya:"Vardiya değişimleri", mesai:"Mesai giriş-çıkış", devriye:"Devriye okutmaları", puantaj:"Puantaj", kod:"Personel kodları", ayar:"Ayarlar", duyuru:"Duyuru, izinler, listeler", muhasebe:"Muhasebe ayarları", "muhasebe/veri/daireler":"Muhasebe · daireler", "muhasebe/veri/giderler":"Muhasebe · giderler"};
+const YD = {durum:null, yuk:false, is:"", plan:null, sec:{}, onay:false};
+function yedekDurumYukle(zorla){ if ((YD.durum && !zorla) || YD.yuk || !store.yedekDurum) return; YD.yuk = true; store.yedekDurum().then(d => { YD.durum = d || {}; YD.yuk = false; render(); }); }
+/* Yedek dosyasını oku: uygulamanın indirdiği (bz1-yedek-1) ya da Telegram'a gelen (bz1-yedek-rest-1) biçim */
+function restCoz(v){
+  if (!v || typeof v !== "object") return null;
+  if ("integerValue" in v) return Number(v.integerValue); if ("doubleValue" in v) return Number(v.doubleValue);
+  if ("stringValue" in v) return v.stringValue; if ("booleanValue" in v) return !!v.booleanValue; if ("nullValue" in v) return null;
+  if ("timestampValue" in v) return {__ts:Date.parse(v.timestampValue)};
+  if ("mapValue" in v) return Object.fromEntries(Object.entries((v.mapValue && v.mapValue.fields) || {}).map(([k,x]) => [k, restCoz(x)]));
+  if ("arrayValue" in v) return ((v.arrayValue && v.arrayValue.values) || []).map(restCoz);
+  return null;
+}
+function yedekCoz(j){
+  const L = [];
+  if (j && j.bicim === "bz1-yedek-1") for (const [yol, arr] of Object.entries(j.veri || {})) (arr||[]).forEach(d => { const {_id, ...veri} = d; if (_id) L.push({yol: yol + "/" + _id, veri}); });
+  else if (j && j.bicim === "bz1-yedek-rest-1") for (const arr of Object.values(j.veri || {})) (arr||[]).forEach(x => { const d = x && x.document; if (!d || !d.name) return; const yol = d.name.split("/documents/")[1]; if (yol) L.push({yol, veri: restCoz({mapValue:{fields:d.fields || {}}}) || {}}); });
+  else throw new Error("Bu dosya bir Bizimevler yedeği değil");
+  return L.filter(x => !/^(foto|bildirim|bildirimLog)\//.test(x.yol));
+}
+const yedekGrup = yol => { const p = yol.split("/"); return p[0] === "muhasebe" && p.length > 2 ? p.slice(0,3).join("/") : p[0]; };
+function yedekKart(){
+  if (!store.isTech() || !store.yedekAl) return "";
+  yedekDurumYukle();
+  const d = YD.durum || {}, saat = t => new Date(t).toLocaleString("tr-TR", {day:"numeric", month:"long", hour:"2-digit", minute:"2-digit"});
+  const gun = d.son ? Math.floor((Date.now() - d.son) / 864e5) : null;
+  const durum = d.hata && (!d.son || d.hataTs > d.son) ? `<div class="t-uyari kirmizi">⚠️ Son otomatik yedek alınamadı: ${esc(d.hata)}</div>`
+    : d.son ? `<div class="t-uyari ${gun > 1 ? "turuncu" : "yesil"}">✓ Son otomatik yedek: <b>${saat(d.son)}</b> · ${Math.max(1, Math.round((d.sonBoyut||0)/1024))} KB · Telegram'a gönderildi</div>`
+    : YD.durum ? `<div class="t-uyari turuncu">Henüz otomatik yedek alınmadı. Postacıya Telegram bilgileri eklenince her gece 03:00'te alınır.</div>` : "";
+  const P = YD.plan;
+  return `<details class="card t-ayar" id="yedekKart" ${YD.ac ? "open" : ""}><summary><b>💾 Yedek</b> · verilerin kopyası</summary>
+    <p class="hint">Her gece 03:00'te o günün kayıtları, her ayın 1'inde tüm veri Telegram'a dosya olarak gelir (sessiz). Fotoğraflar yedeğe girmez. Site kodu zaten GitHub'da yedekli.</p>
+    ${durum}
+    <div class="grid2" style="margin-top:10px"><button class="cta ghost" data-act="yedekDene" ${YD.is ? "disabled" : ""}>📨 Telegram'a şimdi gönder</button><button class="cta ghost" data-act="yedekIndir" ${YD.is ? "disabled" : ""}>⬇ Tüm veriyi indir</button></div>
+    <label class="cta ghost yd-yukle" style="display:block;text-align:center;margin-top:8px;cursor:pointer">♻️ Yedekten geri yükle<input type="file" id="yedekDosya" accept=".json,application/json" hidden></label>
+    ${YD.is ? `<p class="hint" style="margin-top:10px">⏳ ${esc(YD.is)}</p>` : ""}
+    ${P ? `<div class="yd-plan"><h3>Geri yükleme · ${esc(P.ad)}</h3><p class="hint">Yedek tarihi: <b>${P.tarih ? saat(P.tarih) : "?"}</b>. Seçtiğiniz bölümlerdeki kayıtlar yedekteki hâline döner; yedekten sonra eklenen yeni kayıtlara dokunulmaz.</p>
+      ${Object.entries(P.grup).map(([g, n]) => `<label class="yd-s"><input type="checkbox" data-act="yedekSec" data-v="${esc(g)}" ${YD.sec[g] ? "checked" : ""}> <span>${esc(YEDEK_AD[g] || g)}</span><em>${n} kayıt</em></label>`).join("")}
+      ${(() => { const n = Object.entries(P.grup).filter(([g]) => YD.sec[g]).reduce((t,[,x]) => t + x, 0); return `<p class="hint">${n} kayıt yazılacak.${n > 15000 ? " ⚠️ Günlük ücretsiz yazma sınırı 20.000; bölüm bölüm, farklı günlerde yükleyin." : ""}</p>
+      <div class="grid2"><button class="cta ghost" data-act="yedekVazgec">Vazgeç</button><button class="cta ${YD.onay ? "kirmizi-btn" : ""}" data-act="yedekYukle" ${!n || n > 19000 || YD.is ? "disabled" : ""}>${YD.onay ? "Emin misiniz? Tekrar basın" : "Geri yükle"}</button></div>`; })()}</div>` : ""}
+  </details>`;
+}
+async function yedekTik(act, v, b){
+  if (act==="yedekDene"){
+    if (!AYAR.bildirimSunucu) return; YD.is = "Telegram'a gönderiliyor…"; YD.ac = true; render();
+    try { const r = await fetch(AYAR.bildirimSunucu, {method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify({tur:"yedekDene"})}); const j = await r.json().catch(() => ({}));
+      toast(j.ok ? `✓ Yedek Telegram'a gönderildi (${Math.round(j.boyut/1024)} KB)` : j.atla ? "Son 1 saat içinde zaten gönderildi" : "Gönderilemedi: " + (j.hata || r.status), 6000); }
+    catch(e){ toast("Postacıya ulaşılamadı"); }
+    YD.is = ""; yedekDurumYukle(true); render();
+  }
+  else if (act==="yedekIndir"){
+    YD.is = "Veriler okunuyor…"; YD.ac = true; render();
+    try { const veri = await store.yedekAl(k => { YD.is = `Okunuyor: ${YEDEK_AD[k] || k}…`; render(); });
+      const n = Object.values(veri).reduce((t, a) => t + a.length, 0), ad = `bizimevler-yedek-${ymdS(new Date())}.json`;
+      const blob = new Blob([JSON.stringify({bicim:"bz1-yedek-1", tarih:Date.now(), ad, veri})], {type:"application/json"});
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = ad; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 3000);
+      toast(`✓ ${n} kayıt indirildi (${Math.round(blob.size/1024)} KB). Dosyayı Drive'a ya da USB'ye kaydedin.`, 7000); }
+    catch(e){ console.error(e); toast("İndirilemedi: " + (e.code || e.message || "hata")); }
+    YD.is = ""; render();
+  }
+  else if (act==="yedekSec"){ YD.sec[v] = b.checked; YD.onay = false; render(); }
+  else if (act==="yedekVazgec"){ YD.plan = null; YD.onay = false; render(); }
+  else if (act==="yedekYukle"){
+    if (!YD.plan) return; if (!YD.onay){ YD.onay = true; render(); return; }
+    const L = YD.plan.L.filter(x => YD.sec[yedekGrup(x.yol)]); YD.onay = false; YD.is = `Yazılıyor: 0 / ${L.length}`; render();
+    try { await store.yedekYukle(L, n => { YD.is = `Yazılıyor: ${n} / ${L.length}`; render(); }); toast(`✓ ${L.length} kayıt geri yüklendi`, 6000); YD.plan = null; }
+    catch(e){ console.error(e); toast(e && e.code === "permission-denied" ? "Yetki yok: Firebase kuralları güncellenmeli" : "Geri yüklenemedi: " + (e.code || e.message), 7000); }
+    YD.is = ""; render();
+  }
+}
+document.addEventListener("toggle", e => { if (e.target && e.target.id === "yedekKart") YD.ac = e.target.open; }, true);
+document.addEventListener("change", async e => {
+  const inp = e.target; if (!inp || inp.id !== "yedekDosya" || !inp.files || !inp.files[0]) return;
+  try { const f = inp.files[0], j = JSON.parse(await f.text()), L = yedekCoz(j), grup = {};
+    L.forEach(x => { const g = yedekGrup(x.yol); grup[g] = (grup[g]||0) + 1; });
+    if (!L.length){ toast("Dosyada geri yüklenecek kayıt yok"); return; }
+    YD.plan = {ad:f.name, tarih:j.tarih, L, grup}; YD.sec = Object.fromEntries(Object.keys(grup).map(g => [g, false])); YD.onay = false; YD.ac = true; render();
+    setTimeout(() => { const k = document.getElementById("yedekKart"); if (k) k.scrollIntoView({behavior:"smooth", block:"start"}); }, 50); }
+  catch(err){ toast("Dosya okunamadı: " + (err.message || "geçersiz dosya"), 6000); }
+  inp.value = "";
+});
+
 /* =================== FORM ALANLARI (yeniden çizimde kaybolmasın) =================== */
 const FX = {};
 const fx = id => esc(FX[id] ?? "");
@@ -2876,6 +2980,7 @@ function vPanel(){
     <div class="filters">${Object.keys(ad).map(k=>`<button class="pill-btn" data-act="filtre" data-v="${k}" aria-current="${S.filter===k}">${ad[k]}</button>`).join("")}</div>
     ${list.length ? gruplar.map(g=>`<div class="group-h">${esc(g.b)}</div><div class="list">${g.l.map(a=>fis(a,true)).join("")}</div>`).join("")
       : `<div class="empty"><strong>Bu filtrede iş yok</strong>Sakinler arıza bildirdikçe burada görünür.</div>`}`, `
+    ${yedekKart()}
     <details class="card t-ayar" id="rolKart" ${S.rolAcik?"open":""}><summary><b>👥 Yönetim erişimi</b> · Kontrol Merkezi'ne kim girebilir</summary>
       <p class="hint">Buraya yazılan e-postalar <b>sadece Canlı Kontrol Merkezi'ni</b> görebilir (personel bildirimleri, devriye, tesis durumu, raporlar). <b>Daire arızalarını ve bu paneli göremezler.</b> Her satıra bir e-posta.</p>
       <textarea id="rolListe" rows="4" placeholder="mudur@ornek.com&#10;yonetim@ornek.com">${esc(S.rolTaslak ?? (S.roller||[]).join("\n"))}</textarea>
@@ -4043,6 +4148,7 @@ function render(){
 function syncForm(){
   const rk = document.getElementById("rolKart"); if (rk) S.rolAcik = rk.open;
   const kk = document.getElementById("kodKart"); if (kk) S.kodAcik = kk.open;
+  const yk = document.getElementById("yedekKart"); if (yk) YD.ac = yk.open;
   if (S.view === "calisma") clSync();
   if (S.view === "izinler") yiSync();
   if (S.view === "gtasinma") gtSync();
@@ -4158,6 +4264,7 @@ document.addEventListener("click", async e => {
       catch(err){ console.error(err); toast(err && err.code==="permission-denied" ? "Yetki yok: Firebase kuralları güncellenmeli" : "Kaydedilemedi"); }
       MZ.kayit = false; render(); return;
     }
+    else if (/^yedek(Dene|Indir|Sec|Vazgec|Yukle)$/.test(act)){ if (act !== "yedekSec") e.preventDefault(); await yedekTik(act, v, b); return; }
     else if (act==="vdAc"){ VD.ac = true; render(); return; }
     else if (act==="vdKapat"){ VD.ac = false; render(); return; }
     else if (act==="vdGonder"){

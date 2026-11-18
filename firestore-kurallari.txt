@@ -1,0 +1,221 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Teknisyen: her şeye tam yetki
+    function isTech() {
+      return request.auth != null
+        && request.auth.token.email in ['teknisyenzeynel91@gmail.com'];
+    }
+    function signedIn() { return request.auth != null; }
+    // Yönetim: e-postaları Teknisyen panelindeki "Yönetim erişimi"nden eklenir (ayar/roller)
+    // Sadece izler: personel bildirimleri, devriye, tesis, fotoğraflar. Daire arızalarını göremez.
+    function isYonetim() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && exists(/databases/$(database)/documents/ayar/roller)
+        && request.auth.token.email.lower() in get(/databases/$(database)/documents/ayar/roller).data.get('yonetim', []);
+    }
+    // Tesis yetkilisi: Tesis takip sayfasına kayıt girebilir (ayar/roller.tesis)
+    function isTesis() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && exists(/databases/$(database)/documents/ayar/roller)
+        && request.auth.token.email.lower() in get(/databases/$(database)/documents/ayar/roller).data.get('tesis', []);
+    }
+    function canView() { return isTech() || isYonetim() || isTesis(); }
+    // Geçerli (aktif) personel/güvenlik kodu
+    function kodGecerli(k) {
+      return k is string && k.size() == 6
+        && exists(/databases/$(database)/documents/kod/$(k))
+        && get(/databases/$(database)/documents/kod/$(k)).data.aktif == true;
+    }
+
+    match /appointments/{id} {
+      allow create: if isTech();   // yedekten geri yükleme
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'bekliyor'
+        && request.resource.data.note == ''
+        && request.resource.data.desc.size() <= 500
+        && request.resource.data.phone.size() <= 20
+        && request.resource.data.name.size() <= 80
+        && (request.resource.data.get('src', '') != 'personel'
+            || kodGecerli(request.resource.data.get('kod', '')));
+      // Personel bildirimleri (src personel) Canlı Kontrol Merkezi'nin Arıza ekranında personele de görünür
+      allow read: if isTech()
+        || (isYonetim() && resource.data.src == 'personel')
+        || (signedIn() && resource.data.get('src', '') == 'personel')
+        || (signedIn() && resource.data.uid == request.auth.uid);
+      allow update: if isTech()
+        // Müdür (tesis) personelin malzeme taleplerini, temizlik ve bahçe arızalarını "ilgileniliyor / çözüldü" yapar ve not yazar
+        || (isTesis()
+            && resource.data.get('src', '') == 'personel'
+            && resource.data.get('cat', '') in ['p_malzeme', 'p_temiz', 'p_bahce']
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','note','completedAt','guncelTs','karan'])
+            && request.resource.data.status in ['bekliyor','onaylandi','tamamlandi']
+            && request.resource.data.get('note', '').size() <= 160)
+        || (signedIn()
+            && resource.data.uid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+            && request.resource.data.status == 'iptal');
+      allow delete: if isTech();
+    }
+
+    match /slots/{slotId} {
+      allow read: if true;
+      allow create: if isTech()
+        || (signedIn() && request.resource.data.uid == request.auth.uid);
+      allow delete: if isTech()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+      allow update: if isTech();
+    }
+
+    match /devriye/{id} {
+      allow create: if isTech();   // yedekten geri yükleme
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.not.size() <= 300
+        && request.resource.data.gorevli.size() <= 60
+        && (isTech() || isYonetim() || isTesis() || kodGecerli(request.resource.data.get('kod', '')));
+      allow read: if canView();
+      allow delete: if isTech();
+    }
+
+    match /foto/{id} {
+      allow create: if signedIn()
+        && (isTech() || isTesis() || kodGecerli(request.resource.data.get('kod', '')))
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.data is string
+        && request.resource.data.data.size() < 500000;
+      allow read: if canView();
+      allow delete: if isTech();
+    }
+
+    match /tesis/{id} {
+      allow create: if isTech()
+        || (isTesis() && request.resource.data.uid == request.auth.uid)
+        || (signedIn()
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.tur == 'kesinti'
+            && kodGecerli(request.resource.data.get('kod', '')))
+        || (isYonetim()
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.tur == 'ariza');
+      allow read: if canView();
+      allow update: if isTech() || isTesis()
+        || (isYonetim() && resource.data.tur == 'ariza');
+      allow delete: if isTech();
+    }
+
+    // Taşınma & tadilat: yönetim/amirler kaydeder, güvenlik (kapı) okur. Ad-telefon tutulmaz.
+    match /tasinma/{id} {
+      allow create: if isTech();   // yedekten geri yükleme
+      allow read: if signedIn();
+      allow create: if (isTech() || isYonetim() || isTesis())
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.daire.size() <= 6
+        && request.resource.data.not.size() <= 200;
+      allow update: if isTech() || isYonetim() || isTesis();
+      allow delete: if isTech();
+    }
+
+    // Personel / güvenlik kodları: kodu bilen kendi kaydını okuyabilir, listeyi ve değişikliği sadece teknisyen yapar
+    match /kod/{kod} {
+      allow get: if signedIn();
+      allow list, write: if isTech();
+    }
+
+    // Devriye duyurusu (yağmur/kar → devriye iptal): herkes okur, amir/yönetim yazar
+    match /duyuru/{id} {
+      allow read: if signedIn();
+      allow write: if isTech() || isYonetim() || isTesis();
+    }
+
+    // Görevler: müdür/amir/teknisyen verir; personel (geçerli koduyla) sadece "gördüm / yaptım" işaretler
+    match /gorev/{id} {
+      allow create: if isTech();   // yedekten geri yükleme
+      allow read: if signedIn();
+      // Amirler (yönetim) sadece güvenliğe görev verebilir; müdür/tesis ve teknisyen herkese
+      allow create: if (isTech() || isTesis() || (isYonetim() && request.resource.data.kime.rol == 'Güvenlik'))
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.metin.size() <= 400;
+      allow update: if isTech() || isYonetim() || isTesis()
+        || (signedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['durum','gorulduTs','gorulduAd','yapildiTs','yapildiAd','sonKod'])
+            && request.resource.data.durum in ['goruldu','yapildi']
+            && kodGecerli(request.resource.data.get('sonKod', '')))
+        || (signedIn()
+            && resource.data.get('tur', '') == 'talimat'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['okuyan','sonKod'])
+            && kodGecerli(request.resource.data.get('sonKod', '')));
+      allow delete: if isTech();
+    }
+
+    // Telefon bildirimi: her telefon kendi kimliğini yazar. Personel geçerli koduyla, yöneticiler kendi rolüyle.
+    // Bildirimi sunucu fonksiyonu gönderir; kimse başkasının kaydını okuyamaz.
+    match /bildirim/{id} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create, update: if signedIn() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.token == id
+        && ((request.resource.data.rol == 'personel' && kodGecerli(request.resource.data.kod))
+            || (request.resource.data.rol == 'teknisyen' && isTech())
+            || (request.resource.data.rol in ['yonetim', 'tesis'] && (isYonetim() || isTesis())));
+      allow delete: if isTech() || (signedIn() && resource.data.uid == request.auth.uid);
+    }
+
+    // Mesai (QR ile işe giriş/çıkış): personel kendi geçerli koduyla yazar ve sadece kendi kaydını okur;
+    // amirler, müdür ve teknisyen hepsini okur (puantaj). Kayıtlar değiştirilemez, sadece teknisyen silebilir.
+    match /mesai/{id} {
+      allow create: if isTech();   // yedekten geri yükleme
+      allow read: if isTech() || isYonetim() || isTesis()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.tip in ['giris','cikis']
+        && kodGecerli(request.resource.data.kod);
+      allow delete: if isTech();
+    }
+
+    // Vardiya değişimi: güvenlik (geçerli koduyla) ister, amir/müdür/teknisyen onaylar ya da reddeder.
+    // İsteyen kendi talebini sadece "iptal" edebilir. Onaylananlar puantaja otomatik işlenir.
+    match /vardiya/{id} {
+      allow create: if isTech();   // yedekten geri yükleme
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.durum == 'bekliyor'
+        && request.resource.data.tarih is string && request.resource.data.tarih.size() == 10
+        && request.resource.data.karsi is string && request.resource.data.karsi.size() <= 60
+        && request.resource.data.get('not', '').size() <= 120
+        && kodGecerli(request.resource.data.get('kod', ''));
+      allow update: if isTech() || isYonetim() || isTesis()
+        || (signedIn()
+            && resource.data.uid == request.auth.uid
+            && resource.data.durum == 'bekliyor'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['durum'])
+            && request.resource.data.durum == 'iptal');
+      allow delete: if isTech();
+    }
+
+    // Puantaj: amirler (yönetim), müdür (tesis) ve teknisyen okur/yazar
+    match /puantaj/{id} {
+      allow read, write: if isTech() || isYonetim() || isTesis();
+    }
+
+    // Muhasebe (aidat, ödemeler, giderler): sadece teknisyen okur ve yazar.
+    // Kayıtlar silinmez, yanlış kayıt "iptal" işaretlenir. Sadece daire kartı silinebilir.
+    match /muhasebe/{belge=**} {
+      allow read, create, update: if isTech();
+    }
+    match /muhasebe/veri/daireler/{id} {
+      allow delete: if isTech();
+    }
+
+    // Ayarlar (harita yerleri, tesis ayarları, yönetim listesi): yönetim okur, sadece teknisyen değiştirir
+    match /ayar/{id} {
+      allow read: if canView();
+      allow write: if isTech() || (isTesis() && id == 'tesis');
+    }
+  }
+}
