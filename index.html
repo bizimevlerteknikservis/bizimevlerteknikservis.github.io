@@ -59,6 +59,7 @@ button{-webkit-appearance:none;appearance:none}
 .ic-alt{display:none}
 body.icsayfa .ic-alt{display:block}
 body.icsayfa .wrap{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+#sakinHava .d-hava{margin-top:10px}
 .sayfa-bas + .hint{background:var(--surface);border-radius:16px;padding:12px 14px;box-shadow:0 6px 18px rgba(20,50,100,.08);margin-bottom:12px}
 /* ===== Bilgisayar düzeni ===== */
 @media (min-width:900px){
@@ -612,6 +613,7 @@ nav.tabs a[aria-current="page"]{color:#fff;background:rgba(59,140,255,.16)}nav.t
   </div>
   <h1 id="siteName">Teknik Servis</h1>
   <p id="heroSub">Arızanı bildir, uygun saati seç. Teknisyen kapına gelsin.</p>
+  <div id="sakinHava" hidden></div>
 </div></header>
 <div class="wrap">
   <div id="demoBand" class="demo-band" hidden><b>Demo</b><span>Kayıtlar yalnızca bu telefonda tutulur. Gerçek kullanım için Firebase ayarını ekleyin. Teknisyen paneli PIN: <strong id="pinShow"></strong></span></div>
@@ -1957,7 +1959,7 @@ function havaYukle(zorla){
   if (HV.yuk || (taze && !zorla)) return;
   if (!HV.v){ try { const c = JSON.parse(localStorage.getItem("bz1-hava2") || "null"); if (c && c.v && c.v.hourly){ HV.v = c.v; HV.ts = c.ts; HV.m = c.m || null; HV.mts = c.mts || 0; if (Date.now() - c.ts < 15*6e4 && !zorla) return; } } catch(e){} }
   HV.yuk = true;
-  const ciz = () => { try { localStorage.setItem("bz1-hava2", JSON.stringify({v:HV.v, ts:HV.ts, m:HV.m, mts:HV.mts})); } catch(e){} if (["panel","personel","devriye","gtasinma"].includes(S.view)) render(); havaPanelCiz(); };
+  const ciz = () => { try { localStorage.setItem("bz1-hava2", JSON.stringify({v:HV.v, ts:HV.ts, m:HV.m, mts:HV.mts})); } catch(e){} if (["panel","personel","devriye","gtasinma"].includes(S.view)) render(); sakinHavaCiz(); havaPanelCiz(); };
   const om = fetch(HV_URL).then(r => r.json()).then(j => { if (j && j.hourly){ HV.v = j; HV.ts = Date.now(); } }).catch(() => {});
   const mt = AYAR.bildirimSunucu ? fetch(AYAR.bildirimSunucu + "?hava=1").then(r => r.ok ? r.json() : null).then(m => { if (m && m.temp != null){ HV.m = m; HV.mts = Date.now(); } }).catch(() => {}) : Promise.resolve();
   Promise.all([om, mt]).then(ciz).finally(() => { HV.yuk = false; });
@@ -2004,6 +2006,13 @@ function havaUyari(){
   if (ruz) return `💨 Kuvvetli rüzgâr ${ne(ruz)} (hamle ${ruz.hamle} km/s)`;
   if (don) return `❄️ Don riski ${don.saat} · su hatlarına dikkat`;
   return "";
+}
+/* Sakin sayfası (arıza bildir / bildirimlerim) üst bandında hava durumu */
+function sakinHavaCiz(){
+  const el = document.getElementById("sakinHava"); if (!el) return;
+  const goster = ["randevu","randevularim"].includes(S.view) && !document.body.classList.contains("dash");
+  const h = goster ? havaHTML() : "";
+  el.innerHTML = h; el.hidden = !h;
 }
 function havaHTML(){
   havaYukle();
@@ -4156,6 +4165,7 @@ function render(){
   const personelMi = store.isTech() || (store.isYetkili && store.isYetkili());
   const icsayfa = !dash && personelMi && ["tesis","tasinma","gorev","izinler","calisma","ik","panel","personel","devriye"].includes(S.view);
   document.body.classList.toggle("icsayfa", icsayfa);
+  sakinHavaCiz();
   const BASLIK = {randevu:"Arıza bildir", randevularim:"Bildirimlerim", panel: personelMi ? "Arıza listesi" : "Teknisyen girişi", tesis: store.isTesis && store.isTesis() ? "Tesis & Bakım" : "Asansör arızaları",
     tasinma:"Taşınma & Tadilat", gtasinma:"Taşınma & Tadilat", gorev:"Görev ver", izinler:"İzinler", calisma:"Çalışma listesi", ik:"Personel işleri", personel:"Arıza bildir", devriye:"Devriye"};
   $("#siteName").textContent = BASLIK[S.view] || (AYAR.baslik || AYAR.siteAdi);
