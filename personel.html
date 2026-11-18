@@ -662,7 +662,14 @@ const ARIZALAR = {
 const BAHCIVAN = "Bahçıvan / Peyzaj";
 const ROLLER = ["Temizlik", BAHCIVAN, "Güvenlik","Yönetim","Diğer"];
 // Rol bazlı kategoriler: bahçıvan sadece peyzaj, malzeme talebi sadece temizlik
-const rolKat = (rol, k) => k.gizli ? false : rol === BAHCIVAN ? k.id === "p_bahce" : (k.id !== "p_malzeme" || rol === "Temizlik");
+const MALZEME_ROL = ["Temizlik", "Güvenlik", BAHCIVAN];   // malzeme talebi açabilenler (müdür karşılar)
+const rolKat = (rol, k) => k.gizli ? false : rol === BAHCIVAN ? (k.id === "p_bahce" || k.id === "p_malzeme") : (k.id !== "p_malzeme" || MALZEME_ROL.includes(rol));
+/* Malzeme listesi bölüme göre */
+const MALZEME_LISTE = {
+  "Güvenlik": ["El feneri / şarj","Pil","Telsiz / şarj aleti","Yağmurluk / mont","Reflektörlü yelek","Düdük","Nöbet defteri / kalem","Kulübe ısıtıcı / fan","Ampul","Diğer malzeme"],
+  [BAHCIVAN]: ["Hortum / bağlantı parçası","Gübre","Tohum / fide / çiçek","Zirai ilaç","Budama makası / testere","Tırmık / kürek / el aleti","Çim biçme yakıtı / yağ","Misina","Eldiven","Diğer malzeme"]
+};
+const pAriza = (cat, rol) => cat === "p_malzeme" && MALZEME_LISTE[rol] ? MALZEME_LISTE[rol] : PARIZA[cat];
 const PKAT = [
   {id:"p_tasinma", ad:"Taşınma / tadilat (güvenlik)", gizli:true, ic:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>'},
   {id:"p_gelemiyorum", ad:"İşe gelemiyor", gizli:true, ic:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/><path d="M17 3l4 4M21 3l-4 4"/>'},
@@ -1498,8 +1505,8 @@ function sesCoz(ham, rol){
   // kategori + arızalar
   let en = null, enP = 0;
   for (const [cat, d] of Object.entries(SES_SOZ)){
-    if (cat === "p_malzeme" && rol !== "Temizlik") continue;
-    if (rol === BAHCIVAN && cat !== "p_bahce") continue;
+    if (cat === "p_malzeme" && !MALZEME_ROL.includes(rol)) continue;
+    if (rol === BAHCIVAN && cat !== "p_bahce" && cat !== "p_malzeme") continue;
     let puan = d.k.filter(k => t.includes(k)).length;
     for (const ks of Object.values(d.i)) if (ks.some(k => t.includes(k))) puan += .5;
     if (puan > enP){ enP = puan; en = cat; }
@@ -1595,7 +1602,7 @@ function vPersonelIc(){
   ${p.kod || p.kayitli ? sesKart() : ""}
   <section class="step"><h2><span>1</span>Ne oldu, ne lazım?</h2>
     <div class="cats">${PKAT.filter(k => rolKat(p.rol, k)).map(k => `<button class="cat" data-act="pCat" data-v="${k.id}" aria-pressed="${p.cat===k.id}"><svg viewBox="0 0 24 24">${k.ic}</svg>${k.ad}</button>`).join("")}</div>
-    ${p.cat ? `<div class="issues" style="margin-top:6px">${PARIZA[p.cat].map(x => `<button class="iss" data-act="pIss" data-v="${esc(x)}" aria-pressed="${p.issues.includes(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
+    ${p.cat ? `<div class="issues" style="margin-top:6px">${pAriza(p.cat, p.rol).map(x => `<button class="iss" data-act="pIss" data-v="${esc(x)}" aria-pressed="${p.issues.includes(x)}">${esc(x)}</button>`).join("")}</div>` : ""}
   </section>
   <section class="step"><h2><span>2</span>${p.cat==="p_malzeme" ? "Nereye lazım?" : "Nerede?"}</h2>
     ${p.rol===BAHCIVAN ? `<p class="hint">Ortak alanı seçin.</p>` : `<div class="prefs">
