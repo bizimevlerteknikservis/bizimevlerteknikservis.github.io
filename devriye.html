@@ -2106,8 +2106,7 @@ function vDash(isler, ayar){
   const tiles = [
     T("#devriye", "shield", "mavi", "Devriye", "QR okut"),
     T("#personel", "alert", "kirmizi", "Arıza Bildir"),
-    (tech || tesis) && T("#tesis", "building", "turuncu", "Tesis Takip"),
-    (tech || tesis) && `<a class="d-tile altin" href="#tesis" data-act="tSekmeGit" data-v="takvim"><i>${ic("wrench")}</i><b>Bakım & Stok</b><small>Takvim · depo</small></a>`,
+    (tech || tesis) && `<a class="d-tile turuncu" href="#tesis" data-act="tSekmeGit" data-v="ozet"><i>${ic("wrench")}</i><b>Tesis & Bakım</b><small>Asansör · takvim · stok</small></a>`,
     T("#ik", "users", "mor", "Personel", "İzin · Puantaj"),
     T("#gorev", "clip", "camgobegi", "Görev Ver"),
     (tech || tesis) && T("#calisma", "broom", "yesil", "Temizlik", "Çalışma listesi"),
