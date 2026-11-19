@@ -706,6 +706,8 @@ nav.tabs a[aria-current="page"]{color:#fff;background:rgba(59,140,255,.16)}nav.t
   body.yon-masa .d-bas h2{color:#fff;font-size:19px}
   .m-bas-ik{width:22px;height:22px;stroke:#8fc3ff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   body.yon-masa .d-link{background:rgba(76,155,255,.12);color:#9cc8ff}
+  #masaHaritaKap{position:absolute;z-index:3;display:none}
+  #masaHaritaKap iframe{width:100%;height:100%;border:0;border-radius:14px;background:transparent;color-scheme:dark}
   body.yon-masa .d-harita .d-foto{height:440px;border-radius:14px;background-position:center 45%}
   body.yon-masa .d-canli{border-radius:16px;background:rgba(14,26,52,.85);border:1px solid var(--cam-k)}
   body.yon-masa .d-canli b::before{animation:none}
@@ -2144,6 +2146,29 @@ function masaAkisKart(){
     ${S_.length ? `<ol class="m-akis-l">${S_.map(e => `<li class="${IKN[e.tur][1]}"><i>${ic(IKN[e.tur][0])}</i><div><b>${esc(e.b)}</b><span>${esc(e.m)}</span><time>${zmn(e.t)}</time></div></li>`).join("")}</ol>` : `<p class="hint">Son 3 günde olay yok.</p>`}
   </section>`;
 }
+/* Ana sayfadaki canlı harita: Canlı Kontrol Merkezi'nin haritası gömülü (kontrol.html?gomulu=1).
+   Sayfa her yenilendiğinde harita baştan yüklenmesin diye iframe #view dışında tek kez kurulur ve yer tutucunun üstüne konumlanır. */
+const MH = {h:560, kap:null};
+function masaHaritaYerlestir(){
+  const yer = document.getElementById("masaHaritaYer");
+  if (!yer || !masaAktif()){ if (MH.kap) MH.kap.style.display = "none"; return; }
+  if (!MH.kap){
+    MH.kap = document.createElement("div"); MH.kap.id = "masaHaritaKap";
+    MH.kap.innerHTML = `<iframe src="kontrol.html?gomulu=1" title="Canlı site haritası" loading="eager"></iframe>`;
+    document.body.appendChild(MH.kap);
+  }
+  const r = yer.getBoundingClientRect();
+  Object.assign(MH.kap.style, {display:"block", left:(r.left + scrollX) + "px", top:(r.top + scrollY) + "px", width:r.width + "px", height:MH.h + "px"});
+}
+window.addEventListener("message", e => {
+  if (e.origin !== location.origin || !e.data || !e.data.bz1Harita) return;
+  const h = Math.max(300, Math.min(1400, e.data.bz1Harita));
+  if (Math.abs(h - MH.h) < 2) return; MH.h = h;
+  const yer = document.getElementById("masaHaritaYer"); if (yer) yer.style.height = h + "px";
+  masaHaritaYerlestir();
+});
+window.addEventListener("resize", () => masaHaritaYerlestir());
+try { new ResizeObserver(() => masaHaritaYerlestir()).observe(document.getElementById("view")); } catch(e){}
 function masaSaat(){
   document.querySelectorAll(".m-saat").forEach(el => { const d = new Date(); el.innerHTML = `<small>${d.toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric",weekday:"long"})}</small><b>${pad(d.getHours())}:${pad(d.getMinutes())}</b>`; });
 }
@@ -2432,10 +2457,10 @@ function vDashGovde(tech, tiles, son, isler, ayar, yeni){
     ${tekrarKart(tech)}
     ${asWaKart()}
     ${masaAkisKart()}
-    <a class="d-kart d-harita" href="#kontrol">
+    ${MASA.matches ? `<section class="d-kart d-harita m-canli"><div class="d-bas"><h2><i class="d-nokta"></i>Canlı Site Haritası</h2><a class="d-link" href="kontrol.html">Tam ekran ${ic("sag")}</a></div><div id="masaHaritaYer" style="height:${MH.h}px"></div></section>` : `<a class="d-kart d-harita" href="#kontrol">
       <div class="d-bas"><h2><i class="d-nokta"></i><span class="masa-gizle">Canlı Site Haritası</span><span class="masa-only">Site Genel Görünüm</span></h2><span class="d-link">Canlı kontrolü aç ${ic("sag")}</span></div>
       <div class="d-foto" style="background-image:url(harita-hd.jpg)"><span>${ic("pin")}Bizimevler 1</span></div>
-    </a>
+    </a>`}
     <a class="d-canli" href="#kontrol"><b>CANLI</b><span class="d-ayr"></span>${son ? `${ic("alert","d-ui")}<span class="d-m">${esc(son.m)}</span><time>${son.t}</time>` : `<span class="d-m" style="opacity:.75">Son 24 saatte yeni arıza bildirimi yok</span>`}<i class="d-ses">${ic("ses")}</i></a>
     ${isler ? `<section id="isler" class="d-bolum"><div class="d-bas"><h2>Arıza işleri</h2></div>${isler}</section>` : ""}
     <section id="ayarlar" class="d-bolum"><div class="d-bas"><h2>Ayarlar</h2></div>
@@ -4442,6 +4467,7 @@ function render(){
   document.querySelector('nav.tabs a[data-tab="panel"]').hidden = !teknik;
   document.querySelector("nav.tabs .in").style.setProperty("--tabs", teknik ? 3 : 2);
   if (S.kaydirHedef && S.view === "panel") kaydirHedefe();
+  masaHaritaYerlestir();
   if (keep && document.getElementById(keep)) { const el = document.getElementById(keep); el.focus(); if (el.setSelectionRange && el.value && el.type !== "date") try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){} }
 }
 function kaydirHedefe(){
