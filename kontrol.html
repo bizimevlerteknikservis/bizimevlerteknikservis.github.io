@@ -1536,8 +1536,9 @@ function temaIkon(){ const b = $("#temaBtn"); if (b) b.innerHTML = koyuMu() ? IK
 /* Tema: düğmeyle seçilen koyu/açık TÜM ekranlarda geçerli (TV modunda da). Seçim yoksa: Devriye koyu, Arıza/Tesis açık; TV'de gece 21–07 hepsi koyu. */
 const temaSecim = () => { try { return localStorage.getItem("bz1-tema3"); } catch(e){ return null; } };
 function temaUygula(m){ const r = document.documentElement, t = temaSecim();
-  if (t) r.setAttribute("data-tema", t);
-  else if ((matchMedia("(min-width:1100px)").matches || r.classList.contains("gomulu")) && !r.classList.contains("tv")) r.setAttribute("data-tema","koyu");   /* masaüstü: varsayılan koyu lacivert */
+  if (r.classList.contains("gomulu")) r.setAttribute("data-tema", r.dataset.anaTema || (/[?&]tema=acik/.test(location.search) ? "acik" : "koyu"));   /* ana sayfanın seçimi */
+  else if (t) r.setAttribute("data-tema", t);
+  else if (matchMedia("(min-width:1100px)").matches && !r.classList.contains("tv")) r.setAttribute("data-tema","koyu");   /* masaüstü: varsayılan koyu lacivert */
   else if (r.classList.contains("tv") && typeof tvGeceMi==="function" && tvGeceMi()) r.setAttribute("data-tema","koyu");
   else r.removeAttribute("data-tema"); }
 try { localStorage.removeItem("bz1-tema"); localStorage.removeItem("bz1-tema2"); } catch(e){}
@@ -1729,6 +1730,8 @@ modAc(ilk);
 canliBaslat().catch(e=>{ console.error(e); ticker("Canlı bağlantı kurulamadı, sayfayı yenileyin."); });
 if (document.documentElement.classList.contains("gomulu")){
   /* Gömülü: TV döngüsü ve sesli uyarı yok (ana sayfada); yüksekliği ana sayfaya bildir */
+  /* Ana sayfanın gündüz/gece seçimi */
+  window.addEventListener("message", e => { if (e.origin !== location.origin || !e.data || !e.data.bz1Tema) return; document.documentElement.dataset.anaTema = e.data.bz1Tema; try { temaUygula(MODE); temaIkon(); modAc(MODE); } catch(_){} });
   const bildir = () => { try { parent.postMessage({bz1Harita: Math.ceil(document.querySelector(".app").getBoundingClientRect().height)}, location.origin); } catch(e){} };
   try { new ResizeObserver(bildir).observe(document.querySelector(".app")); } catch(e){ setInterval(bildir, 2000); }
   bildir();
