@@ -1375,6 +1375,7 @@ function arizaVeri(snap){
           ticker(`${a.s==="yeni"?"🔴":a.s==="isleniyor"?"🟠":"✅"} ${baslik} · ${a.yer} · ${a.k.split(":")[0]}`);
           feed(tone, `${baslik} · ${a.yer}`, `${a.k.split(":")[0]}${a.kim?" · "+a.kim:""}`);
           if (!(a.id in ARZ_ONCEKI) && a.s==="yeni") tvArizaUyari(a);
+          else if (a.id in ARZ_ONCEKI && a.s==="bitti") tvCozulduUyari(a);
         });
       }
       if (!ARZ_ONCEKI && typeof tvArizaUyari === "function"){
@@ -1581,9 +1582,9 @@ function tvMesgul(e){
   if (!once) tvAdim();
 }
 ["pointerdown","wheel","keydown"].forEach(t=>window.addEventListener(t, tvMesgul, {passive:true}));
-function tvGong(acil){
+function tvGong(acil, ok){
   const c = TV.ses; if (!c) return;
-  const notalar = acil ? [880,660,880,660,880,660] : [784,1047,1319];
+  const notalar = acil ? [880,660,880,660,880,660] : ok ? [523,659,784,1047] : [784,1047,1319];
   notalar.forEach((f,k)=>{
     const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + k*(acil?.22:.18);
     o.type = acil ? "square" : "sine"; o.frequency.value = f;
@@ -1604,7 +1605,7 @@ function tvSoyle(metin, tekrar){
 function blokSoz(b){ return b ? `${String(b).replace(/^([A-Za-zÇĞİÖŞÜçğıöşü]+)\s*(\d+)$/, "$1 $2")} blok` : ""; }
 function tvUyari(o){
   if (!TV.on) return;
-  if (!o.sessiz){ tvGong(o.acil); setTimeout(()=>tvSoyle(o.soz, o.acil ? 2 : 1), o.acil ? 1400 : 1000); }
+  if (!o.sessiz){ tvGong(o.acil, o.ton==="ok"); setTimeout(()=>tvSoyle(o.soz, o.acil ? 2 : 1), o.acil ? 1400 : 1000); }
   TV.durak = Date.now() + 60000; TV.durakYazi = "🔔 Uyarı gösteriliyor";
   if (o.mod && MODE !== o.mod) modAc(o.mod);
   tvAdim();
@@ -1623,6 +1624,23 @@ function tvArizaUyari(a, sessiz){
     baslik: `${tas?"🚚":"🔴"} ${yer} · ${kat}`, alt: a.kim || "",
     soz: tas ? `Güvenlik bildirimi. ${yerSoz}. ${kat}.` : `Yeni arıza bildirimi. ${yerSoz}. ${kat}.`,
     mod: "gunduz", acil: /Asansör/.test(kat) && /mahsur/i.test(a.k), sessiz
+  });
+}
+
+/* Arıza çözüldüğünde: yumuşak zil + sesli "Arıza giderildi", yeşil uyarı kartı */
+function tvCozulduUyari(a){
+  const kat = a.k.split(":")[0];
+  if (/Taşınma/.test(kat)) return;
+  const yer = a.b ? `${a.b} Blok${a.yer && a.yer.includes("·") ? " · "+a.yer.split("·").slice(1).join("·").trim() : ""}` : a.yer;
+  const yerSoz = a.b ? blokSoz(a.b) : (a.alan || a.yer || "");
+  const sure = a.bitis && a.t ? Math.max(1, Math.round((a.bitis - a.t)/60000)) : 0;
+  const sureYaz = !sure ? "" : sure < 60 ? `${sure} dakikada` : sure < 1440 ? `${Math.floor(sure/60)} saat ${sure%60 ? (sure%60) + " dakikada" : "içinde"}` : `${Math.round(sure/1440)} günde`;
+  tvUyari({
+    ust: "ARIZA GİDERİLDİ", ton: "ok",
+    baslik: `✅ ${yer} · ${kat}`,
+    alt: [sureYaz ? `${sureYaz} çözüldü` : "", a.not ? `${a.notKim || "Teknisyen"}: ${a.not.slice(0,80)}` : ""].filter(Boolean).join(" · "),
+    soz: `Arıza giderildi. ${yerSoz}. ${kat}.`,
+    mod: "gunduz"
   });
 }
 
