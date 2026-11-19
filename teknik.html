@@ -664,6 +664,14 @@ nav.tabs a[aria-current="page"]{color:#fff;background:rgba(59,140,255,.16)}nav.t
   .ym-alt{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ym-alt .ym-cikis{margin-top:10px;padding:10px 8px;font-size:14px}
   .ym-tema:hover{background:rgba(76,155,255,.12) !important;color:inherit !important;border-color:var(--cam-k) !important}
   body.yon-masa .islem-kart{display:none}
+  /* Arıza listesi ve Ayarlar masaüstünde ayrı sayfa gibi: sadece o bölüm görünür */
+  body.yon-masa.mb-isler .d-govde>*:not(#isler),body.yon-masa.mb-ayarlar .d-govde>*:not(#ayarlar){display:none !important}
+  body.yon-masa.mb-ayarlar .d-say{display:none}
+  body.yon-masa.mb-isler #masaSerit,body.yon-masa.mb-ayarlar #masaSerit{display:none}
+  body.yon-masa.mb-ayarlar .d-govde>#ayarlar{max-width:1180px !important}
+  /* Geniş ekranda iç sayfalar ortada */
+  body.yon-masa:not(.dash) .wrap{margin-left:auto !important;margin-right:auto !important}
+  body.yon-masa .hero-in{margin:0 auto !important;max-width:1180px}
   .ym-nav a:hover{background:rgba(120,160,230,.08);color:#fff}
   .ym-nav a[aria-current="page"]{background:linear-gradient(90deg,rgba(60,130,240,.30),rgba(60,130,240,.10));color:#fff;box-shadow:inset 3px 0 0 #4c9bff}
   .ym-nav a em{margin-left:auto;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#e5484d;color:#fff;font:700 12px/22px var(--body);text-align:center;font-style:normal}
@@ -2204,9 +2212,9 @@ function yanMenuCiz(){
   const yeni = (tech ? S.all : (IK.pers||[])).filter(a => a.status==="bekliyor" && !["p_tasinma","p_gelemiyorum"].includes(a.cat)).length;
   el.innerHTML = `<a class="ym-marka" href="#panel" data-act="icGit" data-v="ust"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M5 35V19h7v16M14 35V9h9v26M25 35V15h8v20M3 35h34" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M17 13h3M17 17h3M17 21h3M17 25h3M27 19h2M27 23h2M27 27h2M7 23h2M7 27h2" stroke="currentColor" stroke-width="1.8"/></svg><span><b>BİZİMEVLER 1</b><small>Site Yönetim Sistemi</small></span></a>
     <nav class="ym-nav">
-      ${L("#panel", "home", "Ana Sayfa", v==="panel" && dash, "icGit\" data-v=\"ust")}
+      ${L("#panel", "home", "Ana Sayfa", v==="panel" && dash && !S.masaBolum, "masaBolum\" data-v=\"")}
       ${L("kontrol.html", "radar", "Canlı Kontrol")}
-      ${tech ? L("#panel", "alert", "Arıza Listesi", v==="panel" && !dash, "icGit\" data-v=\"isler", yeni ? `<em>${yeni}</em>` : "") : L("#personel", "alert", "Arıza Bildir", v==="personel")}
+      ${tech ? L("#panel", "alert", "Arıza Listesi", v==="panel" && dash && S.masaBolum==="isler", "masaBolum\" data-v=\"isler", yeni ? `<em>${yeni}</em>` : "") : L("#personel", "alert", "Arıza Bildir", v==="personel")}
       ${tech ? L("#personel", "clip", "Personel Bildirimi", v==="personel", "", "", "turuncu") : ""}
       ${L("#tesis", "wrench", tesis || tech ? "Tesis & Bakım" : "Asansör Takip", v==="tesis")}
       ${L("#devriye", "shield", "Devriye", v==="devriye")}
@@ -2218,7 +2226,7 @@ function yanMenuCiz(){
       ${L("#tasinma", "building", "Taşınma & Tadilat", v==="tasinma")}
       ${L("bizkontrol.html", "chart", "Raporlar")}
       ${tech ? L("muhasebe.html", "wallet", "Muhasebe") : ""}
-      ${L("#panel", "gear", "Ayarlar", false, "icGit\" data-v=\"ayarlar")}
+      ${L("#panel", "gear", "Ayarlar", v==="panel" && dash && S.masaBolum==="ayarlar", "masaBolum\" data-v=\"ayarlar")}
     </nav>
     <div class="ym-kul"><span class="d-av">${ic("kul")}</span><div><b>${esc(dashAd())}</b><small>${tech ? "Teknisyen" : tesis ? "Tesis yetkilisi" : "Yönetim · Amir"}</small></div></div>
     <div class="ym-alt"><button class="ym-cikis ym-tema" data-act="masaTema">${masaGunduz() ? '<svg viewBox="0 0 24 24"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"/></svg><span>Gece</span>' : '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span>Gündüz</span>'}</button>
@@ -2264,7 +2272,7 @@ function masaAkisKart(){
 const MH = {h:560, kap:null};
 function masaHaritaYerlestir(){
   const yer = document.getElementById("masaHaritaYer");
-  if (!yer || !masaAktif()){ if (MH.kap) MH.kap.style.display = "none"; return; }
+  if (!yer || !masaAktif() || !yer.offsetParent){ if (MH.kap) MH.kap.style.display = "none"; return; }
   if (!MH.kap){
     MH.kap = document.createElement("div"); MH.kap.id = "masaHaritaKap";
     MH.kap.innerHTML = `<iframe src="kontrol.html?gomulu=1${masaGunduz() ? "&tema=acik" : ""}" title="Canlı site haritası" loading="eager"></iframe>`;
@@ -2565,7 +2573,7 @@ function vDash(isler, ayar){
   return `<section class="d-hero"><div class="d-ic">
     ${dUst(yeni)}
     <div class="d-kim"><span class="d-av">${ic("kul")}</span><div><b>${selam}, ${esc(dashAd())} 👋</b><small>Bizimevler 1 ${tech ? "Teknik Servis Paneli" : "Yönetim Paneli"}</small></div></div>
-    <h1>Teknik Servis</h1>
+    <h1>${MASA.matches && S.masaBolum==="isler" ? "Arıza Listesi" : MASA.matches && S.masaBolum==="ayarlar" ? "Ayarlar" : "Teknik Servis"}</h1>
     <p>${tech ? "Gelen arızaları gör, durumlarını güncelle, sahayı tek ekrandan yönet." : "Personel, devriye ve arıza durumunu tek ekrandan takip et."}</p>
     <div class="d-say">
       <a class="d-s kirmizi" href="#panel" data-act="dFiltre" data-v="yeni">${ic("alert")}<strong>${yeni}</strong><span>Açık arıza</span><em class="masa-only">Detay ${ic("sag")}</em></a>
@@ -4579,7 +4587,10 @@ function render(){
   const masa = MASA.matches && personelMi && ((dash && S.view==="panel") || icsayfa || (S.view==="personel" && !dash) || S.view==="gorev" || S.view==="tasinma");
   document.body.classList.toggle("yon-masa", masa);
   document.body.classList.toggle("gunduz", masa && masaGunduz());
-  if (masa){ yanMenuCiz(); masaSaat(); } else { const ym = document.getElementById("yanMenu"); if (ym) ym.innerHTML = ""; }
+  if (!(dash && S.view==="panel")) S.masaBolum = null;
+  document.body.classList.toggle("mb-isler", masa && S.masaBolum==="isler");
+  document.body.classList.toggle("mb-ayarlar", masa && S.masaBolum==="ayarlar");
+  if (masa){ yanMenuCiz(); masaSaat(); try { localStorage.setItem("bz1-masa-rol", JSON.stringify({rol: store.isTech() ? "tech" : (store.isTesis && store.isTesis()) ? "tesis" : "yon", ad: dashAd()})); } catch(e){} } else { const ym = document.getElementById("yanMenu"); if (ym) ym.innerHTML = ""; }
   sakinHavaCiz();
   const BASLIK = {randevu:"Arıza bildir", randevularim:"Bildirimlerim", panel: personelMi ? "Arıza listesi" : "Teknisyen girişi", tesis: store.isTesis && store.isTesis() ? "Tesis & Bakım" : "Asansör arızaları",
     tasinma:"Taşınma & Tadilat", gtasinma:"Taşınma & Tadilat", gorev:"Görev ver", izinler:"İzinler", calisma:"Çalışma listesi", ik:"Personel işleri", personel:"Arıza bildir", devriye:"Devriye"};
@@ -4681,12 +4692,13 @@ document.addEventListener("click", async e => {
     else if (act==="asWaTur"){ ASW.kisa = b.dataset.v === "kisa"; if (ASW.ciz) ASW.ciz(); return; }
     else if (act==="asWaGonder"){ asWaGonder(); return; }
     else if (act==="asWaKapat"){ const m = document.getElementById("aswModal"); if (m) m.hidden = true; return; }
-    else if (act==="dFiltre"){ e.preventDefault(); if (!store.isTech()){ arzListeAc(b.dataset.v); return; } S.filter = b.dataset.v; render(); requestAnimationFrame(() => { const el = document.getElementById("isler"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); }); return; }
+    else if (act==="dFiltre"){ e.preventDefault(); if (!store.isTech()){ arzListeAc(b.dataset.v); return; } S.filter = b.dataset.v; if (masaAktif()) S.masaBolum = "isler"; render(); requestAnimationFrame(() => { const el = document.getElementById("isler"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); }); return; }
     else if (act==="havaAc"){ e.preventDefault(); havaPanelAc(); return; }
     else if (act==="temaDegis"){ const k = document.documentElement.classList.contains("koyu"); try { localStorage.setItem("bz1-tema", k ? "acik" : "koyu"); } catch(err){} temaUygula(); return; }
     else if (act==="dBildirim"){ e.preventDefault(); if (store.isTech()){ S.filter = "yeni"; render(); } requestAnimationFrame(() => { const el = document.getElementById(store.isTech() ? "isler" : "ayarlar"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); }); return; }
-    else if (act==="dAyar"){ e.preventDefault(); const el = document.getElementById("ayarlar"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); return; }
+    else if (act==="dAyar"){ e.preventDefault(); if (masaAktif()){ S.masaBolum = "ayarlar"; render(); scrollTo({top:0}); return; } const el = document.getElementById("ayarlar"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); return; }
     else if (act==="dUst"){ e.preventDefault(); scrollTo({top:0, behavior:"smooth"}); return; }
+    else if (act==="masaBolum"){ e.preventDefault(); S.masaBolum = b.dataset.v || null; if (S.view !== "panel" || S.panelEski){ S.panelEski = false; location.hash = "#panel"; if (S.view === "panel") render(); } else render(); scrollTo({top:0}); return; }
     else if (act==="masaTema"){ e.preventDefault(); try { localStorage.setItem("bz1-masa-tema", masaGunduz() ? "gece" : "gunduz"); } catch(err){} render(); masaTemaUygula(); return; }
     else if (act==="masaSes"){ e.preventDefault(); masaSesAc(true); return; }
     else if (act==="icGit"){ e.preventDefault(); S.kaydirHedef = v; if (S.view !== "panel" || S.panelEski){ S.panelEski = false; location.hash = "#panel"; if (S.view === "panel") render(); } else kaydirHedefe(); return; }
@@ -4934,7 +4946,7 @@ document.addEventListener("click", async e => {
       try { await store.login(em?em.value.trim():"", pin?pin.value:pw.value); S.err = ""; startPanel(); toast("Giriş yapıldı"); }
       catch(err){ S.err = err.code==="yonetim" ? "YONETIM" : err.code==="yetki" ? "Bu hesap teknisyen olarak tanımlı değil." : store.mode==="demo" ? "PIN hatalı." : "E-posta veya şifre hatalı."; render(); }
     }
-    else if (act==="cikis"){ if (unAll) unAll(); unAll = null; S.all = []; tesisDurdur(); await store.logout(); render(); }
+    else if (act==="cikis"){ try { localStorage.removeItem("bz1-masa-rol"); } catch(err){} if (unAll) unAll(); unAll = null; S.all = []; tesisDurdur(); await store.logout(); render(); }
     else if (act==="rolKaydet"){
       const temiz = id => $(id).value.split(/[\s,;]+/).map(x=>x.trim().toLowerCase()).filter(x=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
       const L = temiz("#rolListe"), TL = temiz("#rolTesis");
