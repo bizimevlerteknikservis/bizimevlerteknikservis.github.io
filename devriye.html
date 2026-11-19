@@ -161,6 +161,9 @@ button.d-hava{width:100%;text-align:left;font:inherit;cursor:pointer;position:re
 .d-hv-alt{flex-basis:100%;display:flex;align-items:center;gap:8px}.d-hv-alt em{flex:1;flex-basis:auto}.d-hv-ac{font-size:12px;font-weight:700;color:#8fc2ff;white-space:nowrap}
 .hv-sayfa{position:fixed;inset:0;z-index:60;background:rgba(6,16,40,.55);display:flex;align-items:flex-end;justify-content:center}
 .hv-sayfa[hidden]{display:none}
+.arz-l{display:grid;gap:8px;margin-top:12px}.arz-s{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px 12px;display:grid;gap:3px}
+.arz-s b{font-size:14.5px}.arz-s span{color:#d6e4fa;font-size:13.5px}.arz-s small{color:#9fb6d9;font-size:12.5px}.arz-s em{font-style:normal;color:#ffd98a;font-size:13px}
+.arz-bos{color:#9fb6d9;text-align:center;padding:18px 0}.arz-git{display:block;text-align:center;margin-top:14px;padding:12px;border-radius:14px;background:rgba(255,255,255,.12);color:#fff;font-weight:700;text-decoration:none}
 .hv-ic{width:100%;max-width:620px;max-height:92vh;overflow:auto;background:linear-gradient(180deg,#0f2a5c,#0a1a3c);color:#eaf2ff;border-radius:24px 24px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom,0px))}
 .hv-ust{display:flex;align-items:center;gap:8px}.hv-ust>div{flex:1}.hv-ust b{display:block;font-size:16px}.hv-ust small{color:#9fb6d9;font-size:12.5px}
 .hv-ust button{border:0;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;font-size:16px;cursor:pointer}
@@ -2061,6 +2064,26 @@ function havaHTML(){
     <span class="d-hv-alt"><em>${u}</em><span class="d-hv-ac">Saatlik ›</span></span></button>`;
 }
 /* Detay paneli: şu an + 24 saat + 4 gün (render'dan bağımsız, body'ye eklenir) */
+/* Yönetim/müdür: ana sayfadaki sayaçlara (Açık arıza · İşlemde · Bugün çözülen) dokununca o arızaların listesi */
+function arzListeAc(tur){
+  let d = document.getElementById("arzListe");
+  if (!d){ d = document.createElement("div"); d.id = "arzListe"; d.className = "hv-sayfa";
+    d.addEventListener("click", e => { if (e.target === d || e.target.closest(".hv-x") || e.target.closest("a")){ d.hidden = true; document.body.style.overflow = ""; } });
+    document.body.appendChild(d); }
+  const bugun = ymd(new Date()), haric = ["p_tasinma","p_gelemiyorum"];
+  const L = (IK.pers||[]).filter(a => !haric.includes(a.cat) && (tur==="yeni" ? a.status==="bekliyor" : tur==="isleniyor" ? a.status==="onaylandi" : a.status==="tamamlandi" && a.completedAt && ymd(new Date(a.completedAt))===bugun))
+    .sort((a,b) => (tur==="tamam" ? (b.completedAt||0)-(a.completedAt||0) : (b.createdAt||0)-(a.createdAt||0)));
+  const zmn = t => { const x = new Date(t); return x.toDateString()===new Date().toDateString() ? saatYaz(t) : x.toLocaleDateString("tr-TR",{day:"numeric",month:"short"}) + " " + saatYaz(t); };
+  const baslik = {yeni:"🔴 Açık arızalar", isleniyor:"🟠 İşlemdeki arızalar", tamam:"🟢 Bugün çözülenler"}[tur];
+  const yer = a => a.alan || (a.block ? `${a.block} Blok${a.kat ? " · " + a.kat : ""}` : "Ortak alan");
+  const metin = a => [...(a.issues||[]).filter(x => x !== "Diğer"), a.desc].filter(Boolean).join(" — ");
+  d.innerHTML = `<div class="hv-ic"><div class="hv-ust"><div><b>${baslik} · ${L.length}</b><small>Personelin bildirdiği arızalar</small></div><button class="hv-x" aria-label="Kapat">✕</button></div>
+    <div class="arz-l">${L.map(a => `<div class="arz-s"><b>${esc(catOf(a.cat).ad || "Arıza")} · ${esc(yer(a))}</b>${metin(a) ? `<span>${esc(metin(a).slice(0,140))}</span>` : ""}
+      <small>👤 ${esc(a.name || "Personel")}${a.rol ? ` (${esc(a.rol)})` : ""} · Bildirildi ${zmn(a.createdAt)}${a.status==="tamamlandi" && a.completedAt ? ` · Çözüldü ${zmn(a.completedAt)}` : ""}</small>
+      ${String(a.note||"").trim() ? `<em>💬 ${esc(a.karan || "Teknisyen")}: ${esc(String(a.note).slice(0,160))}</em>` : ""}</div>`).join("") || `<p class="arz-bos">Bu listede arıza yok.</p>`}</div>
+    <a class="arz-git" href="#kontrol">Canlı Kontrol Merkezi'nde haritada gör ›</a></div>`;
+  d.hidden = false; document.body.style.overflow = "hidden";
+}
 function havaPanelAc(){ let d = document.getElementById("havaPanel"); if (!d){ d = document.createElement("div"); d.id = "havaPanel"; d.className = "hv-sayfa"; d.addEventListener("click", e => { if (e.target === d || e.target.closest(".hv-x")) havaPanelKapat(); if (e.target.closest(".hv-yenile")) havaYukle(true); }); document.body.appendChild(d); }
   d.hidden = false; document.body.style.overflow = "hidden"; havaPanelCiz(); havaYukle(); }
 function havaPanelKapat(){ const d = document.getElementById("havaPanel"); if (d) d.hidden = true; document.body.style.overflow = ""; }
@@ -4303,7 +4326,7 @@ document.addEventListener("click", async e => {
     else if (act==="asWaTur"){ ASW.kisa = b.dataset.v === "kisa"; if (ASW.ciz) ASW.ciz(); return; }
     else if (act==="asWaGonder"){ asWaGonder(); return; }
     else if (act==="asWaKapat"){ const m = document.getElementById("aswModal"); if (m) m.hidden = true; return; }
-    else if (act==="dFiltre"){ e.preventDefault(); if (!store.isTech()){ location.hash = "#kontrol"; return; } S.filter = b.dataset.v; render(); requestAnimationFrame(() => { const el = document.getElementById("isler"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); }); return; }
+    else if (act==="dFiltre"){ e.preventDefault(); if (!store.isTech()){ arzListeAc(b.dataset.v); return; } S.filter = b.dataset.v; render(); requestAnimationFrame(() => { const el = document.getElementById("isler"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); }); return; }
     else if (act==="havaAc"){ e.preventDefault(); havaPanelAc(); return; }
     else if (act==="temaDegis"){ const k = document.documentElement.classList.contains("koyu"); try { localStorage.setItem("bz1-tema", k ? "acik" : "koyu"); } catch(err){} temaUygula(); return; }
     else if (act==="dBildirim"){ e.preventDefault(); if (store.isTech()){ S.filter = "yeni"; render(); } requestAnimationFrame(() => { const el = document.getElementById(store.isTech() ? "isler" : "ayarlar"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); }); return; }
