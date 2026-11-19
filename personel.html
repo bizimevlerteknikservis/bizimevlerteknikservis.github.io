@@ -1802,7 +1802,9 @@ function bildirimKart(zorla){
   if (!AYAR.vapid || !AYAR.bildirimSunucu) neden = "Bildirim kurulumu henüz tamamlanmadı (teknisyen).";
   else if (bldIOS() && !bldAnaEkran()) neden = "iPhone'da bildirim için önce uygulamayı ana ekrana ekleyin: Safari'de Paylaş ⬆️ → “Ana Ekrana Ekle”, sonra ana ekrandaki simgeden açın.";
   else if (!bldDestek()) neden = "Bu tarayıcı bildirimi desteklemiyor. Chrome ile açın.";
-  else if (izin === "denied") neden = "Bildirim izni kapalı. Adres çubuğundaki 🔒 simgesi → İzinler → Bildirimler → İzin ver, sonra sayfayı yenileyin.";
+  else if (izin === "denied") neden = (matchMedia("(display-mode: standalone)").matches || navigator.standalone)
+    ? "Bildirim izni kapalı. Bu uygulamanın simgesine basılı tutun → Uygulama bilgisi → Bildirimler → Açın. Olmazsa Chrome → ⋮ → Ayarlar → Site ayarları → Bildirimler → bizimevlerteknikservis… → İzin ver. Sonra uygulamayı kapatıp açın."
+    : "Bildirim izni kapalı. Adres çubuğundaki 🔒 simgesi → İzinler → Bildirimler → İzin ver, sonra sayfayı yenileyin.";
   return `<section class="bld-kart"><div><b>🔔 Telefonuma bildirim gelsin</b><small>${neden ? esc(neden) : (kim.rol==="personel" ? "Size görev ya da talimat verilince, arıza bildirilince telefonunuz öter — uygulama kapalı olsa bile." : "İşe gelemeyen, yeni arıza, verdiğiniz görev yapıldığında telefonunuz öter.")}</small></div>
     ${neden ? "" : `<button class="cta" data-act="bldAc">Bildirimleri aç</button>`}</section>`;
 }
