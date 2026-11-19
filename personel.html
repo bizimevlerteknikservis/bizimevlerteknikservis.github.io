@@ -709,6 +709,20 @@ nav.tabs a[aria-current="page"]{color:#fff;background:rgba(59,140,255,.16)}nav.t
   .m-bas-ik{width:22px;height:22px;stroke:#8fc3ff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   body.yon-masa .d-link{background:rgba(76,155,255,.12);color:#9cc8ff}
   #masaHaritaKap{position:absolute;z-index:3;display:none}
+  body.yon-masa.dash{padding-bottom:64px}
+  body.yon-masa .d-govde>.d-canli{display:none}
+  #masaSerit{position:fixed;left:260px;right:0;bottom:0;z-index:35;height:56px;display:flex;align-items:stretch;background:rgba(8,17,36,.96);border-top:1px solid var(--cam-k);backdrop-filter:blur(8px)}
+  #masaSerit[hidden]{display:none}
+  .ms-bas{flex:none;display:flex;align-items:center;gap:8px;padding:0 22px;background:#d92d3a;color:#fff;font:800 15px var(--display);letter-spacing:.06em}
+  .ms-bas::before{content:"";width:9px;height:9px;border-radius:50%;background:#fff}
+  .ms-pen{flex:1;overflow:hidden;position:relative;-webkit-mask:linear-gradient(90deg,transparent,#000 30px,#000 calc(100% - 30px),transparent);mask:linear-gradient(90deg,transparent,#000 30px,#000 calc(100% - 30px),transparent)}
+  .ms-ic{display:flex;width:max-content;height:100%;align-items:center;animation:msKay 60s linear infinite}
+  #masaSerit:hover .ms-ic{animation-play-state:paused}
+  .ms-p{display:flex;align-items:center;white-space:nowrap}
+  .ms-o{font:600 17px var(--body);color:#e8eef8;padding:0 6px}
+  .ms-o time{font:700 17px var(--mono);color:#6fb1ff;margin-right:10px}
+  .ms-ay{font-style:normal;color:#5d7396;padding:0 18px}
+  @keyframes msKay{from{transform:translateX(0)}to{transform:translateX(-50%)}}
   .m-ses{border:0;cursor:pointer;background:rgba(255,171,61,.16) !important;color:#ffd59a !important}.m-ses.acik{background:rgba(47,209,138,.14) !important;color:#9ff0c8 !important}
   #masaHaritaKap iframe{width:100%;height:100%;border:0;border-radius:14px;background:transparent;color-scheme:dark}
   body.yon-masa .d-harita .d-foto{height:440px;border-radius:14px;background-position:center 45%}
@@ -2150,7 +2164,7 @@ function yanMenuCiz(){
     <button class="ym-cikis" data-act="cikis">${ic("sag")}<span>Çıkış Yap</span></button>`;
 }
 /* Sağ sütun: son olaylar (yeni bildirim · ilgileniliyor · çözüldü), en yeni üstte */
-function masaAkisKart(){
+function masaOlaylar(){
   const tech = store.isTech(), L = (tech ? S.all : (IK.pers||[])).filter(a => a.status !== "iptal" && !["p_tasinma","p_gelemiyorum"].includes(a.cat));
   const E = [];
   L.forEach(a => {
@@ -2160,7 +2174,24 @@ function masaAkisKart(){
     if (a.status==="tamamlandi" && a.completedAt) E.push({t:a.completedAt, tur:"tamam", b:`${yer} – ${ne}`, m: a.note ? `${a.karan || "Teknisyen"}: ${String(a.note).slice(0,60)}` : "Arıza giderildi"});
     else if (a.status==="onaylandi" && a.guncelTs) E.push({t:a.guncelTs, tur:"isl", b:`${yer} – ${ne}`, m: a.note ? `${a.karan || "Teknisyen"}: ${String(a.note).slice(0,60)}` : "Teknisyen ilgileniyor"});
   });
-  const S_ = E.filter(e => e.t > Date.now() - 3*864e5).sort((a,b) => b.t - a.t).slice(0,7);
+  return E.filter(e => e.t > Date.now() - 3*864e5).sort((a,b) => b.t - a.t);
+}
+/* Alt canlı şerit (Canlı Kontrol'deki gibi): son olaylar saatleriyle akar. İçerik değişmedikçe yeniden kurulmaz, akış kesilmez. */
+function masaSeritCiz(){
+  let el = document.getElementById("masaSerit");
+  if (!masaAktif() || !document.body.classList.contains("dash")){ if (el) el.hidden = true; return; }
+  if (!el){ el = document.createElement("div"); el.id = "masaSerit"; el.innerHTML = `<b class="ms-bas">CANLI</b><div class="ms-pen"><div class="ms-ic"></div></div>`; document.body.appendChild(el); }
+  el.hidden = false;
+  const IK_ = {yeni:"🔴", isl:"🟠", tamam:"✅"}, AD = {yeni:"Yeni", isl:"İlgileniliyor", tamam:"Çözüldü"};
+  const L = masaOlaylar().slice(0, 14);
+  const parca = L.length ? L.map(e => `<span class="ms-o"><time>${saatYaz(e.t)}</time>${IK_[e.tur]} ${esc(e.b.replace(" – ", " · "))} · ${AD[e.tur]}</span>`).join(`<i class="ms-ay">•</i>`) : `<span class="ms-o">Son 3 günde olay yok</span>`;
+  if (el.dataset.k === parca) return; el.dataset.k = parca;
+  const ic_ = el.querySelector(".ms-ic");
+  ic_.innerHTML = `<div class="ms-p">${parca}<i class="ms-ay">•</i></div><div class="ms-p" aria-hidden="true">${parca}<i class="ms-ay">•</i></div>`;
+  requestAnimationFrame(() => { const w = ic_.firstElementChild.scrollWidth; ic_.style.animationDuration = Math.max(25, Math.round(w / 70)) + "s"; });
+}
+function masaAkisKart(){
+  const S_ = masaOlaylar().slice(0,7);
   const zmn = t => { const x = new Date(t); return x.toDateString()===new Date().toDateString() ? saatYaz(t) : x.toLocaleDateString("tr-TR",{day:"numeric",month:"short"}) + " " + saatYaz(t); };
   const IKN = {yeni:["alert","kirmizi"], isl:["wrench","turuncu"], tamam:["check","yesil"]};
   return `<section class="d-kart masa-only m-akis"><div class="d-bas"><h2>${ic("bell","m-bas-ik")}Son Bildirimler</h2><a class="d-link" href="kontrol.html">Canlı ${ic("sag")}</a></div>
@@ -4515,6 +4546,7 @@ function render(){
   document.querySelector("nav.tabs .in").style.setProperty("--tabs", teknik ? 3 : 2);
   if (S.kaydirHedef && S.view === "panel") kaydirHedefe();
   masaHaritaYerlestir();
+  masaSeritCiz();
   if (keep && document.getElementById(keep)) { const el = document.getElementById(keep); el.focus(); if (el.setSelectionRange && el.value && el.type !== "date") try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){} }
 }
 function kaydirHedefe(){
