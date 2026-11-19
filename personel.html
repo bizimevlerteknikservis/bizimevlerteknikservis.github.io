@@ -648,7 +648,13 @@ nav.tabs a[aria-current="page"]{color:#fff;background:rgba(59,140,255,.16)}nav.t
   .ym-marka small{display:block;color:#9db0cb;font-size:12.5px;margin-top:5px}
   .ym-nav{display:grid;gap:2px}
   .ym-nav a{position:relative;display:flex;align-items:center;gap:13px;padding:10px 14px;border-radius:12px;color:#c9d6ea;text-decoration:none;font:600 15px/1.2 var(--body)}
-  .ym-nav a svg{width:21px;height:21px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+  .ym-ik{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--ic)}
+  .ym-ik svg{width:19px;height:19px;stroke:#fff;fill:none;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+  .ym-ik.mavi{--ic:linear-gradient(140deg,#1d6ff2,#4aa3ff)}.ym-ik.kirmizi{--ic:linear-gradient(140deg,#e7253a,#ff6a6a)}.ym-ik.turuncu{--ic:linear-gradient(140deg,#f2750c,#ffb02e)}
+  .ym-ik.mor{--ic:linear-gradient(140deg,#7c3aed,#a78bfa)}.ym-ik.camgobegi{--ic:linear-gradient(140deg,#0e9f9a,#2fd0c3)}.ym-ik.yesil{--ic:linear-gradient(140deg,#12a150,#3ad07a)}
+  .ym-ik.lacivert{--ic:linear-gradient(140deg,#1e3a8a,#3b82f6)}.ym-ik.altin{--ic:linear-gradient(140deg,#b7791f,#f2c14e)}.ym-ik.pembe{--ic:linear-gradient(140deg,#9333ea,#e05cd3)}.ym-ik.gri{--ic:linear-gradient(140deg,#475569,#8193ab)}
+  .ym-nav a{padding:7px 12px !important}
+  body.yon-masa .islem-kart{display:none}
   .ym-nav a:hover{background:rgba(120,160,230,.08);color:#fff}
   .ym-nav a[aria-current="page"]{background:linear-gradient(90deg,rgba(60,130,240,.30),rgba(60,130,240,.10));color:#fff;box-shadow:inset 3px 0 0 #4c9bff}
   .ym-nav a em{margin-left:auto;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#e5484d;color:#fff;font:700 12px/22px var(--body);text-align:center;font-style:normal}
@@ -2140,17 +2146,18 @@ function masaAktif(){ return document.body.classList.contains("yon-masa"); }
 function yanMenuCiz(){
   const el = document.getElementById("yanMenu"); if (!el) return;
   const tech = store.isTech(), tesis = store.isTesis && store.isTesis(), v = S.view, dash = document.body.classList.contains("dash");
-  const L = (href, k, ad, aktif, act, ek) => `<a href="${href}"${act ? ` data-act="${act}"` : ""}${aktif ? ` aria-current="page"` : ""}>${ic(k)}<span>${ad}</span>${ek || ""}</a>`;
+  const RENK = {home:"mavi", radar:"pembe", alert:"kirmizi", clip:"camgobegi", wrench:"turuncu", shield:"mavi", cal:"mor", izin:"mor", broom:"yesil", users:"mor", building:"lacivert", chart:"lacivert", wallet:"altin", gear:"gri"};
+  const L = (href, k, ad, aktif, act, ek, renk) => `<a href="${href}"${act ? ` data-act="${act}"` : ""}${aktif ? ` aria-current="page"` : ""}><i class="ym-ik ${renk || RENK[k] || "mavi"}">${ic(k)}</i><span>${ad}</span>${ek || ""}</a>`;
   const yeni = (tech ? S.all : (IK.pers||[])).filter(a => a.status==="bekliyor" && !["p_tasinma","p_gelemiyorum"].includes(a.cat)).length;
   el.innerHTML = `<a class="ym-marka" href="#panel" data-act="icGit" data-v="ust"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M5 35V19h7v16M14 35V9h9v26M25 35V15h8v20M3 35h34" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M17 13h3M17 17h3M17 21h3M17 25h3M27 19h2M27 23h2M27 27h2M7 23h2M7 27h2" stroke="currentColor" stroke-width="1.8"/></svg><span><b>BİZİMEVLER 1</b><small>Site Yönetim Sistemi</small></span></a>
     <nav class="ym-nav">
       ${L("#panel", "home", "Ana Sayfa", v==="panel" && dash, "icGit\" data-v=\"ust")}
       ${L("kontrol.html", "radar", "Canlı Kontrol")}
       ${tech ? L("#panel", "alert", "Arıza Listesi", v==="panel" && !dash, "icGit\" data-v=\"isler", yeni ? `<em>${yeni}</em>` : "") : L("#personel", "alert", "Arıza Bildir", v==="personel")}
-      ${tech ? L("#personel", "clip", "Personel Bildirimi", v==="personel") : ""}
+      ${tech ? L("#personel", "clip", "Personel Bildirimi", v==="personel", "", "", "turuncu") : ""}
       ${L("#tesis", "wrench", tesis || tech ? "Tesis & Bakım" : "Asansör Takip", v==="tesis")}
       ${L("#devriye", "shield", "Devriye", v==="devriye")}
-      ${L("#gorev", "clip", "Görev Ver", v==="gorev")}
+      ${L("#gorev", "clip", "Görev Ver", v==="gorev", "", "", "camgobegi")}
       ${L("puantaj.html", "cal", "Puantaj")}
       ${L("#izinler", "izin", "İzinler", v==="izinler")}
       ${tech || tesis ? L("#calisma", "broom", "Temizlik", v==="calisma") : ""}
@@ -2524,7 +2531,7 @@ function dUst(zil, zilAct){
 }
 function vDashGovde(tech, tiles, son, isler, ayar, yeni){
   return `
-    <section class="d-kart">
+    <section class="d-kart islem-kart">
       <div class="d-bas"><h2>İşlem Menüsü</h2>${tech ? `<a class="d-link" href="#panel" data-act="dFiltre" data-v="acik">Arıza listesi ${ic("sag")}</a>` : ""}</div>
       <div class="d-grid">${tiles.join("")}</div>
     </section>
