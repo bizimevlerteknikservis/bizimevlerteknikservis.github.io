@@ -183,8 +183,8 @@ async function isle(env, sa, tur, id) {
     const hedef = (await telefonlar(sa)).filter(t => (a.kod && t.kod === a.kod) || (a.uid && t.uid === a.uid));
     if (!hedef.length) return { atla: "bildirenin telefonu kayıtlı değil" };
     const yer = a.alan || (a.block ? `${a.block} Blok${a.kat ? " · " + a.kat : ""}` : "Ortak alan");
-    const baslik = a.status === "tamamlandi" ? "✅ Bildirdiğiniz arıza çözüldü" : a.status === "onaylandi" ? "🔧 Arızanızla ilgileniliyor" : "💬 Arızanıza teknisyen notu";
-    return gonder(env, sa, hedef, { title: baslik, body: kisa(`${KAT[a.cat] || "Arıza"} · ${yer}${a.note ? " — " + a.note : ""}`, 190), tag: "guncel-" + id });
+    const baslik = a.status === "tamamlandi" ? "✅ Bildirdiğiniz arıza çözüldü" : a.status === "onaylandi" ? "🔧 Arızanızla ilgileniliyor" : `💬 Arızanıza not · ${kisa(a.karan || "Teknisyen", 30)}`;
+    return gonder(env, sa, hedef, { title: baslik, body: kisa(`${KAT[a.cat] || "Arıza"} · ${yer}${a.note ? " — " + (a.karan ? a.karan + ": " : "") + a.note : ""}`, 190), tag: "guncel-" + id });
   }
   if (tur === "vardiya" || tur === "vardiyaSonuc") {
     const v = await fsOku(sa, "vardiya/" + encodeURIComponent(id));

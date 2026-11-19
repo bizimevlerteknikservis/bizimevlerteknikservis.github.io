@@ -55,6 +55,11 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','note','completedAt','guncelTs','karan'])
             && request.resource.data.status in ['bekliyor','onaylandi','tamamlandi']
             && request.resource.data.get('note', '').size() <= 160)
+        // Müdür (tesis) temizlikçi ve güvenlikten gelen tüm personel arızalarına not yazabilir (durumu teknisyen değiştirir)
+        || (isTesis()
+            && resource.data.get('src', '') == 'personel'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['note','guncelTs','karan'])
+            && request.resource.data.get('note', '').size() <= 160)
         || (signedIn()
             && resource.data.uid == request.auth.uid
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
