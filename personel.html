@@ -2300,10 +2300,39 @@ function masaSesDurum(){ const b = document.getElementById("masaSesBtn"); if (b)
 /* Telefonda (uygulama açıkken) sesli arıza uyarısı: teknisyen, müdür ve amir ekranı.
    Yeni arıza gelince ve arıza çözülünce zil + sesli okuma. Masaüstünde bu işi gömülü harita yapar. */
 function telSesAcik(){ try { return localStorage.getItem("bz1-tel-ses") === "1"; } catch(e){ return false; } }
-const TSES = {gor:null};
+const TSES = {gor:null, p:null};
 setInterval(() => { try { telSesKontrol(); } catch(e){} }, 4000);
+/* Personel ve güvenlik: sadece kendilerini ilgilendirenler okunur (görev, talimat, kendi arızasının durumu/notu, vardiya talebi sonucu) */
+function telSesPersonel(){
+  const ben = pDashKim(); if (!ben) return;
+  const rol = ben.grup==="guvenlik" ? "Güvenlik" : ben.grup==="bahce" ? BAHCIVAN : "Temizlik", benG = {ad:ben.ad, rol};
+  const G = (GV.liste||[]).filter(g => gvBana(g, benG));
+  const kodum = ben.kod, uid = store.uid;
+  const benimA = {}; [...(S.mine||[]), ...(IK.pers||[])].forEach(a => { if (a && a.id && a.src==="personel" && ((kodum && a.kod===kodum) || (uid && a.uid===uid))) benimA[a.id] = a; });
+  const V = ben.grup==="guvenlik" ? (VD.liste||[]).filter(v => v.kod===kodum || adSade(v.ad||"")===adSade(ben.ad)) : [];
+  const yeni = {g:{}, a:{}, v:{}};
+  G.forEach(g => yeni.g[g.id] = g.durum);
+  Object.values(benimA).forEach(a => yeni.a[a.id] = a.status + "|" + String(a.note||"").trim());
+  V.forEach(v => yeni.v[v.id] = v.durum);
+  const once = TSES.p; TSES.p = yeni;
+  if (!once || !telSesAcik()) return;
+  const sira = [], kisa = (t, n) => String(t||"").replace(/\s+/g," ").trim().slice(0, n);
+  G.filter(g => !(g.id in once.g) && (g.ts||0) > Date.now() - 15*6e4).slice(0,3).forEach(g => {
+    sira.push(g.tur==="talimat"
+      ? {acil:true, soz:`Yeni talimat. ${kisa(g.metin,140)}. Veren: ${g.byAd || "Yönetim"}.`}
+      : {soz:`Yeni görev. ${g.yer ? kisa(g.yer,40) + ". " : ""}${kisa(g.metin,140)}. Veren: ${g.byAd || "Yönetim"}.`}); });
+  const yerSoz = a => a.block ? `${a.block} blok` : (a.alan || "Ortak alan");
+  Object.values(benimA).forEach(a => { const o = once.a[a.id]; if (o === undefined) return; const [os, on] = [o.split("|")[0], o.slice(o.indexOf("|")+1)];
+    const not = String(a.note||"").trim(), kat = (catOf(a.cat).ad || "Arıza").replace(/\s*\/\s*/g, " ");
+    if (os !== "tamamlandi" && a.status === "tamamlandi") sira.push({ok:true, soz:`Bildirdiğiniz arıza çözüldü. ${yerSoz(a)}. ${kat}.${not && not !== on ? ` Not: ${kisa(not,120)}.` : ""}`});
+    else if (os === "bekliyor" && a.status === "onaylandi") sira.push({soz:`Bildirdiğiniz arızayla ilgileniliyor. ${yerSoz(a)}. ${kat}.`});
+    else if (not && not !== on) sira.push({soz:`Bildirdiğiniz arızaya not yazıldı. ${a.karan || "Teknisyen"}: ${kisa(not,120)}.`}); });
+  V.forEach(v => { const o = once.v[v.id]; if (o === "bekliyor" && (v.durum === "onay" || v.durum === "red"))
+    sira.push({ok: v.durum==="onay", soz:`Vardiya değişimi talebiniz ${v.durum==="onay" ? "onaylandı" : "reddedildi"}. ${new Date(v.tarih + "T12:00").toLocaleDateString("tr-TR",{day:"numeric",month:"long",weekday:"long"})}.`}); });
+  sira.slice(0,4).forEach((o,i) => setTimeout(() => masaSes(o), i*6000));
+}
 function telSesKontrol(){
-  if (!store.isYetkili || !store.isYetkili()) return;
+  if (!store.isYetkili || !store.isYetkili() || pDashKim()) return telSesPersonel();
   const tech = store.isTech(), L = (tech ? S.all : (IK.pers||[])).filter(a => a && a.id && !["p_tasinma","p_gelemiyorum"].includes(a.cat));
   if (!L.length && !TSES.gor) return;
   const yeniGor = {}; L.forEach(a => { yeniGor[a.id] = a.status; });
@@ -4727,7 +4756,7 @@ document.addEventListener("click", async e => {
     else if (act==="dUst"){ e.preventDefault(); scrollTo({top:0, behavior:"smooth"}); return; }
     else if (act==="masaBolum"){ e.preventDefault(); S.masaBolum = b.dataset.v || null; if (S.view !== "panel" || S.panelEski){ S.panelEski = false; location.hash = "#panel"; if (S.view === "panel") render(); } else render(); scrollTo({top:0}); return; }
     else if (act==="telSes"){ e.preventDefault(); const ac = !telSesAcik(); try { localStorage.setItem("bz1-tel-ses", ac ? "1" : "0"); } catch(err){}
-      if (ac){ masaSesAc(false); masaSes({soz:"Sesli arıza uyarısı açık. Uygulama açıkken yeni ve çözülen arızalar okunacak."}); toast("🔊 Sesli uyarı açık · uygulama açık ve ekran yanıkken çalışır"); }
+      if (ac){ masaSesAc(false); masaSes({soz: pDashKim() ? "Sesli uyarı açık. Uygulama açıkken size gelen görevler, talimatlar ve bildirdiğiniz arızaların durumu okunacak." : "Sesli arıza uyarısı açık. Uygulama açıkken yeni ve çözülen arızalar okunacak."}); toast("🔊 Sesli uyarı açık · uygulama açık ve ekran yanıkken çalışır"); }
       else { try { speechSynthesis.cancel(); } catch(err){} toast("🔇 Sesli uyarı kapalı"); }
       render(); return; }
     else if (act==="masaTema"){ e.preventDefault(); try { localStorage.setItem("bz1-masa-tema", masaGunduz() ? "gece" : "gunduz"); } catch(err){} render(); masaTemaUygula(); return; }
