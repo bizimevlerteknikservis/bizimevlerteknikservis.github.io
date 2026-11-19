@@ -431,6 +431,9 @@ const saat = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const rnd = a => a[Math.floor(Math.random()*a.length)];
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+/* Bildirim zamanı: bugün → "14:05", dün → "Dün 14:05", daha eski → "17 Kas 14:05" */
+const zamanYaz = ms => { const d = new Date(ms), b = new Date(), dn = new Date(); dn.setDate(b.getDate()-1); const hh = String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  return d.toDateString()===b.toDateString() ? hh : d.toDateString()===dn.toDateString() ? "Dün "+hh : d.getDate()+" "+["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"][d.getMonth()]+(d.getFullYear()!==b.getFullYear()?" "+d.getFullYear():"")+" "+hh; };
 const dkOnce = ms => Math.max(0, Math.round((Date.now()-ms)/60000));
 
 /* ============ Kuşbakışı harita (gerçek fotoğraf) ============ */
@@ -641,7 +644,7 @@ function arizaPanel(){
   const blokSay = {}; ARZ.list.forEach(a=>{ const k = a.b || a.alan; blokSay[k]=(blokSay[k]||0)+1; });
   const enCok = Object.entries(blokSay).sort((a,b)=>b[1]-a[1]).slice(0,3);
   $("#panel").innerHTML = `
-    <div class="card"><h2>Açık işler</h2><div class="rows">${acik.slice(0,8).map(a=>`<div class="row"><div><b>${esc(yerOf(a))}</b> · ${esc(a.k)}${a.kim?`<small style="display:block;color:var(--muted);font-size:12.5px">👷 ${esc(a.kim)}</small>`:""}${a.not?`<small style="display:block;color:#2b7cd3;font-size:12.5px;font-weight:600">${a.notKim==="Teknisyen"?"🔧":"💬"} ${esc(a.notKim)}: ${esc(a.not.slice(0,140))}</small>`:""}${a.foto?`<button class="fotobtn" data-foto="${esc(a.id)}">📷 Fotoğraf${a.foto>1?` (${a.foto})`:""}</button>`:""}</div><span class="pill" style="background:${cssv(a.s==="yeni"?"--bad":"--warn")}">${a.s==="yeni"?"Yeni":"İlgileniliyor"} · ${dkOnce(a.t)} dk</span></div>`).join("") || `<div class="row"><b>Açık iş yok</b><em>✓</em></div>`}</div></div>
+    <div class="card"><h2>Açık işler</h2><div class="rows">${acik.slice(0,8).map(a=>`<div class="row"><div><b>${esc(yerOf(a))}</b> · ${esc(a.k)}${a.kim?`<small style="display:block;color:var(--muted);font-size:12.5px">👷 ${esc(a.kim)}</small>`:""}${a.not?`<small style="display:block;color:#2b7cd3;font-size:12.5px;font-weight:600">${a.notKim==="Teknisyen"?"🔧":"💬"} ${esc(a.notKim)}: ${esc(a.not.slice(0,140))}</small>`:""}${a.foto?`<button class="fotobtn" data-foto="${esc(a.id)}">📷 Fotoğraf${a.foto>1?` (${a.foto})`:""}</button>`:""}</div><span class="pill" style="background:${cssv(a.s==="yeni"?"--bad":"--warn")}">${a.s==="yeni"?"Yeni":"İlgileniliyor"} · ${zamanYaz(a.t)}</span></div>`).join("") || `<div class="row"><b>Açık iş yok</b><em>✓</em></div>`}</div></div>
     ${tesisKart()}${tasKart()}
     <div class="card"><h2>Bugün</h2>
       <div class="kpis">
@@ -672,7 +675,7 @@ function tesisKart(){
   if ((!LIVE.on && MODE!=="tesis") || !TES.kayit) return "";
   const D = tesisDurum(), s = [];
   if (D.kesik) s.push(`<div class="row" style="background:rgba(214,64,64,.18)"><b>⚡ Elektrik kesik</b><span class="pill" style="background:var(--bad)">${dkOnce(D.kesik.ts)} dk</span></div>`);
-  D.ariza.forEach(k=>s.push(`<div class="row"><div><b>🛗 ${esc(k.ekipman.replace("-"," Blok · Asansör "))}</b>${k.mahsur&&!k.geldi?`<small style="display:block;color:var(--bad);font-weight:700">🚨 İçeride mahsur kalan var</small>`:""}<small style="display:block;color:var(--muted);font-size:12.5px">${k.geldi?"Servis geldi":k.bildirildi?"Omak'a bildirildi, bekleniyor":"Henüz firmaya bildirilmedi"}</small></div><span class="pill" style="background:var(--bad)">${dkOnce(k.ts)} dk</span></div>`));
+  D.ariza.forEach(k=>s.push(`<div class="row"><div><b>🛗 ${esc(k.ekipman.replace("-"," Blok · Asansör "))}</b>${k.mahsur&&!k.geldi?`<small style="display:block;color:var(--bad);font-weight:700">🚨 İçeride mahsur kalan var</small>`:""}<small style="display:block;color:var(--muted);font-size:12.5px">${k.geldi?"Servis geldi":k.bildirildi?"Omak'a bildirildi, bekleniyor":"Henüz firmaya bildirilmedi"}</small></div><span class="pill" style="background:var(--bad)">${zamanYaz(k.ts)}</span></div>`));
   D.pompa.forEach(k=>s.push(`<div class="row"><div><b>🔩 ${esc(pompaAd(k.ekipman))}</b><small style="display:block;color:var(--muted);font-size:12.5px">Tamirde${k.firma?" · "+esc(k.firma):""}</small></div><span class="pill" style="background:var(--warn)">${Math.floor(dkOnce(k.ts)/1440)} gün</span></div>`));
   D.dusuk.forEach(k=>s.push(`<div class="row"><b>⛽ ${esc(JEN_AD[k.ekipman]||k.ekipman)} yakıt düşük</b><span class="pill" style="background:var(--warn)">%${k.seviye}</span></div>`));
   return `<div class="card"${D.kesik||D.ariza.length?' style="border-color:var(--bad)"':""}><h2>Tesis durumu</h2><div class="rows">${s.join("") || `<div class="row"><b>Elektrik var · asansörler çalışıyor</b><em style="color:var(--ok)">✓</em></div>`}</div></div>`;
@@ -1716,7 +1719,7 @@ $("#g3Btn").onclick = () => g3Ac(!G3.acik);
 
 /* ============ Bloğa dokununca arıza detayı (2D ve 3D ortak) ============ */
 let BDETAY = null;
-const g3Once = t => { const dk = dkOnce(t); return dk < 60 ? `${dk} dk önce` : dk < 1440 ? `${Math.floor(dk/60)} sa önce` : `${Math.floor(dk/1440)} gün önce`; };
+const g3Once = t => zamanYaz(t);
 window.blokDetay = function(bid, alan){
   BDETAY = {bid, alan}; const k = $("#bdetay");
   const L = ARZ.list.filter(a => bid ? a.b === bid : (!B[a.b] && (a.alan || "Diğer") === alan));
