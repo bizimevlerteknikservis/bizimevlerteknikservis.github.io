@@ -707,6 +707,7 @@ nav.tabs a[aria-current="page"]{color:#fff;background:rgba(59,140,255,.16)}nav.t
   .m-bas-ik{width:22px;height:22px;stroke:#8fc3ff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   body.yon-masa .d-link{background:rgba(76,155,255,.12);color:#9cc8ff}
   #masaHaritaKap{position:absolute;z-index:3;display:none}
+  .m-ses{border:0;cursor:pointer;background:rgba(255,171,61,.16) !important;color:#ffd59a !important}.m-ses.acik{background:rgba(47,209,138,.14) !important;color:#9ff0c8 !important}
   #masaHaritaKap iframe{width:100%;height:100%;border:0;border-radius:14px;background:transparent;color-scheme:dark}
   body.yon-masa .d-harita .d-foto{height:440px;border-radius:14px;background-position:center 45%}
   body.yon-masa .d-canli{border-radius:16px;background:rgba(14,26,52,.85);border:1px solid var(--cam-k)}
@@ -2160,8 +2161,34 @@ function masaHaritaYerlestir(){
   const r = yer.getBoundingClientRect();
   Object.assign(MH.kap.style, {display:"block", left:(r.left + scrollX) + "px", top:(r.top + scrollY) + "px", width:r.width + "px", height:MH.h + "px"});
 }
+/* Sesli uyarı (masaüstü ana sayfa): gömülü harita yeni/çözülen arızayı bildirir, ses burada çalar.
+   Tarayıcı sesi ilk tıklamadan sonra açar; harita kartındaki düğme durumu gösterir. */
+const MSES = {c:null, acik:false};
+function masaSesAc(deneme){
+  try { MSES.c = MSES.c || new (window.AudioContext||window.webkitAudioContext)(); MSES.c.resume(); } catch(e){}
+  try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } catch(e){}
+  MSES.acik = true; masaSesDurum();
+  if (deneme) masaSes({soz:"Sesli uyarı açık."});
+}
+function masaSesDurum(){ const b = document.getElementById("masaSesBtn"); if (b){ b.classList.toggle("acik", MSES.acik); b.innerHTML = MSES.acik ? `${ic("ses")}Sesli uyarı açık` : `${ic("ses")}Sesi açmak için tıklayın`; } }
+["pointerdown","keydown"].forEach(t => window.addEventListener(t, () => { if (!MSES.acik && masaAktif()) masaSesAc(false); }, {passive:true}));
+function masaSes(o){
+  const c = MSES.c;
+  if (c && c.state === "running"){
+    const notalar = o.acil ? [880,660,880,660,880,660] : o.ok ? [523,659,784,1047] : [784,1047,1319];
+    notalar.forEach((f,k) => { const os = c.createOscillator(), g = c.createGain(), t = c.currentTime + k*(o.acil?.22:.18);
+      os.type = o.acil ? "square" : "sine"; os.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(o.acil?.18:.35, t+.02); g.gain.exponentialRampToValueAtTime(0.0001, t+(o.acil?.2:.9));
+      os.connect(g).connect(c.destination); os.start(t); os.stop(t+1); });
+  }
+  if (!o.soz) return;
+  setTimeout(() => { try { const ses = speechSynthesis.getVoices().find(v => /^tr/i.test(v.lang));
+    for (let k = 0; k < (o.acil ? 2 : 1); k++){ const u = new SpeechSynthesisUtterance(o.soz); u.lang = "tr-TR"; u.rate = .92; if (ses) u.voice = ses; speechSynthesis.speak(u); } } catch(e){} }, c ? (o.acil ? 1400 : 1000) : 0);
+}
 window.addEventListener("message", e => {
-  if (e.origin !== location.origin || !e.data || !e.data.bz1Harita) return;
+  if (e.origin !== location.origin || !e.data) return;
+  if (e.data.bz1Ses){ if (masaAktif() && document.getElementById("masaHaritaYer")) masaSes(e.data.bz1Ses); return; }
+  if (!e.data.bz1Harita) return;
   const h = Math.max(300, Math.min(1400, e.data.bz1Harita));
   if (Math.abs(h - MH.h) < 2) return; MH.h = h;
   const yer = document.getElementById("masaHaritaYer"); if (yer) yer.style.height = h + "px";
@@ -2457,7 +2484,7 @@ function vDashGovde(tech, tiles, son, isler, ayar, yeni){
     ${tekrarKart(tech)}
     ${asWaKart()}
     ${masaAkisKart()}
-    ${MASA.matches ? `<section class="d-kart d-harita m-canli"><div class="d-bas"><h2><i class="d-nokta"></i>Canlı Site Haritası</h2><a class="d-link" href="kontrol.html">Tam ekran ${ic("sag")}</a></div><div id="masaHaritaYer" style="height:${MH.h}px"></div></section>` : `<a class="d-kart d-harita" href="#kontrol">
+    ${MASA.matches ? `<section class="d-kart d-harita m-canli"><div class="d-bas"><h2><i class="d-nokta"></i>Canlı Site Haritası</h2><span style="display:flex;gap:8px"><button type="button" class="d-link m-ses${MSES.acik ? " acik" : ""}" id="masaSesBtn" data-act="masaSes">${ic("ses")}${MSES.acik ? "Sesli uyarı açık" : "Sesi açmak için tıklayın"}</button><a class="d-link" href="kontrol.html">Tam ekran ${ic("sag")}</a></span></div><div id="masaHaritaYer" style="height:${MH.h}px"></div></section>` : `<a class="d-kart d-harita" href="#kontrol">
       <div class="d-bas"><h2><i class="d-nokta"></i><span class="masa-gizle">Canlı Site Haritası</span><span class="masa-only">Site Genel Görünüm</span></h2><span class="d-link">Canlı kontrolü aç ${ic("sag")}</span></div>
       <div class="d-foto" style="background-image:url(harita-hd.jpg)"><span>${ic("pin")}Bizimevler 1</span></div>
     </a>`}
@@ -4545,6 +4572,7 @@ document.addEventListener("click", async e => {
     else if (act==="dBildirim"){ e.preventDefault(); if (store.isTech()){ S.filter = "yeni"; render(); } requestAnimationFrame(() => { const el = document.getElementById(store.isTech() ? "isler" : "ayarlar"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); }); return; }
     else if (act==="dAyar"){ e.preventDefault(); const el = document.getElementById("ayarlar"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); return; }
     else if (act==="dUst"){ e.preventDefault(); scrollTo({top:0, behavior:"smooth"}); return; }
+    else if (act==="masaSes"){ e.preventDefault(); masaSesAc(true); return; }
     else if (act==="icGit"){ e.preventDefault(); S.kaydirHedef = v; if (S.view !== "panel" || S.panelEski){ S.panelEski = false; location.hash = "#panel"; if (S.view === "panel") render(); } else kaydirHedefe(); return; }
     else if (act==="pGorevGit"){ e.preventDefault(); const el = document.querySelector(".gv-kart") || document.querySelector(".mesai-kart"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); else toast("Şu an görev ya da talimat yok"); return; }
     else if (act==="bldPanel"){ e.preventDefault(); S.bldPanel = !S.bldPanel; render(); return; }

@@ -1634,9 +1634,12 @@ function tvSoyle(metin, tekrar){
   } catch(e){}
 }
 function blokSoz(b){ return b ? `${String(b).replace(/^([A-Za-zÇĞİÖŞÜçğıöşü]+)\s*(\d+)$/, "$1 $2")} blok` : ""; }
+const GOMULU = document.documentElement.classList.contains("gomulu");
 function tvUyari(o){
-  if (!TV.on) return;
-  if (!o.sessiz){ tvGong(o.acil, o.ton==="ok"); setTimeout(()=>tvSoyle(o.soz, o.acil ? 2 : 1), o.acil ? 1400 : 1000); }
+  if (!TV.on && !GOMULU) return;
+  /* Ana sayfaya gömülüyken sesi ana sayfa çalar (tarayıcı ses iznini orada verir) */
+  if (GOMULU){ if (!o.sessiz) try { parent.postMessage({bz1Ses:{acil:!!o.acil, ok:o.ton==="ok", soz:o.soz}}, location.origin); } catch(e){} }
+  else if (!o.sessiz){ tvGong(o.acil, o.ton==="ok"); setTimeout(()=>tvSoyle(o.soz, o.acil ? 2 : 1), o.acil ? 1400 : 1000); }
   TV.durak = Date.now() + 60000; TV.durakYazi = "🔔 Uyarı gösteriliyor";
   if (o.mod && MODE !== o.mod) modAc(o.mod);
   tvAdim();
