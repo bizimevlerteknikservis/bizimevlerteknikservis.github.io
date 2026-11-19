@@ -245,6 +245,7 @@ button.oz{cursor:pointer;font:inherit;color:inherit}button.oz:hover{border-color
         </div>
       </details>
       <button class="ibtn" data-act="excel">⬇ Excel</button>
+      <button class="ibtn" data-act="program" id="programBtn" title="Güvenlik aylık çalışma programı (1 · 2 · T çizelgesi) · yazdırılır">📅 Çalışma programı</button>
       <button class="ibtn" data-act="rapor" title="Aylık özet: çalışılan gün, saat, geç kalma, izinler · PDF olarak kaydedilir">🖨️ Rapor (PDF)</button>
       <button class="btn" data-act="paylas">📤 Muhasebeye gönder</button>
     </div>
@@ -298,13 +299,17 @@ const tatil = d => { const s = ymd(d); return DINI_TATIL[s] || SABIT_TATIL[s.sli
 const yarim = d => { const s = ymd(d); return YARIM[s] || (s.slice(5)==="10-28" ? "28 Ekim (yarım gün)" : null); };
 
 const VARDIYA = [
-  {ad:"1. Vardiya", kisiler:[["Rüstem Eryüksel",1],["Ali Vesek"],["Tayfun Özdemir"],["Erkan Bavkir"]]},
+  {ad:"1. Vardiya", kisiler:[["Rüstem Eryüksel",1],["Ali Vesek"],["Eray Polat"],["Tayfun Özdemir"]]},
   {ad:"2. Vardiya", kisiler:[["Yakup Erol",1],["Cihan Yıldırım"],["Serkan Çinibulak"],["Mehmet Ünal"]]},
   {ad:"3. Vardiya", kisiler:[["Nejdet Baydemir",1],["Yalçın Akyol"],["Berke Dursun Tuncer"],["Yusuf Nazlım"]]},
-  {ad:"Joker", kisiler:[["Eray Polat"]]}
+  {ad:"Joker", kisiler:[["Erkan Bavkir"]]}
 ];
-/* Varsayılan 12 saatlik düzen: 2 gündüz · 2 gece · 2 izin, vardiyalar 2'şer gün kaydırılmış. Amir kendi düzenine göre değiştirir. */
-const DESEN_VARSAYILAN = {"1. Vardiya":{seq:"G,G,N,N,HT,HT", baz:"2026-11-01"}, "2. Vardiya":{seq:"G,G,N,N,HT,HT", baz:"2026-10-30"}, "3. Vardiya":{seq:"G,G,N,N,HT,HT", baz:"2026-10-28"}, "Joker":{seq:"G,G,G,G,G,HT,HT", baz:"2026-11-02"}};
+/* 12 saatlik düzen: 2 gündüz (1) · 2 gece (2) · 2 tatil (T). Başlangıç günleri yönetimin Eylül 2026 çalışma programından alındı:
+   1. Vardiya 6 Eylül'de, 3. Vardiya 2 Eylül'de, 2. Vardiya 4 Eylül'de gündüze başlıyor (6 günde bir tekrar). */
+const ESKI_CIZELGE = {"1. Vardiya":{seq:"G,G,N,N,HT,HT", baz:"2026-08-31"}, "2. Vardiya":{seq:"G,G,N,N,HT,HT", baz:"2026-09-04"}, "3. Vardiya":{seq:"G,G,N,N,HT,HT", baz:"2026-09-02"}};
+/* Çizelgedeki görev unvanları (V.AMİRİ · ÖGG · DNŞM). Kişi kartından değiştirilebilir. */
+const GOREV_VARSAYILAN = {"rustem-eryuksel":"V.AMİRİ","ali-vesek":"ÖGG","eray-polat":"DNŞM","tayfun-ozdemir":"DNŞM","nejdet-baydemir":"V.AMİRİ","yalcin-akyol":"ÖGG","berke-dursun-tuncer":"DNŞM","yusuf-nazlim":"DNŞM","yakup-erol":"V.AMİRİ","cihan-yildirim":"ÖGG","serkan-cinibulak":"ÖGG","mehmet-unal":"ÖGG","erkan-bavkir":"DNŞM"};
+const DESEN_VARSAYILAN = {...ESKI_CIZELGE, "Joker":{seq:"G,G,G,G,G,HT,HT", baz:"2026-11-02"}};
 
 /* ================= durum ================= */
 const P = { ay:null, grup:"guvenlik", ayar:{kisiler:{}, desen:{}}, doc:{kisi:{}, onay:{}, kesin:{}}, izin:[], plan:null, qr:{}, mesai:[], degisim:[], rol:{tech:false, tesis:false, yon:false}, kim:"", ayarGeldi:false };
@@ -439,6 +444,7 @@ const kilitli = g => !!(((P.doc.onay||{})[g]||{}).mudur);
 
 /* ================= çizim ================= */
 function ciz(){
+  { const pb = document.getElementById("programBtn"); if (pb) pb.hidden = P.grup !== "guvenlik"; }
   const {y, m, n, gunler} = ayBilgi();
   $("#ayAd").textContent = `${AY[m-1]} ${y}`;
   const gruplar = ["guvenlik","temizlik"].filter(gorurGrup);
@@ -699,7 +705,9 @@ function desenModal(){
       <div class="onizle">${on14}</div></div>`; }).join("");
   const goster = () => { modal(`<div class="bas"><h3>Vardiya düzeni</h3><button class="ibtn" data-act="kapat">✕</button></div>
     <p style="margin:0 0 10px">Her vardiyanın tekrar eden düzenini bir kez girin. Kutulara dokununca <b>☀ G</b> gündüz (08–20) → <b>☾ N</b> gece (20–08) → <b>HT</b> izin olarak değişir. "Düzenin 1. günü", ilk kutunun denk geldiği tarih. Altta önümüzdeki 14 gün görünür, doğru mu kontrol edin.</p>
+    <div class="uyari" style="margin:0 0 10px">📋 Yönetimin kâğıt çizelgesi (Eylül 2026): 1-1-2-2-T-T düzeni. <button class="btn" type="button" id="cizelgeDoldur">Çizelgeye göre doldur</button><br><small>1. Vardiya: Rüstem, Ali, Eray, Tayfun · 2. Vardiya: Yakup, Cihan, Serkan, Mehmet · 3. Vardiya: Nejdet, Yalçın, Berke, Yusuf · Joker: Erkan. Kaydedince kişilerin vardiyası da buna göre düzeltilir.</small></div>
     ${yaz()}<button class="btn yesil" data-act="desenKaydet">✓ Kaydet</button>`);
+    $("#cizelgeDoldur").onclick = () => { Object.assign(D, JSON.parse(JSON.stringify(ESKI_CIZELGE))); DESEN_KISI = true; goster(); toast("Çizelgeye göre dolduruldu · önizlemeyi kontrol edip Kaydet'e basın"); };
     $("#mic").onclick = e => { const b = e.target.closest("[data-dz],[data-dzek],[data-dzsil]"); if (!b) return;
       if (b.dataset.dz){ const [v,i] = b.dataset.dz.split("|"); const s = D[v].seq.split(","); s[+i] = s[+i]==="G" ? "N" : s[+i]==="N" ? "HT" : "G"; D[v] = {...D[v], seq:s.join(",")}; }
       if (b.dataset.dzek){ const v = b.dataset.dzek; D[v] = {...D[v], seq: D[v].seq + ",HT"}; }
@@ -709,7 +717,15 @@ function desenModal(){
     DESEN_TASLAK = D; };
   goster();
 }
-let DESEN_TASLAK = null;
+let DESEN_TASLAK = null, DESEN_KISI = false;
+/* Çizelgedeki vardiya üyeliğini kayıtlı kişi listesine uygula (isim eşleşirse) */
+function cizelgeKisiler(){
+  const K = kisiler(), uye = {};
+  VARDIYA.forEach(v => v.kisiler.forEach(([ad, amir]) => { uye[anahtar(ad)] = {vardiya:v.ad, amir:!!amir}; }));
+  let n = 0;
+  for (const [key, k] of Object.entries(K)){ if (k.grup !== "guvenlik") continue; const u = uye[anahtar(k.ad)]; if (u && (k.vardiya !== u.vardiya || !!k.amir !== u.amir)){ K[key] = {...k, vardiya:u.vardiya, amir:u.amir}; n++; } }
+  return {K, n};
+}
 function saatModal(){
   const S = saatAyar(), yaz = (id, v) => `<input class="inp" type="time" id="${id}" value="${esc(v)}" style="width:110px">`;
   const sat = (ad, k) => `<tr><td style="padding:6px 8px 6px 0"><b>${ad}</b></td><td>${yaz("sb_"+k, S[k].bas)}</td><td style="padding:0 6px">–</td><td>${yaz("se_"+k, S[k].bit)}</td></tr>`;
@@ -771,6 +787,52 @@ function raporHTML(){
     <p class="not">Çalışılan saat QR giriş-çıkış kayıtlarından hesaplanır; çıkışı okutulmayan günler saate eklenmez. Geç kalma, mesai saatleri ayarındaki başlangıç + ${+S.tolerans} dakikadan sonra yapılan giriştir. Kodlar: Yİ yıllık izin, R rapor, Mİ mazeret, Üİ ücretsiz izin, D devamsız.</p>
     </body></html>`;
 }
+/* Güvenlik aylık çalışma programı: yönetimin kâğıt çizelgesiyle aynı biçim (1 = 08–20, 2 = 20–08, T = tatil, Y, R, G…) */
+function programKod(h, o){
+  const c = h.kod;
+  if (c === "X") return h.elle ? (o.gece ? "2" : "1") : (h.gece ? "2" : "1");
+  return {HT:"T", RT:"T", "Yİ":"Y", R:"R", D:"G", "Üİ":"Üİ", "Mİ":"Mİ"}[c] || c || "";
+}
+function programHTML(){
+  const {y, m, n, gunler} = ayBilgi();
+  const L = grupKisileri("guvenlik");
+  const bas = Array.from({length:31}, (_, i) => `<th class="g${i < n && [0,6].includes(gunler[i].getDay()) ? " hs" : ""}">${i < n ? i+1 : ""}</th>`).join("");
+  const satir = (key, k, i) => {
+    const hucreler = Array.from({length:31}, (_, gi) => { if (gi >= n) return `<td class="bos"></td>`;
+      const d = gunler[gi], h = hucre(key, k, d, gi), o = oto(key, k, d), c = programKod(h, o);
+      const cls = c === "2" ? "gc" : c === "T" ? "t" : /^[YRG]$|İ/.test(c) ? "iz" : "";
+      return `<td class="${cls}${[0,6].includes(d.getDay()) ? " hs" : ""}">${esc(c)}</td>`; }).join("");
+    return `<tr><td>${i+1}</td><td class="ad">${esc(k.ad.toLocaleUpperCase("tr"))}</td><td>${esc(k.gorev || GOREV_VARSAYILAN[anahtar(k.ad)] || (k.amir ? "V.AMİRİ" : ""))}</td>${hucreler}<td></td><td></td></tr>`;
+  };
+  return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Güvenlik çalışma programı ${AY[m-1]} ${y}</title><style>
+    @page{size:A4 landscape;margin:8mm}*{box-sizing:border-box}body{font:11px/1.3 Arial,Helvetica,sans-serif;color:#111;margin:0;padding:12px;background:#fff}
+    .ust{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px}.ust b{font-size:12px}h1{font-size:14px;margin:0;text-align:center;flex:1;letter-spacing:.02em}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #333;text-align:center;padding:3px 0;height:22px}
+    th{background:#f1f1f1;font-size:10px}th.g,td{font-size:12px;font-weight:700}td.ad{text-align:left;padding-left:6px;font-size:10.5px;white-space:nowrap;overflow:hidden}
+    col.no{width:26px}col.ad{width:150px}col.gr{width:58px}col.ek{width:42px}
+    td.gc{background:#e6ecf7}td.t{color:#666;font-weight:400}td.iz{background:#ffd9a8}.hs{border-left-color:#333}th.hs{background:#e2e6ee}
+    .alt{display:flex;gap:18px;margin-top:10px;align-items:flex-start}.alt table{width:auto}.alt td,.alt th{padding:3px 10px;font-size:11px;font-weight:400}
+    .kod{display:flex;flex-wrap:wrap;gap:0;border:1px solid #333}.kod span{padding:4px 10px;border-right:1px solid #333;font-weight:700;font-size:10.5px}.kod span:last-child{border-right:0}
+    .imza{margin-left:auto;display:flex;gap:28px}.imza div{width:170px;border-top:1px solid #333;padding-top:3px;text-align:center;min-height:46px}
+    .btns{position:sticky;top:0;background:#fff;padding:6px 0;display:flex;gap:8px}.btns button{font:600 14px sans-serif;padding:10px 16px;border-radius:10px;border:0;background:#2b7cd3;color:#fff}
+    @media print{.btns{display:none}body{padding:0}}</style></head><body>
+    <div class="btns"><button onclick="print()">🖨️ Yazdır / PDF kaydet</button><button onclick="close()" style="background:#666">Kapat</button></div>
+    <div class="ust"><b>PROJE : Bizimevler 1</b><h1>BİZİMEVLER GÜVENLİK ${AY[m-1].toLocaleUpperCase("tr")} ${y} AYI ÇALIŞMA PROGRAMI</h1><span></span></div>
+    <table><colgroup><col class="no"><col class="ad"><col class="gr">${"<col>".repeat(31)}<col class="ek"><col class="ek"></colgroup>
+      <thead><tr><th>SIRA<br>NO</th><th>ADI SOYADI</th><th>GÖREVİ</th>${bas}<th>Fazla<br>Mesai</th><th>Bayram<br>Mesaisi</th></tr></thead>
+      <tbody>${L.map(([key, k], i) => satir(key, k, i)).join("")}${Array.from({length:Math.max(0, 14 - L.length)}, (_, j) => `<tr><td>${L.length+j+1}</td><td></td><td></td>${"<td></td>".repeat(33)}</tr>`).join("")}</tbody></table>
+    <div class="alt">
+      <table><tr><th colspan="2">Vardiya Kodları</th></tr><tr><td><b>1</b></td><td>08:00-20:00</td></tr><tr><td><b>2</b></td><td>20:00-08:00</td></tr><tr><td><b>3</b></td><td>13:00-21:00</td></tr></table>
+      <div><div class="kod"><span>T : TATİL</span><span>Y : YILLIK İZİN</span><span>R : RAPOR</span><span>Dİ : DOĞUM İZNİ</span><span>G : GELMEDİ</span><span>Üİ : ÜCRETSİZ İZİN</span><span>Mİ : MAZERET İZNİ</span></div>
+        <p style="margin:6px 0 0;color:#555;font-size:10px">Puantaj sisteminden hazırlandı · ${new Date().toLocaleString("tr-TR")}. Vardiya düzeni, izinler, raporlar ve onaylı vardiya değişimleri işlenmiştir.</p></div>
+      <div class="imza"><div>Güvenlik amiri</div><div>Site yönetimi</div></div>
+    </div></body></html>`;
+}
+function programAc(){
+  const html = programHTML(), w = window.open("", "_blank");
+  if (w){ w.document.open(); w.document.write(html); w.document.close(); return; }
+  const {y, m} = ayBilgi(); indir({blob: new Blob([html], {type:"text/html"}), ad:`guvenlik-calisma-programi-${y}-${pad(m)}.html`}); toast("Program indirildi: açıp Yazdır → PDF olarak kaydet");
+}
 function raporAc(){
   const html = raporHTML(), w = window.open("", "_blank");
   if (w){ w.document.open(); w.document.write(html); w.document.close(); setTimeout(() => { try { w.focus(); w.print(); } catch(e){} }, 400); return; }
@@ -785,18 +847,19 @@ function kisiModal(key, on){
       <label class="tam">Ad soyad (muhasebedeki gibi)<input class="inp" id="kAd" required maxlength="60" value="${esc(k.ad)}"></label>
       <label>Grup<select class="sel" id="kGrup">${Object.entries(GRUP_AD).filter(([g])=>P.rol.tech||P.rol.tesis||g==="guvenlik").map(([g,a])=>`<option value="${g}" ${k.grup===g?"selected":""}>${a}</option>`).join("")}</select></label>
       <label id="kVardL">Vardiya<select class="sel" id="kVard">${VARDIYA.map(v=>`<option ${k.vardiya===v.ad?"selected":""}>${v.ad}</option>`).join("")}</select></label>
+      <label id="kGorL">Görevi (çizelgede)<input class="inp" id="kGor" maxlength="12" placeholder="V.AMİRİ · ÖGG · DNŞM" value="${esc(k.gorev || GOREV_VARSAYILAN[anahtar(k.ad)] || "")}"></label>
       <div class="tam" id="kGunL"><div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px">Çalıştığı günler (temizlikte hafta sonu, çalışma listesinden gelir)</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">${[1,2,3,4,5,6,0].map(g=>`<label style="flex-direction:row;align-items:center;gap:4px;border:1px solid var(--line);border-radius:10px;padding:6px 9px;color:var(--ink)"><input type="checkbox" value="${g}" ${gunSec.includes(g)?"checked":""}>${GK[g]}</label>`).join("")}</div></div>
       <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="kAmir" ${k.amir?"checked":""}> Amir</label>
       <div class="tam" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="submit" ${izin?"":"disabled"}>Kaydet</button>${key?`<button class="btn kirmizi" type="button" data-act="kisiCikar" data-k="${esc(key)}" ${izin?"":"disabled"}>İşten ayrıldı · listeden çıkar</button>`:""}</div>
     </form>`);
-  const gor = () => { const g = $("#kGrup").value; $("#kVardL").hidden = g!=="guvenlik"; $("#kGunL").hidden = g==="guvenlik"; };
+  const gor = () => { const g = $("#kGrup").value; $("#kVardL").hidden = g!=="guvenlik"; $("#kGorL").hidden = g!=="guvenlik"; $("#kGunL").hidden = g==="guvenlik"; };
   $("#kGrup").onchange = gor; gor();
   $("#kForm").onsubmit = async e => { e.preventDefault();
     const ad = $("#kAd").value.trim(); if (!ad) return;
     const g = $("#kGrup").value;
     const yeni = {...k, ad, grup:g, amir:$("#kAmir").checked, aktif:true};
-    if (g==="guvenlik"){ yeni.vardiya = $("#kVard").value; delete yeni.gunler; delete yeni.duzen; }
+    if (g==="guvenlik"){ yeni.vardiya = $("#kVard").value; const gr = $("#kGor").value.trim().toLocaleUpperCase("tr"); if (gr) yeni.gorev = gr; else delete yeni.gorev; delete yeni.gunler; delete yeni.duzen; }
     else { yeni.gunler = [...$("#kGunL").querySelectorAll("input:checked")].map(i=>+i.value); yeni.duzen = g==="temizlik" ? "temizlik" : "hafta"; delete yeni.vardiya; }
     const id = key || anahtar(ad);
     const K = kisiler(); K[id] = {...yeni, sira: yeni.sira ?? Object.keys(K).length};
@@ -819,7 +882,9 @@ document.addEventListener("click", async e => {
   else if (a==="saat") saatModal();
   else if (a==="saatKaydet") saatKaydet();
   else if (a==="rapor") raporAc();
-  else if (a==="desenKaydet"){ try { await DB.ayarYaz({desen:DESEN_TASLAK, desenOnay:true}); P.ayar.desen = DESEN_TASLAK; P.ayar.desenOnay = true; toast("✓ Vardiya düzeni kaydedildi"); kapat(); ciz(); } catch(err){ hata(err); } }
+  else if (a==="program") programAc();
+  else if (a==="desenKaydet"){ try { const ek = {}; let n = 0; if (DESEN_KISI){ const r = cizelgeKisiler(); n = r.n; if (n){ ek.kisiler = r.K; P.ayar.kisiler = r.K; } DESEN_KISI = false; }
+    await DB.ayarYaz({desen:DESEN_TASLAK, desenOnay:true, ...ek}); P.ayar.desen = DESEN_TASLAK; P.ayar.desenOnay = true; toast("✓ Vardiya düzeni kaydedildi" + (n ? ` · ${n} kişinin vardiyası düzeltildi` : "")); kapat(); ciz(); } catch(err){ hata(err); } }
   else if (a==="kisiEkle") kisiModal(null);
   else if (a==="filtre"){ P.filtre = t.dataset.v || ""; ciz(); }
   else if (a==="bugunGit") bugunGit(true);
