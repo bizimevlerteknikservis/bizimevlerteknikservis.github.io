@@ -467,6 +467,12 @@ label.f{display:grid;gap:6px;font-size:14px;font-weight:700;min-width:0;color:va
 .sum strong{display:block;font:800 30px/1 var(--display);font-variant-numeric:tabular-nums}
 .sum span{font-size:13px;color:var(--muted)}
 .filters{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;margin-bottom:4px;scrollbar-width:none}
+.sek-kay{position:relative}
+.sek-kay.sag .filters{-webkit-mask:linear-gradient(90deg,#000 calc(100% - 64px),transparent);mask:linear-gradient(90deg,#000 calc(100% - 64px),transparent)}
+.sek-kay.sol.sag .filters{-webkit-mask:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 64px),transparent);mask:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 64px),transparent)}
+.sek-kay.sol:not(.sag) .filters{-webkit-mask:linear-gradient(90deg,transparent,#000 28px);mask:linear-gradient(90deg,transparent,#000 28px)}
+.sek-ok{display:none;position:absolute;right:0;top:calc(50% - 20px);width:34px;height:34px;border-radius:50%;place-items:center;background:var(--accent);color:#fff;font:700 22px/1 var(--body);box-shadow:0 4px 12px rgba(20,60,130,.3);cursor:pointer;padding-bottom:3px}
+.sek-kay.sag .sek-ok{display:grid}
 .success{background:var(--surface);border-radius:24px;padding:26px 20px;display:grid;gap:14px;text-align:center;box-shadow:var(--shadow)}
 .success::before{content:"";justify-self:center;width:64px;height:64px;border-radius:50%;background:#e4f6ea url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232c8a45' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/32px no-repeat}
 .success .big{font:800 28px/1.1 var(--display);text-wrap:balance}
@@ -2299,6 +2305,28 @@ function masaSesDurum(){ const b = document.getElementById("masaSesBtn"); if (b)
 ["pointerdown","keydown"].forEach(t => window.addEventListener(t, () => { if (!MSES.acik && masaAktif()) masaSesAc(false); }, {passive:true}));
 /* Telefonda (uygulama açıkken) sesli arıza uyarısı: teknisyen, müdür ve amir ekranı.
    Yeni arıza gelince ve arıza çözülünce zil + sesli okuma. Masaüstünde bu işi gömülü harita yapar. */
+/* Yana kayan sekmeler: devamı olduğunu gösteren solgun kenar + ok; seçili sekme görünür alana kaydırılır */
+const SEKKAY = {};
+function sekKayKur(){
+  document.querySelectorAll(".sek-kay").forEach(k => {
+    const f = k.querySelector(".filters"); if (!f) return;
+    const bak = () => { const sag = f.scrollLeft + f.clientWidth < f.scrollWidth - 4, sol = f.scrollLeft > 4; k.classList.toggle("sag", sag); k.classList.toggle("sol", sol); };
+    const anahtar = f.id || "sek";
+    if (!f.dataset.kur){ f.dataset.kur = "1";
+      /* Sayfa yeniden çizilse de kaydırma yeri korunur */
+      if (SEKKAY[anahtar] != null){ f.style.scrollBehavior = "auto"; f.scrollLeft = SEKKAY[anahtar]; f.style.scrollBehavior = ""; }
+      f.addEventListener("scroll", () => { SEKKAY[anahtar] = f.scrollLeft; bak(); }, {passive:true});
+      k.querySelector(".sek-ok").addEventListener("click", e => { e.stopPropagation(); e.preventDefault();
+        /* Sayfa tıklamada yeniden çizilebilir: güncel (sayfadaki) şeridi kaydır */
+        const g = (f.id && document.getElementById(f.id)) || f, kk = g.closest(".sek-kay");
+        const yeni = Math.min(g.scrollWidth - g.clientWidth, (SEKKAY[anahtar] ?? g.scrollLeft) + g.clientWidth * .7); SEKKAY[anahtar] = yeni;
+        requestAnimationFrame(() => { const h = (f.id && document.getElementById(f.id)) || g; h.scrollLeft = yeni; const k2 = h.closest(".sek-kay"); if (k2){ k2.classList.toggle("sag", yeni + h.clientWidth < h.scrollWidth - 4); k2.classList.toggle("sol", yeni > 4); } }); }); }
+    const a = f.querySelector('[aria-current="true"]');
+    const akt = a && a.dataset.v, degisti = SEKKAY["_" + anahtar] !== akt; SEKKAY["_" + anahtar] = akt;
+    if (a && degisti && (a.offsetLeft + a.offsetWidth > f.scrollLeft + f.clientWidth || a.offsetLeft < f.scrollLeft)){ f.style.scrollBehavior = "auto"; f.scrollLeft = a.offsetLeft - 16; f.style.scrollBehavior = ""; }
+    bak();
+  });
+}
 function telSesAcik(){ try { return localStorage.getItem("bz1-tel-ses") === "1"; } catch(e){ return false; } }
 const TSES = {gor:null, p:null};
 setInterval(() => { try { telSesKontrol(); } catch(e){} }, 4000);
@@ -3961,7 +3989,7 @@ function vTesis(){
   return `<div class="sayfa-bas" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
       <h2 style="margin:0;font:600 22px/1.2 var(--display)">Tesis takip</h2>
       <a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">${store.isTech() ? "← İş paneli" : "← Menü"}</a></div>
-    <div class="filters">${Object.entries(sek).map(([k,v])=>`<button class="pill-btn" data-t="sekme" data-v="${k}" aria-current="${T.sekme===k}">${v}</button>`).join("")}</div>
+    <div class="sek-kay"><div class="filters" id="tSekmeler">${Object.entries(sek).map(([k,v])=>`<button class="pill-btn" data-t="sekme" data-v="${k}" aria-current="${T.sekme===k}">${v}</button>`).join("")}</div><span class="sek-ok" aria-hidden="true">›</span></div>
     ${T.sekme==="ozet" ? `
       ${uyar.length ? `<div class="t-uyarilar">${uyar.join("")}</div>` : `<div class="t-uyari yesil">✓ Her şey yolunda: açık arıza yok, elektrik var.</div>`}
       <div class="t-hizli">
@@ -4677,6 +4705,7 @@ function render(){
   masaHaritaYerlestir();
   masaSeritCiz();
   telSesKontrol();
+  sekKayKur();
   if (keep && document.getElementById(keep)) { const el = document.getElementById(keep); el.focus(); if (el.setSelectionRange && el.value && el.type !== "date") try{ el.setSelectionRange(el.value.length, el.value.length); }catch(e){} }
 }
 function kaydirHedefe(){
