@@ -3645,7 +3645,7 @@ function hidHesap(K){
 function tHidrofor(H){
   const X = H.hid;
   return `${X.tamirde.length ? `<div class="group-h">Tamirdeki pompalar</div><div class="list">${X.tamirde.map(k=>`<article class="ticket" data-s="onaylandi">
-      <div class="t-head"><span class="t-no">${esc(hidAd(k.ekipman))}</span><span class="chip" data-s="onaylandi">${gunOnce(k.ts)} gün</span></div>
+      <div class="t-head"><span class="t-no">${esc(hidAd(k.ekipman))}</span><span class="chip" data-s="onaylandi">📅 ${tarihSaat(k.ts)}</span></div>
       <p class="t-desc">${tarihSaat(k.ts)} tamire gitti${k.firma?` · ${esc(k.firma)}`:""}${k.not?` · ${esc(k.not)}`:""}</p>
       <div class="actions"><button class="act primary" data-t="pompaGeldi" data-v="${esc(k.ekipman)}">Tamirden geldi, takıldı</button></div></article>`).join("")}</div>`
     : `<div class="t-uyari yesil">✓ Tamirde pompa yok</div>`}
@@ -3660,7 +3660,7 @@ function tHidrofor(H){
       return `<div class="hid-k">
         <div class="jen-ust"><b>${esc(h.ad)}</b><small>${h.n===3?"Çiftli blok · 3+3 pompa":"Tekli blok · 2+2 pompa"}</small></div>
         ${["A","U"].map(z=>`<div class="hid-zon"><span>${zonAd(z)}</span>${Array.from({length:h.n},(_,i)=>{ const id=`${h.id}:${z}P${i+1}`; return `<i class="${pRenk(id)}" title="${esc(hidAd(id))}">${i+1}</i>`; }).join("")}<em title="${X.tank[`${h.id}:${z}T`] ? "Basınç tankı değişti: " + tarihTam(X.tank[`${h.id}:${z}T`].ts) : "Basınç tankı: kayıt yok"}">🛢️ ${X.tank[`${h.id}:${z}T`] ? tarihSaat(X.tank[`${h.id}:${z}T`].ts).slice(0,5) : "—"}</em></div>`).join("")}
-        <small class="hint">Son bakım: ${sb ? `${tarihSaat(sb.ts).slice(0,5)} (${gunOnce(sb.ts)} gün)` : "kayıt yok"}${pompalar.some(id=>pRenk(id)==="kirmizi")?` · <b style="color:#d64040">pompa tamirde</b>`:""}</small>
+        <small class="hint">Son bakım: ${sb ? tarihSaat(sb.ts) : "kayıt yok"}${pompalar.some(id=>pRenk(id)==="kirmizi")?` · <b style="color:#d64040">pompa tamirde</b>`:""}</small>
       </div>`; }).join("")}</div>
     <p class="hint">🔴 tamirdeki pompa · 🛢️ tankın son değiştiği tarih · Hidrofor bakımı ${HID_BAKIM_GUN} günü geçerse uyarı verir.</p>
     ${hidGecmis(H.K)}`;
@@ -3926,7 +3926,7 @@ function hidSecim(f, tankMi){
 
 const gunOnce = ts => Math.floor((Date.now()-ts)/864e5);
 const sureYaz = dk => dk < 60 ? `${dk} dk` : `${Math.floor(dk/60)} sa ${dk%60} dk`;
-const tarihSaat = ts => { const d = new Date(ts); return `${pad(d.getDate())}.${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const tarihSaat = ts => { const d = new Date(ts); return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 
 function tesisHesap(){
   const K = T.kayit.slice().sort((a,b)=>a.ts-b.ts);
@@ -3977,7 +3977,7 @@ function vTesis(){
   tesisBaslat();
   const H = tesisHesap();
   const uyar = [];
-  if (H.devamEden) uyar.push(`<div class="t-uyari kirmizi">⚡ <b>Elektrik kesik</b> · ${sureYaz(Math.round((Date.now()-H.devamEden.bas)/6e4))} oldu</div>`);
+  if (H.devamEden) uyar.push(`<div class="t-uyari kirmizi">⚡ <b>Elektrik kesik</b> · ${tarihSaat(H.devamEden.bas)} itibarıyla</div>`);
   if (H.acikAriza.length) uyar.push(`<div class="t-uyari kirmizi">🛗 <b>${H.acikAriza.length} asansör arızalı</b>${H.acikAriza.some(a=>a.mahsur&&!a.geldi)?" · içeride mahsur kalan var!":""}</div>`);
   H.dusukYakit.forEach(j=>uyar.push(`<div class="t-uyari turuncu">⛽ <b>${esc(j.ad)}</b> yakıt %${H.yakit[j.id].seviye}</div>`));
   kronikler().forEach(([id,n]) => uyar.push(`<div class="t-uyari kirmizi">♻️ <b>Kronik arıza:</b> ${esc(asAd(id))} ${KRONIK_GUN} günde ${n}. kez arızalandı</div>`));
@@ -4116,7 +4116,7 @@ function tAcikArizalar(H){
     const dk = Math.round((Date.now()-a.ts)/6e4);
     const adim = !a.bildirildi ? ["bildirildi","Omak'a bildirildi"] : !a.geldi ? ["geldi","Servis geldi"] : ["cozuldu","Çözüldü"];
     return `<article class="ticket" data-s="${a.geldi?"onaylandi":"bekliyor"}">
-      <div class="t-head"><span class="t-no">${esc(asAd(a.ekipman))}</span><span class="chip" data-s="bekliyor">${sureYaz(dk)}</span></div>
+      <div class="t-head"><span class="t-no">${esc(asAd(a.ekipman))}</span><span class="chip" data-s="bekliyor" title="${sureYaz(dk)} önce">📅 ${tarihSaat(a.ts)}</span></div>
       ${a.mahsur ? `<div class="t-uyari kirmizi" style="margin:0">🚨 İçeride mahsur kalan var</div>` : ""}
       ${a.kaynak==="personel" || (a.bildirenAd||[]).length ? `<p class="t-desc" style="margin:4px 0">📣 Bildiren: ${esc((a.bildirenAd||[a.by]).join(", "))}</p>` : ""}
       ${/-\?$/.test(a.ekipman) ? `<div style="margin:6px 0;display:flex;gap:6px;align-items:center;flex-wrap:wrap">Hangi asansör? <button class="pill-btn" data-t="asNoSec" data-id="${a.id}" data-v="${esc(a.ekipman.split("-")[0])}-1">1</button><button class="pill-btn" data-t="asNoSec" data-id="${a.id}" data-v="${esc(a.ekipman.split("-")[0])}-2">2</button></div>` : ""}
@@ -4125,7 +4125,7 @@ function tAcikArizalar(H){
       <div class="t-adim">
         <span class="${a.ts?"ok":""}">Açıldı ${tarihSaat(a.ts)}</span>
         <span class="${a.bildirildi?"ok":""}">Bildirildi${a.bildirildi?" "+tarihSaat(a.bildirildi):""}</span>
-        <span class="${a.geldi?"ok":""}">Servis geldi${a.geldi?" "+tarihSaat(a.geldi)+` (${sureYaz(Math.round((a.geldi-(a.bildirildi||a.ts))/6e4))})`:""}</span>
+        <span class="${a.geldi?"ok":""}">Servis geldi${a.geldi?" "+tarihSaat(a.geldi):""}</span>
       </div>
       <div class="actions">
         <button class="act primary" data-t="adim" data-id="${a.id}" data-v="${adim[0]}">${adim[1]}</button>
@@ -4149,13 +4149,13 @@ function tDetay(H){
   const bakimlar = H.K.filter(k=>k.tur==="bakim" && (k.ekipmanlar||[]).includes(a.id)).sort((x,y)=>y.ts-x.ts).slice(0,6);
   return `<div class="t-sheet"><div class="t-sheet-in">
     <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">${esc(a.ad)}</h2><button class="pill-btn" data-t="kapat">Kapat ✕</button></div>
-    <p class="hint">Son bakım: <b>${sb ? `${tarihSaat(sb.ts)} (${gunOnce(sb.ts)} gün önce)` : "kayıt yok"}</b></p>
+    <p class="hint">Son bakım: <b>${sb ? tarihSaat(sb.ts) : "kayıt yok"}</b></p>
     ${!store.isTesis() ? `<button class="cta danger" data-t="form" data-v="ariza" data-id="${a.id}">Arıza aç</button>` : `<label class="f">Muayene etiketi<select id="t_etiket"><option value="">Bilinmiyor</option>${Object.entries(ETIKET).map(([k,[ad]])=>`<option value="${k}" ${et.renk===k?"selected":""}>${ad}</option>`).join("")}</select></label>
     <label class="f">Muayene tarihi<input type="date" id="t_etiketTarih" value="${esc(et.tarih||"")}"></label>
     <div class="grid2"><button class="cta ghost" data-t="etiketKaydet" data-v="${a.id}">Etiketi kaydet</button><button class="cta danger" data-t="form" data-v="ariza" data-id="${a.id}">Arıza aç</button></div>
     <button class="cta ghost" style="margin-top:10px" data-t="form" data-v="bakim" data-id="${a.id}">🔧 Bakım yapıldı</button>`}
     <div class="group-h">Arıza geçmişi</div>
-    ${gecmis.length ? gecmis.map(k=>`<div class="t-satir"><b>${tarihSaat(k.ts)}</b> ${k.cozuldu?`çözüldü (${sureYaz(Math.round((k.cozuldu-k.ts)/6e4))})`:"<span style='color:var(--bad,#d64040)'>açık</span>"}${k.mahsur?" · mahsur":""}${k.not?` · ${esc(k.not)}`:""}</div>`).join("") : `<p class="hint">Arıza kaydı yok.</p>`}
+    ${gecmis.length ? gecmis.map(k=>`<div class="t-satir"><b>${tarihSaat(k.ts)}</b> ${k.cozuldu?`→ çözüldü ${tarihSaat(k.cozuldu)}`:"<span style='color:var(--bad,#d64040)'>açık</span>"}${k.mahsur?" · mahsur":""}${k.not?` · ${esc(k.not)}`:""}</div>`).join("") : `<p class="hint">Arıza kaydı yok.</p>`}
     <div class="group-h">Bakımlar</div>
     ${bakimlar.length ? bakimlar.map(k=>`<div class="t-satir"><b>${tarihSaat(k.ts)}</b> ${esc(k.firma||"")}${k.not?` · ${esc(k.not)}`:""}${k.fotoSayi?` <button class="pill-btn" data-act="foto" data-id="${k.id}">📷 Form</button>`:""}</div>`).join("") : `<p class="hint">Bakım kaydı yok.</p>`}
   </div></div>`;
