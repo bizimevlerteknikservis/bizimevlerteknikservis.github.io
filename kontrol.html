@@ -641,7 +641,7 @@ function arizaPanel(){
   const blokSay = {}; ARZ.list.forEach(a=>{ const k = a.b || a.alan; blokSay[k]=(blokSay[k]||0)+1; });
   const enCok = Object.entries(blokSay).sort((a,b)=>b[1]-a[1]).slice(0,3);
   $("#panel").innerHTML = `
-    <div class="card"><h2>Açık işler</h2><div class="rows">${acik.slice(0,8).map(a=>`<div class="row"><div><b>${esc(yerOf(a))}</b> · ${esc(a.k)}${a.kim?`<small style="display:block;color:var(--muted);font-size:12.5px">👷 ${esc(a.kim)}</small>`:""}${a.not?`<small style="display:block;color:#2b7cd3;font-size:12.5px;font-weight:600">🔧 Teknisyen: ${esc(a.not.slice(0,140))}</small>`:""}${a.foto?`<button class="fotobtn" data-foto="${esc(a.id)}">📷 Fotoğraf${a.foto>1?` (${a.foto})`:""}</button>`:""}</div><span class="pill" style="background:${cssv(a.s==="yeni"?"--bad":"--warn")}">${a.s==="yeni"?"Yeni":"İlgileniliyor"} · ${dkOnce(a.t)} dk</span></div>`).join("") || `<div class="row"><b>Açık iş yok</b><em>✓</em></div>`}</div></div>
+    <div class="card"><h2>Açık işler</h2><div class="rows">${acik.slice(0,8).map(a=>`<div class="row"><div><b>${esc(yerOf(a))}</b> · ${esc(a.k)}${a.kim?`<small style="display:block;color:var(--muted);font-size:12.5px">👷 ${esc(a.kim)}</small>`:""}${a.not?`<small style="display:block;color:#2b7cd3;font-size:12.5px;font-weight:600">${a.notKim==="Teknisyen"?"🔧":"💬"} ${esc(a.notKim)}: ${esc(a.not.slice(0,140))}</small>`:""}${a.foto?`<button class="fotobtn" data-foto="${esc(a.id)}">📷 Fotoğraf${a.foto>1?` (${a.foto})`:""}</button>`:""}</div><span class="pill" style="background:${cssv(a.s==="yeni"?"--bad":"--warn")}">${a.s==="yeni"?"Yeni":"İlgileniliyor"} · ${dkOnce(a.t)} dk</span></div>`).join("") || `<div class="row"><b>Açık iş yok</b><em>✓</em></div>`}</div></div>
     ${tesisKart()}${tasKart()}
     <div class="card"><h2>Bugün</h2>
       <div class="kpis">
@@ -1352,7 +1352,7 @@ function arizaVeri(snap){
         yer: d.block ? `${d.block}${d.kat ? " · "+d.kat : ""}` : (d.alan || "Ortak alan"),
         k: (PKAT_AD[d.cat] || "Arıza") + (d.desc ? ": " + d.desc : ""),
         kim: [d.rol, d.name].filter(Boolean).join(" · "),
-        not: String(d.note || "").trim(),
+        not: String(d.note || "").trim(), notKim: d.karan || "Teknisyen",
         s: durum[d.status] || "yeni", t: d.createdAt || Date.now(), bitis: d.completedAt || null, foto: d.fotoSayi || 0
       })).sort((x,y)=>y.t-x.t);
       ARZ.gelen = docs.filter(d => (d.createdAt||0) >= b0).length;

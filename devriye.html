@@ -1227,7 +1227,8 @@ function fis(a, panel){
         <a class="act" href="tel:${esc(String(a.phone).replace(/[^\d+]/g,""))}">Ara · <span style="font-weight:400">${esc(a.phone)}</span></a>
         <a class="act wa" href="${esc(waLink(a))}" target="_blank" rel="noopener">WhatsApp</a>
       </div>`:""}
-    ${!panel && a.note?`<p class="t-note"><b>Teknisyen notu:</b> ${esc(a.note)}</p>`:""}
+    ${!panel && a.note?`<p class="t-note"><b>${esc(a.karan || "Teknisyen")} notu:</b> ${esc(a.note)}</p>`:""}
+    ${panel && a.note && a.karan && a.karan !== "Teknisyen"?`<p class="t-note">💬 <b>${esc(a.karan)}:</b> ${esc(a.note)}</p>`:""}
     ${panel?`
       <label class="f" style="font-weight:400">Teknisyen notu<input type="text" id="note-${a.id}" data-note="${a.id}" value="${esc(S.notes[a.id] ?? a.note ?? "")}" placeholder="Sakinin göreceği not (ör. Yarın öğleden sonra geliyorum)"></label>
       <div class="actions">
@@ -4349,7 +4350,7 @@ document.addEventListener("click", async e => {
     else if (act==="mzNotAc"){ MZ.not = MZ.not === id ? null : id; render(); setTimeout(() => { const i = document.getElementById("mz_not"); if (i) i.focus(); }, 50); return; }
     else if (act==="mzDurum" || act==="mzNotKaydet"){
       const a = (IK.pers||[]).find(x => x.id === id); if (!a || MZ.kayit) return; MZ.kayit = true; b.disabled = true;
-      const kim = (store.kim && store.kim()) || "Müdür", patch = {guncelTs:Date.now(), karan:kim};
+      const kim = dashAd() || "Müdür", patch = {guncelTs:Date.now(), karan:kim};
       if (act==="mzDurum"){ patch.status = v; if (v === "tamamlandi") patch.completedAt = Date.now(); }
       else { const n = String((document.getElementById("mz_not")||{}).value || "").trim().slice(0,160); if (!n){ MZ.kayit = false; b.disabled = false; toast("Not yazın"); return; } patch.note = n; }
       try { await store.update(a, patch); bildirimTetik("arizaGuncel", a.id); MZ.not = null; toast(act==="mzNotKaydet" ? "Not kaydedildi · bildirene bildirim gitti" : v==="tamamlandi" ? `✓ ${a.cat==="p_malzeme" ? "Karşılandı" : "Çözüldü"} olarak işaretlendi` : "İlgileniyorum olarak işaretlendi"); }
@@ -4557,7 +4558,7 @@ document.addEventListener("click", async e => {
       try { await store.setRoller({yonetim: L, tesis: TL}); S.roller = L; S.rolTesis = TL; $("#rolListe").value = L.join("\n"); $("#rolTesis").value = TL.join("\n"); toast(`${L.length} yönetim · ${TL.length} tesis hesabı kaydedildi`); render(); } catch(err){ console.error(err); toast("Kaydedilemedi: Firebase kurallarını kontrol edin"); }
     }
     else if (act==="filtre"){ syncForm(); S.filter = v; render(); }
-    else if (act==="durum"){ syncForm(); const a = find(S.all); const patch = {status: v}; if (v==="tamamlandi") patch.completedAt = Date.now(); if (S.notes[id] !== undefined) patch.note = S.notes[id];
+    else if (act==="durum"){ syncForm(); const a = find(S.all); const patch = {status: v}; if (v==="tamamlandi") patch.completedAt = Date.now(); if (S.notes[id] !== undefined && String(S.notes[id]).trim() !== String(a.note||"").trim()) patch.note = S.notes[id];
       if (a.src === "personel" && v !== "iptal"){ patch.guncelTs = Date.now(); if (patch.note !== undefined) patch.karan = "Teknisyen"; } await store.update(a, patch); if (patch.guncelTs) bildirimTetik("arizaGuncel", a.id); toast(DURUM[v] + " olarak işaretlendi"); }
     else if (act==="not"){ syncForm(); const a = find(S.all); const yeniNot = String(S.notes[id] ?? "").trim(); const patch = {note: yeniNot};
       const bildir = a.src === "personel" && yeniNot && yeniNot !== String(a.note||"").trim(); if (bildir){ patch.guncelTs = Date.now(); patch.karan = "Teknisyen"; }
