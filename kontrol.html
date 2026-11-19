@@ -705,6 +705,8 @@ function pompaAd(id){ const [u,p] = id.split(":"), bl = (u.match(/[A-F]\d/g)||[]
 function tesisKart(){
   if ((!LIVE.on && MODE!=="tesis") || !TES.kayit) return "";
   const D = tesisDurum(), s = [];
+  if (DUYK && DUYK.aktif && (!DUYK.bitis || DUYK.bitis > Date.now())) s.push(`<div class="row" style="background:rgba(217,133,27,.16)"><b>${DUYK_AD[DUYK.sebep]||"⚠️"} · Devriye iptal</b><small style="color:var(--muted)">${esc(DUYK.by||"amir")}</small></div>`);
+  { const tb = tasBugun(); if (tb.length) s.push(`<div class="row"><b>🚚 Bugün ${tb.length} taşınma/tadilat</b></div>`); }
   if (D.kesik) s.push(`<div class="row" style="background:rgba(214,64,64,.18)"><b>⚡ Elektrik kesik</b><span class="pill" style="background:var(--bad)">${dkOnce(D.kesik.ts)} dk</span></div>`);
   D.ariza.forEach(k=>s.push(`<div class="row"><div><b>🛗 ${esc(k.ekipman.replace("-"," Blok · Asansör "))}</b>${k.mahsur&&!k.geldi?`<small style="display:block;color:var(--bad);font-weight:700">🚨 İçeride mahsur kalan var</small>`:""}<small style="display:block;color:var(--muted);font-size:12.5px">${k.geldi?"Servis geldi":k.bildirildi?"Omak'a bildirildi, bekleniyor":"Henüz firmaya bildirilmedi"}</small></div><span class="pill" style="background:var(--bad)">${zamanYaz(k.ts)}</span></div>`));
   D.pompa.forEach(k=>s.push(`<div class="row"><div><b>🔩 ${esc(pompaAd(k.ekipman))}</b><small style="display:block;color:var(--muted);font-size:12.5px">Tamirde${k.firma?" · "+esc(k.firma):""}</small></div><span class="pill" style="background:var(--warn)">${Math.floor(dkOnce(k.ts)/1440)} gün</span></div>`));
@@ -714,8 +716,9 @@ function tesisKart(){
 let DUYK = null;   // devriye duyurusu (yağmur/kar → devriye iptal)
 const DUYK_AD = {yagmur:"🌧️ Yağmur", kar:"❄️ Kar", firtina:"💨 Fırtına", diger:"⚠️"};
 function tesisSerit(){
-  const el = $("#tesisSerit"); if (!el || !LIVE.on) return;
-  if (window.ROL==="personel"){ el.hidden = true; return; }
+  const el = $("#tesisSerit"); if (!el) return;
+  /* Haritanın üstündeki tesis şeridi kaldırıldı: aynı bilgiler sağdaki "Tesis durumu" kartında */
+  el.hidden = true; return;
   el.hidden = false;
   if (TES.hata){ el.className = "tserit uyari"; el.innerHTML = `⚠️ Tesis bilgileri okunamadı (${esc(TES.hata)}) · Firebase kurallarını yayınlayın`; return; }
   if (!TES.kayit){ el.className = "tserit"; el.textContent = "Tesis bilgileri yükleniyor…"; return; }
