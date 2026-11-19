@@ -1409,6 +1409,8 @@ function izinBenKart(){
 `;
 }
 /* yönetim ekranı: izin listesi + bugün gelemeyenler */
+/* Amir (yönetim): sadece güvenlik izinlerini ekler/siler; temizlik izinleri müdür ve teknisyende */
+const yiSadeceGuv = () => !store.isTech() && !store.isTesis();
 function yiPanel(isimler){
   yiBaslat(); gelBaslat();
   const bugun = ymdS(new Date()), f = YI.f || (YI.f = {ad:"", tur:"yillik", bas:bugun, bit:bugun, not:""});
@@ -1417,10 +1419,10 @@ function yiPanel(isimler){
   const gel = (YI.gel||[]).filter(a => a.createdAt > Date.now() - 7*GUN_MS).sort((a,b)=>b.createdAt-a.createdAt);
   return `<section class="card" style="margin-top:14px"><h3 style="margin-bottom:6px">🏖️ Yıllık izin ve raporlar</h3>
       <p class="hint">Eklediğiniz izin personelin telefonunda yayınlanır: kişi kendi iznini görür, aynı bölümdeki arkadaşları da kimin ne zaman gidip ne zaman döneceğini görür. Rapor/mazeret türü arkadaşlarına "İzinli" olarak görünür.</p>
-      ${aktif.length ? aktif.map((e,i)=>`<div class="izin-s${(e.bas<=bugun && (e.bit||e.bas)>=bugun)?" bugun":""}${(e.bit||e.bas)<bugun?" gecmis":""}"><span>${e.grup==="guvenlik"?"🛡️":"🧹"} <b>${esc(e.ad)}</b> · ${esc(IZIN_TUR[e.tur]||"İzin")}${e.not?` <small>${esc(e.not)}</small>`:""}</span><span style="display:flex;gap:6px;align-items:center"><b>${aralik(e)}</b><button class="pill-btn cikis-btn" data-act="yiSil" data-id="${esc(e.id)}" style="padding:4px 10px">✕</button></span></div>`).join("") : `<p class="hint">Kayıtlı izin yok.</p>`}
+      ${aktif.length ? aktif.map((e,i)=>`<div class="izin-s${(e.bas<=bugun && (e.bit||e.bas)>=bugun)?" bugun":""}${(e.bit||e.bas)<bugun?" gecmis":""}"><span>${e.grup==="guvenlik"?"🛡️":"🧹"} <b>${esc(e.ad)}</b> · ${esc(IZIN_TUR[e.tur]||"İzin")}${e.not?` <small>${esc(e.not)}</small>`:""}</span><span style="display:flex;gap:6px;align-items:center"><b>${aralik(e)}</b>${!yiSadeceGuv() || e.grup==="guvenlik" ? `<button class="pill-btn cikis-btn" data-act="yiSil" data-id="${esc(e.id)}" style="padding:4px 10px">✕</button>` : ""}</span></div>`).join("") : `<p class="hint">Kayıtlı izin yok.</p>`}
       <div class="group-h" style="margin-top:12px">İzin ekle</div>
       <div class="grid2"><label class="f">Kişi<select id="yi_ad"><option value="">Seçin</option>
-        <optgroup label="🧹 Temizlik">${isimler.map(n=>`<option value="t|${esc(n)}" ${"t|"+n===f.ad?"selected":""}>${esc(n)}</option>`).join("")}</optgroup>
+        ${yiSadeceGuv() ? "" : `<optgroup label="🧹 Temizlik">${isimler.map(n=>`<option value="t|${esc(n)}" ${"t|"+n===f.ad?"selected":""}>${esc(n)}</option>`).join("")}</optgroup>`}
         <optgroup label="🛡️ Güvenlik">${guvIsimler().map(n=>`<option value="g|${esc(n)}" ${"g|"+n===f.ad?"selected":""}>${esc(n)}</option>`).join("")}</optgroup></select></label>
         <label class="f">Tür<select id="yi_tur">${Object.entries(IZIN_TUR).map(([k,a])=>`<option value="${k}" ${f.tur===k?"selected":""}>${a}</option>`).join("")}</select></label></div>
       <div class="grid2"><label class="f">Başlangıç<input type="date" id="yi_bas" value="${esc(f.bas)}"></label><label class="f">Bitiş<input type="date" id="yi_bit" value="${esc(f.bit)}"></label></div>
@@ -1429,14 +1431,14 @@ function yiPanel(isimler){
     </section>`;
 }
 function vIzinler(){
-  if (!(store.isTech() || store.isTesis())) return vPanel();
+  if (!(store.isTech() || store.isTesis() || (store.isYetkili && store.isYetkili()))) return vPanel();
   izinBaslat();
   const plan = izinPlan(IZN.v) || izinPlan(CALISMA_VARSAYILAN);
   const isimler = [...new Set([...(plan ? [...plan.cmt, ...plan.paz] : []), ...CALISMA_VARSAYILAN.cmt, ...CALISMA_VARSAYILAN.paz].map(r=>r[0]).concat((KOD.liste||[]).filter(k=>k.tip==="personel" && k.rol==="Temizlik" && k.aktif!==false).map(k=>adKok(k.ad))).filter(Boolean).map(x=>x.toLocaleUpperCase("tr")))].sort((a,b)=>a.localeCompare(b,"tr"));
   return `<div class="sayfa-bas" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
       <h2 style="margin:0;font:600 22px/1.2 var(--display)">İzinler</h2>
       <a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">${store.isTech() ? "← İş paneli" : "← Menü"}</a></div>
-    <p class="hint">İzinleri sadece siz, Ali ve Tuğrul girebilir. Girdiğiniz izin temizlik ve güvenlik ekranlarında yayınlanır.</p>
+    <p class="hint">${yiSadeceGuv() ? "Güvenlik personelinin yıllık izin, rapor ve mazeretlerini buradan girin. Puantaja ve çalışma programına kendiliğinden işlenir." : "İzinleri teknisyen, müdür ve güvenlik amirleri girebilir (amirler sadece güvenlik izinlerini). Girdiğiniz izin temizlik ve güvenlik ekranlarında, puantajda ve çalışma programında görünür."}</p>
     ${yiPanel(isimler)}`;
 }
 function yiSync(){ const f = YI.f; if (!f) return; [["yi_ad","ad"],["yi_tur","tur"],["yi_bas","bas"],["yi_bit","bit"],["yi_not","not"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; }); }
@@ -2281,7 +2283,7 @@ function vIK(){
   return `<div class="d-bas geri-eski" style="margin:4px 0 12px"><a class="d-link" href="#panel">‹ Ana sayfa</a></div>
   <section class="d-kart"><div class="d-bas"><h2>Personel işleri</h2></div>
     <div class="d-grid">
-      ${(tech || tesis) ? T("#izinler", "izin", "mor", "İzinler", "Yıllık · rapor") : ""}
+      ${(tech || tesis || yon) ? T("#izinler", "izin", "mor", "İzinler", (tech || tesis) ? "Yıllık · rapor" : "Güvenlik izinleri") : ""}
       ${T("puantaj.html", "clock", "yesil", "Puantaj", "Aylık · Excel")}
       ${T("#gorev", "clip", "camgobegi", "Görev Ver")}
       ${(tech || tesis) ? T("#calisma", "broom", "turuncu", "Çalışma", "Hafta sonu") : ""}
@@ -2293,7 +2295,7 @@ function vIK(){
     ${ice.length ? `<div class="d-liste">${ice.map(m => `<div><b>${esc(m.ad)}</b><small>${grupAd(m.grup)}</small><time>${saatYaz(m.ts)}</time></div>`).join("")}</div>` : `<p class="hint" style="margin:0">QR ile giriş yapmış kimse yok.</p>`}
   </section>
   ${gel.length ? `<section class="d-kart"><div class="d-bas"><h2>🚫 Bugün gelemeyen · ${gel.length}</h2></div><div class="d-liste">${gel.map(a => `<div><b>${esc(a.name||"")}</b><small>${esc(a.desc||"")}</small><time>${saatYaz(a.createdAt)}</time></div>`).join("")}</div></section>` : ""}
-  <section class="d-kart"><div class="d-bas"><h2>🏖️ Bugün izinli · ${izinli.length}</h2>${(tech || tesis) ? `<a class="d-link" href="#izinler">İzinler ${ic("sag")}</a>` : ""}</div>
+  <section class="d-kart"><div class="d-bas"><h2>🏖️ Bugün izinli · ${izinli.length}</h2>${(tech || tesis || yon) ? `<a class="d-link" href="#izinler">İzinler ${ic("sag")}</a>` : ""}</div>
     ${izinli.length ? `<div class="d-liste">${izinli.map(z => `<div><b>${esc(z.ad)}</b><small>${esc({yillik:"Yıllık izin", rapor:"Rapor", mazeret:"Mazeret", ucretsiz:"Ücretsiz"}[z.tur] || z.tur || "İzin")}</small><time>${z.bit.slice(8)}.${z.bit.slice(5,7)}'e kadar</time></div>`).join("")}</div>` : `<p class="hint" style="margin:0">Bugün izinli kimse yok.</p>`}
   </section>`;
 }
@@ -4470,6 +4472,7 @@ document.addEventListener("click", async e => {
       S.sending = false; render(); return; }
     else if (act==="yiEkle"){ syncForm(); const f = YI.f;
       if (!f.ad){ toast("Kişiyi seçin"); return; } if (!f.bas){ toast("Başlangıç tarihini seçin"); return; }
+      if (yiSadeceGuv() && !String(f.ad).startsWith("g|")){ toast("Amirler sadece güvenlik izni girebilir"); return; }
       const bit = f.bit && f.bit >= f.bas ? f.bit : f.bas;
       const [gk, ...adP] = String(f.ad).split("|"); const ad = adP.join("|") || f.ad;
       const e = {id: "i" + Date.now().toString(36), ad, grup: gk === "g" ? "guvenlik" : "temizlik", tur: f.tur, bas: f.bas, bit, not: (f.not||"").trim(), by: store.kim ? store.kim() : "Teknisyen", ts: Date.now()};
