@@ -299,10 +299,10 @@ const tatil = d => { const s = ymd(d); return DINI_TATIL[s] || SABIT_TATIL[s.sli
 const yarim = d => { const s = ymd(d); return YARIM[s] || (s.slice(5)==="10-28" ? "28 Ekim (yarım gün)" : null); };
 
 const VARDIYA = [
-  {ad:"1. Vardiya", kisiler:[["Rüstem Eryüksel",1],["Ali Vesek"],["Eray Polat"],["Tayfun Özdemir"]]},
+  {ad:"1. Vardiya", kisiler:[["Rüstem Eryüksel",1],["Ali Vesek"],["Eray Polat"],["Tayfun Özdemir"],["Erkan Bavkir"]]},
   {ad:"2. Vardiya", kisiler:[["Yakup Erol",1],["Cihan Yıldırım"],["Serkan Çinibulak"],["Mehmet Ünal"]]},
   {ad:"3. Vardiya", kisiler:[["Nejdet Baydemir",1],["Yalçın Akyol"],["Berke Dursun Tuncer"],["Yusuf Nazlım"]]},
-  {ad:"Joker", kisiler:[["Erkan Bavkir"]]}
+  {ad:"Joker", kisiler:[]}
 ];
 /* 12 saatlik düzen: 2 gündüz (1) · 2 gece (2) · 2 tatil (T). Başlangıç günleri yönetimin Eylül 2026 çalışma programından alındı:
    1. Vardiya 6 Eylül'de, 3. Vardiya 2 Eylül'de, 2. Vardiya 4 Eylül'de gündüze başlıyor (6 günde bir tekrar). */
@@ -705,7 +705,7 @@ function desenModal(){
       <div class="onizle">${on14}</div></div>`; }).join("");
   const goster = () => { modal(`<div class="bas"><h3>Vardiya düzeni</h3><button class="ibtn" data-act="kapat">✕</button></div>
     <p style="margin:0 0 10px">Her vardiyanın tekrar eden düzenini bir kez girin. Kutulara dokununca <b>☀ G</b> gündüz (08–20) → <b>☾ N</b> gece (20–08) → <b>HT</b> izin olarak değişir. "Düzenin 1. günü", ilk kutunun denk geldiği tarih. Altta önümüzdeki 14 gün görünür, doğru mu kontrol edin.</p>
-    <div class="uyari" style="margin:0 0 10px">📋 Yönetimin kâğıt çizelgesi (Eylül 2026): 1-1-2-2-T-T düzeni. <button class="btn" type="button" id="cizelgeDoldur">Çizelgeye göre doldur</button><br><small>1. Vardiya: Rüstem, Ali, Eray, Tayfun · 2. Vardiya: Yakup, Cihan, Serkan, Mehmet · 3. Vardiya: Nejdet, Yalçın, Berke, Yusuf · Joker: Erkan. Kaydedince kişilerin vardiyası da buna göre düzeltilir.</small></div>
+    <div class="uyari" style="margin:0 0 10px">📋 Yönetimin kâğıt çizelgesi: 1-1-2-2-T-T düzeni. <button class="btn" type="button" id="cizelgeDoldur">Çizelgeye göre doldur</button><br><small>Kasım 2026 çizelgesiyle de birebir tutuyor. 1. Vardiya: Rüstem, Ali, Eray, Tayfun, Erkan · 2. Vardiya: Yakup, Cihan, Serkan, Mehmet · 3. Vardiya: Nejdet, Yalçın, Berke, Yusuf. Kaydedince kişilerin vardiyası da buna göre düzeltilir.</small></div>
     ${yaz()}<button class="btn yesil" data-act="desenKaydet">✓ Kaydet</button>`);
     $("#cizelgeDoldur").onclick = () => { Object.assign(D, JSON.parse(JSON.stringify(ESKI_CIZELGE))); DESEN_KISI = true; goster(); toast("Çizelgeye göre dolduruldu · önizlemeyi kontrol edip Kaydet'e basın"); };
     $("#mic").onclick = e => { const b = e.target.closest("[data-dz],[data-dzek],[data-dzsil]"); if (!b) return;
