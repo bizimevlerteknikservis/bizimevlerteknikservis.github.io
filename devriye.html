@@ -505,6 +505,15 @@ nav.tabs a[aria-current="page"]{color:#fff;background:rgba(59,140,255,.16)}nav.t
 .y-ik{font-size:22px}.y-ad{flex:1;display:flex;flex-direction:column;min-width:0}.y-ad small{color:var(--muted,#6b7a90);font-size:12.5px}
 .y-kalan{font-size:13px;font-weight:600;white-space:nowrap;color:#2fa36b}.y-satir[data-d="gecti"] .y-kalan{color:#d64040}.y-satir[data-d="yakin"] .y-kalan,.y-satir[data-d="yok"] .y-kalan{color:#c7771b}
 .y-sec{display:flex;flex-direction:column;gap:5px;max-height:38vh;overflow:auto;padding:2px}
+.yb-kart .yb-ozet{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.yb-ozet>div{border-radius:14px;padding:10px 12px;background:var(--sunk,#f3f7fb);display:flex;flex-direction:column;gap:2px;min-width:0}
+.yb-ozet small{font-size:12px;color:var(--muted)}.yb-ozet b{font-size:15px}.yb-ozet em{font-style:normal;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.yb-ozet.tamam .yb-d{background:rgba(31,168,85,.12);color:#16784a}.yb-ozet.yakin .yb-d{background:rgba(239,138,16,.14);color:#a35a00}
+.yb-ozet.gecti .yb-d{background:rgba(214,64,64,.14);color:#b3262e}.yb-ozet.yok .yb-d{background:rgba(239,138,16,.12);color:#8a5a00}
+@media (max-width:420px){.yb-kart .yb-ozet{grid-template-columns:1fr 1fr}.yb-ozet .yb-d{grid-column:1/-1}}
+.yb-gec{display:grid;gap:8px}.yb-s{border:1px solid var(--line,#e3e9f2);border-radius:14px;padding:10px 12px}
+.yb-s-bas{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.yb-s-bas span{font-size:13px;color:var(--muted)}
+.yb-s ul{margin:6px 0;padding:0;list-style:none;font-size:13.5px;display:grid;gap:2px}.yb-s p{margin:4px 0;font-size:13.5px}.yb-s .yb-sorun{color:#b3262e}.yb-s small{color:var(--muted);font-size:12px}
 .y-sec-s{display:flex;gap:10px;align-items:center;text-align:left;padding:9px 10px;border-radius:10px;border:1px solid var(--line,#e3e9f2);background:var(--card,#fff);font:inherit;color:inherit}
 .y-sec-s[aria-pressed="true"]{border-color:#2b7cd3;background:rgba(43,124,211,.08)}.y-sec-s>span:first-child{font-size:20px}
 .y-sec-s>span:last-child{display:flex;flex-direction:column}.y-sec-s small{color:var(--muted,#6b7a90);font-size:12.5px}
@@ -2883,6 +2892,7 @@ function takvimHesap(H){
   const Y = H.yangin, yS = Y.L.filter(e => e.sonraki).map(e => e.sonraki);
   L.push({id:"yangin", ik:"🧯", ad:"Yangın tüpleri ve ekipmanları", gun: Y.L.length ? null : 365, son:0, sonraki: yS.length ? Math.min(...yS) : 0,
     alt: Y.L.length ? `${Y.L.length} ekipman · en yakın süreye göre${Y.yok.length ? ` · ${Y.yok.length} tarihsiz` : ""}` : "Ekipman listesi girilmemiş (Yangın sekmesinden ekleyin)", sekme:"yangin"});
+  { const B = ybHesap(H.K); L.push({id:"yangin-bakim", ik:"🔥", ad:"Yangın sistemi bakımı", gun:B.gun, son: B.son ? B.son.ts : 0, sonraki:B.sonraki, alt: B.son ? (B.son.firma || "") : "Bakım kaydı yok (Yangın sekmesinden girin)", sekme:"yangin"}); }
   tkListe().forEach(x => { const son = tsYmd(x.son); L.push({id:x.id, ik:"🔧", ad:x.ad, gun:+x.gun, son, sonraki: son ? son + (+x.gun)*864e5 : 0, alt:x.not||"", ozel:true}); });
   L.forEach(x => { x.kalan = x.sonraki ? gunKalan(x.sonraki) : null; x.durum = x.kalan === null ? "yok" : x.kalan < 0 ? "gecti" : x.kalan <= 30 ? "yakin" : "tamam"; });
   return L.sort((a,b) => (a.sonraki || 9e15) - (b.sonraki || 9e15));
@@ -3716,6 +3726,78 @@ const yListe = () => Array.isArray(T.ayar.yangin) ? T.ayar.yangin : [];
 const yAd = e => `${e.blok}${e.yer ? " · " + e.yer : ""}`;
 const tarihGun = ts => { const d = new Date(ts); return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`; };
 
+/* Yangın sistemi firma bakımı (alarm paneli, dedektör, sprinkler, pompa, dolaplar…): ziyaret kaydı, yapılanlar, değişen parçalar, sonraki tarih */
+const YB_ISLER = ["Yangın alarm paneli test edildi","Dedektörler kontrol edildi","Sprinkler sistemi kontrol edildi","Yangın pompası çalıştırıldı / test edildi","Yangın dolapları ve hortumlar kontrol edildi","Yangın tüpleri kontrol / dolum","Acil aydınlatma ve çıkış levhaları test edildi","Yangın kapıları kontrol edildi","Basınç / manometre kontrolü","Sirenler ve butonlar test edildi"];
+const YB_PERIYOT = [[30,"Ayda bir"],[90,"3 ayda bir"],[180,"6 ayda bir"],[365,"Yılda bir"]];
+function ybHesap(K){
+  const L = (K||[]).filter(k=>k.tur==="yanginbakim").sort((a,b)=>b.ts-a.ts), son = L[0];
+  const gun = son ? (+son.gun || 90) : (+(T.ayar.yanginBakimGun) || 90);
+  const sonraki = son ? son.ts + gun*864e5 : 0, kalan = son ? gunKalan(sonraki) : null;
+  const durum = kalan === null ? "yok" : kalan < 0 ? "gecti" : kalan <= 14 ? "yakin" : "tamam";
+  return {L, son, gun, sonraki, kalan, durum};
+}
+function ybKart(H){
+  const B = ybHesap(H.K), kyz = B.durum==="yok" ? "Henüz bakım kaydı yok" : B.kalan < 0 ? `${-B.kalan} gün geçti` : B.kalan === 0 ? "Bugün" : `${B.kalan} gün kaldı`;
+  return `<div class="card yb-kart"><h2>🔥 Yangın sistemi periyodik bakımı</h2>
+    <div class="yb-ozet ${B.durum}">
+      <div><small>Son bakım</small><b>${B.son ? tarihSaat(B.son.ts) : "—"}</b>${B.son && B.son.firma ? `<em>${esc(B.son.firma)}</em>` : ""}</div>
+      <div><small>Sonraki bakım</small><b>${B.sonraki ? tarihGun(B.sonraki) : "—"}</b><em>${periyotYaz(B.gun)}</em></div>
+      <div class="yb-d"><small>Durum</small><b>${kyz}</b></div>
+    </div>
+    <button class="cta" data-t="ybForm" style="margin-top:12px">🔧 Firma bakıma geldi · kaydet</button>
+    <div class="group-h">Bakım geçmişi${B.L.length ? ` <small style="text-transform:none;font-weight:500">· ${B.L.length} kayıt</small>` : ""}</div>
+    ${B.L.length ? `<div class="yb-gec">${B.L.slice(0, T.ybTum ? 50 : 4).map(k=>`<div class="yb-s"><div class="yb-s-bas"><b>📅 ${tarihSaat(k.ts)}</b>${k.firma ? `<span>${esc(k.firma)}</span>` : ""}</div>
+        ${(k.isler||[]).length ? `<ul>${k.isler.map(x=>`<li>✓ ${esc(x)}</li>`).join("")}</ul>` : ""}
+        ${k.degisen ? `<p><b>🔩 Değişen / takılan:</b> ${esc(k.degisen)}</p>` : ""}
+        ${k.sorun ? `<p class="yb-sorun"><b>⚠️ Bulunan eksik / sorun:</b> ${esc(k.sorun)}</p>` : ""}
+        ${k.not ? `<p><b>📝 Not:</b> ${esc(k.not)}</p>` : ""}
+        <small>Kaydeden: ${esc(k.by||"—")} · sonraki: ${tarihGun(k.ts + (+k.gun||90)*864e5)}</small></div>`).join("")}</div>
+      ${B.L.length > 4 ? `<button class="pill-btn" data-t="ybTum">${T.ybTum ? "Daha az göster" : `Tümünü göster (${B.L.length})`}</button>` : ""}`
+      : `<p class="hint">Firma bakıma geldiğinde yukarıdaki düğmeyle kaydedin: tarih, yapılan işler, değişen parçalar. Sonraki bakım tarihi kendiliğinden hesaplanır, yaklaşınca ve geçince bildirim gelir.</p>`}
+  </div>${T.ybf ? ybForm() : ""}`;
+}
+function ybForm(){
+  const f = T.ybf;
+  return `<div class="t-sheet"><div class="t-sheet-in">
+    <h2>🔧 Yangın sistemi bakımı</h2>
+    <div class="grid2"><label class="f">Tarih<input type="date" id="yb_tarih" value="${esc(f.tarih)}"></label>
+      <label class="f">Firma<input id="yb_firma" maxlength="50" value="${esc(f.firma||"")}" placeholder="Bakım firması"></label></div>
+    <div class="group-h">Yapılan işler</div>
+    <div class="y-sec">${YB_ISLER.map((x,i)=>`<button class="y-sec-s" data-t="ybIs" data-v="${i}" aria-pressed="${f.isler.includes(x)}"><span>${f.isler.includes(x) ? "☑" : "☐"}</span><span><b>${esc(x)}</b></span></button>`).join("")}</div>
+    <label class="f" style="margin-top:10px">Diğer yapılan iş (isteğe bağlı)<input id="yb_diger" maxlength="120" value="${esc(f.diger||"")}"></label>
+    <label class="f">Değişen / takılan parçalar<textarea id="yb_degisen" maxlength="300" rows="2" placeholder="Örn. B4 2. kat dedektör değişti, pompa salmastrası yenilendi">${esc(f.degisen||"")}</textarea></label>
+    <label class="f">Bulunan eksik / sorun<textarea id="yb_sorun" maxlength="300" rows="2" placeholder="Örn. A3 yangın dolabı hortumu çatlak, teklif verilecek">${esc(f.sorun||"")}</textarea></label>
+    <label class="f">Not<input id="yb_not" maxlength="200" value="${esc(f.not||"")}"></label>
+    <label class="f">Bakım ne sıklıkla?<select id="yb_gun">${YB_PERIYOT.map(([d,a])=>`<option value="${d}" ${String(f.gun)===String(d)?"selected":""}>${a}</option>`).join("")}</select></label>
+    ${f.hata ? `<p class="err">${esc(f.hata)}</p>` : ""}
+    <button class="cta" data-t="ybKaydet">Kaydet</button>
+    <button class="cta ghost" data-t="ybKapat" style="margin-top:8px">Vazgeç</button>
+  </div></div>`;
+}
+function ybSync(){
+  const f = T.ybf; if (!f) return;
+  const v = id => { const el = document.getElementById(id); return el ? el.value : undefined; };
+  [["tarih","yb_tarih"],["firma","yb_firma"],["diger","yb_diger"],["degisen","yb_degisen"],["sorun","yb_sorun"],["not","yb_not"],["gun","yb_gun"]].forEach(([k,id])=>{ const x = v(id); if (x !== undefined) f[k] = x; });
+}
+async function ybTik(t, v){
+  ybSync();
+  if (t==="ybForm"){ const B = ybHesap(T.kayit); T.ybf = {tarih: bugunStr(), firma: B.son ? (B.son.firma||"") : "", isler:[], gun: B.gun}; }
+  else if (t==="ybKapat"){ T.ybf = null; }
+  else if (t==="ybTum"){ T.ybTum = !T.ybTum; }
+  else if (t==="ybIs"){ const x = YB_ISLER[+v], L = T.ybf.isler, i = L.indexOf(x); if (i<0) L.push(x); else L.splice(i,1); }
+  else if (t==="ybKaydet"){
+    const f = T.ybf, ts0 = yTarihTs(f.tarih);
+    if (!ts0){ f.hata = "Tarih seçin"; render(); return; }
+    const ts = f.tarih === bugunStr() ? Date.now() : ts0;
+    if (ts > Date.now() + 864e5){ f.hata = "İleri bir tarih seçilemez"; render(); return; }
+    const isler = [...f.isler, ...((f.diger||"").trim() ? [(f.diger||"").trim()] : [])];
+    if (!isler.length && !(f.degisen||"").trim()){ f.hata = "Yapılan işlerden en az birini seçin"; render(); return; }
+    const rec = {tur:"yanginbakim", isler, firma:(f.firma||"").trim(), degisen:(f.degisen||"").trim(), sorun:(f.sorun||"").trim(), not:(f.not||"").trim(), gun:+f.gun||90, by: store.kim ? store.kim() : "Teknisyen", ts};
+    try { await store.addTesis(rec); T.ybf = null; toast("✓ Yangın sistemi bakımı kaydedildi · sonraki: " + tarihGun(ts + rec.gun*864e5)); }
+    catch(err){ console.error(err); toast("Kaydedilemedi: " + (err.code||"")); }
+  }
+  render();
+}
 function yHesap(K){
   const son = {};   // ekipman id -> son işlem kaydı
   K.filter(k=>k.tur==="yangin").forEach(k=>(k.ekipmanlar||[]).forEach(id=>{ if (!son[id] || son[id].ts < k.ts) son[id] = k; }));
@@ -3732,7 +3814,7 @@ const yDurumYaz = e => e.durum==="yok" ? "tarih girilmemiş" : e.durum==="gecti"
 
 function tYangin(H){
   const Y = H.yangin, f = T.yFiltre || {tip:"", durum:""};
-  if (!Y.L.length) return `<div class="card"><h2>🧯 Yangın ve güvenlik ekipmanları</h2>
+  if (!Y.L.length) return `${ybKart(H)}<div class="card"><h2>🧯 Yangın ve güvenlik ekipmanları</h2>
       <p class="hint">Yangın tüpleri, yangın dolapları, acil aydınlatmalar, alarm paneli… Her ekipmanın son kontrol/dolum tarihini tutar, süresi dolmadan uyarır. Denetimde tek tuşla Excel listesi verir.</p>
       <p class="hint"><b>Başlamak için</b> ekipmanları ekleyin. Aynı bloktaki 6 tüpü tek seferde ekleyebilirsiniz; tüp etiketindeki son dolum tarihini de yazın.</p>
       <button class="cta" data-t="yForm" data-v="ekle">+ Ekipman ekle</button></div>${T.yf ? yForm(Y) : ""}`;
@@ -3744,7 +3826,7 @@ function tYangin(H){
   const goster = Y.L.filter(e=>(!f.tip || e.tip===f.tip) && (!f.durum || (f.durum==="sorun" ? e.durum!=="tamam" : e.durum===f.durum)));
   const gruplar = {}; goster.forEach(e=>{ (gruplar[e.blok] ||= []).push(e); });
   const sira = Object.keys(gruplar).sort((a,b)=>Y_YERLER.indexOf(a)-Y_YERLER.indexOf(b));
-  return `${uy.length ? `<div class="t-uyarilar">${uy.join("")}</div>` : `<div class="t-uyari yesil">✓ Tüm ekipmanların süresi geçerli (${Y.L.length} ekipman)</div>`}
+  return `${ybKart(H)}<h2 style="margin:18px 0 8px;font-size:18px">🧯 Ekipman listesi</h2>${uy.length ? `<div class="t-uyarilar">${uy.join("")}</div>` : `<div class="t-uyari yesil">✓ Tüm ekipmanların süresi geçerli (${Y.L.length} ekipman)</div>`}
     <div class="t-hizli">
       <button class="t-btn" data-t="yForm" data-v="islem"><span>✅</span>Kontrol / dolum yapıldı</button>
       <button class="t-btn" data-t="yForm" data-v="ekle"><span>➕</span>Ekipman ekle</button>
@@ -4324,6 +4406,7 @@ function tRapor(hangi){
 document.addEventListener("click", async e => {
   const b = e.target.closest("[data-t]"); if (!b) return;
   const t = b.dataset.t, v = b.dataset.v, id = b.dataset.id; tSync();
+  if (/^yb[A-Z]/.test(t)){ await ybTik(t, v); return; }
   if (/^yf?[A-Z]/.test(t)){ await yTik(t, v, id, b); return; }
   if (t==="sekme"){ T.sekme = v; T.yf = null; T.yd = null; render(); }
   else if (/^(tk|sk)[A-Z]/.test(t)){ await tkSkTik(t, v, id, b); return; }
