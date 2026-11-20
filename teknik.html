@@ -1766,7 +1766,7 @@ function izfKart(isimler){
   const L = IZF.L.filter(x => !yon || x.bolum === "Güvenlik").sort((a,b) => (b.cikis||"").localeCompare(a.cikis||""));
   return `<section class="card" style="margin-top:14px"><h3 style="margin-bottom:6px">📄 Yıllık ücretli izin talep formu</h3>
     <p class="hint">Kâğıttaki formun aynısı: formun üzerinde doldurun, kaydedin, 🖨️ ile yazdırın ya da PDF olarak kaydedin, 📤 ile muhasebeye gönderin. TC ve adres bilgileri sadece teknisyen, müdür ve amirlerde görünür.</p>
-    <button class="cta" data-act="izfYeni">＋ Yeni izin formu</button>
+    <div class="grid2"><button class="cta" data-act="izfYeni">＋ Yeni izin formu</button><button class="cta ghost" data-act="izfBos">🖨️ Boş form yazdır</button></div>
     ${L.length ? `<div class="izf-l">${L.slice(0, IZF.hepsi ? 200 : 6).map(x => `<div class="izf-s">
       <div><b>${esc(x.ad)}</b><small>${esc(x.bolum||"")} · ${izfTr(x.cikis)} – ${izfTr(x.bitis)} · ${esc(x.kullanacak||"?")} gün${x.kalan!==""&&x.kalan!==undefined?` · kalan ${esc(x.kalan)}`:""}</small>
         ${x.gonderildi ? `<em class="izf-ok">✓ Muhasebeye gönderildi ${tarihSaat(x.gonderildi)}</em>` : ""}</div>
@@ -1792,13 +1792,13 @@ function izfForm(isimler){
       <div class="baslik">YILLIK ÜCRETLİ İZİN TALEP FORMU</div>
       <table>${r("TARİH", inp("tarih","date"))}${r("ADI SOYADI", inp("ad","",'list="izfAdlar" maxlength="60" autocomplete="off"'))}${r("TC KİMLİK NUMARASI", inp("tc","",'inputmode="numeric" maxlength="11"'))}${r("İŞE GİRİŞ TARİHİ", inp("giris","date"))}${r("ÇALIŞTIĞI BÖLÜM", `<select id="izf_bolum">${(yon ? ["Güvenlik"] : ["Güvenlik","Temizlik","Bahçe","Teknik","Yönetim"]).map(b => `<option ${f.bolum===b?"selected":""}>${b}</option>`).join("")}</select>`)}${r("İKAMETGAH ADRESİ", `<textarea id="izf_adres" rows="3" maxlength="200">${V("adres")}</textarea>`, 1)}${r("GSM TELEFON NO", inp("gsm","tel",'maxlength="20"'))}${r("İZİNİ GEÇİRECEĞİ ADRES<br>VE TELEFON", `<textarea id="izf_izinAdres" rows="3" maxlength="200">${V("izinAdres")}</textarea>`, 1)}${r("İSTENEN ÜCRETSİZ YOL İZNİ SÜRESİ", gun("yolIzni"))}${r("İZNE ÇIKIŞ TARİHİ", inp("cikis","date"))}${r("İZİN BİTİŞ TARİHİ", inp("bitis","date"))}${r("İŞ BAŞI TARİHİ", inp("isbasi","date"))}</table>
       <p class="metin">4857 Sayılı yasanın 53 üncü maddesine göre <input id="izf_yil" class="kisa" inputmode="numeric" maxlength="4" value="${V("yil")}" placeholder="……"> yılına ilişkin yıllık iznimi <b>${ayna("cikis")}</b> – <b>${ayna("bitis")}</b> tarihleri arasında kullanmak istiyorum. Gereğinin yapılmasını arz ederim. Saygılarımla</p>
-      <div class="imza"><div>Adı, Soyad<br><b data-izm="ad">${V("ad")}</b><br>İmza</div></div>
+      <div class="imza"><div>Adı Soyadı<br><b data-izm="ad">${V("ad")}</b><br>İmza</div></div>
       <div class="cizgi"></div>
       <div class="alt-bas">*** PERSONEL BÖLÜMÜ TARAFINDAN DOLDURULACAKTIR ***</div>
       <div class="baslik ince">YILLIK ÜCRETLİ İZİN HESABI</div>
       <table>${r("İZİNE ÇIKIŞ TARİHİ", ayna("cikis"))}${r("YILLIK ÜCRETLİ İZİN SÜRESİ", gun("hak"))}${r("HAFTA TATİLİ", gun("haftaTatil"))}${r("ULUSAL VE RESMİ TATİL GÜNÜ", gun("resmiTatil"))}${r("KULLANACAĞI İZİN SÜRESİ", gun("kullanacak"))}${r("KULLANILAN TOPLAM İZİN SÜRESİ", gun("kullanilanToplam"))}${r("KALAN İZİN SÜRESİ", gun("kalan"))}${r("İŞ BAŞI TARİHİ", ayna("isbasi"))}</table>
       <p class="metin">Çalışanımızın, <b>${ayna("cikis")}</b> tarihi ile <b>${ayna("bitis")}</b> tarihleri arasında yıllık iznini kullanması uygundur.</p>
-      <div class="imza"><div>Adı, Soyad<br><input id="izf_onayAd" class="orta" maxlength="50" value="${V("onayAd")}" placeholder="Onaylayan"><br>İmza</div></div>
+      <div class="imza"><div>Adı Soyadı<br><input id="izf_onayAd" class="orta" maxlength="50" value="${V("onayAd")}" placeholder="Onaylayan"><br>İmza</div></div>
     </div>
     <p class="hint" style="margin-top:8px">İzin hakkı işe giriş tarihine göre önerilir (1–5 yıl 14, 5–15 yıl 20, 15 yıl üstü 26 gün). Hafta tatili Pazar günlerinden hesaplanır; güvenlikte vardiya tatil günlerini elle yazın.</p>
     ${f.id ? "" : `<label class="izf-cb"><input type="checkbox" id="izf_listeye" ${f.listeye !== false ? "checked" : ""}> İzin listesine ve puantaja da işle (Y)</label>`}
@@ -1838,17 +1838,18 @@ function izfKutuphane(){
 function izfSayfaHTML(x){
   const r = (a, b, h) => `<tr${h ? ` style="height:${h}px"` : ""}><td class="e">${a}</td><td class="c">:</td><td class="v">${esc(b || "")}</td></tr>`;
   const t = s => izfTr(s) || "";
-  return `<div class="izf-a4">
+  const B = x.ad === "bos", N = B ? "……/……/20……" : "…/…/20…";
+  return `<div class="izf-a4${B ? " bos" : ""}">
   <div class="baslik">YILLIK ÜCRETLİ İZİN TALEP FORMU</div>
-  <table>${r("TARİH", t(x.tarih))}${r("ADI SOYADI", x.ad)}${r("TC KİMLİK NUMARASI", x.tc)}${r("İŞE GİRİŞ TARİHİ", t(x.giris))}${r("ÇALIŞTIĞI BÖLÜM", x.bolum)}${r("İKAMETGAH ADRESİ", x.adres, 58)}${r("GSM TELEFON NO", x.gsm)}${r("İZİNİ GEÇİRECEĞİ ADRES<br>VE TELEFON", x.izinAdres, 58)}${r("İSTENEN ÜCRETSİZ YOL İZNİ SÜRESİ", x.yolIzni ? x.yolIzni + " gün" : "")}${r("İZNE ÇIKIŞ TARİHİ", t(x.cikis))}${r("İZİN BİTİŞ TARİHİ", t(x.bitis))}${r("İŞ BAŞI TARİHİ", t(x.isbasi))}</table>
-  <p class="metin">4857 Sayılı yasanın 53 üncü maddesine göre <b>${esc(x.yil || "……")}</b> yılına ilişkin yıllık iznimi <b>${t(x.cikis) || "…/…/20…"}</b> – <b>${t(x.bitis) || "…/…/20…"}</b> tarihleri arasında kullanmak istiyorum. Gereğinin yapılmasını arz ederim. Saygılarımla</p>
-  <div class="imza"><div>Adı, Soyad<br><b>${esc(x.ad || "")}</b><br>İmza</div></div>
+  <table>${r("TARİH", t(x.tarih))}${r("ADI SOYADI", x.ad === "bos" ? "" : x.ad)}${r("TC KİMLİK NUMARASI", x.tc)}${r("İŞE GİRİŞ TARİHİ", t(x.giris))}${r("ÇALIŞTIĞI BÖLÜM", x.bolum)}${r("İKAMETGAH ADRESİ", x.adres, 58)}${r("GSM TELEFON NO", x.gsm)}${r("İZİNİ GEÇİRECEĞİ ADRES<br>VE TELEFON", x.izinAdres, 58)}${r("İSTENEN ÜCRETSİZ YOL İZNİ SÜRESİ", x.yolIzni ? x.yolIzni + " gün" : "")}${r("İZNE ÇIKIŞ TARİHİ", t(x.cikis))}${r("İZİN BİTİŞ TARİHİ", t(x.bitis))}${r("İŞ BAŞI TARİHİ", t(x.isbasi))}</table>
+  <p class="metin">4857 Sayılı yasanın 53 üncü maddesine göre <b>${esc(x.yil || (B ? "…………" : "……"))}</b> yılına ilişkin yıllık iznimi <b>${t(x.cikis) || N}</b> – <b>${t(x.bitis) || N}</b> tarihleri arasında kullanmak istiyorum. Gereğinin yapılmasını arz ederim. Saygılarımla</p>
+  <div class="imza"><div>Adı Soyadı<br><b>${x.ad === "bos" ? "&nbsp;" : esc(x.ad || "")}</b><br>İmza</div></div>
   <div class="cizgi"></div>
   <div class="alt-bas">*** PERSONEL BÖLÜMÜ TARAFINDAN DOLDURULACAKTIR ***</div>
   <div class="baslik ince">YILLIK ÜCRETLİ İZİN HESABI</div>
   <table>${r("İZİNE ÇIKIŞ TARİHİ", t(x.cikis))}${r("YILLIK ÜCRETLİ İZİN SÜRESİ", x.hak ? x.hak + " gün" : "")}${r("HAFTA TATİLİ", x.haftaTatil !== "" && x.haftaTatil !== undefined ? x.haftaTatil + " gün" : "")}${r("ULUSAL VE RESMİ TATİL GÜNÜ", x.resmiTatil !== "" && x.resmiTatil !== undefined ? x.resmiTatil + " gün" : "")}${r("KULLANACAĞI İZİN SÜRESİ", x.kullanacak ? x.kullanacak + " gün" : "")}${r("KULLANILAN TOPLAM İZİN SÜRESİ", x.kullanilanToplam ? x.kullanilanToplam + " gün" : "")}${r("KALAN İZİN SÜRESİ", x.kalan !== "" && x.kalan !== undefined ? x.kalan + " gün" : "")}${r("İŞ BAŞI TARİHİ", t(x.isbasi))}</table>
-  <p class="metin">Çalışanımızın, <b>${t(x.cikis) || "…/…/20…"}</b> tarihi ile <b>${t(x.bitis) || "…/…/20…"}</b> tarihleri arasında yıllık iznini kullanması uygundur.</p>
-  <div class="imza"><div>Adı, Soyad<br><b>${esc(x.onayAd || "")}</b><br>İmza</div></div>
+  <p class="metin">Çalışanımızın, <b>${t(x.cikis) || N}</b> tarihi ile <b>${t(x.bitis) || N}</b> tarihleri arasında yıllık iznini kullanması uygundur.</p>
+  <div class="imza"><div>Adı Soyadı<br><b>${esc(x.onayAd || "")}</b><br>İmza</div></div>
 </div>`;
 }
 const IZF_CSS = `.izf-a4{width:794px;min-height:1123px;padding:46px 62px 30px;background:#fff;color:#111;font:13px/1.35 Arial,Helvetica,sans-serif;box-sizing:border-box}
@@ -1856,7 +1857,7 @@ const IZF_CSS = `.izf-a4{width:794px;min-height:1123px;padding:46px 62px 30px;ba
 .izf-a4 table{width:100%;border-collapse:collapse;margin-bottom:10px}.izf-a4 td{border:1px solid #222;padding:5px 8px;vertical-align:middle;height:28px;box-sizing:border-box}
 .izf-a4 td.e{width:45%;font-weight:600;font-size:12.5px;white-space:nowrap}.izf-a4 td.c{width:16px;text-align:center;padding:0}.izf-a4 td.v{font-size:13.5px;white-space:pre-wrap}
 .izf-a4 .metin{margin:12px 0 6px;font-size:13.5px;line-height:1.7;text-indent:32px}.izf-a4 .imza{display:flex;justify-content:flex-end;margin:4px 0 30px}.izf-a4 .imza div{text-align:center;min-width:200px;line-height:1.6}
-.izf-a4 .cizgi{border:1px solid #222;height:3px;margin:6px 0 14px}.izf-a4 .alt-bas{text-align:center;font-weight:700;margin-bottom:8px;font-size:13.5px}
+.izf-a4 .cizgi{border:1px solid #222;height:3px;margin:6px 0 14px}.izf-a4.bos{padding-top:38px}.izf-a4.bos td{height:30px}.izf-a4.bos .metin{line-height:1.8}.izf-a4.bos .imza{margin-bottom:22px}.izf-a4 .alt-bas{text-align:center;font-weight:700;margin-bottom:8px;font-size:13.5px}
 .izf-sheet{max-width:860px}.izf-ed{width:auto;min-height:0;padding:14px 10px;border-radius:6px;box-shadow:0 1px 6px rgba(0,0,0,.18);font-size:12px;overflow-x:auto}
 .izf-ed td{height:auto;padding:3px 5px}.izf-ed td.e{font-size:10.5px;white-space:normal;width:42%}.izf-ed .metin,.izf-ed td.v{font-size:12.5px}.izf-ed .imza{margin-bottom:14px}.izf-ed .baslik{font-size:13px}
 .izf-ed input,.izf-ed select,.izf-ed textarea{width:100%;box-sizing:border-box;border:0!important;border-radius:3px!important;background:#e8f1ff!important;color:#111!important;box-shadow:none!important;font:inherit;font-size:14px;padding:5px 6px;margin:0;min-height:30px;color-scheme:light}
@@ -1880,6 +1881,7 @@ async function izfAksiyon(act, id){
   if (act === "izfYeni"){ IZF.f = {tarih: ymdS(new Date()), bolum: yiSadeceGuv() ? "Güvenlik" : "Güvenlik", hak:"", hakOto:true, listeye:true, onayAd: dashAd() || ""}; render(); return; }
   if (act === "izfKapat"){ IZF.f = null; render(); return; }
   if (act === "izfYazdir"){ const x = IZF.L.find(y => y.id === id); if (x) izfYazdir(x); return; }
+  if (act === "izfBos"){ izfYazdir({ad:"bos"}); return; }
   if (act === "izfYazdirF"){ izfSync(); izfYazdir(IZF.f); return; }
   if (act === "izfHepsi"){ IZF.hepsi = true; render(); return; }
   if (act === "izfDuzenle"){ const x = IZF.L.find(y => y.id === id); if (x){ IZF.f = {...x, hakOto:false}; render(); } return; }
