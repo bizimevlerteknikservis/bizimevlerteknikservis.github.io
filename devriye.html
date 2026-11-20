@@ -2916,7 +2916,7 @@ function temaUygula(){
 }
 function havaHTML(){
   havaYukle();
-  const n = havaSimdi(); if (!n) return "";
+  const n = havaSimdi(); if (!n) return `<button type="button" class="d-hava" data-act="havaAc" title="Hava durumu"><span class="d-hv-ik">🌤️</span><span>Hava durumu yükleniyor…</span><span class="d-hv-alt"><em></em><span class="d-hv-ac">Yenile ›</span></span></button>`;
   const d = (HV.v && HV.v.daily) || {}, mx = d.temperature_2m_max ? Math.round(d.temperature_2m_max[0]) : null, mn = d.temperature_2m_min ? Math.round(d.temperature_2m_min[0]) : null;
   const L = havaSaatler(7).slice(1), u = havaUyari();
   return `<button type="button" class="d-hava" data-act="havaAc" title="Saatlik hava durumu"><span class="d-hv-ik">${n.ik}</span><b>${n.sicak}°</b><span>${esc(n.ad)}</span>
