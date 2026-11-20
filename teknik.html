@@ -162,12 +162,6 @@ body.dash #demoBand{max-width:560px;margin:10px auto 0}
 button.d-hava{width:100%;text-align:left;font:inherit;cursor:pointer;position:relative}
 .d-hv-s{display:flex;gap:2px;flex-basis:100%;justify-content:space-between;margin-top:4px;padding-top:6px;border-top:1px solid rgba(140,190,255,.18)}
 .d-hv-s i{font-style:normal;display:flex;flex-direction:column;align-items:center;font-size:16px;line-height:1.15;flex:1}.d-hv-s small{font-size:11px;color:rgba(205,222,245,.8)}.d-hv-s small:last-child{color:#fff;font-weight:700;font-size:12px}
-.d-hava .d-ezan{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;margin-top:2px;padding-top:6px;border-top:1px solid rgba(140,190,255,.18)}
-.d-hava .d-ezan>b{font:700 14px/1.2 inherit;color:#fff}.d-hava .d-ezan>em{flex-basis:auto;color:#9be7c4;font-size:12.5px;font-weight:700}
-.d-ez-l{flex-basis:100%;display:flex;justify-content:space-between;gap:2px;margin-top:2px}.d-ez-l i{font-style:normal;display:flex;flex-direction:column;align-items:center;flex:1;font-size:12.5px;font-weight:700;color:#fff;line-height:1.2;border-radius:8px;padding:2px 0}
-.d-ez-l small{font-size:10.5px;font-weight:500;color:rgba(205,222,245,.8)}.d-ez-l i.on{background:rgba(155,231,196,.18);color:#9be7c4}
-.hv-ezan{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}.hv-ezan div{display:flex;flex-direction:column;align-items:center;padding:8px 2px;border-radius:12px;background:rgba(255,255,255,.07)}.hv-ezan small{font-size:11.5px;opacity:.8}.hv-ezan b{font-size:15px}.hv-ezan .on{background:rgba(155,231,196,.2);color:#9be7c4}
-.hv-ez-hafta{overflow-x:auto;margin-top:8px}.hv-ez-hafta table{width:100%;border-collapse:collapse;font-size:12.5px}.hv-ez-hafta th,.hv-ez-hafta td{padding:5px 4px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap}.hv-ez-hafta th{font-weight:600;opacity:.75}.hv-ez-hafta td:first-child{text-align:left;font-weight:700}
 .d-hv-alt{flex-basis:100%;display:flex;align-items:center;gap:8px}.d-hv-alt em{flex:1;flex-basis:auto}.d-hv-ac{font-size:12px;font-weight:700;color:#8fc2ff;white-space:nowrap}
 .hv-sayfa{position:fixed;inset:0;z-index:60;background:rgba(6,16,40,.55);display:flex;align-items:flex-end;justify-content:center}
 .hv-sayfa[hidden]{display:none}
@@ -2918,55 +2912,6 @@ function temaUygula(){
     b.title = koyu ? "Açık moda geç" : "Koyu moda geç"; }
   const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = koyu ? "#0b1426" : "#17588f";
 }
-/* ================= Ezan vakitleri (Avcılar) =================
-   İnternetsiz, telefonda hesaplanır: güneş konumu (NOAA) + Diyanet açıları (imsak 18°, yatsı 17°, ikindi Şafii)
-   ve Diyanet Avcılar takvimine göre ayarlanmış temkin süreleri. Diyanet takvimiyle en fazla ±1 dakika fark olabilir. */
-const EZ_AD = [["imsak","İmsak"],["gunes","Güneş"],["ogle","Öğle"],["ikindi","İkindi"],["aksam","Akşam"],["yatsi","Yatsı"]];
-const EZ_AYAR = {lat:40.9, lon:28.64, tz:3, off:{imsak:-0.17, gunes:-6.98, ogle:4.85, ikindi:3.46, aksam:6.22, yatsi:-0.57}};
-const EZ_CACHE = {};
-function ezanGun(d){
-  const y0 = d.getFullYear(), m0 = d.getMonth()+1, g0 = d.getDate(), key = `${y0}-${m0}-${g0}`; if (EZ_CACHE[key]) return EZ_CACHE[key];
-  const R = Math.PI/180, {lat, lon, tz, off} = EZ_AYAR;
-  let y = y0, m = m0; if (m <= 2){ y--; m += 12; } const A = Math.floor(y/100), B = 2 - A + Math.floor(A/4);
-  const jd0 = Math.floor(365.25*(y+4716)) + Math.floor(30.6001*(m+1)) + g0 + B - 1524.5;
-  const gunes = h => { const T = (jd0 + (h - tz)/24 - 2451545)/36525;
-    const L0 = (280.46646 + T*(36000.76983 + 0.0003032*T)) % 360, M = 357.52911 + T*(35999.05029 - 0.0001537*T), e = 0.016708634 - T*(0.000042037 + 0.0000001267*T);
-    const C = Math.sin(M*R)*(1.914602 - T*(0.004817 + 0.000014*T)) + Math.sin(2*M*R)*(0.019993 - 0.000101*T) + Math.sin(3*M*R)*0.000289;
-    const om = 125.04 - 1934.136*T, lam = L0 + C - 0.00569 - 0.00478*Math.sin(om*R);
-    const e0 = 23 + (26 + (21.448 - T*(46.815 + T*(0.00059 - T*0.001813)))/60)/60, ec = e0 + 0.00256*Math.cos(om*R);
-    const dec = Math.asin(Math.sin(ec*R)*Math.sin(lam*R))/R, yy = Math.tan(ec*R/2)**2;
-    const eq = 4/R*(yy*Math.sin(2*L0*R) - 2*e*Math.sin(M*R) + 4*e*yy*Math.sin(M*R)*Math.cos(2*L0*R) - 0.5*yy*yy*Math.sin(4*L0*R) - 1.25*e*e*Math.sin(2*M*R));
-    return {dec, ogle: 12 + tz - lon/15 - eq/60}; };
-  const sa = (aci, dec) => Math.acos((-Math.sin(aci*R) - Math.sin(dec*R)*Math.sin(lat*R)) / (Math.cos(dec*R)*Math.cos(lat*R)))/R/15;
-  const ev = (aci, yon, t) => { for (let i = 0; i < 3; i++){ const s = gunes(t); t = s.ogle + yon*sa(aci, s.dec); } return t; };
-  const ikindi = t => { for (let i = 0; i < 3; i++){ const s = gunes(t); t = s.ogle + sa(-Math.atan(1/(1 + Math.tan(Math.abs(lat - s.dec)*R)))/R, s.dec); } return t; };
-  let og = gunes(12).ogle; og = gunes(og).ogle;
-  const H = {imsak: ev(18, -1, og-6), gunes: ev(0.833, -1, og-5), ogle: og, ikindi: ikindi(og+3), aksam: ev(0.833, 1, og+5), yatsi: ev(17, 1, og+6)};
-  const S_ = {}; for (const [k] of EZ_AD){ const dk = Math.floor(H[k]*60 + off[k] + 0.5); S_[k] = {dk, s: `${pad(Math.floor(dk/60))}:${pad(dk%60)}`}; }
-  return (EZ_CACHE[key] = S_);
-}
-/* Sıradaki vakit ve kalan süre */
-function ezanSiradaki(){
-  const n = new Date(), dk = n.getHours()*60 + n.getMinutes() + n.getSeconds()/60, V = ezanGun(n);
-  for (const [k, ad] of EZ_AD){ if (V[k].dk > dk) return {k, ad, s: V[k].s, kalan: Math.ceil(V[k].dk - dk)}; }
-  const y = new Date(n); y.setDate(y.getDate()+1); const Y = ezanGun(y);
-  return {k:"imsak", ad:"İmsak", s: Y.imsak.s, kalan: Math.ceil(Y.imsak.dk + 1440 - dk), yarin:true};
-}
-const ezanKalanYaz = m => m >= 60 ? `${Math.floor(m/60)} sa ${m%60} dk` : `${m} dk`;
-function ezanSatir(){
-  const n = ezanSiradaki(), V = ezanGun(new Date());
-  return `<span class="d-ezan"><b>🕌 ${n.ad} ${n.s}</b><em>${ezanKalanYaz(n.kalan)} kaldı</em><span class="d-ez-l">${EZ_AD.map(([k, ad]) => `<i class="${k===n.k && !n.yarin ? "on" : ""}"><small>${ad}</small>${V[k].s}</i>`).join("")}</span></span>`;
-}
-function ezanPanelHTML(){
-  const bug = new Date(), V = ezanGun(bug), n = ezanSiradaki(), GN = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
-  const gunler = Array.from({length:7}, (_, i) => { const d = new Date(bug); d.setDate(d.getDate()+i); return [d, ezanGun(d)]; });
-  return `<h4>🕌 Ezan vakitleri · Avcılar</h4>
-    <div class="hv-ezan">${EZ_AD.map(([k, ad]) => `<div class="${k===n.k && !n.yarin ? "on" : ""}"><small>${ad}</small><b>${V[k].s}</b></div>`).join("")}</div>
-    <p class="hv-not" style="margin-top:6px">Sıradaki: <b>${n.ad} ${n.s}</b>${n.yarin ? " (yarın)" : ""} · ${ezanKalanYaz(n.kalan)} kaldı</p>
-    <div class="hv-ez-hafta"><table><tr><th></th>${EZ_AD.map(([, ad]) => `<th>${ad}</th>`).join("")}</tr>${gunler.map(([d, G], i) => `<tr><td>${i===0 ? "Bugün" : i===1 ? "Yarın" : GN[d.getDay()]}</td>${EZ_AD.map(([k]) => `<td>${G[k].s}</td>`).join("")}</tr>`).join("")}</table></div>
-    <p class="hv-not">Diyanet hesap yöntemiyle telefonda hesaplanır (internet gerekmez); Diyanet takviminden en fazla 1 dakika farklı olabilir.</p>`;
-}
-setInterval(() => { const els = document.querySelectorAll(".d-ezan"); if (!els.length) return; const h = ezanSatir(); els.forEach(el => { el.outerHTML = h; }); }, 30000);
 function havaHTML(){
   havaYukle();
   const n = havaSimdi(); if (!n) return "";
@@ -2975,8 +2920,7 @@ function havaHTML(){
   return `<button type="button" class="d-hava" data-act="havaAc" title="Saatlik hava durumu"><span class="d-hv-ik">${n.ik}</span><b>${n.sicak}°</b><span>${esc(n.ad)}</span>
     ${mx != null ? `<span class="d-hv-ay">↑${mx}° ↓${mn}°</span>` : ""}<span class="d-hv-ay">💨 ${n.ruzgar} km/s</span>
     ${L.length ? `<span class="d-hv-s">${L.map(x => `<i><small>${x.saat.slice(0,2)}</small>${havaIk(x.kod, x.gun)}<small>${x.sicak}°</small></i>`).join("")}</span>` : ""}
-    ${ezanSatir()}
-    <span class="d-hv-alt"><em>${u}</em><span class="d-hv-ac">Saatlik · ezan ›</span></span></button>`;
+    <span class="d-hv-alt"><em>${u}</em><span class="d-hv-ac">Saatlik ›</span></span></button>`;
 }
 /* Detay paneli: şu an + 24 saat + 4 gün (render'dan bağımsız, body'ye eklenir) */
 /* Yönetim/müdür: ana sayfadaki sayaçlara (Açık arıza · İşlemde · Bugün çözülen) dokununca o arızaların listesi */
@@ -3018,7 +2962,6 @@ function havaPanelCiz(){
       <i class="hv-bar"><em style="height:${x.mm ? Math.max(8, Math.round(x.mm/enCok*100)) : 0}%"></em></i><small class="hv-mm">${x.mm >= 0.1 ? x.mm.toFixed(1).replace(".",",") + " mm" : (x.yuzde ? "%" + x.yuzde : "")}</small><small class="hv-r">💨${x.ruzgar}</small></div>`).join("")}</div>
     ${D ? `<h4>Günlük</h4><div class="hv-gun">${D.time.map((t,i) => { const g = new Date(t + "T12:00:00"); const k = HAVA_KOD[D.weather_code[i]] || ["🌡️",""];
       return `<div><b>${i===0 ? "Bugün" : i===1 ? "Yarın" : GN[g.getDay()]}</b><span>${k[0]} ${esc(k[1])}</span><em>${D.precipitation_sum[i] >= 0.5 ? `☔ ${D.precipitation_sum[i].toFixed(1).replace(".",",")} mm` : ""}</em><strong>${Math.round(D.temperature_2m_min[i])}° / ${Math.round(D.temperature_2m_max[i])}°</strong></div>`; }).join("")}</div>
-      ${ezanPanelHTML()}
       <p class="hv-not">Gün doğumu ${D.sunrise[0].slice(11)} · gün batımı ${D.sunset[0].slice(11)}. Şu anki değer ${n && n.olcum ? "Atatürk Havalimanı meteoroloji ölçümüdür (yaklaşık 8 km)" : "tahmin modelindendir"}; saatlik tahmin Open-Meteo.</p>` : ""}
   </div>`;
 }
