@@ -187,6 +187,8 @@ button.d-hava{width:100%;text-align:left;font:inherit;cursor:pointer;position:re
 .d-av svg{width:26px;height:26px;stroke:#fff;fill:#fff;stroke-width:1.5}
 .d-kim b{display:block;font:700 18px/1.25 var(--display)}
 .d-kim small{display:block;color:rgba(255,255,255,.78);font-size:14px}
+.d-bugun{margin:18px 0 2px;display:grid;gap:10px}.d-bg-t{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.d-bg-t b{font:800 30px/1 var(--display);color:#fff;letter-spacing:-.01em}.d-bg-t>span{font-size:16px;color:rgba(232,242,255,.85);font-weight:600}
+.d-bg-l{display:flex;gap:8px;flex-wrap:wrap}.d-bg-c{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:rgba(10,30,70,.55);border:1px solid rgba(140,190,255,.28);color:#e6f0ff;font-size:13.5px;text-decoration:none;backdrop-filter:blur(6px)}.d-bg-c b{color:#fff}.d-bg-c.gec{border-color:rgba(255,120,110,.6);color:#ffd2cc}.d-bg-c.gec b{color:#ff9a8f}
 .d-hero h1{margin:18px 0 4px;font:800 38px/1.02 var(--display);letter-spacing:-.02em}
 .d-hero p{margin:0;color:rgba(232,242,255,.85);font-size:15.5px;max-width:34ch}
 .d-say{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:20px}
@@ -3078,8 +3080,9 @@ function vDash(isler, ayar){
   return `<section class="d-hero"><div class="d-ic">
     ${dUst(yeni)}
     <div class="d-kim"><span class="d-av">${ic("kul")}</span><div><b>${selam}, ${esc(dashAd())} 👋</b><small>Bizimevler 1 ${tech ? "Teknik Servis Paneli" : "Yönetim Paneli"}</small></div></div>
-    <h1>${MASA.matches && S.masaBolum==="isler" ? "Arıza Listesi" : MASA.matches && S.masaBolum==="ayarlar" ? "Ayarlar" : "Teknik Servis"}</h1>
-    <p>${tech ? "Gelen arızaları gör, durumlarını güncelle, sahayı tek ekrandan yönet." : "Personel, devriye ve arıza durumunu tek ekrandan takip et."}</p>
+    <h1 class="masa-only">${MASA.matches && S.masaBolum==="isler" ? "Arıza Listesi" : MASA.matches && S.masaBolum==="ayarlar" ? "Ayarlar" : "Teknik Servis"}</h1>
+    <p class="masa-only">${tech ? "Gelen arızaları gör, durumlarını güncelle, sahayı tek ekrandan yönet." : "Personel, devriye ve arıza durumunu tek ekrandan takip et."}</p>
+    ${MASA.matches ? "" : dBugun(tech, tesis)}
     <div class="d-say">
       <a class="d-s kirmizi" href="#panel" data-act="dFiltre" data-v="yeni">${ic("alert")}<strong>${yeni}</strong><span>Açık arıza</span><em class="masa-only">Detay ${ic("sag")}</em></a>
       <a class="d-s turuncu" href="#panel" data-act="dFiltre" data-v="isleniyor">${ic("wrench")}<strong>${isl}</strong><span>İşlemde</span><em class="masa-only">Detay ${ic("sag")}</em></a>
@@ -3089,6 +3092,17 @@ function vDash(isler, ayar){
   </div></section>
   <div class="d-ic d-govde">`+vDashGovde(tech, tiles, son, isler, ayar, yeni);
 }
+/* Telefon ana sayfası: büyük başlık yerine "Bugün" özeti (tarih · saat · izinli · taşınma · yaklaşan bakım) */
+function dBugun(tech, tesis){
+  const n = new Date(), AYL = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"], GN = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+  const C = [], bugunS = ymd(n);
+  try { const iz = ((YI.v && YI.v.liste) || []).filter(z => z.bas <= bugunS && (z.bit || z.bas) >= bugunS).length; C.push(`<a class="d-bg-c" href="#izinler">🏖️ <b>${iz}</b> izinli</a>`); } catch(e){}
+  try { tasBaslat(); const t = TS.kayit.filter(k => !k.iptal && tasAktifBugun(k)).length; C.push(`<a class="d-bg-c" href="#tasinma">🚚 <b>${t}</b> taşınma</a>`); } catch(e){}
+  if (tech || tesis) try { const L = takvimHesap().filter(x => x.sonraki).map(x => ({...x, kal: Math.ceil((x.sonraki - Date.now())/864e5)})).sort((a,b) => a.kal - b.kal);
+    const x = L[0]; if (x && x.kal <= 14) C.push(`<a class="d-bg-c${x.kal < 0 ? " gec" : ""}" href="#tesis" data-act="tSekmeGit" data-v="takvim">${x.ik} ${esc(x.ad.replace(/ bakımı$/," "))}${x.kal < 0 ? `<b>${-x.kal} gün geçti</b>` : x.kal === 0 ? "<b>bugün</b>" : `<b>${x.kal} gün</b>`}</a>`); } catch(e){}
+  return `<div class="d-bugun"><div class="d-bg-t"><b>${n.getDate()} ${AYL[n.getMonth()]}</b><span>${GN[n.getDay()]} · <span class="d-bg-saat">${pad(n.getHours())}:${pad(n.getMinutes())}</span></span></div>${C.length ? `<div class="d-bg-l">${C.join("")}</div>` : ""}</div>`;
+}
+setInterval(() => { const n = new Date(); document.querySelectorAll(".d-bg-saat").forEach(el => { el.textContent = `${pad(n.getHours())}:${pad(n.getMinutes())}`; }); }, 20000);
 function dUst(zil, zilAct){
   return `<div class="d-ust">
       <div class="d-marka"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M5 35V19h7v16M14 35V9h9v26M25 35V15h8v20M3 35h34" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M17 13h3M17 17h3M17 21h3M17 25h3M27 19h2M27 23h2M27 27h2M7 23h2M7 27h2" stroke="currentColor" stroke-width="1.8"/></svg><span><b>BİZİMEVLER 1</b><small>AVCILAR</small></span></div>
