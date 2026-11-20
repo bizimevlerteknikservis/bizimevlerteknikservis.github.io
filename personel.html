@@ -1765,12 +1765,12 @@ function izfKart(isimler){
   const yon = yiSadeceGuv();
   const L = IZF.L.filter(x => !yon || x.bolum === "Güvenlik").sort((a,b) => (b.cikis||"").localeCompare(a.cikis||""));
   return `<section class="card" style="margin-top:14px"><h3 style="margin-bottom:6px">📄 Yıllık ücretli izin talep formu</h3>
-    <p class="hint">Kâğıttaki formun aynısı. Doldurup kaydedin; PDF olarak indirin ya da muhasebeye gönderin. TC ve adres bilgileri sadece teknisyen, müdür ve amirlerde görünür.</p>
+    <p class="hint">Kâğıttaki formun aynısı: formun üzerinde doldurun, kaydedin, 🖨️ ile yazdırın ya da PDF olarak kaydedin, 📤 ile muhasebeye gönderin. TC ve adres bilgileri sadece teknisyen, müdür ve amirlerde görünür.</p>
     <button class="cta" data-act="izfYeni">＋ Yeni izin formu</button>
     ${L.length ? `<div class="izf-l">${L.slice(0, IZF.hepsi ? 200 : 6).map(x => `<div class="izf-s">
       <div><b>${esc(x.ad)}</b><small>${esc(x.bolum||"")} · ${izfTr(x.cikis)} – ${izfTr(x.bitis)} · ${esc(x.kullanacak||"?")} gün${x.kalan!==""&&x.kalan!==undefined?` · kalan ${esc(x.kalan)}`:""}</small>
         ${x.gonderildi ? `<em class="izf-ok">✓ Muhasebeye gönderildi ${tarihSaat(x.gonderildi)}</em>` : ""}</div>
-      <div class="izf-b"><button class="pill-btn" data-act="izfPdf" data-id="${x.id}">📄 PDF</button><button class="pill-btn" data-act="izfGonder" data-id="${x.id}">📤 Muhasebe</button><button class="pill-btn" data-act="izfDuzenle" data-id="${x.id}">✏️</button></div></div>`).join("")}</div>
+      <div class="izf-b"><button class="pill-btn" data-act="izfYazdir" data-id="${x.id}">🖨️ Yazdır / PDF</button><button class="pill-btn" data-act="izfGonder" data-id="${x.id}">📤 Muhasebe</button><button class="pill-btn" data-act="izfDuzenle" data-id="${x.id}">✏️</button></div></div>`).join("")}</div>
       ${L.length > 6 && !IZF.hepsi ? `<button class="pill-btn" data-act="izfHepsi" style="margin-top:8px">Tümünü göster (${L.length})</button>` : ""}` : `<p class="hint" style="margin-top:10px">Henüz form yok.</p>`}
     ${IZF.f ? izfForm(isimler) : ""}
   </section>`;
@@ -1778,40 +1778,55 @@ function izfKart(isimler){
 function izfForm(isimler){
   const f = IZF.f, yon = yiSadeceGuv();
   const ad = [...guvIsimler(), ...(yon ? [] : (KOD.liste||[]).filter(k => k.tip === "personel" && k.aktif !== false).map(k => k.ad)), ...(yon ? [] : isimler)];
-  const I = (k, lab, tip, ek) => `<label class="f">${lab}<input id="izf_${k}" ${tip ? `type="${tip}"` : ""} value="${esc(f[k] ?? "")}" ${ek||""}></label>`;
-  return `<div class="t-sheet"><div class="t-sheet-in">
+  const V = k => esc(f[k] ?? "");
+  const inp = (k, tip, ek) => `<input id="izf_${k}" ${tip ? `type="${tip}"` : ""} value="${V(k)}" ${ek||""}>`;
+  const gun = k => `<span class="izf-gun">${inp(k, "number", 'inputmode="numeric" min="0"')}<i>gün</i></span>`;
+  const ayna = k => `<span data-izm="${k}">${izfTr(f[k]) || "…/…/20…"}</span>`;
+  const r = (e, v, u) => `<tr${u ? ' class="uzun"' : ""}><td class="e">${e}</td><td class="c">:</td><td class="v">${v}</td></tr>`;
+  return `<div class="t-sheet"><div class="t-sheet-in izf-sheet">
+    <style>${IZF_CSS}</style>
     <h2>📄 Yıllık ücretli izin talep formu</h2>
+    <p class="hint">Mavi alanları doldurun. Tarihleri seçince alttaki izin hesabı kendiliğinden dolar; hepsini elle değiştirebilirsiniz. Bitince <b>🖨️ Yazdır / PDF</b>.</p>
     <datalist id="izfAdlar">${[...new Set(ad)].map(n => `<option value="${esc(n)}">`).join("")}</datalist>
-    <div class="grid2">${I("tarih","Tarih","date")}<label class="f">Çalıştığı bölüm<select id="izf_bolum">${(yon ? ["Güvenlik"] : ["Güvenlik","Temizlik","Bahçe","Teknik","Yönetim"]).map(b => `<option ${f.bolum===b?"selected":""}>${b}</option>`).join("")}</select></label></div>
-    ${I("ad","Adı soyadı","", 'list="izfAdlar" maxlength="60" autocomplete="off"')}
-    <div class="grid2">${I("tc","TC kimlik no","", 'inputmode="numeric" maxlength="11"')}${I("giris","İşe giriş tarihi","date")}</div>
-    <label class="f">İkametgâh adresi<textarea id="izf_adres" rows="2" maxlength="200">${esc(f.adres||"")}</textarea></label>
-    ${I("gsm","GSM telefon","tel", 'maxlength="20"')}
-    <label class="f">İzni geçireceği adres ve telefon<textarea id="izf_izinAdres" rows="2" maxlength="200">${esc(f.izinAdres||"")}</textarea></label>
-    <div class="grid2">${I("cikis","İzne çıkış tarihi","date")}${I("bitis","İzin bitiş tarihi","date")}</div>
-    <div class="grid2">${I("isbasi","İş başı tarihi","date")}${I("yolIzni","Ücretsiz yol izni (gün)","number", 'inputmode="numeric" min="0" max="4"')}</div>
-    <div class="group-h">Yıllık ücretli izin hesabı <small style="text-transform:none;font-weight:500">(tarihlerden hesaplanır, değiştirebilirsiniz)</small></div>
-    <div class="grid2">${I("yil","Hangi yıla ait","number", 'inputmode="numeric"')}${I("hak","Yıllık izin hakkı (gün)","number", 'inputmode="numeric"')}</div>
-    <div class="grid2">${I("haftaTatil","Hafta tatili (gün)","number", 'inputmode="numeric"')}${I("resmiTatil","Resmi tatil (gün)","number", 'inputmode="numeric"')}</div>
-    <div class="grid2">${I("kullanacak","Kullanacağı izin (gün)","number", 'inputmode="numeric"')}${I("kullanilanToplam","Kullanılan toplam (gün)","number", 'inputmode="numeric"')}</div>
-    <div class="grid2">${I("kalan","Kalan izin (gün)","number", 'inputmode="numeric"')}${I("onayAd","Onaylayan (ad soyad)","", 'maxlength="50"')}</div>
-    <p class="hint" style="margin-top:-2px">Hafta tatili Pazar günlerinden hesaplanır; güvenlikte vardiya tatil günlerini yazın. İzin hakkı işe giriş tarihine göre (1–5 yıl 14, 5–15 yıl 20, 15+ yıl 26 gün) önerilir.</p>
+    <div class="izf-a4 izf-ed">
+      <div class="baslik">YILLIK ÜCRETLİ İZİN TALEP FORMU</div>
+      <table>${r("TARİH", inp("tarih","date"))}${r("ADI SOYADI", inp("ad","",'list="izfAdlar" maxlength="60" autocomplete="off"'))}${r("TC KİMLİK NUMARASI", inp("tc","",'inputmode="numeric" maxlength="11"'))}${r("İŞE GİRİŞ TARİHİ", inp("giris","date"))}${r("ÇALIŞTIĞI BÖLÜM", `<select id="izf_bolum">${(yon ? ["Güvenlik"] : ["Güvenlik","Temizlik","Bahçe","Teknik","Yönetim"]).map(b => `<option ${f.bolum===b?"selected":""}>${b}</option>`).join("")}</select>`)}${r("İKAMETGAH ADRESİ", `<textarea id="izf_adres" rows="3" maxlength="200">${V("adres")}</textarea>`, 1)}${r("GSM TELEFON NO", inp("gsm","tel",'maxlength="20"'))}${r("İZİNİ GEÇİRECEĞİ ADRES<br>VE TELEFON", `<textarea id="izf_izinAdres" rows="3" maxlength="200">${V("izinAdres")}</textarea>`, 1)}${r("İSTENEN ÜCRETSİZ YOL İZNİ SÜRESİ", gun("yolIzni"))}${r("İZNE ÇIKIŞ TARİHİ", inp("cikis","date"))}${r("İZİN BİTİŞ TARİHİ", inp("bitis","date"))}${r("İŞ BAŞI TARİHİ", inp("isbasi","date"))}</table>
+      <p class="metin">4857 Sayılı yasanın 53 üncü maddesine göre <input id="izf_yil" class="kisa" inputmode="numeric" maxlength="4" value="${V("yil")}" placeholder="……"> yılına ilişkin yıllık iznimi <b>${ayna("cikis")}</b> – <b>${ayna("bitis")}</b> tarihleri arasında kullanmak istiyorum. Gereğinin yapılmasını arz ederim. Saygılarımla</p>
+      <div class="imza"><div>Adı, Soyad<br><b data-izm="ad">${V("ad")}</b><br>İmza</div></div>
+      <div class="cizgi"></div>
+      <div class="alt-bas">*** PERSONEL BÖLÜMÜ TARAFINDAN DOLDURULACAKTIR ***</div>
+      <div class="baslik ince">YILLIK ÜCRETLİ İZİN HESABI</div>
+      <table>${r("İZİNE ÇIKIŞ TARİHİ", ayna("cikis"))}${r("YILLIK ÜCRETLİ İZİN SÜRESİ", gun("hak"))}${r("HAFTA TATİLİ", gun("haftaTatil"))}${r("ULUSAL VE RESMİ TATİL GÜNÜ", gun("resmiTatil"))}${r("KULLANACAĞI İZİN SÜRESİ", gun("kullanacak"))}${r("KULLANILAN TOPLAM İZİN SÜRESİ", gun("kullanilanToplam"))}${r("KALAN İZİN SÜRESİ", gun("kalan"))}${r("İŞ BAŞI TARİHİ", ayna("isbasi"))}</table>
+      <p class="metin">Çalışanımızın, <b>${ayna("cikis")}</b> tarihi ile <b>${ayna("bitis")}</b> tarihleri arasında yıllık iznini kullanması uygundur.</p>
+      <div class="imza"><div>Adı, Soyad<br><input id="izf_onayAd" class="orta" maxlength="50" value="${V("onayAd")}" placeholder="Onaylayan"><br>İmza</div></div>
+    </div>
+    <p class="hint" style="margin-top:8px">İzin hakkı işe giriş tarihine göre önerilir (1–5 yıl 14, 5–15 yıl 20, 15 yıl üstü 26 gün). Hafta tatili Pazar günlerinden hesaplanır; güvenlikte vardiya tatil günlerini elle yazın.</p>
     ${f.id ? "" : `<label class="izf-cb"><input type="checkbox" id="izf_listeye" ${f.listeye !== false ? "checked" : ""}> İzin listesine ve puantaja da işle (Y)</label>`}
     ${f.hata ? `<p class="err">${esc(f.hata)}</p>` : ""}
-    <button class="cta" data-act="izfKaydet" ${IZF.mesgul ? "disabled" : ""}>${IZF.mesgul ? "Kaydediliyor…" : "Kaydet"}</button>
-    <div class="grid2" style="margin-top:8px">${f.id ? `<button class="cta ghost" data-act="izfSil" data-id="${f.id}">🗑️ Sil</button>` : ""}<button class="cta ghost" data-act="izfKapat">Vazgeç</button></div>
+    <button class="cta" data-act="izfKaydet" ${IZF.mesgul ? "disabled" : ""}>${IZF.mesgul ? "Kaydediliyor…" : "💾 Kaydet"}</button>
+    <button class="cta ghost" data-act="izfYazdirF" style="margin-top:8px">🖨️ Yazdır / PDF</button>
+    <div class="grid2" style="margin-top:8px">${f.id ? `<button class="cta ghost" data-act="izfSil" data-id="${f.id}">🗑️ Sil</button>` : ""}<button class="cta ghost" data-act="izfKapat">Kapat</button></div>
   </div></div>`;
 }
+function izfAyna(){ const f = IZF.f; if (!f) return; document.querySelectorAll("[data-izm]").forEach(el => { const k = el.dataset.izm; el.textContent = k === "ad" ? (f.ad || "") : (izfTr(f[k]) || "…/…/20…"); }); }
 document.addEventListener("change", e => {
   if (!IZF.f || !e.target.id || !e.target.id.startsWith("izf_")) return;
   izfSync(); const k = e.target.id.slice(4);
   if (k === "hak") IZF.f.hakOto = false;
   if (["cikis","bitis","giris"].includes(k)) izfHesap(IZF.f);
   else if (["hak","kullanacak","haftaTatil","resmiTatil","yil","ad"].includes(k)){ if (k === "haftaTatil" || k === "resmiTatil"){ const f = IZF.f; if (f.toplamGun) f.kullanacak = String(Math.max(0, f.toplamGun - (+f.haftaTatil||0) - (+f.resmiTatil||0))); } izfKalan(IZF.f); }
-  else return;
   ["isbasi","yil","hak","haftaTatil","resmiTatil","kullanacak","kullanilanToplam","kalan"].forEach(x => { const el = document.getElementById("izf_" + x); if (el && el !== e.target) el.value = IZF.f[x] ?? ""; });
+  izfAyna();
 });
-document.addEventListener("input", e => { if (IZF.f && e.target.id && e.target.id.startsWith("izf_")) izfSync(); });
+document.addEventListener("input", e => { if (IZF.f && e.target.id && e.target.id.startsWith("izf_")){ izfSync(); if (e.target.id === "izf_ad") izfAyna(); } });
+/* Yazdır: telefonun/bilgisayarın yazdırma ekranı açılır; oradan yazıcı ya da "PDF olarak kaydet" seçilir (ek kütüphane gerekmez) */
+const izfDosyaAd = x => `yillik-izin-formu-${String(x.ad || "personel").toLocaleLowerCase("tr").replace(/[^a-z0-9çğıöşü]+/gi, "-")}-${x.cikis || ""}`;
+function izfYazdir(x){
+  let d = document.getElementById("izfBaski"); if (!d){ d = document.createElement("div"); d.id = "izfBaski"; document.body.appendChild(d); }
+  d.innerHTML = `<style>#izfBaski{display:none}@media print{@page{size:A4;margin:0}html,body{background:#fff!important;height:auto!important;min-height:0!important;overflow:visible!important;padding:0!important;margin:0!important}body>*:not(#izfBaski){display:none!important}#izfBaski{display:block!important}#izfBaski .izf-a4{width:210mm;height:296mm;min-height:0;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}}${IZF_CSS}</style>${izfSayfaHTML(x)}`;
+  const eski = document.title; document.title = izfDosyaAd(x);
+  setTimeout(() => { try { window.print(); } catch(e){ toast("Yazdırma açılamadı"); } setTimeout(() => { document.title = eski; }, 1500); }, 60);
+}
 /* PDF: formu A4 sayfa olarak çizip (html2canvas) jsPDF ile dosyaya çevirir */
 let IZF_KUTUP = null;
 function izfKutuphane(){
@@ -1823,28 +1838,31 @@ function izfKutuphane(){
 function izfSayfaHTML(x){
   const r = (a, b, h) => `<tr${h ? ` style="height:${h}px"` : ""}><td class="e">${a}</td><td class="c">:</td><td class="v">${esc(b || "")}</td></tr>`;
   const t = s => izfTr(s) || "";
-  const [ca, cb] = [ymdTarih(x.cikis), ymdTarih(x.bitis)];
   return `<div class="izf-a4">
   <div class="baslik">YILLIK ÜCRETLİ İZİN TALEP FORMU</div>
-  <table>${r("TARİH", t(x.tarih))}${r("ADI SOYADI", x.ad)}${r("TC KİMLİK NUMARASI", x.tc)}${r("İŞE GİRİŞ TARİHİ", t(x.giris))}${r("ÇALIŞTIĞI BÖLÜM", x.bolum)}${r("İKAMETGAH ADRESİ", x.adres, 64)}${r("GSM TELEFON NO", x.gsm)}${r("İZİNİ GEÇİRECEĞİ ADRES<br>VE TELEFON", x.izinAdres, 64)}${r("İSTENEN ÜCRETSİZ YOL İZNİ SÜRESİ", x.yolIzni ? x.yolIzni + " gün" : "")}${r("İZNE ÇIKIŞ TARİHİ", t(x.cikis))}${r("İZİN BİTİŞ TARİHİ", t(x.bitis))}${r("İŞ BAŞI TARİHİ", t(x.isbasi))}</table>
+  <table>${r("TARİH", t(x.tarih))}${r("ADI SOYADI", x.ad)}${r("TC KİMLİK NUMARASI", x.tc)}${r("İŞE GİRİŞ TARİHİ", t(x.giris))}${r("ÇALIŞTIĞI BÖLÜM", x.bolum)}${r("İKAMETGAH ADRESİ", x.adres, 58)}${r("GSM TELEFON NO", x.gsm)}${r("İZİNİ GEÇİRECEĞİ ADRES<br>VE TELEFON", x.izinAdres, 58)}${r("İSTENEN ÜCRETSİZ YOL İZNİ SÜRESİ", x.yolIzni ? x.yolIzni + " gün" : "")}${r("İZNE ÇIKIŞ TARİHİ", t(x.cikis))}${r("İZİN BİTİŞ TARİHİ", t(x.bitis))}${r("İŞ BAŞI TARİHİ", t(x.isbasi))}</table>
   <p class="metin">4857 Sayılı yasanın 53 üncü maddesine göre <b>${esc(x.yil || "……")}</b> yılına ilişkin yıllık iznimi <b>${t(x.cikis) || "…/…/20…"}</b> – <b>${t(x.bitis) || "…/…/20…"}</b> tarihleri arasında kullanmak istiyorum. Gereğinin yapılmasını arz ederim. Saygılarımla</p>
-  <div class="imza"><div>Adı, Soyadı<br><b>${esc(x.ad || "")}</b><br>İmza</div></div>
+  <div class="imza"><div>Adı, Soyad<br><b>${esc(x.ad || "")}</b><br>İmza</div></div>
   <div class="cizgi"></div>
   <div class="alt-bas">*** PERSONEL BÖLÜMÜ TARAFINDAN DOLDURULACAKTIR ***</div>
   <div class="baslik ince">YILLIK ÜCRETLİ İZİN HESABI</div>
   <table>${r("İZİNE ÇIKIŞ TARİHİ", t(x.cikis))}${r("YILLIK ÜCRETLİ İZİN SÜRESİ", x.hak ? x.hak + " gün" : "")}${r("HAFTA TATİLİ", x.haftaTatil !== "" && x.haftaTatil !== undefined ? x.haftaTatil + " gün" : "")}${r("ULUSAL VE RESMİ TATİL GÜNÜ", x.resmiTatil !== "" && x.resmiTatil !== undefined ? x.resmiTatil + " gün" : "")}${r("KULLANACAĞI İZİN SÜRESİ", x.kullanacak ? x.kullanacak + " gün" : "")}${r("KULLANILAN TOPLAM İZİN SÜRESİ", x.kullanilanToplam ? x.kullanilanToplam + " gün" : "")}${r("KALAN İZİN SÜRESİ", x.kalan !== "" && x.kalan !== undefined ? x.kalan + " gün" : "")}${r("İŞ BAŞI TARİHİ", t(x.isbasi))}</table>
   <p class="metin">Çalışanımızın, <b>${t(x.cikis) || "…/…/20…"}</b> tarihi ile <b>${t(x.bitis) || "…/…/20…"}</b> tarihleri arasında yıllık iznini kullanması uygundur.</p>
-  <div class="imza"><div>Adı, Soyadı<br><b>${esc(x.onayAd || "")}</b><br>İmza</div></div>
-  <div class="dip">Bizimevler 1 Sitesi · ${ca && cb ? "" : ""}Form ${esc(x.id || "")} · ${new Date().toLocaleDateString("tr-TR")}</div>
+  <div class="imza"><div>Adı, Soyad<br><b>${esc(x.onayAd || "")}</b><br>İmza</div></div>
 </div>`;
 }
-const IZF_CSS = `.izf-a4{width:794px;min-height:1123px;padding:56px 64px;background:#fff;color:#111;font:13px/1.35 Arial,Helvetica,sans-serif;box-sizing:border-box}
-.izf-a4 .baslik{border:2px solid #222;text-align:center;font-weight:700;font-size:15px;padding:6px;margin-bottom:6px;letter-spacing:.02em}.izf-a4 .baslik.ince{margin-top:4px}
-.izf-a4 table{width:100%;border-collapse:collapse;margin-bottom:14px}.izf-a4 td{border:1px solid #222;padding:6px 8px;vertical-align:middle;height:30px}
-.izf-a4 td.e{width:42%;font-weight:600;font-size:12.5px}.izf-a4 td.c{width:16px;text-align:center;padding:0}.izf-a4 td.v{font-size:13.5px}
-.izf-a4 .metin{margin:14px 0 10px;font-size:13.5px;line-height:1.7;text-indent:32px}.izf-a4 .imza{display:flex;justify-content:flex-end;margin:6px 0 18px}.izf-a4 .imza div{text-align:center;min-width:200px;line-height:1.6}
-.izf-a4 .cizgi{border-top:3px double #222;margin:10px 0 16px}.izf-a4 .alt-bas{text-align:center;font-weight:700;margin-bottom:10px}
-.izf-a4 .dip{margin-top:24px;font-size:10px;color:#888;text-align:center}`;
+const IZF_CSS = `.izf-a4{width:794px;min-height:1123px;padding:46px 62px 30px;background:#fff;color:#111;font:13px/1.35 Arial,Helvetica,sans-serif;box-sizing:border-box}
+.izf-a4 .baslik{border:2px solid #222;text-align:center;font-weight:700;font-size:15px;padding:6px;margin-bottom:6px;letter-spacing:.02em}.izf-a4 .baslik.ince{margin-top:4px;margin-bottom:0;border-bottom:0}
+.izf-a4 table{width:100%;border-collapse:collapse;margin-bottom:10px}.izf-a4 td{border:1px solid #222;padding:5px 8px;vertical-align:middle;height:28px;box-sizing:border-box}
+.izf-a4 td.e{width:45%;font-weight:600;font-size:12.5px;white-space:nowrap}.izf-a4 td.c{width:16px;text-align:center;padding:0}.izf-a4 td.v{font-size:13.5px;white-space:pre-wrap}
+.izf-a4 .metin{margin:12px 0 6px;font-size:13.5px;line-height:1.7;text-indent:32px}.izf-a4 .imza{display:flex;justify-content:flex-end;margin:4px 0 30px}.izf-a4 .imza div{text-align:center;min-width:200px;line-height:1.6}
+.izf-a4 .cizgi{border:1px solid #222;height:3px;margin:6px 0 14px}.izf-a4 .alt-bas{text-align:center;font-weight:700;margin-bottom:8px;font-size:13.5px}
+.izf-sheet{max-width:860px}.izf-ed{width:auto;min-height:0;padding:14px 10px;border-radius:6px;box-shadow:0 1px 6px rgba(0,0,0,.18);font-size:12px;overflow-x:auto}
+.izf-ed td{height:auto;padding:3px 5px}.izf-ed td.e{font-size:10.5px;white-space:normal;width:42%}.izf-ed .metin,.izf-ed td.v{font-size:12.5px}.izf-ed .imza{margin-bottom:14px}.izf-ed .baslik{font-size:13px}
+.izf-ed input,.izf-ed select,.izf-ed textarea{width:100%;box-sizing:border-box;border:0!important;border-radius:3px!important;background:#e8f1ff!important;color:#111!important;box-shadow:none!important;font:inherit;font-size:14px;padding:5px 6px;margin:0;min-height:30px;color-scheme:light}
+.izf-ed textarea{resize:vertical;display:block}.izf-ed input.kisa{width:64px;display:inline-block;text-align:center;text-indent:0;padding:2px 4px;min-height:26px}.izf-ed input.orta{width:180px;text-align:center;font-weight:700}
+.izf-gun{display:flex;align-items:center;gap:6px}.izf-gun input{width:90px;flex:0 0 90px}.izf-gun i{font-style:normal}
+@media (min-width:700px){.izf-ed{padding:34px 44px;font-size:13px}.izf-ed td.e{font-size:12px}}`;
 async function izfPdfUret(x){
   await izfKutuphane();
   const kap = document.createElement("div"); kap.style.cssText = "position:fixed;left:-10000px;top:0;z-index:-1";
@@ -1854,14 +1872,15 @@ async function izfPdfUret(x){
     const pdf = new window.jspdf.jsPDF({unit:"mm", format:"a4"});
     const w = 210, h = Math.min(297, cv.height * w / cv.width);
     pdf.addImage(cv.toDataURL("image/jpeg", .9), "JPEG", 0, 0, w, h);
-    const ad = String(x.ad || "personel").toLocaleLowerCase("tr").replace(/[^a-z0-9çğıöşü]+/gi, "-");
-    return new File([pdf.output("blob")], `yillik-izin-formu-${ad}-${x.cikis || ""}.pdf`, {type:"application/pdf"});
+    return new File([pdf.output("blob")], izfDosyaAd(x) + ".pdf", {type:"application/pdf"});
   } finally { kap.remove(); }
 }
 function izfIndir(file){ const u = URL.createObjectURL(file), a = document.createElement("a"); a.href = u; a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 5000); }
 async function izfAksiyon(act, id){
   if (act === "izfYeni"){ IZF.f = {tarih: ymdS(new Date()), bolum: yiSadeceGuv() ? "Güvenlik" : "Güvenlik", hak:"", hakOto:true, listeye:true, onayAd: dashAd() || ""}; render(); return; }
   if (act === "izfKapat"){ IZF.f = null; render(); return; }
+  if (act === "izfYazdir"){ const x = IZF.L.find(y => y.id === id); if (x) izfYazdir(x); return; }
+  if (act === "izfYazdirF"){ izfSync(); izfYazdir(IZF.f); return; }
   if (act === "izfHepsi"){ IZF.hepsi = true; render(); return; }
   if (act === "izfDuzenle"){ const x = IZF.L.find(y => y.id === id); if (x){ IZF.f = {...x, hakOto:false}; render(); } return; }
   if (act === "izfSil"){ if (!confirmBas("izfSil")) return; try { await store.izinFormSil(id); IZF.f = null; toast("Form silindi"); } catch(e){ toast("Silinemedi: " + (e.code||"")); } render(); return; }
