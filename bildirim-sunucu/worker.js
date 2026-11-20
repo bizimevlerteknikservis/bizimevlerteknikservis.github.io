@@ -451,10 +451,14 @@ async function sabahOzet(env, sa, simdi) {
 /* =====================================================================
    PLANLI ELEKTRİK KESİNTİSİ (BEDAŞ) — her gün 07:00 ve 19:00'da Avcılar'daki planlı kesintilere bakar.
    Yeni bir kesinti varsa teknisyen ve tesis yetkilisine bildirim + Telegram: "jeneratör yakıtını kontrol edin".
-   İsteğe bağlı Cloudflare değişkeni KESINTI_MAHALLE: "Mahalle1,Mahalle2" → sadece bu mahalleler (boşsa tüm Avcılar).
+   Sadece Tahtakale / Ispartakule / Begonya geçen kesintiler bildirilir. Değiştirmek için Cloudflare değişkeni KESINTI_MAHALLE: "Ad1,Ad2".
    Deneme: postacı adresi + "?kesinti=1" (bildirim göndermez, ne bulduğunu gösterir).
    ===================================================================== */
 const trBuyuk = x => String(x || "").toLocaleUpperCase("tr").replace(/\s+/g, " ");
+/* Karşılaştırma için Türkçe harfler sadeleşir (İSPARTAKULE = ISPARTAKULE) */
+const esle = x => trBuyuk(x).replace(/İ/g, "I").replace(/Ş/g, "S").replace(/Ğ/g, "G").replace(/Ü/g, "U").replace(/Ö/g, "O").replace(/Ç/g, "C");
+/* Bizimevler 1: Avcılar · Tahtakale Mahallesi · Ispartakule mevkii · Begonya Sokak */
+const KESINTI_VARSAYILAN = "Tahtakale,Ispartakule,Begonya";
 async function bedasListe() {
   const r = await fetch("https://www.bedas.com.tr/elektrik-getir", { method: "POST", body: "{}",
     headers: { "content-type": "application/json", "accept": "application/json, text/plain, */*", "origin": "https://www.bedas.com.tr", "referer": "https://www.bedas.com.tr/",
@@ -473,10 +477,10 @@ function kesintiYazi(x) {
 }
 async function kesintiBul(env) {
   const L = await bedasListe();
-  const mah = String(env.KESINTI_MAHALLE || "").split(",").map(trBuyuk).map(x => x.trim()).filter(Boolean);
-  const avc = L.filter(x => trBuyuk(JSON.stringify(x)).includes("AVCILAR"));
-  const bizim = mah.length ? avc.filter(x => { const t = trBuyuk(JSON.stringify(x)); return mah.some(m => t.includes(m)); }) : avc;
-  return { toplam: L.length, avcilar: avc.length, bizim, mah };
+  const mah = String(env.KESINTI_MAHALLE || KESINTI_VARSAYILAN).split(",").map(esle).map(x => x.trim()).filter(Boolean);
+  const avc = L.filter(x => esle(JSON.stringify(x)).includes("AVCILAR"));
+  const bizim = mah.length ? avc.filter(x => { const t = esle(JSON.stringify(x)); return mah.some(m => t.includes(m)); }) : avc;
+  return { toplam: L.length, avcilar: avc.length, bizim, mah, avcOrnek: avc.slice(0, 5).map(kesintiYazi), ornek: avc[0] || L[0] || null };
 }
 async function kesintiKontrol(env, sa, simdi) {
   const s = trSaat(simdi); if (!((s >= "07:00" && s < "07:15") || (s >= "19:00" && s < "19:15"))) return null;
@@ -588,7 +592,7 @@ export default {
       catch (e) { return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 502, headers: { "content-type": "application/json", ...CORS } }); }
     }
     if (req.method === "GET" && new URL(req.url).searchParams.has("kesinti")) {
-      try { const k = await kesintiBul(env); return new Response(JSON.stringify({ kaynak: "BEDAŞ", toplamKayit: k.toplam, avcilarKayit: k.avcilar, mahalleFiltresi: k.mah, bizimIcin: k.bizim.map(kesintiYazi), ornekHam: k.bizim[0] || null }, null, 2), { headers: { "content-type": "application/json; charset=utf-8", ...CORS } }); }
+      try { const k = await kesintiBul(env); return new Response(JSON.stringify({ kaynak: "BEDAŞ", toplamKayit: k.toplam, avcilarKayit: k.avcilar, mahalleFiltresi: k.mah, bizimIcin: k.bizim.map(kesintiYazi), avcilarOrnek: k.avcOrnek, ornekHam: k.bizim[0] || k.ornek || null }, null, 2), { headers: { "content-type": "application/json; charset=utf-8", ...CORS } }); }
       catch (e) { return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 502, headers: { "content-type": "application/json; charset=utf-8", ...CORS } }); }
     }
     if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 5.2: mesai, bakım, arıza notu, yedek, telegram, kesinti)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
