@@ -1796,7 +1796,7 @@ function izfForm(isimler){
       <div class="cizgi"></div>
       <div class="alt-bas">*** PERSONEL BÖLÜMÜ TARAFINDAN DOLDURULACAKTIR ***</div>
       <div class="baslik ince">YILLIK ÜCRETLİ İZİN HESABI</div>
-      <table>${r("İZİNE ÇIKIŞ TARİHİ", ayna("cikis"))}${r("YILLIK ÜCRETLİ İZİN SÜRESİ", gun("hak"))}${r("HAFTA TATİLİ", gun("haftaTatil"))}${r("ULUSAL VE RESMİ TATİL GÜNÜ", gun("resmiTatil"))}${r("KULLANACAĞI İZİN SÜRESİ", gun("kullanacak"))}${r("KULLANILAN TOPLAM İZİN SÜRESİ", gun("kullanilanToplam"))}${r("KALAN İZİN SÜRESİ", gun("kalan"))}${r("İŞ BAŞI TARİHİ", ayna("isbasi"))}</table>
+      <table>${r("İZİNE ÇIKIŞ TARİHİ", ayna("cikis"))}${r("İŞ BAŞI TARİHİ", ayna("isbasi"))}${r("YILLIK ÜCRETLİ İZİN SÜRESİ", gun("hak"))}${r("HAFTA TATİLİ", gun("haftaTatil"))}${r("ULUSAL VE RESMİ TATİL GÜNÜ", gun("resmiTatil"))}${r("KULLANACAĞI İZİN SÜRESİ", gun("kullanacak"))}${r("KULLANILAN TOPLAM İZİN SÜRESİ", gun("kullanilanToplam"))}${r("KALAN İZİN SÜRESİ", gun("kalan"))}</table>
       <p class="metin">Çalışanımızın, <b>${ayna("cikis")}</b> tarihi ile <b>${ayna("bitis")}</b> tarihleri arasında yıllık iznini kullanması uygundur.</p>
       <div class="imza"><div>Adı Soyadı<br><input id="izf_onayAd" class="orta" maxlength="50" value="${V("onayAd")}" placeholder="Onaylayan"><br>İmza</div></div>
     </div>
@@ -1847,7 +1847,7 @@ function izfSayfaHTML(x){
   <div class="cizgi"></div>
   <div class="alt-bas">*** PERSONEL BÖLÜMÜ TARAFINDAN DOLDURULACAKTIR ***</div>
   <div class="baslik ince">YILLIK ÜCRETLİ İZİN HESABI</div>
-  <table>${r("İZİNE ÇIKIŞ TARİHİ", t(x.cikis))}${r("YILLIK ÜCRETLİ İZİN SÜRESİ", x.hak ? x.hak + " gün" : "")}${r("HAFTA TATİLİ", x.haftaTatil !== "" && x.haftaTatil !== undefined ? x.haftaTatil + " gün" : "")}${r("ULUSAL VE RESMİ TATİL GÜNÜ", x.resmiTatil !== "" && x.resmiTatil !== undefined ? x.resmiTatil + " gün" : "")}${r("KULLANACAĞI İZİN SÜRESİ", x.kullanacak ? x.kullanacak + " gün" : "")}${r("KULLANILAN TOPLAM İZİN SÜRESİ", x.kullanilanToplam ? x.kullanilanToplam + " gün" : "")}${r("KALAN İZİN SÜRESİ", x.kalan !== "" && x.kalan !== undefined ? x.kalan + " gün" : "")}${r("İŞ BAŞI TARİHİ", t(x.isbasi))}</table>
+  <table>${r("İZİNE ÇIKIŞ TARİHİ", t(x.cikis))}${r("İŞ BAŞI TARİHİ", t(x.isbasi))}${r("YILLIK ÜCRETLİ İZİN SÜRESİ", x.hak ? x.hak + " gün" : "")}${r("HAFTA TATİLİ", x.haftaTatil !== "" && x.haftaTatil !== undefined ? x.haftaTatil + " gün" : "")}${r("ULUSAL VE RESMİ TATİL GÜNÜ", x.resmiTatil !== "" && x.resmiTatil !== undefined ? x.resmiTatil + " gün" : "")}${r("KULLANACAĞI İZİN SÜRESİ", x.kullanacak ? x.kullanacak + " gün" : "")}${r("KULLANILAN TOPLAM İZİN SÜRESİ", x.kullanilanToplam ? x.kullanilanToplam + " gün" : "")}${r("KALAN İZİN SÜRESİ", x.kalan !== "" && x.kalan !== undefined ? x.kalan + " gün" : "")}</table>
   <p class="metin">Çalışanımızın, <b>${t(x.cikis) || N}</b> tarihi ile <b>${t(x.bitis) || N}</b> tarihleri arasında yıllık iznini kullanması uygundur.</p>
   <div class="imza"><div>Adı Soyadı<br><b>${esc(x.onayAd || "")}</b><br>İmza</div></div>
 </div>`;
