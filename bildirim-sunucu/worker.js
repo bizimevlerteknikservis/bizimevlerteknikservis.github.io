@@ -450,7 +450,7 @@ async function sabahOzet(env, sa, simdi) {
 
 /* =====================================================================
    PLANLI ELEKTRİK KESİNTİSİ (BEDAŞ) — her gün 07:00 ve 19:00'da Avcılar'daki planlı kesintilere bakar.
-   Yeni bir kesinti varsa teknisyen ve tesis yetkilisine bildirim + Telegram: "jeneratör yakıtını kontrol edin".
+   Yeni bir kesinti varsa teknisyen, müdür, yönetim ve amirlere telefon bildirimi + Telegram + ana sayfalarında not (duyuru/kesinti).
    Sadece Tahtakale / Ispartakule / Begonya geçen kesintiler bildirilir. Değiştirmek için Cloudflare değişkeni KESINTI_MAHALLE: "Ad1,Ad2".
    Deneme: postacı adresi + "?kesinti=1" (bildirim göndermez, ne bulduğunu gösterir).
    ===================================================================== */
@@ -491,7 +491,10 @@ async function kesintiKontrol(env, sa, simdi) {
     if (await ilkKezMi(sa, "kesinti_" + h)) yeni.push(kesintiYazi(x));
   }
   if (!yeni.length) return { atla: "zaten bildirildi" };
-  const T = (await telefonlar(sa)).filter(t => t.rol === "teknisyen" || t.rol === "tesis");
+  // Ekranlara not: teknisyen, müdür, yönetim ve amirlerin ana sayfasında 36 saat görünür
+  const notAlan = { metin: { stringValue: yeni.join("\n\n") }, sayi: { integerValue: String(yeni.length) }, ts: { integerValue: String(simdi) } };
+  await fetch(`${fsKok(sa)}/duyuru/kesinti`, { method: "PATCH", headers: { authorization: "Bearer " + await erisim(sa), "content-type": "application/json" }, body: JSON.stringify({ fields: notAlan }) }).catch(() => {});
+  const T = (await telefonlar(sa)).filter(t => YONETICI.includes(t.rol));
   const g = await gonder(env, sa, T, { title: `⚡ Planlı elektrik kesintisi · Avcılar${yeni.length > 1 ? " (" + yeni.length + ")" : ""}`, body: kisa(yeni.join(" | ") + " — Jeneratör yakıtını kontrol edin.", 220), tag: "kesinti-" + trGun(simdi), onemli: true }, "teknik.html#tesis");
   if (env.TELEGRAM_TOKEN && env.TELEGRAM_CHAT) await fetch(`https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/sendMessage`, { method: "POST",
     body: new URLSearchParams({ chat_id: String(env.TELEGRAM_CHAT), text: "⚡ PLANLI ELEKTRİK KESİNTİSİ (BEDAŞ · Avcılar)\n\n" + yeni.map(y => "• " + y).join("\n\n") + "\n\n⛽ Jeneratör yakıtını ve çalışmasını kontrol edin.", disable_web_page_preview: "true" }) }).catch(() => {});
