@@ -17,6 +17,7 @@
    - Vardiyası başladığı halde 15 dk içinde QR ile giriş yapmayan personeli amire/müdüre bildirir
    - Mesai bitiminden 30 dk sonra çıkış okutmayan personele hatırlatma gönderir; 23:00'te "çıkış unutuldu" işareti koyar
    - Her sabah 09:00'da bakımı yaklaşan/geçen ekipmanları ve azalan stoğu teknisyen ve müdüre bildirir
+   - TELEGRAM: sitenin Telegram mesajları buradan gider (bot şifresi sitede değil, burada gizli).
    - YEDEK: her gece 03:00'te son günün kayıtlarını, her ayın 1'inde (03:15–04:15) tam yedeği Telegram'a dosya olarak gönderir.
      Gerekli gizli değişkenler: TELEGRAM_TOKEN, TELEGRAM_CHAT. Fotoğraflar yedeğe girmez (yer kaplar).
    ===================================================================== */
@@ -469,6 +470,56 @@ async function havaOlcum(ctx) {
   return v;
 }
 
+/* =====================================================================
+   TELEGRAM → site mesajları (arıza, asansör, elektrik, devriye…) artık buradan gider.
+   Bot şifresi (TELEGRAM_TOKEN) sadece Cloudflare'de gizli durur; sitede yoktur.
+   İstek, sitede oturum açmış birinin Firebase kimlik belgesini (ID token) taşımak zorundadır;
+   imza Google'ın açık anahtarlarıyla doğrulanır. Kişi başına dakikada 15, toplam dakikada 60 mesaj sınırı.
+   ===================================================================== */
+let JWK = null;
+async function googleAnahtarlar() {
+  if (JWK && JWK.son > Date.now()) return JWK.k;
+  const r = await fetch("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com");
+  if (!r.ok) throw new Error("jwk " + r.status);
+  const j = await r.json(); JWK = { k: j.keys || [], son: Date.now() + 3 * 36e5 }; return JWK.k;
+}
+const b64uCoz = s => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4)), c => c.charCodeAt(0));
+async function kimlikDogrula(idToken, projeId) {
+  const p = String(idToken || "").split("."); if (p.length !== 3) return null;
+  let bas, yuk; try { bas = JSON.parse(new TextDecoder().decode(b64uCoz(p[0]))); yuk = JSON.parse(new TextDecoder().decode(b64uCoz(p[1]))); } catch (e) { return null; }
+  const simdi = Math.floor(Date.now() / 1000);
+  if (bas.alg !== "RS256" || yuk.aud !== projeId || yuk.iss !== "https://securetoken.google.com/" + projeId || !(yuk.exp > simdi) || !(yuk.iat <= simdi + 300) || !yuk.sub) return null;
+  const jwk = (await googleAnahtarlar()).find(k => k.kid === bas.kid); if (!jwk) return null;
+  const anahtar = await crypto.subtle.importKey("jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
+  const ok = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", anahtar, b64uCoz(p[2]), new TextEncoder().encode(p[0] + "." + p[1]));
+  return ok ? yuk.sub : null;
+}
+const TG_SAY = new Map();
+function tgSinir(uid) {
+  const dk = Math.floor(Date.now() / 6e4);
+  for (const k of TG_SAY.keys()) if (!k.endsWith("_" + dk)) TG_SAY.delete(k);
+  const a = "u" + uid + "_" + dk, h = "hepsi_" + dk, na = (TG_SAY.get(a) || 0) + 1, nh = (TG_SAY.get(h) || 0) + 1;
+  TG_SAY.set(a, na); TG_SAY.set(h, nh); return na <= 15 && nh <= 60;
+}
+async function tgSiteden(env, sa, g) {
+  if (!env.TELEGRAM_TOKEN || !env.TELEGRAM_CHAT) return { hata: "TELEGRAM_TOKEN / TELEGRAM_CHAT eklenmemiş", kod: 500 };
+  const uid = await kimlikDogrula(g.idToken, sa.project_id);
+  if (!uid) return { hata: "kimlik", kod: 401 };
+  if (!tgSinir(uid)) return { hata: "çok sık", kod: 429 };
+  const temiz = (x, n) => String(x || "").replace(/[\u0000-\u0008\u000b-\u001f]/g, "").slice(0, n);
+  if (g.tur === "tg") {
+    const text = temiz(g.text, 3500); if (!text.trim()) return { hata: "boş", kod: 400 };
+    const r = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/sendMessage`, { method: "POST", body: new URLSearchParams({ chat_id: String(env.TELEGRAM_CHAT), text, disable_web_page_preview: "true" }) });
+    return r.ok ? { ok: true } : { hata: "telegram " + r.status, kod: 502 };
+  }
+  const m = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(String(g.foto || ""));
+  if (!m || m[1].length > 700000) return { hata: "foto", kod: 400 };
+  const fd = new FormData(); fd.append("chat_id", String(env.TELEGRAM_CHAT)); fd.append("caption", temiz(g.caption, 900));
+  fd.append("photo", new Blob([b64uCoz(m[1].replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""))], { type: "image/jpeg" }), "foto.jpg");
+  const r = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/sendPhoto`, { method: "POST", body: fd });
+  return r.ok ? { ok: true } : { hata: "telegram " + r.status, kod: 502 };
+}
+
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "content-type" };
 function hazirla(env) {
   const sa = JSON.parse(env.SERVICE_ACCOUNT);
@@ -487,7 +538,7 @@ export default {
       try { return new Response(JSON.stringify(await havaOlcum(ctx)), { headers: { "content-type": "application/json", "cache-control": "max-age=300", ...CORS } }); }
       catch (e) { return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 502, headers: { "content-type": "application/json", ...CORS } }); }
     }
-    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 4: mesai, bakım, arıza notu, yedek)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
+    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 5: mesai, bakım, arıza notu, yedek, telegram)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
     if (req.method !== "POST") return new Response("", { status: 405, headers: CORS });
     let g; try { g = JSON.parse(await req.text()); } catch (e) { return new Response("{}", { status: 400, headers: CORS }); }
     const tur = String(g.tur || ""), id = String(g.id || "");
@@ -503,6 +554,11 @@ export default {
         await yedekDurumYaz(sa2, { son: simdi, sonAd: ad, sonBoyut: boyut, hata: "" });
         return new Response(JSON.stringify({ ok: true, boyut }), { headers: { "content-type": "application/json", ...CORS } });
       } catch (e) { await yedekDurumYaz(sa2, { hata: String(e.message || e).slice(0, 200), hataTs: simdi }); return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 500, headers: { "content-type": "application/json", ...CORS } }); }
+    }
+    if (tur === "tg" || tur === "tgFoto") {
+      let sa3; try { sa3 = JSON.parse(env.SERVICE_ACCOUNT); } catch (e) { return new Response(JSON.stringify({ hata: "SERVICE_ACCOUNT" }), { status: 500, headers: { "content-type": "application/json", ...CORS } }); }
+      try { const s = await tgSiteden(env, sa3, g); return new Response(JSON.stringify(s), { status: s.kod || 200, headers: { "content-type": "application/json", ...CORS } }); }
+      catch (e) { return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 500, headers: { "content-type": "application/json", ...CORS } }); }
     }
     if (!/^(gorev|yapildi|ariza|arizaGuncel|vardiya|vardiyaSonuc)$/.test(tur) || !/^[A-Za-z0-9_-]{4,64}$/.test(id)) return new Response("{}", { status: 400, headers: CORS });
     let sa; try { sa = JSON.parse(env.SERVICE_ACCOUNT); } catch (e) { return new Response(JSON.stringify({ hata: "SERVICE_ACCOUNT gizli değişkeni eksik" }), { status: 500, headers: CORS }); }
