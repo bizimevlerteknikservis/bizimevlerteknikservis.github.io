@@ -305,7 +305,7 @@ async function mesaiKontrol(env, sa, simdi) {
   const plan = planCoz(planDoc), izinler = (izinDoc && izinDoc.liste) || [];
   const bugun = trGun(simdi), dun = gunEkle(bugun, -1);
   const [mesai, degisim, gelemez] = await Promise.all([
-    fsSorgu(sa, "mesai", [["ts", "GREATER_THAN_OR_EQUAL", simdi - 14 * 864e5]], ["ad", "grup", "kod", "tip", "ts", "uid", "unutuldu"]),
+    fsSorgu(sa, "mesai", [["ts", "GREATER_THAN_OR_EQUAL", simdi - 3 * 864e5]], ["ad", "grup", "kod", "tip", "ts", "uid", "unutuldu"]),
     fsSorgu(sa, "vardiya", [["durum", "EQUAL", "onay"]], ["ad", "karsi", "tarih", "karsiTarih"]).catch(() => []),
     fsSorgu(sa, "appointments", [["cat", "EQUAL", "p_gelemiyorum"]], ["name", "rol", "createdAt", "status"]).catch(() => [])]);
   const kisiler = kisiListesi(ayar, plan);
@@ -314,7 +314,8 @@ async function mesaiKontrol(env, sa, simdi) {
   const gelmeyen = [], hatirlat = [], unut = [];
   for (const [key, k] of kisiler) {
     const R = mesai.filter(r => kayitKisinin(k, r)).sort((a, b) => a.ts - b.ts);
-    if (!R.length) continue;                                         // QR kullanmaya başlamamış kişi: uyarı yok
+    if (!R.length) continue;                                         // son 3 günde QR kaydı olmayan (izinli / QR kullanmayan) kişi: uyarı yok
+    // Not: 15 dakikada bir çalıştığı için okuma sayısı önemli (ücretsiz plan günde 50.000 okuma). 14 gün → 3 gün: günde ~55.000 yerine ~12.000 okuma.
     // 1) Gelmeyen: bugün (ve gece vardiyası için) başlangıç + tolerans geçti, giriş yok
     for (const gun of [bugun, dun]) {
       let tur = vardiyaTuru(ayar, plan, izinler, k, gun); tur = degisimUygula(degisim, k, gun, tur, turBul(gun));
@@ -538,7 +539,7 @@ export default {
       try { return new Response(JSON.stringify(await havaOlcum(ctx)), { headers: { "content-type": "application/json", "cache-control": "max-age=300", ...CORS } }); }
       catch (e) { return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 502, headers: { "content-type": "application/json", ...CORS } }); }
     }
-    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 5: mesai, bakım, arıza notu, yedek, telegram)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
+    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 5.1: mesai, bakım, arıza notu, yedek, telegram)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
     if (req.method !== "POST") return new Response("", { status: 405, headers: CORS });
     let g; try { g = JSON.parse(await req.text()); } catch (e) { return new Response("{}", { status: 400, headers: CORS }); }
     const tur = String(g.tur || ""), id = String(g.id || "");
