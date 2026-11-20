@@ -187,6 +187,18 @@ button.d-hava{width:100%;text-align:left;font:inherit;cursor:pointer;position:re
 .d-av svg{width:26px;height:26px;stroke:#fff;fill:#fff;stroke-width:1.5}
 .d-kim b{display:block;font:700 18px/1.25 var(--display)}
 .d-kim small{display:block;color:rgba(255,255,255,.78);font-size:14px}
+.t-sheet .lbl{display:block;font-size:14px;font-weight:700;margin:12px 0 6px;color:var(--ink)}.seg{display:flex;gap:6px;flex-wrap:wrap}.seg-b{flex:1;min-width:90px;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--card,#fff);color:var(--ink);font-weight:700;font-size:14px}.seg-b.on{background:#1e5bd8;border-color:#1e5bd8;color:#fff}
+.sy-ay{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:10px}.sy-ay b{font-size:18px;min-width:130px;text-align:center}
+.sy-oz{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}.sy-oz div{background:var(--panel2,#f1f5fb);border-radius:14px;padding:10px;text-align:center}.sy-oz b{display:block;font-size:17px}.sy-oz small{color:var(--muted)}
+.sy-fiyat{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:13.5px}.sy-fiyat>span{flex-basis:100%;font-weight:700}.sy-fiyat input{width:84px!important;flex:0 0 84px;padding:6px 8px;min-height:0;text-align:right}.sy-fiyat label{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.sy-l{display:grid;gap:10px;margin-top:12px}@media (min-width:900px){.sy-l{grid-template-columns:1fr 1fr}}
+.sy-k{background:var(--card,#fff);border:1px solid var(--line);border-radius:18px;padding:12px 14px}.sy-k.ok{border-color:rgba(22,128,92,.45)}
+.sy-ust{display:flex;align-items:center;gap:10px;margin-bottom:8px}.sy-ust>div{flex:1}.sy-ust b{display:block}.sy-ust small{color:var(--muted)}.sy-ik{font-size:24px}
+.sy-sat{display:flex;gap:10px;align-items:center}.sy-sat img{width:70px;height:70px;object-fit:cover;border-radius:10px;cursor:zoom-in}.sy-r{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;color:var(--muted)}.sy-r b{color:var(--ink)}.sy-tl{font-size:18px;font-weight:800;color:#16805c;flex-basis:100%}
+.sy-b{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.sy-od{background:#16805c!important;color:#fff!important;border-color:#16805c!important}.sy-oku{margin-top:2px}.sy-onc{display:block;color:var(--muted);margin-top:6px}
+.sy-foto{display:flex;align-items:center;justify-content:center;min-height:150px;border:2px dashed var(--line);border-radius:16px;cursor:pointer;overflow:hidden;font-size:18px;font-weight:700;color:var(--accent,#1e5bd8)}.sy-foto img{width:100%;max-height:300px;object-fit:contain}
+.sy-endeks{font-size:26px!important;font-weight:800;text-align:center;letter-spacing:.04em}.sy-hes{display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 0 12px;font-size:15px}.sy-uy{color:#c0392b;font-weight:600}
+.sy-onck{display:flex;gap:10px;align-items:center;background:var(--panel2,#f1f5fb);border-radius:14px;padding:8px;margin-bottom:6px}.sy-onck img{width:64px;height:64px;object-fit:cover;border-radius:10px}.sy-onck small{display:block;color:var(--muted)}.sy-onck b{font-size:20px}
 .d-bugun{margin:18px 0 2px;display:grid;gap:10px}.d-bg-t{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.d-bg-t b{font:800 30px/1 var(--display);color:#fff;letter-spacing:-.01em}.d-bg-t>span{font-size:16px;color:rgba(232,242,255,.85);font-weight:600}
 .d-bg-l{display:flex;gap:8px;flex-wrap:wrap}.d-bg-c{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:rgba(10,30,70,.55);border:1px solid rgba(140,190,255,.28);color:#e6f0ff;font-size:13.5px;text-decoration:none;backdrop-filter:blur(6px)}.d-bg-c b{color:#fff}.d-bg-c.gec{border-color:rgba(255,120,110,.6);color:#ffd2cc}.d-bg-c.gec b{color:#ff9a8f}
 .d-hero h1{margin:18px 0 4px;font:800 38px/1.02 var(--display);letter-spacing:-.02em}
@@ -1223,6 +1235,9 @@ function DemoStore(){
     async izinFormYaz(id, v){ mem.izinform = [...(mem.izinform||[]).filter(x => x.id !== id), {...v, id}]; save(); },
     async izinFormSil(id){ mem.izinform = (mem.izinform||[]).filter(x => x.id !== id); save(); },
     tutanakDinle: cb => sub(() => cb(mem.tutanak || [])),
+    sayacDinle: cb => sub(() => cb(mem.sayac || [])),
+    async sayacYaz(id, v){ mem.sayac = [...(mem.sayac||[]).filter(x => x.id !== id.replace(/^sa_/,"")), {...v, id: id.replace(/^sa_/,"")}]; save(); },
+    async sayacSil(id){ mem.sayac = (mem.sayac||[]).filter(x => x.id !== id); save(); },
     async tutanakYaz(id, v){ mem.tutanak = [...(mem.tutanak||[]).filter(x => x.id !== id), {...v, id}]; save(); },
     async tutanakSil(id){ mem.tutanak = (mem.tutanak||[]).filter(x => x.id !== id); save(); },
     listenGelemeyen: cb => sub(() => cb(mem.appts.filter(a => a.cat==="p_gelemiyorum"))),
@@ -1368,6 +1383,9 @@ function FirebaseStore(cfg){
     izinFormDinle(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"puantaj"), fs.where("tur","==","izinform")), sn => cb(sn.docs.map(d => ({...d.data(), id: d.id.replace(/^if_/,"")}))), e => { console.warn("izinform", e && e.code); cb([]); }); },
     async izinFormYaz(id, v){ await fs.setDoc(fs.doc(db,"puantaj","if_"+id), {...v, tur:"izinform"}); },
     async izinFormSil(id){ await fs.deleteDoc(fs.doc(db,"puantaj","if_"+id)); },
+    sayacDinle(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"puantaj"), fs.where("tur","in",["sayacAbone","sayacOkuma","sayacAyar"])), sn => cb(sn.docs.map(d => ({...d.data(), id: d.id.replace(/^sa_/,"")}))), e => { console.warn("sayac", e && e.code); cb([]); }); },
+    async sayacYaz(id, v){ await fs.setDoc(fs.doc(db,"puantaj",id), v); },
+    async sayacSil(id){ await fs.deleteDoc(fs.doc(db,"puantaj",id)); },
     tutanakDinle(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"puantaj"), fs.where("tur","==","tutanak")), sn => cb(sn.docs.map(d => ({...d.data(), id: d.id.replace(/^tt_/,"")}))), e => { console.warn("tutanak", e && e.code); cb([]); }); },
     async tutanakYaz(id, v){ const {id:_, ...w} = v; await fs.setDoc(fs.doc(db,"puantaj","tt_"+id), {...w, tur:"tutanak"}); },
     async tutanakSil(id){ await fs.deleteDoc(fs.doc(db,"puantaj","tt_"+id)); },
@@ -2091,6 +2109,192 @@ async function ttAksiyon(act, id){
   }
 }
 
+/* ================= Süzme sayaç okuma (dükkân · market) =================
+   Her ay sayacın fotoğrafı çekilir, endeks yazılır → önceki aya göre fark × çarpan × birim fiyat = tutar.
+   Kayıt: puantaj koleksiyonu (sayacAbone / sayacOkuma / sayacAyar) → personel ve sakinler göremez. */
+const SY = {A:[], O:[], fiyat:{elektrik:"", su:"", dogalgaz:""}, un:null, ay:null, f:null, af:null, mesgul:false};
+const SY_CINS = {elektrik:{ad:"Elektrik", ik:"⚡", br:"kWh"}, su:{ad:"Su", ik:"💧", br:"m³"}, dogalgaz:{ad:"Doğalgaz", ik:"🔥", br:"m³"}};
+const SY_AYLAR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+const syAyBugun = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}`; };
+const syAyAd = a => { const [y, m] = String(a).split("-"); return `${SY_AYLAR[+m-1]} ${y}`; };
+const syAyKay = (a, n) => { const [y, m] = a.split("-").map(Number), d = new Date(y, m-1+n, 1); return `${d.getFullYear()}-${pad(d.getMonth()+1)}`; };
+const syTL = n => (Math.round(n*100)/100).toLocaleString("tr-TR", {minimumFractionDigits:2, maximumFractionDigits:2}) + " ₺";
+const syNum = v => { const s = String(v ?? "").trim().replace(/\s/g, ""); if (!s) return NaN; return +(s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s); };
+const syYaz = n => isFinite(n) ? (+n).toLocaleString("tr-TR", {maximumFractionDigits:3}) : "–";
+const syYetki = () => store.isTech() || (store.isTesis && store.isTesis()) || (store.isYetkili && store.isYetkili());
+function syBaslat(){ if (SY.un || !store.sayacDinle) return; SY.un = true;
+  SY.un = store.sayacDinle(L => { SY.A = L.filter(x => x.tur === "sayacAbone"); SY.O = L.filter(x => x.tur === "sayacOkuma"); const a = L.find(x => x.tur === "sayacAyar"); if (a && a.fiyat) SY.fiyat = {...SY.fiyat, ...a.fiyat};
+    if (S.view === "sayac" && !SY.f && !SY.af) setTimeout(render, 0); }); }
+/* Bir abonenin seçilen aydaki okuması ve ondan önceki son okuma */
+function syHesap(ab, ay){
+  const L = SY.O.filter(o => o.abone === ab.id).sort((a,b) => a.ay.localeCompare(b.ay));
+  const bu = L.find(o => o.ay === ay) || null, onc = [...L].reverse().find(o => o.ay < ay) || null;
+  const once = onc ? +onc.endeks : (ab.ilkEndeks !== "" && ab.ilkEndeks != null && isFinite(syNum(ab.ilkEndeks)) ? syNum(ab.ilkEndeks) : null);
+  const r = {bu, onc, once, fark:null, tutar:null, fiyat:null};
+  if (bu && once != null){ r.fark = Math.round((+bu.endeks - once) * 1000)/1000; const c = syNum(ab.carpan) || 1; r.tuketim = Math.round(r.fark * c * 1000)/1000;
+    r.fiyat = bu.fiyat != null && bu.fiyat !== "" ? +bu.fiyat : syNum(SY.fiyat[ab.cins]); r.tutar = isFinite(r.fiyat) ? r.tuketim * r.fiyat : null; }
+  return r;
+}
+function vSayac(){
+  if (!syYetki()) return vPanel();
+  syBaslat(); const ay = SY.ay || (SY.ay = syAyBugun());
+  const A = SY.A.filter(a => a.aktif !== false).sort((a,b) => (a.ad||"").localeCompare(b.ad||"", "tr"));
+  let toplam = 0, okunan = 0, odenen = 0;
+  const kart = a => { const r = syHesap(a, ay), C = SY_CINS[a.cins] || SY_CINS.elektrik; if (r.bu) okunan++; if (r.tutar != null) toplam += r.tutar; if (r.bu && r.bu.odendi) odenen++;
+    return `<div class="sy-k${r.bu ? " ok" : ""}">
+      <div class="sy-ust"><span class="sy-ik">${C.ik}</span><div><b>${esc(a.ad)}</b><small>${C.ad}${a.no ? " · No " + esc(a.no) : ""}${(syNum(a.carpan)||1) !== 1 ? " · çarpan ×" + esc(a.carpan) : ""}</small></div>
+        <button class="pill-btn" data-act="syAboneDuz" data-id="${a.id}" aria-label="Düzenle">✏️</button></div>
+      ${r.bu ? `<div class="sy-sat">${r.bu.foto ? `<img src="${r.bu.foto}" alt="Sayaç" data-act="syFotoBak" data-id="${r.bu.id}">` : ""}
+          <div class="sy-r"><span>Önceki <b>${r.once != null ? syYaz(r.once) : "—"}</b></span><span>Bu ay <b>${syYaz(+r.bu.endeks)}</b></span>
+          <span>Fark <b>${r.fark != null ? syYaz(r.tuketim) + " " + C.br : "ilk okuma"}</b></span>${r.tutar != null ? `<span class="sy-tl">${syTL(r.tutar)}</span>` : ""}</div></div>
+        ${r.fark != null && r.fark < 0 ? `<p class="t-uyari turuncu" style="margin:6px 0 0">⚠️ Endeks öncekinden küçük — sayaç değişmiş ya da yanlış yazılmış olabilir.</p>` : ""}
+        <div class="sy-b"><button class="pill-btn${r.bu.odendi ? " sy-od" : ""}" data-act="syOdendi" data-id="${r.bu.id}">${r.bu.odendi ? "✓ Ödendi" : "Ödenmedi"}</button>
+          <button class="pill-btn" data-act="syBildirim" data-id="${a.id}">🧾 Bildirim</button><button class="pill-btn" data-act="syGonder" data-id="${a.id}">📤</button><button class="pill-btn" data-act="syOku" data-id="${a.id}">✏️ Düzelt</button></div>`
+      : `<button class="cta sy-oku" data-act="syOku" data-id="${a.id}">📷 Sayacı oku</button>${r.onc ? `<small class="sy-onc">Geçen okuma: ${syYaz(+r.onc.endeks)} · ${syAyAd(r.onc.ay)}</small>` : ""}`}
+    </div>`; };
+  const kartlar = A.map(kart).join("");
+  return `<div class="sayfa-bas" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
+      <h2 style="margin:0;font:600 22px/1.2 var(--display)">Sayaç Okuma</h2><a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">${store.isTech() ? "← İş paneli" : "← Menü"}</a></div>
+    <section class="card">
+      <div class="sy-ay"><button class="pill-btn" data-act="syAy" data-id="-1">‹</button><b>${syAyAd(ay)}</b><button class="pill-btn" data-act="syAy" data-id="1" ${ay >= syAyBugun() ? "disabled" : ""}>›</button></div>
+      <div class="sy-oz"><div><b>${okunan}/${A.length}</b><small>okundu</small></div><div><b>${syTL(toplam)}</b><small>toplam</small></div><div><b>${odenen}</b><small>ödendi</small></div></div>
+      <div class="sy-fiyat"><span>Birim fiyat:</span>${Object.entries(SY_CINS).map(([k, c]) => `<label>${c.ik} <input id="syf_${k}" inputmode="decimal" value="${SY.fiyat[k] !== "" && SY.fiyat[k] != null && isFinite(+SY.fiyat[k]) ? String(SY.fiyat[k]).replace(".", ",") : ""}" placeholder="0,00"> ₺/${c.br}</label>`).join("")}<button class="pill-btn" data-act="syFiyatKaydet">Kaydet</button></div>
+      <p class="hint" style="margin:6px 0 0">Fiyatı faturadaki birim fiyata göre girin. Okuma kaydedilirken o günkü fiyat kayda yazılır; sonradan fiyat değişse eski aylar değişmez.</p>
+    </section>
+    ${A.length ? `<div class="sy-l">${kartlar}</div>` : `<section class="card"><p class="hint" style="margin:0">Henüz sayaç eklenmedi. Aşağıdan dükkân / market sayaçlarını ekleyin.</p></section>`}
+    <div class="grid2" style="margin-top:12px"><button class="cta ghost" data-act="syAboneYeni">＋ Sayaç / dükkân ekle</button><button class="cta ghost" data-act="syListe">🖨️ Aylık liste</button></div>
+    ${SY.A.some(a => a.aktif === false) ? `<p class="hint" style="margin-top:8px">Pasif sayaçlar: ${SY.A.filter(a => a.aktif === false).map(a => `<a href="#" data-act="syAboneDuz" data-id="${a.id}">${esc(a.ad)}</a>`).join(", ")}</p>` : ""}
+    ${SY.f ? syOkuForm() : ""}${SY.af ? syAboneForm() : ""}`;
+}
+function syOkuForm(){
+  const f = SY.f, a = SY.A.find(x => x.id === f.abone) || {}, C = SY_CINS[a.cins] || SY_CINS.elektrik, r = syHesap(a, f.ay);
+  const yeni = syNum(f.endeks), c = syNum(a.carpan) || 1, fiyat = syNum(SY.fiyat[a.cins]);
+  const fark = r.once != null && isFinite(yeni) ? Math.round((yeni - r.once) * c * 1000)/1000 : null;
+  return `<div class="t-sheet"><div class="t-sheet-in">
+    <h2>${C.ik} ${esc(a.ad || "")}</h2><p class="hint" style="margin-top:0">${C.ad} sayacı · ${syAyAd(f.ay)}${a.no ? " · No " + esc(a.no) : ""}</p>
+    ${r.onc ? `<div class="sy-onck">${r.onc.foto ? `<img src="${r.onc.foto}" alt="">` : ""}<div><small>Önceki okuma · ${syAyAd(r.onc.ay)}</small><b>${syYaz(+r.onc.endeks)}</b></div></div>` : r.once != null ? `<p class="hint">Başlangıç endeksi: <b>${syYaz(r.once)}</b></p>` : `<p class="hint">Bu sayacın ilk okuması. Bu ay sadece başlangıç kaydedilir; tutar gelecek ay hesaplanır.</p>`}
+    <label class="lbl">1. Sayacın fotoğrafını çekin</label>
+    <label class="sy-foto">${f.foto ? `<img src="${f.foto}" alt="">` : `<span>📷 Fotoğraf çek</span>`}<input type="file" accept="image/*" capture="environment" id="sy_foto" hidden></label>
+    <label class="lbl" for="sy_endeks">2. Sayaçtaki rakamı yazın</label>
+    <input id="sy_endeks" class="sy-endeks" inputmode="decimal" autocomplete="off" value="${esc(f.endeks ?? "")}" placeholder="örn. 12458,3">
+    <div class="sy-hes" id="sy_hes">${syHesYaz(r.once, yeni, c, fiyat, C)}</div>
+    ${f.hata ? `<p class="err">${esc(f.hata)}</p>` : ""}
+    <button class="cta" data-act="syOkuKaydet" ${SY.mesgul || f.fotoYuk ? "disabled" : ""}>${SY.mesgul ? "Kaydediliyor…" : f.fotoYuk ? "Fotoğraf hazırlanıyor…" : "💾 Kaydet"}</button>
+    <div class="grid2" style="margin-top:8px">${f.id ? `<button class="cta ghost" data-act="syOkuSil" data-id="${f.id}">🗑️ Okumayı sil</button>` : ""}<button class="cta ghost" data-act="syKapat">Vazgeç</button></div>
+  </div></div>`;
+}
+function syHesYaz(once, yeni, c, fiyat, C){
+  if (!isFinite(yeni)) return "";
+  if (once == null) return `<span>İlk okuma: <b>${syYaz(yeni)}</b></span>`;
+  const fark = Math.round((yeni - once) * c * 1000)/1000;
+  if (fark < 0) return `<span class="sy-uy">⚠️ Yazdığınız rakam öncekinden (${syYaz(once)}) küçük. Rakamı kontrol edin.</span>`;
+  return `<span>Fark: <b>${syYaz(fark)} ${C.br}</b>${c !== 1 ? ` (×${syYaz(c)})` : ""}</span>${isFinite(fiyat) ? `<span>Tutar: <b>${syTL(fark * fiyat)}</b></span>` : `<span class="sy-uy">Birim fiyat girilmemiş</span>`}`;
+}
+function syAboneForm(){
+  const f = SY.af, V = k => esc(f[k] ?? "");
+  return `<div class="t-sheet"><div class="t-sheet-in">
+    <h2>${f.id ? "Sayacı düzenle" : "Sayaç / dükkân ekle"}</h2>
+    <label class="lbl" for="sya_ad">Dükkân / abone adı</label><input id="sya_ad" maxlength="60" value="${V("ad")}" placeholder="örn. Market, Kuaför, Eczane">
+    <label class="lbl">Sayaç türü</label><div class="seg">${Object.entries(SY_CINS).map(([k, c]) => `<button type="button" class="seg-b${f.cins===k?" on":""}" data-act="syCins" data-id="${k}">${c.ik} ${c.ad}</button>`).join("")}</div>
+    <div class="grid2"><div><label class="lbl" for="sya_no">Sayaç no (isteğe bağlı)</label><input id="sya_no" maxlength="30" value="${V("no")}"></div>
+      <div><label class="lbl" for="sya_carpan">Çarpan</label><input id="sya_carpan" inputmode="decimal" value="${V("carpan") || "1"}"></div></div>
+    <label class="lbl" for="sya_ilkEndeks">Başlangıç endeksi (geçen ayın son rakamı biliniyorsa)</label><input id="sya_ilkEndeks" inputmode="decimal" value="${V("ilkEndeks")}" placeholder="Bilinmiyorsa boş bırakın">
+    <div class="grid2"><div><label class="lbl" for="sya_yetkili">Yetkili kişi</label><input id="sya_yetkili" maxlength="50" value="${V("yetkili")}"></div><div><label class="lbl" for="sya_tel">Telefon</label><input id="sya_tel" type="tel" maxlength="20" value="${V("tel")}"></div></div>
+    <label class="lbl" for="sya_not">Yer / not</label><input id="sya_not" maxlength="120" value="${V("not")}" placeholder="örn. A1 blok altı, pano odası">
+    <p class="hint">Çarpan: elektrikte akım trafolu sayaçlarda faturadaki çarpan yazılır (örn. 40). Normal sayaçta 1 kalır.</p>
+    ${f.hata ? `<p class="err">${esc(f.hata)}</p>` : ""}
+    <button class="cta" data-act="syAboneKaydet">💾 Kaydet</button>
+    <div class="grid2" style="margin-top:8px">${f.id ? `<button class="cta ghost" data-act="syAbonePasif" data-id="${f.id}">${f.aktif === false ? "↺ Tekrar aktif yap" : "⏸️ Pasif yap"}</button>` : ""}<button class="cta ghost" data-act="syKapat">Vazgeç</button></div>
+  </div></div>`;
+}
+const SYA_ALAN = ["ad","no","carpan","ilkEndeks","yetkili","tel","not"];
+function sySync(){ if (SY.af) SYA_ALAN.forEach(k => { const el = document.getElementById("sya_" + k); if (el) SY.af[k] = el.value; });
+  if (SY.f){ const el = document.getElementById("sy_endeks"); if (el) SY.f.endeks = el.value; } }
+document.addEventListener("input", e => {
+  if (!e.target.id) return;
+  if (e.target.id.startsWith("sya_")) return sySync();
+  if (e.target.id === "sy_endeks" && SY.f){ sySync(); const a = SY.A.find(x => x.id === SY.f.abone) || {}, r = syHesap(a, SY.f.ay), h = document.getElementById("sy_hes");
+    if (h) h.innerHTML = syHesYaz(r.once, syNum(SY.f.endeks), syNum(a.carpan) || 1, syNum(SY.fiyat[a.cins]), SY_CINS[a.cins] || SY_CINS.elektrik); }
+});
+document.addEventListener("change", e => {
+  if (e.target.id !== "sy_foto" || !SY.f) return; const fl = e.target.files && e.target.files[0]; if (!fl) return;
+  sySync(); SY.f.fotoYuk = true; render();
+  ttFotoKucult(fl).then(u => { if (SY.f){ SY.f.foto = u || SY.f.foto; SY.f.fotoYuk = false; render(); setTimeout(() => { const el = document.getElementById("sy_endeks"); if (el && !el.value) el.focus(); }, 80); } });
+});
+/* Yazdırma: aylık liste ve dükkâna verilecek borç bildirimi (sayaç fotoğrafıyla) */
+const SY_CSS = `.izf-a4.sy{padding:34px 46px 10px}.sy table.l{width:100%;border-collapse:collapse;font-size:12px}.sy table.l th,.sy table.l td{border:1px solid #222;padding:5px 6px;text-align:right}.sy table.l th{background:#eee;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sy table.l td:first-child,.sy table.l td:nth-child(2){text-align:left}.sy table.l tr.t td{font-weight:700;background:#f4f4f4}
+.sy .bf{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px}.sy .bf img{width:100%;height:300px;object-fit:contain;border:1px solid #222;background:#f5f5f5}.sy .bf figcaption{font-size:11px;text-align:center;margin-top:3px}.sy .bf figure{margin:0}
+.sy .tut{border:2px solid #222;padding:10px 14px;margin:12px 0;display:flex;justify-content:space-between;align-items:center;font-size:15px}.sy .tut b{font-size:22px}`;
+function syBildirimHTML(a, ay){
+  const r = syHesap(a, ay), C = SY_CINS[a.cins] || SY_CINS.elektrik, c = syNum(a.carpan) || 1;
+  const rr = (e, v) => `<tr><td class="e">${e}</td><td class="c">:</td><td class="v">${v}</td></tr>`;
+  return `<div class="izf-a4 sy"><div class="tt-ust"><b>BİZİMEVLER 1 SİTESİ YÖNETİMİ</b><span>${new Date().toLocaleDateString("tr-TR")}</span></div>
+    <div class="baslik">${C.ad.toLocaleUpperCase("tr")} TÜKETİM BİLDİRİMİ · ${syAyAd(ay).toLocaleUpperCase("tr")}</div>
+    <table>${rr("ABONE", esc(a.ad||""))}${a.no ? rr("SAYAÇ NO", esc(a.no)) : ""}${a.not ? rr("YER", esc(a.not)) : ""}
+      ${rr("ÖNCEKİ ENDEKS", r.once != null ? `${syYaz(r.once)}${r.onc ? ` <small>(${syAyAd(r.onc.ay)} · ${new Date(r.onc.ts).toLocaleDateString("tr-TR")})</small>` : ""}` : "—")}
+      ${rr("SON ENDEKS", r.bu ? `${syYaz(+r.bu.endeks)} <small>(${new Date(r.bu.ts).toLocaleDateString("tr-TR")})</small>` : "—")}
+      ${rr("FARK", r.fark != null ? `${syYaz(r.fark)}${c !== 1 ? ` × ${syYaz(c)} (çarpan) = ${syYaz(r.tuketim)}` : ""} ${C.br}` : "—")}${rr("BİRİM FİYAT", r.fiyat != null && isFinite(r.fiyat) ? `${syTL(r.fiyat)} / ${C.br}` : "—")}</table>
+    <div class="tut"><span>ÖDENECEK TUTAR</span><b>${r.tutar != null ? syTL(r.tutar) : "—"}</b></div>
+    <div class="bf">${r.onc && r.onc.foto ? `<figure><img src="${r.onc.foto}"><figcaption>Önceki okuma · ${syAyAd(r.onc.ay)}</figcaption></figure>` : "<div></div>"}${r.bu && r.bu.foto ? `<figure><img src="${r.bu.foto}"><figcaption>Bu ayki okuma · ${syAyAd(ay)}</figcaption></figure>` : ""}</div>
+    <p class="metin" style="margin-top:14px">Yukarıda fotoğraflarıyla belirtilen sayaç okumasına göre ${syAyAd(ay)} dönemi ${C.ad.toLocaleLowerCase("tr")} tüketim bedelinin site yönetimine ödenmesi rica olunur.</p>
+    <div class="imza son"><div><span>Site Yönetimi</span><b></b><span>İmza</span><i style="height:50px"></i></div></div></div>`;
+}
+function syListeHTML(ay){
+  const A = SY.A.filter(a => a.aktif !== false).sort((a,b) => (a.ad||"").localeCompare(b.ad||"", "tr")); let t = 0;
+  const sat = A.map(a => { const r = syHesap(a, ay), C = SY_CINS[a.cins] || SY_CINS.elektrik; if (r.tutar != null) t += r.tutar;
+    return `<tr><td>${esc(a.ad)}</td><td>${C.ad}</td><td>${r.once != null ? syYaz(r.once) : "—"}</td><td>${r.bu ? syYaz(+r.bu.endeks) : "okunmadı"}</td><td>${r.fark != null ? syYaz(r.tuketim) + " " + C.br : "—"}</td><td>${r.fiyat != null && isFinite(r.fiyat) ? syTL(r.fiyat) : "—"}</td><td>${r.tutar != null ? syTL(r.tutar) : "—"}</td><td style="text-align:center">${r.bu ? (r.bu.odendi ? "Ödendi" : "Bekliyor") : ""}</td></tr>`; }).join("");
+  return `<div class="izf-a4 sy"><div class="tt-ust"><b>BİZİMEVLER 1 SİTESİ YÖNETİMİ</b><span>${new Date().toLocaleDateString("tr-TR")}</span></div>
+    <div class="baslik">SÜZME SAYAÇ OKUMA LİSTESİ · ${syAyAd(ay).toLocaleUpperCase("tr")}</div>
+    <table class="l"><tr><th>Abone</th><th>Tür</th><th>Önceki</th><th>Son</th><th>Tüketim</th><th>Birim fiyat</th><th>Tutar</th><th>Durum</th></tr>${sat}<tr class="t"><td colspan="6">TOPLAM</td><td>${syTL(t)}</td><td></td></tr></table>
+    <div class="imza son" style="margin-top:30px"><div><span>Okuyan</span><b>${esc(dashAd() || "")}</b><span>İmza</span><i style="height:50px"></i></div></div></div>`;
+}
+const syDosya = (a, ay) => `sayac-${String(a ? a.ad : "liste").toLocaleLowerCase("tr").replace(/[^a-z0-9çğıöşü]+/gi, "-")}-${ay}`;
+async function syPdf(html, ad){
+  await izfKutuphane();
+  const kap = document.createElement("div"); kap.style.cssText = "position:fixed;left:-10000px;top:0;z-index:-1";
+  kap.innerHTML = `<style>${IZF_CSS}${TT_CSS}${SY_CSS}.izf-a4{height:1123px;overflow:hidden}</style>${html}`; document.body.appendChild(kap);
+  try { const pdf = new window.jspdf.jsPDF({unit:"mm", format:"a4"}), cv = await window.html2canvas(kap.querySelector(".izf-a4"), {scale:2, backgroundColor:"#fff"});
+    pdf.addImage(cv.toDataURL("image/jpeg", .85), "JPEG", 0, 0, 210, Math.min(297, cv.height * 210 / cv.width));
+    return new File([pdf.output("blob")], ad + ".pdf", {type:"application/pdf"}); } finally { kap.remove(); }
+}
+async function syAksiyon(act, id){
+  sySync(); const ay = SY.ay || syAyBugun();
+  if (act === "syAy"){ SY.ay = syAyKay(ay, +id); if (SY.ay > syAyBugun()) SY.ay = syAyBugun(); render(); return; }
+  if (act === "syKapat"){ SY.f = null; SY.af = null; render(); return; }
+  if (act === "syAboneYeni"){ SY.af = {cins:"elektrik", carpan:"1"}; render(); return; }
+  if (act === "syAboneDuz"){ const a = SY.A.find(x => x.id === id); if (a){ SY.af = {...a}; render(); } return; }
+  if (act === "syCins"){ if (SY.af){ SY.af.cins = id; render(); } return; }
+  if (act === "syAboneKaydet"){ const f = SY.af; if (!String(f.ad||"").trim()){ f.hata = "Dükkân / abone adını yazın"; render(); return; }
+    if (f.ilkEndeks && !isFinite(syNum(f.ilkEndeks))){ f.hata = "Başlangıç endeksi sayı olmalı"; render(); return; }
+    if (!isFinite(syNum(f.carpan || "1")) || syNum(f.carpan || "1") <= 0){ f.hata = "Çarpan sayı olmalı (normalde 1)"; render(); return; }
+    const sid = f.id || ("a" + Date.now().toString(36)), v = {cins: f.cins || "elektrik", aktif: f.aktif !== false}; SYA_ALAN.forEach(k => v[k] = String(f[k] ?? "").trim()); if (!v.carpan) v.carpan = "1";
+    try { await store.sayacYaz("sa_" + sid, {...v, tur:"sayacAbone"}); SY.af = null; toast("✓ Sayaç kaydedildi"); } catch(e){ f.hata = "Kaydedilemedi: " + (e.code || e.message || ""); } render(); return; }
+  if (act === "syAbonePasif"){ const a = SY.A.find(x => x.id === id); if (!a) return; const {id:_, ...v} = a; try { await store.sayacYaz("sa_" + id, {...v, aktif: a.aktif === false}); SY.af = null; toast(a.aktif === false ? "Sayaç tekrar aktif" : "Sayaç pasif yapıldı (geçmiş kayıtlar durur)"); } catch(e){ toast("Kaydedilemedi"); } render(); return; }
+  if (act === "syFiyatKaydet"){ const F = {}; for (const k of Object.keys(SY_CINS)){ const el = document.getElementById("syf_" + k), v = el ? el.value.trim() : ""; if (v && !isFinite(syNum(v))){ toast("Fiyat sayı olmalı"); return; } F[k] = v ? String(syNum(v)) : ""; }
+    try { await store.sayacYaz("sayac_ayar", {tur:"sayacAyar", fiyat:F}); SY.fiyat = F; toast("✓ Birim fiyatlar kaydedildi"); } catch(e){ toast("Kaydedilemedi: " + (e.code||"")); } render(); return; }
+  if (act === "syOku"){ const a = SY.A.find(x => x.id === id); if (!a) return; const r = syHesap(a, ay);
+    SY.f = r.bu ? {id: r.bu.id, abone: id, ay, endeks: String(r.bu.endeks).replace(".", ","), foto: r.bu.foto || null, odendi: r.bu.odendi, ts: r.bu.ts} : {abone: id, ay, endeks: "", foto: null}; render(); return; }
+  if (act === "syOkuSil"){ if (!confirmBas("syOkuSil")) return; try { await store.sayacSil(id); SY.f = null; toast("Okuma silindi"); } catch(e){ toast("Silinemedi"); } render(); return; }
+  if (act === "syOkuKaydet"){ const f = SY.f, a = SY.A.find(x => x.id === f.abone) || {}, n = syNum(f.endeks);
+    if (!f.foto){ f.hata = "Önce sayacın fotoğrafını çekin"; render(); return; }
+    if (!isFinite(n) || n < 0){ f.hata = "Sayaçtaki rakamı yazın"; render(); return; }
+    const r = syHesap(a, f.ay); if (r.once != null && n < r.once && !confirmBas("syKucuk")){ f.hata = "Rakam öncekinden küçük. Doğruysa (sayaç değiştiyse) Kaydet'e tekrar basın."; render(); return; }
+    const fy = syNum(SY.fiyat[a.cins]), oid = f.id || `sy_${f.abone}_${f.ay}`;
+    const v = {tur:"sayacOkuma", abone: f.abone, ay: f.ay, endeks: n, foto: f.foto, fiyat: isFinite(fy) ? fy : null, ts: f.ts || Date.now(), guncel: Date.now(), by: dashAd() || "", odendi: !!f.odendi};
+    SY.mesgul = true; render();
+    try { await store.sayacYaz(oid, v); SY.f = null; toast("✓ Okuma kaydedildi"); } catch(e){ f.hata = "Kaydedilemedi: " + (e.code || e.message || ""); }
+    SY.mesgul = false; render(); return; }
+  if (act === "syOdendi"){ const o = SY.O.find(x => x.id === id); if (!o) return; const {id:_, ...v} = o; try { await store.sayacYaz(id, {...v, odendi: !o.odendi, odemeTs: !o.odendi ? Date.now() : null}); } catch(e){ toast("Kaydedilemedi"); } return; }
+  if (act === "syFotoBak"){ const o = SY.O.find(x => x.id === id); if (o && o.foto){ const w = window.open(); if (w) w.document.write(`<title>Sayaç</title><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${o.foto}" style="max-width:100%;max-height:100vh">`); } return; }
+  if (act === "syListe"){ a4Yazdir(syListeHTML(ay), TT_CSS + SY_CSS, syDosya(null, ay)); return; }
+  if (act === "syBildirim"){ const a = SY.A.find(x => x.id === id); if (a) a4Yazdir(syBildirimHTML(a, ay), TT_CSS + SY_CSS, syDosya(a, ay)); return; }
+  if (act === "syGonder"){ const a = SY.A.find(x => x.id === id); if (!a) return; const r = syHesap(a, ay);
+    toast("📄 PDF hazırlanıyor…"); let file; try { file = await syPdf(syBildirimHTML(a, ay), syDosya(a, ay)); } catch(e){ console.error(e); toast("PDF oluşturulamadı · 🧾 Bildirim ile yazdırıp PDF kaydedin"); return; }
+    const metin = `${a.ad} · ${syAyAd(ay)} ${(SY_CINS[a.cins]||{}).ad || ""} tüketimi${r.tutar != null ? ": " + syTL(r.tutar) : ""}`;
+    try { if (navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title: metin, text: metin}); return; } } catch(e){ if (e && e.name === "AbortError") return; }
+    izfIndir(file); toast("PDF indirildi · WhatsApp ile dükkâna gönderebilirsiniz"); return; }
+}
+
 const confirmBas = (() => { let son = "", t = 0; return k => { if (son === k && Date.now() - t < 4000){ son = ""; return true; } son = k; t = Date.now(); toast("Silmek için tekrar basın"); return false; }; })();
 
 function yiSync(){ const f = YI.f; if (!f) return; [["yi_ad","ad"],["yi_tur","tur"],["yi_bas","bas"],["yi_bit","bit"],["yi_not","not"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; }); }
@@ -2610,6 +2814,7 @@ const IC = {
   pin:'<path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>',
   ses:'<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>',
   sag:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  sayac:'<circle cx="12" cy="13" r="8"/><path d="M12 13l4-4M8 5.5V3h8v2.5"/>',
   tutanak:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
   izin:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M9 15l2 2 4-4"/>',
   kul:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>',
@@ -2650,6 +2855,7 @@ function yanMenuCiz(){
       ${L("puantaj.html", "cal", "Puantaj")}
       ${L("#izinler", "izin", "İzinler", v==="izinler")}
       ${L("#tutanak", "tutanak", "Olay Tutanağı", v==="tutanak", "", "", "kirmizi")}
+      ${L("#sayac", "sayac", "Sayaç Okuma", v==="sayac", "", "", "camgobegi")}
       ${tech || tesis ? L("#calisma", "broom", "Temizlik", v==="calisma") : ""}
       ${L("#ik", "users", "Personel İşleri", v==="ik")}
       ${L("#tasinma", "building", "Taşınma & Tadilat", v==="tasinma")}
@@ -3075,6 +3281,7 @@ function vDash(isler, ayar){
     T("#ik", "users", "mor", "Personel", "İzin · Puantaj"),
     T("#gorev", "clip", "camgobegi", "Görev Ver"),
     T("#tutanak", "tutanak", "kirmizi", "Olay Tutanağı", "Yaz · yazdır · PDF"),
+    T("#sayac", "sayac", "camgobegi", "Sayaç Okuma", "Dükkân · market"),
     (tech || tesis) && T("#calisma", "broom", "yesil", "Temizlik", "Çalışma listesi"),
     T("bizkontrol.html", "chart", "lacivert", "BizKontrol", "Rapor"),
     tech && T("muhasebe.html", "wallet", "altin", "Muhasebe"),
@@ -3165,6 +3372,7 @@ function vIK(){
       ${T("puantaj.html", "clock", "yesil", "Puantaj", "Aylık · Excel")}
       ${T("#gorev", "clip", "camgobegi", "Görev Ver")}
       ${T("#tutanak", "tutanak", "kirmizi", "Olay Tutanağı", "Yaz · PDF")}
+      ${T("#sayac", "sayac", "camgobegi", "Sayaç Okuma", "Fotoğraf · tutar")}
       ${(tech || tesis) ? T("#calisma", "broom", "turuncu", "Çalışma", "Hafta sonu") : ""}
       ${T("bizkontrol.html", "chart", "lacivert", "Devam", "Rapor")}
       ${T("puantaj.html", "qr", "mavi", "QR Mesai", "Giriş-çıkış")}
@@ -5228,13 +5436,13 @@ function kodBaslat(){
 function render(){
   syncForm();
   const keep = document.activeElement && document.activeElement.id;
-  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="calisma" ? vCalisma() : S.view==="izinler" ? vIzinler() : S.view==="tutanak" ? vTutanak() : S.view==="ik" ? vIK() : S.view==="gorev" ? vGorev() : S.view==="gtasinma" ? vGuvTasinma() : S.view==="personel" ? pDash(vPersonel()) : S.view==="devriye" ? pDash(vDevriye()) : vRandevu();
+  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="calisma" ? vCalisma() : S.view==="izinler" ? vIzinler() : S.view==="tutanak" ? vTutanak() : S.view==="sayac" ? vSayac() : S.view==="ik" ? vIK() : S.view==="gorev" ? vGorev() : S.view==="gtasinma" ? vGuvTasinma() : S.view==="personel" ? pDash(vPersonel()) : S.view==="devriye" ? pDash(vDevriye()) : vRandevu();
   const dash = (S.view==="panel" && (store.isTech() || (store.isYetkili && store.isYetkili())) && !S.panelEski) || (["personel","devriye","gtasinma"].includes(S.view) && !!pDashKim());
   document.body.classList.toggle("dash", dash);
   document.querySelector("nav.tabs").hidden = dash || ((store.isTech() || (store.isYetkili && store.isYetkili())) && !["randevu","randevularim"].includes(S.view)) || S.view==="personel" || S.view==="devriye" || S.view==="gtasinma" || (appDosya()==="teknik.html" && !store.isTech());
   $("#ustYazi").textContent = S.view==="personel" && appDosya()==="devriye.html" ? "Bizimevler 1 · Güvenlik" : S.view==="personel" ? "Bizimevler 1 · Personel" : S.view==="devriye" || S.view==="gtasinma" ? "Bizimevler 1 · Güvenlik" : (AYAR.ustYazi || "Teknik Servis");
   const personelMi = store.isTech() || (store.isYetkili && store.isYetkili());
-  const icsayfa = !dash && personelMi && ["tesis","tasinma","gorev","izinler","tutanak","calisma","ik","panel","personel","devriye"].includes(S.view);
+  const icsayfa = !dash && personelMi && ["tesis","tasinma","gorev","izinler","tutanak","sayac","calisma","ik","panel","personel","devriye"].includes(S.view);
   document.body.classList.toggle("icsayfa", icsayfa);
   const masa = MASA.matches && personelMi && ((dash && S.view==="panel") || icsayfa || (S.view==="personel" && !dash) || S.view==="gorev" || S.view==="tasinma");
   document.body.classList.toggle("yon-masa", masa);
@@ -5256,6 +5464,7 @@ function render(){
     : S.view==="tesis" ? "Asansör, hidrofor, jeneratör, yangın ekipmanı, bakım takvimi ve stok."
     : S.view==="izinler" ? "Yıllık izin, rapor ve mazeretler · puantaja kendiliğinden işlenir."
     : S.view==="tutanak" ? "Olay yeri tutanağı · yazdır, PDF kaydet, gönder."
+    : S.view==="sayac" ? "Süzme sayaç okuma · fotoğraf, fark, tutar."
     : S.view==="calisma" ? "Temizlik hafta sonu çalışma listesi · her hafta kendiliğinden döner."
     : S.view==="randevu" ? "Arızanı bildir, uygun saati seç. Teknisyen kapına gelsin."
     : S.view==="tasinma" ? "Taşınma ve tadilat kayıtları · Pzt–Cmt 10:00–17:00, pazar yasak."
@@ -5498,6 +5707,7 @@ document.addEventListener("click", async e => {
       S.sending = false; render(); return; }
     else if (act && act.startsWith("izf")){ e.preventDefault(); izfAksiyon(act, id); return; }
     else if (act && /^tt[A-Z]/.test(act)){ e.preventDefault(); ttAksiyon(act, id); return; }
+    else if (act && /^sy[A-Z]/.test(act)){ e.preventDefault(); syAksiyon(act, id); return; }
     else if (act==="yiEkle"){ syncForm(); const f = YI.f;
       if (!f.ad){ toast("Kişiyi seçin"); return; } if (!f.bas){ toast("Başlangıç tarihini seçin"); return; }
       if (yiSadeceGuv() && !String(f.ad).startsWith("g|")){ toast("Amirler sadece güvenlik izni girebilir"); return; }
@@ -5659,7 +5869,7 @@ function route(){
     if (n) noktaOkut(n); else toast("QR kodu tanınmadı");
     return;
   }
-  S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma","calisma","izinler","tutanak","gtasinma","gorev","ik"].includes(h) ? h : "randevu";
+  S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma","calisma","izinler","tutanak","sayac","gtasinma","gorev","ik"].includes(h) ? h : "randevu";
   // B1 Teknik uygulamasında sakin arıza formu yok (amirler görmesin); teknisyen #randevu ile yine açabilir
   if (appDosya()==="teknik.html" && (S.view==="randevu"||S.view==="randevularim") && !store.isTech()){ S.view = "panel"; history.replaceState(null, "", location.pathname + "#panel"); }
   if (S.view !== "tesis"){ T.f = null; T.detay = null; }
