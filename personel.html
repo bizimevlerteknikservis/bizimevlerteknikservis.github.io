@@ -4282,7 +4282,7 @@ function tDetay(H){
 function tYakitGecmis(H){
   const L = H.K.filter(k=>k.tur==="yakit").sort((a,b)=>b.ts-a.ts), G = T.ykHepsi ? L : L.slice(0, 8);
   return `<div class="group-h">Yakıt geçmişi${L.length ? ` <small style="text-transform:none;font-weight:500">· ${L.length} kayıt</small>` : ""}</div>
-    ${L.length ? `<div class="hid-gecmis">${G.map(k=>`<div class="hg-satir"><div><b>${k.tip==="dolum" ? "⛽ Yakıt alındı" : "📏 Seviye ölçümü"}</b><span>${esc(jenAd(k.ekipman))} · %${k.seviye}</span>${k.litre||k.tutar||k.saat?`<small>${[k.litre?k.litre+" L":"", k.tutar?k.tutar+" ₺":"", k.saat?k.saat+" çalışma saati":""].filter(Boolean).join(" · ")}</small>`:""}</div><time>${tarihSaat(k.ts)}${k.by?`<small>${esc(k.by)}</small>`:""}<span class="foto-sat">${fotoBtn(k.id, k.fotoSayi)}</span></time></div>`).join("")}</div>
+    ${L.length ? `<div class="hid-gecmis">${G.map(k=>`<div class="hg-satir"><div><b>${k.tip==="dolum" ? "⛽ Yakıt alındı" : "📏 Seviye ölçümü"}</b><span>${esc(jenAd(k.ekipman))} · %${k.seviye}</span>${k.litre||k.tutar||k.saat||k.toplu?`<small>${[k.toplu ? `${k.toplu} jeneratör toplu dolum${k.grup ? "" : " · toplam"}` : "", k.litre?k.litre+" L":"", k.tutar?k.tutar+" ₺":"", k.saat?k.saat+" çalışma saati":""].filter(Boolean).join(" · ")}</small>`:""}</div><time>${tarihSaat(k.ts)}${k.by?`<small>${esc(k.by)}</small>`:""}<span class="foto-sat">${(() => { const a = k.grup ? (H.K.find(x=>x.id===k.grup) || k) : k; return fotoBtn(a.id, a.fotoSayi); })()}</span></time></div>`).join("")}</div>
       ${L.length > G.length ? `<button class="cta ghost" data-t="ykHepsi" style="margin-top:8px">Tümünü göster (${L.length})</button>` : ""}`
       : `<p class="hint">Henüz yakıt kaydı yok. Jeneratör kartındaki ⛽ Yakıt ile girin.</p>`}`;
 }
@@ -4357,11 +4357,13 @@ function tForm(){
       <label class="foto-ekle" style="margin-top:6px"><input type="file" accept="image/*" multiple id="t_foto" hidden><span>${(f.fotolar||[]).length ? `✓ ${(f.fotolar||[]).length} fotoğraf eklendi (ekle)` : "📷 Servis formu / fiş fotoğrafı"}</span><small>isteğe bağlı</small></label>`;
   } else if (f.tip==="yakit"){
     ic = `<h2>⛽ Yakıt kaydı</h2>
-      <div class="prefs">${j.map(x=>`<button class="pref" data-t="fJen" data-v="${x.id}" aria-pressed="${f.ekipman===x.id}">${esc(x.ad)}<small style="display:block;font-weight:400">${esc(x.bolge)}</small></button>`).join("")}</div>
-      <div class="prefs" style="margin-top:8px"><button class="pref" data-t="fYTip" data-v="olcum" aria-pressed="${f.ytip!=="dolum"}">Seviye ölçümü</button><button class="pref" data-t="fYTip" data-v="dolum" aria-pressed="${f.ytip==="dolum"}">Yakıt alındı</button></div>
+      <div class="prefs"><button class="pref" data-t="fYTip" data-v="olcum" aria-pressed="${f.ytip!=="dolum"}">Seviye ölçümü</button><button class="pref" data-t="fYTip" data-v="dolum" aria-pressed="${f.ytip==="dolum"}">Yakıt alındı</button></div>
+      <div class="group-h" style="display:flex;justify-content:space-between;align-items:center">${f.ytip==="dolum" ? "Yakıt alınan jeneratörler <small style='text-transform:none;font-weight:500'>(birden fazla seçilebilir)</small>" : "Hangi jeneratör?"}
+        ${f.ytip==="dolum" ? `<button class="pill-btn" data-t="fJen" data-v="*">${(f.jenler||[]).length === j.length ? "Seçimi temizle" : "Hepsi"}</button>` : ""}</div>
+      <div class="prefs">${j.map(x=>`<button class="pref" data-t="fJen" data-v="${x.id}" aria-pressed="${(f.jenler||[]).includes(x.id)}">${esc(x.ad)}<small style="display:block;font-weight:400">${esc(x.bolge)}</small></button>`).join("")}</div>
       <label class="f">${f.ytip==="dolum"?"Dolumdan sonraki seviye (%)":"Şu anki seviye (%)"}<input type="number" id="t_seviye" min="0" max="100" inputmode="numeric" value="${esc(f.seviye??"")}"></label>
-      ${f.ytip==="dolum" ? `<div class="grid2"><label class="f">Alınan (litre)<input type="number" id="t_litre" inputmode="numeric" value="${esc(f.litre??"")}"></label><label class="f">Tutar (₺)<input type="number" id="t_tutar" inputmode="numeric" value="${esc(f.tutar??"")}"></label></div>` : ""}
-      <label class="f">Çalışma saati sayacı (isteğe bağlı)<input type="number" id="t_saat" inputmode="numeric" value="${esc(f.saat??"")}"></label>
+      ${f.ytip==="dolum" ? `<div class="grid2"><label class="f">${(f.jenler||[]).length > 1 ? "Toplam alınan (litre)" : "Alınan (litre)"}<input type="number" id="t_litre" inputmode="numeric" value="${esc(f.litre??"")}"></label><label class="f">${(f.jenler||[]).length > 1 ? "Toplam tutar (₺)" : "Tutar (₺)"}<input type="number" id="t_tutar" inputmode="numeric" value="${esc(f.tutar??"")}"></label></div>` : ""}
+      ${(f.jenler||[]).length > 1 ? `<p class="hint">Seviye seçilen ${(f.jenler||[]).length} jeneratörün hepsine yazılır. Litre ve tutar toplu dolumun toplamı olarak kaydedilir.</p>` : `<label class="f">Çalışma saati sayacı (isteğe bağlı)<input type="number" id="t_saat" inputmode="numeric" value="${esc(f.saat??"")}"></label>`}
       <label class="foto-ekle" style="margin-top:6px"><input type="file" accept="image/*" multiple id="t_foto" hidden><span>${(f.fotolar||[]).length ? `✓ ${(f.fotolar||[]).length} fotoğraf eklendi (ekle)` : (f.ytip==="dolum" ? "📷 Fiş / irsaliye fotoğrafı" : "📷 Gösterge / form fotoğrafı")}</span><small>isteğe bağlı</small></label>`;
   } else if (f.tip==="kesinti-bitti"){
     ic = `<h2>💡 Elektrik geldi</h2>
@@ -4376,7 +4378,7 @@ function tForm(){
 /* Kaydet neden pasif: kullanıcıya eksik olanı söyle */
 function tEksik(){
   const f = T.f; if (!f) return "";
-  if (f.tip==="yakit"){ if (!f.ekipman) return "Yukarıdan jeneratörü seçin"; if (f.seviye === "" || f.seviye === undefined) return "Seviyeyi (%) yazın"; if (+f.seviye < 0 || +f.seviye > 100) return "Seviye 0 ile 100 arasında olmalı"; }
+  if (f.tip==="yakit"){ if (!(f.jenler||[]).length) return "Jeneratörü seçin"; if (f.seviye === "" || f.seviye === undefined) return "Seviyeyi (%) yazın"; if (+f.seviye < 0 || +f.seviye > 100) return "Seviye 0 ile 100 arasında olmalı"; }
   if (f.tip==="ariza"){ if (!f.blok) return "Bloğu seçin"; if (!f.no) return "Asansörü seçin"; if (f.mahsur === undefined) return "Mahsur kalan var mı, seçin"; }
   if (f.tip==="bakim" && !(f.ekipmanlar||[]).length) return "Bakımı yapılanları seçin";
   if ((f.tip==="pompa" || f.tip==="tank") && !(f.unit && f.zon)) return "Hidroforu ve zonu seçin";
@@ -4390,7 +4392,7 @@ function tFormHazir(){
   if (f.tip==="bakim") return (f.ekipmanlar||[]).length > 0;
   if (f.tip==="pompa") return !!(f.unit && f.zon && f.no);
   if (f.tip==="tank") return !!(f.unit && f.zon);
-  if (f.tip==="yakit") return !!(f.ekipman && f.seviye !== "" && f.seviye !== undefined && +f.seviye >= 0 && +f.seviye <= 100);
+  if (f.tip==="yakit") return !!((f.jenler||[]).length && f.seviye !== "" && f.seviye !== undefined && +f.seviye >= 0 && +f.seviye <= 100);
   if (f.tip==="kesinti-bitti") return f.jen !== undefined;
   return false;
 }
@@ -4399,6 +4401,24 @@ function tSync(){
   const v = id => { const el = document.getElementById(id); return el ? el.value : undefined; };
   ["not","firma","seviye","litre","tutar","saat"].forEach(k => { const x = v("t_"+k); if (x !== undefined) f[k] = x; });
 }
+/* Yakıt: bir ya da birden fazla jeneratör. Toplu dolumda litre/tutar/fiş ilk kayıtta, diğerleri ona bağlı (grup) */
+async function yakitKaydet(f, by){
+  const J = (f.jenler||[]).slice(), dolum = f.ytip==="dolum", sv = Math.round(+f.seviye), now = Date.now();
+  T.kaydediliyor = true; render();
+  try {
+    let ilk = null;
+    for (const [i, jid] of J.entries()){
+      const rec = {tur:"yakit", ekipman:jid, tip: dolum ? "dolum" : "olcum", seviye:sv, by, ts: now,
+        ...(i === 0 ? {...(f.litre?{litre:+f.litre}:{}), ...(f.tutar?{tutar:+f.tutar}:{}), ...(f.saat && J.length===1?{saat:+f.saat}:{}), fotoSayi:(f.fotolar||[]).length} : {grup:ilk, fotoSayi:(f.fotolar||[]).length}),
+        ...(J.length > 1 ? {toplu:J.length} : {})};
+      const id = await store.addTesis(rec);
+      if (i === 0){ ilk = id; for (let k = 0; k < (f.fotolar||[]).length; k++) try { await store.addFoto(id, k, f.fotolar[k]); } catch(e){ console.error(e); } }
+      if (sv < YAKIT_UYARI) tgGonder(`⛽ Yakıt düşük: ${jenAd(jid)} %${sv}`);
+    }
+    toast(J.length > 1 ? `✓ ${J.length} jeneratöre yakıt kaydedildi` : "Kaydedildi"); T.f = null;
+  } catch(e){ console.error(e); toast("Kaydedilemedi: " + (e.code||"tekrar deneyin")); }
+  T.kaydediliyor = false; render();
+}
 async function tKaydet(){
   tSync(); const f = T.f; if (!tFormHazir()) return;
   const by = store.kim ? store.kim() : "Teknisyen"; let rec;
@@ -4406,7 +4426,7 @@ async function tKaydet(){
   if (f.tip==="pompa") rec = {tur:"pompa", olay:"tamire", ekipman:`${f.unit}:${f.zon}P${f.no}`, firma:(f.firma||"").trim(), not:(f.not||"").trim(), fotoSayi:(f.fotolar||[]).length, by};
   if (f.tip==="tank") rec = {tur:"tank", ekipman:`${f.unit}:${f.zon}T`, not:(f.not||"").trim(), ...(f.tutar?{tutar:+f.tutar}:{}), fotoSayi:(f.fotolar||[]).length, by};
   if (f.tip==="bakim") rec = {tur:"bakim", ekipmanlar:f.ekipmanlar.slice(), firma:(f.firma ?? "").trim(), not:(f.not||"").trim(), fotoSayi: (f.fotolar||[]).length, by};
-  if (f.tip==="yakit") rec = {tur:"yakit", ekipman:f.ekipman, tip:f.ytip==="dolum"?"dolum":"olcum", seviye:Math.round(+f.seviye), ...(f.litre?{litre:+f.litre}:{}), ...(f.tutar?{tutar:+f.tutar}:{}), ...(f.saat?{saat:+f.saat}:{}), fotoSayi:(f.fotolar||[]).length, by};
+  if (f.tip==="yakit") return yakitKaydet(f, by);
   if (f.tip==="kesinti-bitti") rec = {tur:"kesinti", olay:"bitti", jen:f.jen||"", by};
   T.kaydediliyor = true; render();
   try {
@@ -4480,7 +4500,7 @@ document.addEventListener("click", async e => {
     T.f = {tip:v};
     if (v==="ariza" && id){ const a = ASANSOR.find(x=>x.id===id); T.f.blok = a.blok; T.f.no = a.n; }
     if (v==="bakim"){ T.f.bt = id==="H" ? "hid" : id && id[0]==="J" ? "jen" : "asansor"; T.f.ekipmanlar = id && id!=="H" ? [id] : []; }
-    if (v==="yakit"){ T.f.ekipman = id || ""; T.f.ytip = "olcum"; }
+    if (v==="yakit"){ T.f.jenler = id ? [id] : []; T.f.ytip = "olcum"; }
     render();
   }
   else if (t==="fBlok"){
@@ -4501,8 +4521,12 @@ document.addEventListener("click", async e => {
   }
   else if (t==="fBakimTur"){ T.f.bt = v; T.f.ekipmanlar = []; T.f.firma = undefined; render(); }
   else if (t==="fEk"){ const L = T.f.ekipmanlar, i = L.indexOf(v); i<0 ? L.push(v) : L.splice(i,1); render(); }
-  else if (t==="fJen"){ T.f.ekipman = v; render(); }
-  else if (t==="fYTip"){ T.f.ytip = v; render(); }
+  else if (t==="fJen"){ const L = T.f.jenler ||= [];
+    if (v === "*"){ T.f.jenler = L.length === jenler().length ? [] : jenler().map(x=>x.id); }
+    else if (T.f.ytip === "dolum"){ const i = L.indexOf(v); if (i<0) L.push(v); else L.splice(i,1); }   // yakıt alındı: birden fazla jeneratör
+    else T.f.jenler = [v];   // seviye ölçümü: tek jeneratör
+    render(); }
+  else if (t==="fYTip"){ T.f.ytip = v; if (v !== "dolum" && (T.f.jenler||[]).length > 1) T.f.jenler = T.f.jenler.slice(0,1); render(); }
   else if (t==="fJenCalisti"){ T.f.jen = v; render(); }
   else if (t==="kaydet"){ await tKaydet(); }
   else if (t==="kesinti-basladi"){ await kesintiBasladi(""); render(); }
