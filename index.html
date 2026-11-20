@@ -950,7 +950,7 @@ const AYAR = {
   bildirimSunucu: "https://bizimevler1bildirim.teknisyenzeynel91.workers.dev",           // bildirim postacısı (Cloudflare Worker) adresi: https://….workers.dev
   // Firebase'den kopyaladığınız firebaseConfig nesnesini null yerine yapıştırın:
   // Yeni arıza bildirimi (Telegram)
-  telegram: { token: "9094259666:AAGAotiIBjehLjHdHz70koqkNWRD-UR28Ag", chatId: "1380037672" },
+  telegram: { sunucu: true },  /* bot şifresi sitede değil: mesajlar postacı (Cloudflare) üzerinden gider */
   firebase: {
     apiKey: "AIzaSyAAtGK76Oanri1T9nCK4bm6dDJCLVzWp5c",
     authDomain: "bizimevler-teknik-servis.firebaseapp.com",
@@ -1095,9 +1095,15 @@ function waLink(a){
     : `Merhaba ${ad}, ${AYAR.siteAdi}'ten yazıyorum. ${catOf(a.cat).ad} arıza bildiriminizi aldım (${fisNo(a)}), en kısa sürede ilgileneceğim.`;
   return "https://wa.me/" + waNumara(a.phone) + "?text=" + encodeURIComponent(metin);
 }
+/* Telegram'a gönderim postacı üzerinden: oturum kimliği (Firebase ID token) eklenir, şifre sitede yoktur */
+async function tgSunucu(veri){
+  if (!AYAR.telegram || !AYAR.bildirimSunucu || !store.idToken) return false;
+  const idToken = await store.idToken().catch(() => null); if (!idToken) return false;
+  const r = await fetch(AYAR.bildirimSunucu, {method:"POST", body: JSON.stringify({...veri, idToken}), keepalive: JSON.stringify(veri).length < 60000});
+  return r.ok;
+}
 function telegramBildir(a){
-  const tg = AYAR.telegram;
-  if (!tg || !tg.token || !tg.chatId) return;
+  if (!AYAR.telegram) return;
   const text = [
     (a.cat==="p_tasinma" ? "🚚 GÜVENLİK · TAŞINMA/TADİLAT " : a.cat==="p_gelemiyorum" ? "🤒 İŞE GELEMİYOR " : a.cat==="p_malzeme" ? "📦 Malzeme talebi " : a.src==="personel" ? "🧹 Personel bildirimi " : "🔧 Yeni arıza bildirimi ") + fisNo(a),
     "⚠️ " + catOf(a.cat).ad + (a.desc ? ": " + a.desc : ""),
@@ -1106,8 +1112,7 @@ function telegramBildir(a){
     "",
     "Panel: " + location.origin + location.pathname + "#panel"
   ].join("\n");
-  const body = new URLSearchParams({chat_id: String(tg.chatId), text, disable_web_page_preview: "true"});
-  try { fetch("https://api.telegram.org/bot" + tg.token + "/sendMessage", {method:"POST", body, mode:"no-cors", keepalive:true}).catch(()=>{}); } catch(e){}
+  tgGonder(text);
 }
 /* Fotoğraf: telefonda küçültülür (~150 KB), Firebase'e ve Telegram'a gider */
 /* Kayda servis formu / fiş fotoğrafı: "📷 Form (2)" görüntüler, "📷 Ekle" yenisini ekler (kameradan ya da galeriden, birden fazla sayfa) */
@@ -1156,12 +1161,8 @@ function fotoKucult(file){
   });
 }
 function telegramFoto(dataUrl, caption){
-  const tg = AYAR.telegram; if (!tg || !tg.token || !tg.chatId) return;
-  try {
-    const b = atob(dataUrl.split(",")[1]), arr = new Uint8Array(b.length); for (let i=0;i<b.length;i++) arr[i] = b.charCodeAt(i);
-    const fd = new FormData(); fd.append("chat_id", String(tg.chatId)); fd.append("caption", caption); fd.append("photo", new Blob([arr], {type:"image/jpeg"}), "foto.jpg");
-    fetch("https://api.telegram.org/bot" + tg.token + "/sendPhoto", {method:"POST", body:fd, mode:"no-cors"}).catch(()=>{});
-  } catch(e){ console.error(e); }
+  if (!AYAR.telegram) return;
+  tgSunucu({tur:"tgFoto", foto: dataUrl, caption}).catch(e => console.warn("telegram foto", e));
 }
 async function fotoGoster(id){
   const kutu = document.createElement("div"); kutu.className = "foto-gor"; kutu.innerHTML = `<button type="button">Kapat ✕</button><p style="color:#fff">Yükleniyor…</p>`;
@@ -1433,6 +1434,7 @@ function FirebaseStore(cfg){
       return ref.id;
     },
     async updateTasinma(id, p){ await fs.updateDoc(fs.doc(db,"tasinma",id), p); },
+    idToken: () => auth && auth.currentUser ? auth.currentUser.getIdToken() : Promise.resolve(null),
     kim: () => tech ? "Teknisyen" : ((auth && auth.currentUser && auth.currentUser.email) || "").split("@")[0],
     rolAd: () => tech ? "teknisyen" : tesisRol ? "tesis" : yonRol ? "yonetim" : null,
     async bildirimToken(vapid, reg){ await ready; const m = await import(B+"firebase-messaging.js"); if (!(await m.isSupported())) throw {code:"desteklenmiyor"}; return m.getToken(m.getMessaging(apRef), {vapidKey:vapid, serviceWorkerRegistration:reg}); },
@@ -3980,11 +3982,10 @@ async function noktaOkut(n){
 }
 /* Telegram mesajı: internet yoksa telefonda bekler, gelince gönderilir */
 function tgGonder(text){
-  const tg = AYAR.telegram; if (!tg || !tg.token || !tg.chatId) return;
-  const kuyruk = yerel("bz1-tg-kuyruk") || [];
-  if (!navigator.onLine){ kuyruk.push(text); yerel("bz1-tg-kuyruk", kuyruk.slice(-30)); return; }
-  fetch("https://api.telegram.org/bot"+tg.token+"/sendMessage",{method:"POST",body:new URLSearchParams({chat_id:String(tg.chatId),text}),mode:"no-cors",keepalive:true})
-    .catch(() => { const q = yerel("bz1-tg-kuyruk") || []; q.push(text); yerel("bz1-tg-kuyruk", q.slice(-30)); });
+  if (!AYAR.telegram) return;
+  const sakla = () => { const q = yerel("bz1-tg-kuyruk") || []; q.push(text); yerel("bz1-tg-kuyruk", q.slice(-30)); };
+  if (!navigator.onLine){ sakla(); return; }
+  tgSunucu({tur:"tg", text}).then(ok => { if (!ok) console.warn("telegram gönderilemedi"); }).catch(sakla);
 }
 function tgKuyrukGonder(){
   const q = yerel("bz1-tg-kuyruk") || []; if (!q.length || !navigator.onLine) return;
@@ -3995,8 +3996,7 @@ async function sorunGonder(){
   const not = (document.getElementById("d_not")?.value || d.sorunNot || "").trim() || "Sorun bildirildi";
   const ts = Date.now();
   const ok = await devKaydet({tip:"sorun", nokta:n.id, ad:n.ad, gorevli:d.kim.ad, vardiya:d.kim.vardiya, ts, not});
-  const tg = AYAR.telegram;
-  if (tg && tg.token && tg.chatId){
+  if (AYAR.telegram){
     const text = ["⚠️ Devriye sorunu", `📍 ${n.no}. ${n.ad}`, `📝 ${not}`, `🛡️ ${d.kim.ad} · ${d.kim.vardiya}`, `🕒 ${saatStr(ts)}`].join("\n");
     tgGonder(text);
   }
