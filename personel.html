@@ -4125,7 +4125,7 @@ function vTesis(){
       <div class="card"><h2>Aylık rapor</h2><p class="hint">Asansör arızaları, bakımlar, yakıt ve kesintiler. Yönetime sunmak için.</p>
         <div class="grid2"><button class="cta ghost" data-t="rapor" data-v="bu">📥 Bu ay</button><button class="cta ghost" data-t="rapor" data-v="gecen">📥 Geçen ay</button></div></div>`
     : T.sekme==="asansor" ? `${tAcikArizalar(H)}${tKarne()}${tAsansorIzgara(H)}`
-    : T.sekme==="jen" ? `${tJenKartlar(H, false)}`
+    : T.sekme==="jen" ? `${tJenKartlar(H, false)}${tYakitGecmis(H)}`
     : T.sekme==="hidrofor" ? tHidrofor(H)
     : T.sekme==="yangin" ? tYangin(H)
     : T.sekme==="takvim" ? tTakvim(H)
@@ -4277,6 +4277,14 @@ function tDetay(H){
     ${bakimlar.length ? bakimlar.map(k=>`<div class="t-satir"><b>${tarihSaat(k.ts)}</b> ${esc(k.firma||"")}${k.not?` · ${esc(k.not)}`:""}${fotoBtn(k.id, k.fotoSayi)}</div>`).join("") : `<p class="hint">Bakım kaydı yok.</p>`}
   </div></div>`;
 }
+/* Yakıt geçmişi: ölçüm ve dolumlar, fiş/irsaliye fotoğrafıyla */
+function tYakitGecmis(H){
+  const L = H.K.filter(k=>k.tur==="yakit").sort((a,b)=>b.ts-a.ts), G = T.ykHepsi ? L : L.slice(0, 8);
+  return `<div class="group-h">Yakıt geçmişi${L.length ? ` <small style="text-transform:none;font-weight:500">· ${L.length} kayıt</small>` : ""}</div>
+    ${L.length ? `<div class="hid-gecmis">${G.map(k=>`<div class="hg-satir"><div><b>${k.tip==="dolum" ? "⛽ Yakıt alındı" : "📏 Seviye ölçümü"}</b><span>${esc(jenAd(k.ekipman))} · %${k.seviye}</span>${k.litre||k.tutar||k.saat?`<small>${[k.litre?k.litre+" L":"", k.tutar?k.tutar+" ₺":"", k.saat?k.saat+" çalışma saati":""].filter(Boolean).join(" · ")}</small>`:""}</div><time>${tarihSaat(k.ts)}${k.by?`<small>${esc(k.by)}</small>`:""}<span class="foto-sat">${fotoBtn(k.id, k.fotoSayi)}</span></time></div>`).join("")}</div>
+      ${L.length > G.length ? `<button class="cta ghost" data-t="ykHepsi" style="margin-top:8px">Tümünü göster (${L.length})</button>` : ""}`
+      : `<p class="hint">Henüz yakıt kaydı yok. Jeneratör kartındaki ⛽ Yakıt ile girin.</p>`}`;
+}
 function tJenKartlar(H, ozet){
   return `<div class="group-h">Jeneratörler</div><div class="jen-izgara">${jenler().map(j=>{
     const y = H.yakit[j.id], sv = y ? y.seviye : null, renk = sv===null ? "var(--muted)" : sv < YAKIT_UYARI ? "#d64040" : sv < 50 ? "#e3a21b" : "#22a55b";
@@ -4285,7 +4293,7 @@ function tJenKartlar(H, ozet){
       <div class="jen-ust"><b>${esc(j.ad)}</b><small>${esc(j.bolge)}</small></div>
       <div class="jen-bar"><i style="width:${sv??0}%;background:${renk}"></i></div>
       <div class="jen-alt"><strong style="color:${renk}">${sv===null?"—":"%"+sv}</strong><span>${sv===null?"ölçüm yok":`≈ ${Math.round(j.kapasite*sv/100)} / ${j.kapasite} L`}</span></div>
-      <small class="hint">${y?`Son kayıt: ${tarihSaat(y.ts)}${y.saat?` · ${y.saat} çalışma saati`:""}`:"Henüz yakıt kaydı yok"}<br>Son bakım: ${sb?tarihSaat(sb.ts):"kayıt yok"}</small>${sb ? `<div class="foto-sat">${fotoBtn(sb.id, sb.fotoSayi)}</div>` : ""}
+      <small class="hint">${y?`Son kayıt: ${tarihSaat(y.ts)}${y.saat?` · ${y.saat} çalışma saati`:""}`:"Henüz yakıt kaydı yok"}<br>Son bakım: ${sb?tarihSaat(sb.ts):"kayıt yok"}</small>${sb ? `<div class="foto-sat"><small class="hint" style="align-self:center">Bakım formu:</small>${fotoBtn(sb.id, sb.fotoSayi)}</div>` : ""}
       ${ozet ? "" : `<div class="grid2" style="margin-top:8px"><button class="act" data-t="form" data-v="yakit" data-id="${j.id}">⛽ Yakıt</button><button class="act" data-t="form" data-v="bakim" data-id="${j.id}">🔧 Bakım</button></div>`}
     </div>`; }).join("")}</div>`;
 }
@@ -4339,18 +4347,21 @@ function tForm(){
   } else if (f.tip==="pompa"){
     ic = `<h2>🔩 Pompa tamire gitti</h2>${hidSecim(f, false)}
       <label class="f">Tamir eden firma / usta<input id="t_firma" value="${esc(f.firma||"")}"></label>
-      <label class="f">Arıza / not<input id="t_not" maxlength="200" placeholder="Örn. Salmastra kaçırıyor, motor sargısı yandı" value="${esc(f.not||"")}"></label>`;
+      <label class="f">Arıza / not<input id="t_not" maxlength="200" placeholder="Örn. Salmastra kaçırıyor, motor sargısı yandı" value="${esc(f.not||"")}"></label>
+      <label class="foto-ekle" style="margin-top:6px"><input type="file" accept="image/*" multiple id="t_foto" hidden><span>${(f.fotolar||[]).length ? `✓ ${(f.fotolar||[]).length} fotoğraf eklendi (ekle)` : "📷 Servis formu / fiş fotoğrafı"}</span><small>isteğe bağlı</small></label>`;
   } else if (f.tip==="tank"){
     ic = `<h2>🛢️ Basınç tankı değişti</h2>${hidSecim(f, true)}
       <label class="f">Not (marka, litre, sebep)<input id="t_not" maxlength="200" placeholder="Örn. 100 L membran patlamıştı" value="${esc(f.not||"")}"></label>
-      <label class="f">Tutar (₺, isteğe bağlı)<input type="number" id="t_tutar" inputmode="numeric" value="${esc(f.tutar??"")}"></label>`;
+      <label class="f">Tutar (₺, isteğe bağlı)<input type="number" id="t_tutar" inputmode="numeric" value="${esc(f.tutar??"")}"></label>
+      <label class="foto-ekle" style="margin-top:6px"><input type="file" accept="image/*" multiple id="t_foto" hidden><span>${(f.fotolar||[]).length ? `✓ ${(f.fotolar||[]).length} fotoğraf eklendi (ekle)` : "📷 Servis formu / fiş fotoğrafı"}</span><small>isteğe bağlı</small></label>`;
   } else if (f.tip==="yakit"){
     ic = `<h2>⛽ Yakıt kaydı</h2>
       <div class="prefs">${j.map(x=>`<button class="pref" data-t="fJen" data-v="${x.id}" aria-pressed="${f.ekipman===x.id}">${esc(x.ad)}<small style="display:block;font-weight:400">${esc(x.bolge)}</small></button>`).join("")}</div>
       <div class="prefs" style="margin-top:8px"><button class="pref" data-t="fYTip" data-v="olcum" aria-pressed="${f.ytip!=="dolum"}">Seviye ölçümü</button><button class="pref" data-t="fYTip" data-v="dolum" aria-pressed="${f.ytip==="dolum"}">Yakıt alındı</button></div>
       <label class="f">${f.ytip==="dolum"?"Dolumdan sonraki seviye (%)":"Şu anki seviye (%)"}<input type="number" id="t_seviye" min="0" max="100" inputmode="numeric" value="${esc(f.seviye??"")}"></label>
       ${f.ytip==="dolum" ? `<div class="grid2"><label class="f">Alınan (litre)<input type="number" id="t_litre" inputmode="numeric" value="${esc(f.litre??"")}"></label><label class="f">Tutar (₺)<input type="number" id="t_tutar" inputmode="numeric" value="${esc(f.tutar??"")}"></label></div>` : ""}
-      <label class="f">Çalışma saati sayacı (isteğe bağlı)<input type="number" id="t_saat" inputmode="numeric" value="${esc(f.saat??"")}"></label>`;
+      <label class="f">Çalışma saati sayacı (isteğe bağlı)<input type="number" id="t_saat" inputmode="numeric" value="${esc(f.saat??"")}"></label>
+      <label class="foto-ekle" style="margin-top:6px"><input type="file" accept="image/*" multiple id="t_foto" hidden><span>${(f.fotolar||[]).length ? `✓ ${(f.fotolar||[]).length} fotoğraf eklendi (ekle)` : (f.ytip==="dolum" ? "📷 Fiş / irsaliye fotoğrafı" : "📷 Gösterge / form fotoğrafı")}</span><small>isteğe bağlı</small></label>`;
   } else if (f.tip==="kesinti-bitti"){
     ic = `<h2>💡 Elektrik geldi</h2>
       <div class="group-h">Kesinti boyunca jeneratör devreye girdi mi?</div>
@@ -4379,10 +4390,10 @@ async function tKaydet(){
   tSync(); const f = T.f; if (!tFormHazir()) return;
   const by = store.kim ? store.kim() : "Teknisyen"; let rec;
   if (f.tip==="ariza") rec = {tur:"ariza", ekipman:`${f.blok}-${f.no}`, mahsur:!!f.mahsur, not:(f.not||"").trim(), by};
-  if (f.tip==="pompa") rec = {tur:"pompa", olay:"tamire", ekipman:`${f.unit}:${f.zon}P${f.no}`, firma:(f.firma||"").trim(), not:(f.not||"").trim(), by};
-  if (f.tip==="tank") rec = {tur:"tank", ekipman:`${f.unit}:${f.zon}T`, not:(f.not||"").trim(), ...(f.tutar?{tutar:+f.tutar}:{}), by};
+  if (f.tip==="pompa") rec = {tur:"pompa", olay:"tamire", ekipman:`${f.unit}:${f.zon}P${f.no}`, firma:(f.firma||"").trim(), not:(f.not||"").trim(), fotoSayi:(f.fotolar||[]).length, by};
+  if (f.tip==="tank") rec = {tur:"tank", ekipman:`${f.unit}:${f.zon}T`, not:(f.not||"").trim(), ...(f.tutar?{tutar:+f.tutar}:{}), fotoSayi:(f.fotolar||[]).length, by};
   if (f.tip==="bakim") rec = {tur:"bakim", ekipmanlar:f.ekipmanlar.slice(), firma:(f.firma ?? "").trim(), not:(f.not||"").trim(), fotoSayi: (f.fotolar||[]).length, by};
-  if (f.tip==="yakit") rec = {tur:"yakit", ekipman:f.ekipman, tip:f.ytip==="dolum"?"dolum":"olcum", seviye:Math.round(+f.seviye), ...(f.litre?{litre:+f.litre}:{}), ...(f.tutar?{tutar:+f.tutar}:{}), ...(f.saat?{saat:+f.saat}:{}), by};
+  if (f.tip==="yakit") rec = {tur:"yakit", ekipman:f.ekipman, tip:f.ytip==="dolum"?"dolum":"olcum", seviye:Math.round(+f.seviye), ...(f.litre?{litre:+f.litre}:{}), ...(f.tutar?{tutar:+f.tutar}:{}), ...(f.saat?{saat:+f.saat}:{}), fotoSayi:(f.fotolar||[]).length, by};
   if (f.tip==="kesinti-bitti") rec = {tur:"kesinti", olay:"bitti", jen:f.jen||"", by};
   T.kaydediliyor = true; render();
   try {
@@ -4499,6 +4510,7 @@ document.addEventListener("click", async e => {
   else if (t==="rapor"){ tRapor(v); }
   else if (t==="hidF"){ T.hidF = v; T.hidHepsi = false; render(); }
   else if (t==="hidHepsi"){ T.hidHepsi = true; render(); }
+  else if (t==="ykHepsi"){ T.ykHepsi = true; render(); }
   else if (t==="hidExcel"){ hidExcel(); }
   else if (t==="dKesinti"){
     const kim = (S.d.kim && S.d.kim.ad) || "Güvenlik";
