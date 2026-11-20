@@ -512,6 +512,9 @@ nav.tabs a[aria-current="page"]{color:#fff;background:rgba(59,140,255,.16)}nav.t
 .yb-ozet.gecti .yb-d{background:rgba(214,64,64,.14);color:#b3262e}.yb-ozet.yok .yb-d{background:rgba(239,138,16,.12);color:#8a5a00}
 @media (max-width:420px){.yb-kart .yb-ozet{grid-template-columns:1fr 1fr}.yb-ozet .yb-d{grid-column:1/-1}}
 .yb-gec{display:grid;gap:8px}
+.izf-l{display:grid;gap:8px;margin-top:12px}.izf-s{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line,#e3e9f2);border-radius:14px;padding:10px 12px;flex-wrap:wrap}
+.izf-s small{display:block;color:var(--muted);font-size:13px}.izf-b{display:flex;gap:6px;flex-wrap:wrap}.izf-ok{display:block;font-style:normal;color:#16784a;font-size:12.5px;margin-top:2px}
+.izf-cb{display:flex;gap:10px;align-items:center;margin:8px 0 12px;font-weight:600}.izf-cb input{width:20px;height:20px}
 .t-eksik{margin:12px 0 0;padding:10px 12px;border-radius:12px;background:#fff4e0;color:#8a5a00;font-weight:600;font-size:14px}
 .foto-sat{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.foto-sat:empty{display:none}
 .foto-b{font-size:13px !important;padding:5px 11px !important}.foto-b.ekle{background:transparent;border:1px dashed var(--line,#c9d5e4);color:var(--muted)}.yb-s{border:1px solid var(--line,#e3e9f2);border-radius:14px;padding:10px 12px}
@@ -1214,6 +1217,9 @@ function DemoStore(){
     listenIzin: cb => sub(() => cb(mem.izin || null)),
     listenIzinler: cb => sub(() => cb(mem.izinler || null)),
     async setIzinler(v){ mem.izinler = v; save(); },
+    izinFormDinle: cb => sub(() => cb(mem.izinform || [])),
+    async izinFormYaz(id, v){ mem.izinform = [...(mem.izinform||[]).filter(x => x.id !== id), {...v, id}]; save(); },
+    async izinFormSil(id){ mem.izinform = (mem.izinform||[]).filter(x => x.id !== id); save(); },
     listenGelemeyen: cb => sub(() => cb(mem.appts.filter(a => a.cat==="p_gelemiyorum"))),
     async setIzin(v){ mem.izin = v; save(); },
     async setDuyuru(v){ mem.duyuru = v; save(); },
@@ -1351,6 +1357,9 @@ function FirebaseStore(cfg){
     async setIzin(v){ await fs.setDoc(fs.doc(db,"duyuru","izin"), izinYaz(v)); },
     listenIzinler(cb){ return fs.onSnapshot(fs.doc(db,"duyuru","izinler"), s => cb(s.exists() ? s.data() : null), e => { console.warn("izinler", e && e.code); cb(null); }); },
     async setIzinler(v){ await fs.setDoc(fs.doc(db,"duyuru","izinler"), v); },
+    izinFormDinle(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"puantaj"), fs.where("tur","==","izinform")), sn => cb(sn.docs.map(d => ({...d.data(), id: d.id.replace(/^if_/,"")}))), e => { console.warn("izinform", e && e.code); cb([]); }); },
+    async izinFormYaz(id, v){ await fs.setDoc(fs.doc(db,"puantaj","if_"+id), {...v, tur:"izinform"}); },
+    async izinFormSil(id){ await fs.deleteDoc(fs.doc(db,"puantaj","if_"+id)); },
     listenGelemeyen(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"appointments"), fs.where("src","==","personel"), fs.where("cat","==","p_gelemiyorum")), sn => cb(sn.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.warn("gelemeyen", e && e.code); cb([]); }); },
     async addFoto(aid, i, data, kod){
       await fs.setDoc(fs.doc(db, "foto", aid + "_" + i), {aid, i, data, uid: user.uid, ts: Date.now(), ...(kod ? {kod} : {})});
@@ -1717,8 +1726,182 @@ function vIzinler(){
       <h2 style="margin:0;font:600 22px/1.2 var(--display)">İzinler</h2>
       <a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">${store.isTech() ? "← İş paneli" : "← Menü"}</a></div>
     <p class="hint">${yiSadeceGuv() ? "Güvenlik personelinin yıllık izin, rapor ve mazeretlerini buradan girin. Puantaja ve çalışma programına kendiliğinden işlenir." : "İzinleri teknisyen, müdür ve güvenlik amirleri girebilir (amirler sadece güvenlik izinlerini). Girdiğiniz izin temizlik ve güvenlik ekranlarında, puantajda ve çalışma programında görünür."}</p>
-    ${yiPanel(isimler)}`;
+    ${yiPanel(isimler)}
+    ${izfKart(isimler)}`;
 }
+
+/* =================== YILLIK ÜCRETLİ İZİN TALEP FORMU (kâğıt formun dijitali) ===================
+   Teknisyen, müdür ve amirler doldurur. Kayıt puantaj koleksiyonunda (personel okuyamaz; TC/adres burada).
+   PDF olarak indirilir ya da paylaşılarak muhasebeye gönderilir. İstenirse izin listesine de işlenir. */
+const IZF = {L:[], un:null, f:null, mesgul:false};
+const IZF_SABIT = {"01-01":1,"04-23":1,"05-01":1,"05-19":1,"07-15":1,"08-30":1,"10-29":1};
+const IZF_DINI = ["2026-03-20","2026-03-21","2026-03-22","2026-05-27","2026-05-28","2026-05-29","2026-05-30","2027-03-09","2027-03-10","2027-03-11","2027-05-16","2027-05-17","2027-05-18","2027-05-19"];
+const izfTatil = s => IZF_DINI.includes(s) || !!IZF_SABIT[s.slice(5)];
+function izfBaslat(){ if (IZF.un || !store.izinFormDinle) return; IZF.un = true;
+  IZF.un = store.izinFormDinle(L => { IZF.L = L || []; if (S.view === "izinler" && !IZF.f) setTimeout(render, 0); }); }
+const izfTr = s => { const d = ymdTarih(s); return d ? `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}` : ""; };
+const izfGunEkle = (s, n) => { const d = ymdTarih(s); if (!d) return ""; d.setDate(d.getDate() + n); return ymdS(d); };
+/* 4857 md.53: 1–5 yıl (5 dahil) 14 gün, 5–15 yıl 20 gün, 15 yıl ve üstü 26 gün */
+function izfHak(giris, cikis){ const g = ymdTarih(giris), c = ymdTarih(cikis) || new Date(); if (!g) return ""; const y = (c - g) / (365.25*864e5); return y < 1 ? 0 : y <= 5 ? 14 : y < 15 ? 20 : 26; }
+function izfHesap(f){
+  const a = ymdTarih(f.cikis), b = ymdTarih(f.bitis); if (!a || !b || b < a) return;
+  let gun = 0, paz = 0, rt = 0;
+  for (const d = new Date(a); d <= b; d.setDate(d.getDate()+1)){ gun++; const s = ymdS(d); if (izfTatil(s)) rt++; else if (d.getDay() === 0) paz++; }
+  f.toplamGun = gun; f.haftaTatil = String(paz); f.resmiTatil = String(rt); f.kullanacak = String(Math.max(0, gun - paz - rt));
+  f.isbasi = izfGunEkle(f.bitis, 1);
+  if (!f.yil) f.yil = String(a.getFullYear());
+  if (f.giris && (f.hak === "" || f.hak === undefined || f.hakOto)){ const h = izfHak(f.giris, f.cikis); if (h !== "") { f.hak = String(h); f.hakOto = true; } }
+  izfKalan(f);
+}
+function izfKalan(f){
+  const once = IZF.L.filter(x => x.id !== f.id && adSade(x.ad) === adSade(f.ad) && String(x.yil) === String(f.yil)).reduce((t, x) => t + (+x.kullanacak || 0), 0);
+  f.kullanilanToplam = String(once + (+f.kullanacak || 0));
+  f.kalan = f.hak !== "" && f.hak !== undefined ? String((+f.hak || 0) - (+f.kullanilanToplam || 0)) : "";
+}
+const IZF_ALAN = ["tarih","ad","tc","giris","bolum","adres","gsm","izinAdres","yolIzni","cikis","bitis","isbasi","yil","hak","haftaTatil","resmiTatil","kullanacak","kullanilanToplam","kalan","onayAd","listeye"];
+function izfSync(){ const f = IZF.f; if (!f) return; IZF_ALAN.forEach(k => { const el = document.getElementById("izf_" + k); if (el) f[k] = el.type === "checkbox" ? el.checked : el.value; }); }
+function izfKart(isimler){
+  izfBaslat();
+  const yon = yiSadeceGuv();
+  const L = IZF.L.filter(x => !yon || x.bolum === "Güvenlik").sort((a,b) => (b.cikis||"").localeCompare(a.cikis||""));
+  return `<section class="card" style="margin-top:14px"><h3 style="margin-bottom:6px">📄 Yıllık ücretli izin talep formu</h3>
+    <p class="hint">Kâğıttaki formun aynısı. Doldurup kaydedin; PDF olarak indirin ya da muhasebeye gönderin. TC ve adres bilgileri sadece teknisyen, müdür ve amirlerde görünür.</p>
+    <button class="cta" data-act="izfYeni">＋ Yeni izin formu</button>
+    ${L.length ? `<div class="izf-l">${L.slice(0, IZF.hepsi ? 200 : 6).map(x => `<div class="izf-s">
+      <div><b>${esc(x.ad)}</b><small>${esc(x.bolum||"")} · ${izfTr(x.cikis)} – ${izfTr(x.bitis)} · ${esc(x.kullanacak||"?")} gün${x.kalan!==""&&x.kalan!==undefined?` · kalan ${esc(x.kalan)}`:""}</small>
+        ${x.gonderildi ? `<em class="izf-ok">✓ Muhasebeye gönderildi ${tarihSaat(x.gonderildi)}</em>` : ""}</div>
+      <div class="izf-b"><button class="pill-btn" data-act="izfPdf" data-id="${x.id}">📄 PDF</button><button class="pill-btn" data-act="izfGonder" data-id="${x.id}">📤 Muhasebe</button><button class="pill-btn" data-act="izfDuzenle" data-id="${x.id}">✏️</button></div></div>`).join("")}</div>
+      ${L.length > 6 && !IZF.hepsi ? `<button class="pill-btn" data-act="izfHepsi" style="margin-top:8px">Tümünü göster (${L.length})</button>` : ""}` : `<p class="hint" style="margin-top:10px">Henüz form yok.</p>`}
+    ${IZF.f ? izfForm(isimler) : ""}
+  </section>`;
+}
+function izfForm(isimler){
+  const f = IZF.f, yon = yiSadeceGuv();
+  const ad = [...guvIsimler(), ...(yon ? [] : (KOD.liste||[]).filter(k => k.tip === "personel" && k.aktif !== false).map(k => k.ad)), ...(yon ? [] : isimler)];
+  const I = (k, lab, tip, ek) => `<label class="f">${lab}<input id="izf_${k}" ${tip ? `type="${tip}"` : ""} value="${esc(f[k] ?? "")}" ${ek||""}></label>`;
+  return `<div class="t-sheet"><div class="t-sheet-in">
+    <h2>📄 Yıllık ücretli izin talep formu</h2>
+    <datalist id="izfAdlar">${[...new Set(ad)].map(n => `<option value="${esc(n)}">`).join("")}</datalist>
+    <div class="grid2">${I("tarih","Tarih","date")}<label class="f">Çalıştığı bölüm<select id="izf_bolum">${(yon ? ["Güvenlik"] : ["Güvenlik","Temizlik","Bahçe","Teknik","Yönetim"]).map(b => `<option ${f.bolum===b?"selected":""}>${b}</option>`).join("")}</select></label></div>
+    ${I("ad","Adı soyadı","", 'list="izfAdlar" maxlength="60" autocomplete="off"')}
+    <div class="grid2">${I("tc","TC kimlik no","", 'inputmode="numeric" maxlength="11"')}${I("giris","İşe giriş tarihi","date")}</div>
+    <label class="f">İkametgâh adresi<textarea id="izf_adres" rows="2" maxlength="200">${esc(f.adres||"")}</textarea></label>
+    ${I("gsm","GSM telefon","tel", 'maxlength="20"')}
+    <label class="f">İzni geçireceği adres ve telefon<textarea id="izf_izinAdres" rows="2" maxlength="200">${esc(f.izinAdres||"")}</textarea></label>
+    <div class="grid2">${I("cikis","İzne çıkış tarihi","date")}${I("bitis","İzin bitiş tarihi","date")}</div>
+    <div class="grid2">${I("isbasi","İş başı tarihi","date")}${I("yolIzni","Ücretsiz yol izni (gün)","number", 'inputmode="numeric" min="0" max="4"')}</div>
+    <div class="group-h">Yıllık ücretli izin hesabı <small style="text-transform:none;font-weight:500">(tarihlerden hesaplanır, değiştirebilirsiniz)</small></div>
+    <div class="grid2">${I("yil","Hangi yıla ait","number", 'inputmode="numeric"')}${I("hak","Yıllık izin hakkı (gün)","number", 'inputmode="numeric"')}</div>
+    <div class="grid2">${I("haftaTatil","Hafta tatili (gün)","number", 'inputmode="numeric"')}${I("resmiTatil","Resmi tatil (gün)","number", 'inputmode="numeric"')}</div>
+    <div class="grid2">${I("kullanacak","Kullanacağı izin (gün)","number", 'inputmode="numeric"')}${I("kullanilanToplam","Kullanılan toplam (gün)","number", 'inputmode="numeric"')}</div>
+    <div class="grid2">${I("kalan","Kalan izin (gün)","number", 'inputmode="numeric"')}${I("onayAd","Onaylayan (ad soyad)","", 'maxlength="50"')}</div>
+    <p class="hint" style="margin-top:-2px">Hafta tatili Pazar günlerinden hesaplanır; güvenlikte vardiya tatil günlerini yazın. İzin hakkı işe giriş tarihine göre (1–5 yıl 14, 5–15 yıl 20, 15+ yıl 26 gün) önerilir.</p>
+    ${f.id ? "" : `<label class="izf-cb"><input type="checkbox" id="izf_listeye" ${f.listeye !== false ? "checked" : ""}> İzin listesine ve puantaja da işle (Y)</label>`}
+    ${f.hata ? `<p class="err">${esc(f.hata)}</p>` : ""}
+    <button class="cta" data-act="izfKaydet" ${IZF.mesgul ? "disabled" : ""}>${IZF.mesgul ? "Kaydediliyor…" : "Kaydet"}</button>
+    <div class="grid2" style="margin-top:8px">${f.id ? `<button class="cta ghost" data-act="izfSil" data-id="${f.id}">🗑️ Sil</button>` : ""}<button class="cta ghost" data-act="izfKapat">Vazgeç</button></div>
+  </div></div>`;
+}
+document.addEventListener("change", e => {
+  if (!IZF.f || !e.target.id || !e.target.id.startsWith("izf_")) return;
+  izfSync(); const k = e.target.id.slice(4);
+  if (k === "hak") IZF.f.hakOto = false;
+  if (["cikis","bitis","giris"].includes(k)) izfHesap(IZF.f);
+  else if (["hak","kullanacak","haftaTatil","resmiTatil","yil","ad"].includes(k)){ if (k === "haftaTatil" || k === "resmiTatil"){ const f = IZF.f; if (f.toplamGun) f.kullanacak = String(Math.max(0, f.toplamGun - (+f.haftaTatil||0) - (+f.resmiTatil||0))); } izfKalan(IZF.f); }
+  else return;
+  ["isbasi","yil","hak","haftaTatil","resmiTatil","kullanacak","kullanilanToplam","kalan"].forEach(x => { const el = document.getElementById("izf_" + x); if (el && el !== e.target) el.value = IZF.f[x] ?? ""; });
+});
+document.addEventListener("input", e => { if (IZF.f && e.target.id && e.target.id.startsWith("izf_")) izfSync(); });
+/* PDF: formu A4 sayfa olarak çizip (html2canvas) jsPDF ile dosyaya çevirir */
+let IZF_KUTUP = null;
+function izfKutuphane(){
+  if (IZF_KUTUP) return IZF_KUTUP;
+  const yukle = u => new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = u; sc.onload = ok; sc.onerror = () => no(new Error("yüklenemedi")); document.head.appendChild(sc); });
+  IZF_KUTUP = Promise.all([yukle("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"), yukle("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js")]).catch(e => { IZF_KUTUP = null; throw e; });
+  return IZF_KUTUP;
+}
+function izfSayfaHTML(x){
+  const r = (a, b, h) => `<tr${h ? ` style="height:${h}px"` : ""}><td class="e">${a}</td><td class="c">:</td><td class="v">${esc(b || "")}</td></tr>`;
+  const t = s => izfTr(s) || "";
+  const [ca, cb] = [ymdTarih(x.cikis), ymdTarih(x.bitis)];
+  return `<div class="izf-a4">
+  <div class="baslik">YILLIK ÜCRETLİ İZİN TALEP FORMU</div>
+  <table>${r("TARİH", t(x.tarih))}${r("ADI SOYADI", x.ad)}${r("TC KİMLİK NUMARASI", x.tc)}${r("İŞE GİRİŞ TARİHİ", t(x.giris))}${r("ÇALIŞTIĞI BÖLÜM", x.bolum)}${r("İKAMETGAH ADRESİ", x.adres, 64)}${r("GSM TELEFON NO", x.gsm)}${r("İZİNİ GEÇİRECEĞİ ADRES<br>VE TELEFON", x.izinAdres, 64)}${r("İSTENEN ÜCRETSİZ YOL İZNİ SÜRESİ", x.yolIzni ? x.yolIzni + " gün" : "")}${r("İZNE ÇIKIŞ TARİHİ", t(x.cikis))}${r("İZİN BİTİŞ TARİHİ", t(x.bitis))}${r("İŞ BAŞI TARİHİ", t(x.isbasi))}</table>
+  <p class="metin">4857 Sayılı yasanın 53 üncü maddesine göre <b>${esc(x.yil || "……")}</b> yılına ilişkin yıllık iznimi <b>${t(x.cikis) || "…/…/20…"}</b> – <b>${t(x.bitis) || "…/…/20…"}</b> tarihleri arasında kullanmak istiyorum. Gereğinin yapılmasını arz ederim. Saygılarımla</p>
+  <div class="imza"><div>Adı, Soyadı<br><b>${esc(x.ad || "")}</b><br>İmza</div></div>
+  <div class="cizgi"></div>
+  <div class="alt-bas">*** PERSONEL BÖLÜMÜ TARAFINDAN DOLDURULACAKTIR ***</div>
+  <div class="baslik ince">YILLIK ÜCRETLİ İZİN HESABI</div>
+  <table>${r("İZİNE ÇIKIŞ TARİHİ", t(x.cikis))}${r("YILLIK ÜCRETLİ İZİN SÜRESİ", x.hak ? x.hak + " gün" : "")}${r("HAFTA TATİLİ", x.haftaTatil !== "" && x.haftaTatil !== undefined ? x.haftaTatil + " gün" : "")}${r("ULUSAL VE RESMİ TATİL GÜNÜ", x.resmiTatil !== "" && x.resmiTatil !== undefined ? x.resmiTatil + " gün" : "")}${r("KULLANACAĞI İZİN SÜRESİ", x.kullanacak ? x.kullanacak + " gün" : "")}${r("KULLANILAN TOPLAM İZİN SÜRESİ", x.kullanilanToplam ? x.kullanilanToplam + " gün" : "")}${r("KALAN İZİN SÜRESİ", x.kalan !== "" && x.kalan !== undefined ? x.kalan + " gün" : "")}${r("İŞ BAŞI TARİHİ", t(x.isbasi))}</table>
+  <p class="metin">Çalışanımızın, <b>${t(x.cikis) || "…/…/20…"}</b> tarihi ile <b>${t(x.bitis) || "…/…/20…"}</b> tarihleri arasında yıllık iznini kullanması uygundur.</p>
+  <div class="imza"><div>Adı, Soyadı<br><b>${esc(x.onayAd || "")}</b><br>İmza</div></div>
+  <div class="dip">Bizimevler 1 Sitesi · ${ca && cb ? "" : ""}Form ${esc(x.id || "")} · ${new Date().toLocaleDateString("tr-TR")}</div>
+</div>`;
+}
+const IZF_CSS = `.izf-a4{width:794px;min-height:1123px;padding:56px 64px;background:#fff;color:#111;font:13px/1.35 Arial,Helvetica,sans-serif;box-sizing:border-box}
+.izf-a4 .baslik{border:2px solid #222;text-align:center;font-weight:700;font-size:15px;padding:6px;margin-bottom:6px;letter-spacing:.02em}.izf-a4 .baslik.ince{margin-top:4px}
+.izf-a4 table{width:100%;border-collapse:collapse;margin-bottom:14px}.izf-a4 td{border:1px solid #222;padding:6px 8px;vertical-align:middle;height:30px}
+.izf-a4 td.e{width:42%;font-weight:600;font-size:12.5px}.izf-a4 td.c{width:16px;text-align:center;padding:0}.izf-a4 td.v{font-size:13.5px}
+.izf-a4 .metin{margin:14px 0 10px;font-size:13.5px;line-height:1.7;text-indent:32px}.izf-a4 .imza{display:flex;justify-content:flex-end;margin:6px 0 18px}.izf-a4 .imza div{text-align:center;min-width:200px;line-height:1.6}
+.izf-a4 .cizgi{border-top:3px double #222;margin:10px 0 16px}.izf-a4 .alt-bas{text-align:center;font-weight:700;margin-bottom:10px}
+.izf-a4 .dip{margin-top:24px;font-size:10px;color:#888;text-align:center}`;
+async function izfPdfUret(x){
+  await izfKutuphane();
+  const kap = document.createElement("div"); kap.style.cssText = "position:fixed;left:-10000px;top:0;z-index:-1";
+  kap.innerHTML = `<style>${IZF_CSS}</style>${izfSayfaHTML(x)}`; document.body.appendChild(kap);
+  try {
+    const cv = await window.html2canvas(kap.querySelector(".izf-a4"), {scale:2, backgroundColor:"#fff", useCORS:true});
+    const pdf = new window.jspdf.jsPDF({unit:"mm", format:"a4"});
+    const w = 210, h = Math.min(297, cv.height * w / cv.width);
+    pdf.addImage(cv.toDataURL("image/jpeg", .9), "JPEG", 0, 0, w, h);
+    const ad = String(x.ad || "personel").toLocaleLowerCase("tr").replace(/[^a-z0-9çğıöşü]+/gi, "-");
+    return new File([pdf.output("blob")], `yillik-izin-formu-${ad}-${x.cikis || ""}.pdf`, {type:"application/pdf"});
+  } finally { kap.remove(); }
+}
+function izfIndir(file){ const u = URL.createObjectURL(file), a = document.createElement("a"); a.href = u; a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 5000); }
+async function izfAksiyon(act, id){
+  if (act === "izfYeni"){ IZF.f = {tarih: ymdS(new Date()), bolum: yiSadeceGuv() ? "Güvenlik" : "Güvenlik", hak:"", hakOto:true, listeye:true, onayAd: dashAd() || ""}; render(); return; }
+  if (act === "izfKapat"){ IZF.f = null; render(); return; }
+  if (act === "izfHepsi"){ IZF.hepsi = true; render(); return; }
+  if (act === "izfDuzenle"){ const x = IZF.L.find(y => y.id === id); if (x){ IZF.f = {...x, hakOto:false}; render(); } return; }
+  if (act === "izfSil"){ if (!confirmBas("izfSil")) return; try { await store.izinFormSil(id); IZF.f = null; toast("Form silindi"); } catch(e){ toast("Silinemedi: " + (e.code||"")); } render(); return; }
+  if (act === "izfKaydet"){
+    izfSync(); const f = IZF.f;
+    if (!String(f.ad||"").trim()){ f.hata = "Adı soyadı yazın"; render(); return; }
+    if (!f.cikis || !f.bitis || f.bitis < f.cikis){ f.hata = "İzne çıkış ve bitiş tarihlerini doğru seçin"; render(); return; }
+    if (f.tc && !/^\d{11}$/.test(f.tc)){ f.hata = "TC kimlik no 11 haneli olmalı"; render(); return; }
+    if (yiSadeceGuv() && f.bolum !== "Güvenlik"){ f.hata = "Amirler sadece güvenlik personeli için form doldurabilir"; render(); return; }
+    const yeni = !f.id, fid = f.id || ("f" + Date.now().toString(36));
+    const kayit = {}; IZF_ALAN.forEach(k => { if (k !== "listeye") kayit[k] = typeof f[k] === "string" ? f[k].trim() : (f[k] ?? ""); });
+    Object.assign(kayit, {ad: String(f.ad).trim(), by: store.kim ? store.kim() : "Teknisyen", ts: Date.now(), ...(f.gonderildi ? {gonderildi: f.gonderildi} : {})});
+    IZF.mesgul = true; render();
+    try {
+      await store.izinFormYaz(fid, kayit);
+      if (yeni && f.listeye !== false){
+        const g = f.bolum === "Güvenlik", adL = g ? (guvIsimler().find(n => adSade(n) === adSade(kayit.ad)) || kayit.ad) : adKok(kayit.ad);
+        const e = {id:"i" + Date.now().toString(36), ad: adL, grup: g ? "guvenlik" : "temizlik", tur:"yillik", bas: kayit.cikis, bit: kayit.bitis, not:"İzin formu", by: kayit.by, ts: Date.now()};
+        const L = [...izinListe().filter(x => (x.bit||x.bas) >= ymdS(new Date(Date.now()-120*GUN_MS))), e];
+        try { await store.setIzinler({liste: L, ts: Date.now()}); YI.v = {liste: L}; } catch(err){ console.warn(err); toast("Form kaydedildi ama izin listesine eklenemedi"); }
+      }
+      IZF.f = null; toast(yeni ? "✓ İzin formu kaydedildi" : "✓ Form güncellendi");
+    } catch(e){ console.error(e); f.hata = "Kaydedilemedi: " + (e.code || e.message || ""); }
+    IZF.mesgul = false; render(); return;
+  }
+  if (act === "izfPdf" || act === "izfGonder"){
+    const x = IZF.L.find(y => y.id === id); if (!x) return;
+    toast("📄 PDF hazırlanıyor…");
+    let file; try { file = await izfPdfUret(x); } catch(e){ console.error(e); toast("PDF oluşturulamadı (internet bağlantısını kontrol edin)"); return; }
+    if (act === "izfPdf"){ izfIndir(file); toast("✓ PDF indirildi"); return; }
+    const metin = `Yıllık izin talep formu · ${x.ad} · ${izfTr(x.cikis)} – ${izfTr(x.bitis)} · ${x.kullanacak || "?"} gün`;
+    let gitti = false;
+    try { if (navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title: metin, text: metin}); gitti = true; } } catch(e){ if (e && e.name === "AbortError") return; }
+    if (!gitti){ izfIndir(file); toast("PDF indirildi · muhasebeye e-posta ya da WhatsApp ile ekleyip gönderin"); }
+    try { await store.izinFormYaz(x.id, {...x, gonderildi: Date.now()}); } catch(e){ console.warn(e); }
+    return;
+  }
+}
+const confirmBas = (() => { let son = "", t = 0; return k => { if (son === k && Date.now() - t < 4000){ son = ""; return true; } son = k; t = Date.now(); toast("Silmek için tekrar basın"); return false; }; })();
+
 function yiSync(){ const f = YI.f; if (!f) return; [["yi_ad","ad"],["yi_tur","tur"],["yi_bas","bas"],["yi_bit","bit"],["yi_not","not"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; }); }
 /* ---------- Düzenleme ekranı (#calisma): teknisyen + tesis yetkilileri ---------- */
 const CL = {f:null, gen:0, acik:null};
@@ -5104,6 +5287,7 @@ document.addEventListener("click", async e => {
         telegramBildir(a); S.gel = {gonderildi:true}; toast("Bildirildi"); }
       catch(e){ console.error(e); g.hata = (e && e.code === "permission-denied") ? "Gönderilemedi: kodunuz geçersiz ya da pasif." : "Gönderilemedi, internet bağlantınızı kontrol edin."; }
       S.sending = false; render(); return; }
+    else if (act && act.startsWith("izf")){ e.preventDefault(); izfAksiyon(act, id); return; }
     else if (act==="yiEkle"){ syncForm(); const f = YI.f;
       if (!f.ad){ toast("Kişiyi seçin"); return; } if (!f.bas){ toast("Başlangıç tarihini seçin"); return; }
       if (yiSadeceGuv() && !String(f.ad).startsWith("g|")){ toast("Amirler sadece güvenlik izni girebilir"); return; }
