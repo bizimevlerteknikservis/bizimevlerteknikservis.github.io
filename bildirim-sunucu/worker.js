@@ -17,6 +17,7 @@
    - Vardiyası başladığı halde 15 dk içinde QR ile giriş yapmayan personeli amire/müdüre bildirir
    - Mesai bitiminden 30 dk sonra çıkış okutmayan personele hatırlatma gönderir; 23:00'te "çıkış unutuldu" işareti koyar
    - Her sabah 09:00'da bakımı yaklaşan/geçen ekipmanları ve azalan stoğu teknisyen ve müdüre bildirir
+   - KESİNTİ: her gün 07:00 ve 19:00'da BEDAŞ planlı kesintilerinde Avcılar'a bakar, varsa teknisyen ve müdüre haber verir.
    - TELEGRAM: sitenin Telegram mesajları buradan gider (bot şifresi sitede değil, burada gizli).
    - YEDEK: her gece 03:00'te son günün kayıtlarını, her ayın 1'inde (03:15–04:15) tam yedeği Telegram'a dosya olarak gönderir.
      Gerekli gizli değişkenler: TELEGRAM_TOKEN, TELEGRAM_CHAT. Fotoğraflar yedeğe girmez (yer kaplar).
@@ -447,10 +448,57 @@ async function sabahOzet(env, sa, simdi) {
   return gonder(env, sa, T, { title: gecen.length ? `🔧 Bakım zamanı geçti · ${gecen.length}` : L.length ? "📅 Yaklaşan bakımlar" : "📦 Stok azaldı", body: kisa(parca.join(" · "), 190), tag: "sabah-" + bugun }, "teknik.html#tesis");
 }
 
+/* =====================================================================
+   PLANLI ELEKTRİK KESİNTİSİ (BEDAŞ) — her gün 07:00 ve 19:00'da Avcılar'daki planlı kesintilere bakar.
+   Yeni bir kesinti varsa teknisyen ve tesis yetkilisine bildirim + Telegram: "jeneratör yakıtını kontrol edin".
+   İsteğe bağlı Cloudflare değişkeni KESINTI_MAHALLE: "Mahalle1,Mahalle2" → sadece bu mahalleler (boşsa tüm Avcılar).
+   Deneme: postacı adresi + "?kesinti=1" (bildirim göndermez, ne bulduğunu gösterir).
+   ===================================================================== */
+const trBuyuk = x => String(x || "").toLocaleUpperCase("tr").replace(/\s+/g, " ");
+async function bedasListe() {
+  const r = await fetch("https://www.bedas.com.tr/elektrik-getir", { method: "POST", body: "{}",
+    headers: { "content-type": "application/json", "accept": "application/json, text/plain, */*", "origin": "https://www.bedas.com.tr", "referer": "https://www.bedas.com.tr/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36" } });
+  const ham = await r.text();
+  if (!r.ok) throw new Error("bedas " + r.status + " " + ham.slice(0, 80));
+  let j; try { j = JSON.parse(ham); } catch (e) { throw new Error("bedas json değil: " + ham.slice(0, 80)); }
+  const L = []; const gez = x => { if (Array.isArray(x)) x.forEach(gez); else if (x && typeof x === "object") { if (Object.values(x).some(v => typeof v === "string")) L.push(x); Object.values(x).forEach(v => { if (v && typeof v === "object") gez(v); }); } };
+  gez(j); return L;
+}
+function kesintiYazi(x) {
+  const k = Object.keys(x), bul = re => { const a = k.find(z => re.test(z)); return a ? x[a] : ""; };
+  const bas = bul(/bas|start|begin/i), bit = bul(/bit|end|son/i), mah = bul(/mah|neigh|semt|adres|address|bolge|bölge/i), msj = bul(/mesaj|message|aciklama|açıklama|desc|detay/i);
+  const parca = [bas && bit ? `${bas} – ${bit}` : "", mah, msj].filter(v => v && typeof v !== "object").map(String);
+  return kisa(parca.length ? parca.join(" · ") : Object.values(x).filter(v => typeof v === "string" || typeof v === "number").join(" · "), 400);
+}
+async function kesintiBul(env) {
+  const L = await bedasListe();
+  const mah = String(env.KESINTI_MAHALLE || "").split(",").map(trBuyuk).map(x => x.trim()).filter(Boolean);
+  const avc = L.filter(x => trBuyuk(JSON.stringify(x)).includes("AVCILAR"));
+  const bizim = mah.length ? avc.filter(x => { const t = trBuyuk(JSON.stringify(x)); return mah.some(m => t.includes(m)); }) : avc;
+  return { toplam: L.length, avcilar: avc.length, bizim, mah };
+}
+async function kesintiKontrol(env, sa, simdi) {
+  const s = trSaat(simdi); if (!((s >= "07:00" && s < "07:15") || (s >= "19:00" && s < "19:15"))) return null;
+  const { bizim } = await kesintiBul(env); if (!bizim.length) return { yok: true };
+  const yeni = [];
+  for (const x of bizim.slice(0, 10)) {
+    const h = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-1", new TextEncoder().encode(JSON.stringify(x))))).slice(0, 10).map(b => b.toString(16).padStart(2, "0")).join("");
+    if (await ilkKezMi(sa, "kesinti_" + h)) yeni.push(kesintiYazi(x));
+  }
+  if (!yeni.length) return { atla: "zaten bildirildi" };
+  const T = (await telefonlar(sa)).filter(t => t.rol === "teknisyen" || t.rol === "tesis");
+  const g = await gonder(env, sa, T, { title: `⚡ Planlı elektrik kesintisi · Avcılar${yeni.length > 1 ? " (" + yeni.length + ")" : ""}`, body: kisa(yeni.join(" | ") + " — Jeneratör yakıtını kontrol edin.", 220), tag: "kesinti-" + trGun(simdi), onemli: true }, "teknik.html#tesis");
+  if (env.TELEGRAM_TOKEN && env.TELEGRAM_CHAT) await fetch(`https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/sendMessage`, { method: "POST",
+    body: new URLSearchParams({ chat_id: String(env.TELEGRAM_CHAT), text: "⚡ PLANLI ELEKTRİK KESİNTİSİ (BEDAŞ · Avcılar)\n\n" + yeni.map(y => "• " + y).join("\n\n") + "\n\n⛽ Jeneratör yakıtını ve çalışmasını kontrol edin.", disable_web_page_preview: "true" }) }).catch(() => {});
+  return { bildirildi: yeni.length, ...g };
+}
+
 async function zamanli(env, sa) {
   const simdi = Date.now(), s = trSaat(simdi), sonuc = {};
   try { sonuc.mesai = await mesaiKontrol(env, sa, simdi); } catch (e) { sonuc.mesai = { hata: String(e.message || e) }; }
   try { const y = await yedekCalis(env, sa, simdi); if (y) sonuc.yedek = y; } catch (e) { sonuc.yedek = { hata: String(e.message || e) }; }
+  try { const k = await kesintiKontrol(env, sa, simdi); if (k) sonuc.kesinti = k; } catch (e) { sonuc.kesinti = { hata: String(e.message || e) }; }
   if (s >= "09:00" && s < "09:30") { try { sonuc.sabah = await sabahOzet(env, sa, simdi); } catch (e) { sonuc.sabah = { hata: String(e.message || e) }; } }
   return sonuc;
 }
@@ -539,7 +587,11 @@ export default {
       try { return new Response(JSON.stringify(await havaOlcum(ctx)), { headers: { "content-type": "application/json", "cache-control": "max-age=300", ...CORS } }); }
       catch (e) { return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 502, headers: { "content-type": "application/json", ...CORS } }); }
     }
-    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 5.1: mesai, bakım, arıza notu, yedek, telegram)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
+    if (req.method === "GET" && new URL(req.url).searchParams.has("kesinti")) {
+      try { const k = await kesintiBul(env); return new Response(JSON.stringify({ kaynak: "BEDAŞ", toplamKayit: k.toplam, avcilarKayit: k.avcilar, mahalleFiltresi: k.mah, bizimIcin: k.bizim.map(kesintiYazi), ornekHam: k.bizim[0] || null }, null, 2), { headers: { "content-type": "application/json; charset=utf-8", ...CORS } }); }
+      catch (e) { return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 502, headers: { "content-type": "application/json; charset=utf-8", ...CORS } }); }
+    }
+    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 5.2: mesai, bakım, arıza notu, yedek, telegram, kesinti)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
     if (req.method !== "POST") return new Response("", { status: 405, headers: CORS });
     let g; try { g = JSON.parse(await req.text()); } catch (e) { return new Response("{}", { status: 400, headers: CORS }); }
     const tur = String(g.tur || ""), id = String(g.id || "");

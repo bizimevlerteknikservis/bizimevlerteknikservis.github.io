@@ -197,6 +197,7 @@ button.d-hava{width:100%;text-align:left;font:inherit;cursor:pointer;position:re
 .sy-sat{display:flex;gap:10px;align-items:center}.sy-sat img{width:70px;height:70px;object-fit:cover;border-radius:10px;cursor:zoom-in}.sy-r{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;color:var(--muted)}.sy-r b{color:var(--ink)}.sy-tl{font-size:18px;font-weight:800;color:#16805c;flex-basis:100%}
 .sy-b{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.sy-od{background:#16805c!important;color:#fff!important;border-color:#16805c!important}.sy-oku{margin-top:2px}.sy-onc{display:block;color:var(--muted);margin-top:6px}
 .sy-foto{display:flex;align-items:center;justify-content:center;min-height:150px;border:2px dashed var(--line);border-radius:16px;cursor:pointer;overflow:hidden;font-size:18px;font-weight:700;color:var(--accent,#1e5bd8)}.sy-foto img{width:100%;max-height:300px;object-fit:contain}
+.sy-ocr{font-size:13.5px;color:var(--muted);margin:-2px 0 8px;min-height:1em}.sy-ocr b{color:var(--ink)}
 .sy-endeks{font-size:26px!important;font-weight:800;text-align:center;letter-spacing:.04em}.sy-hes{display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 0 12px;font-size:15px}.sy-uy{color:#c0392b;font-weight:600}
 .sy-onck{display:flex;gap:10px;align-items:center;background:var(--panel2,#f1f5fb);border-radius:14px;padding:8px;margin-bottom:6px}.sy-onck img{width:64px;height:64px;object-fit:cover;border-radius:10px}.sy-onck small{display:block;color:var(--muted)}.sy-onck b{font-size:20px}
 .d-bugun{margin:18px 0 2px;display:grid;gap:10px}.d-bg-t{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.d-bg-t b{font:800 30px/1 var(--display);color:#fff;letter-spacing:-.01em}.d-bg-t>span{font-size:16px;color:rgba(232,242,255,.85);font-weight:600}
@@ -2178,6 +2179,7 @@ function syOkuForm(){
     <label class="lbl">1. Sayacın fotoğrafını çekin</label>
     <label class="sy-foto">${f.foto ? `<img src="${f.foto}" alt="">` : `<span>📷 Fotoğraf çek</span>`}<input type="file" accept="image/*" capture="environment" id="sy_foto" hidden></label>
     <label class="lbl" for="sy_endeks">2. Sayaçtaki rakamı yazın</label>
+    <p class="sy-ocr" id="sy_ocr">${syOcrDurumHTML(f)}</p>
     <input id="sy_endeks" class="sy-endeks" inputmode="decimal" autocomplete="off" value="${esc(f.endeks ?? "")}" placeholder="örn. 12458,3">
     <div class="sy-hes" id="sy_hes">${syHesYaz(r.once, yeni, c, fiyat, C)}</div>
     ${f.hata ? `<p class="err">${esc(f.hata)}</p>` : ""}
@@ -2215,14 +2217,67 @@ function sySync(){ if (SY.af) SYA_ALAN.forEach(k => { const el = document.getEle
 document.addEventListener("input", e => {
   if (!e.target.id) return;
   if (e.target.id.startsWith("sya_")) return sySync();
-  if (e.target.id === "sy_endeks" && SY.f){ sySync(); const a = SY.A.find(x => x.id === SY.f.abone) || {}, r = syHesap(a, SY.f.ay), h = document.getElementById("sy_hes");
+  if (e.target.id === "sy_endeks" && SY.f){ if (e.isTrusted) SY.f.elle = true; sySync(); const a = SY.A.find(x => x.id === SY.f.abone) || {}, r = syHesap(a, SY.f.ay), h = document.getElementById("sy_hes");
     if (h) h.innerHTML = syHesYaz(r.once, syNum(SY.f.endeks), syNum(a.carpan) || 1, syNum(SY.fiyat[a.cins]), SY_CINS[a.cins] || SY_CINS.elektrik); }
 });
 document.addEventListener("change", e => {
   if (e.target.id !== "sy_foto" || !SY.f) return; const fl = e.target.files && e.target.files[0]; if (!fl) return;
-  sySync(); SY.f.fotoYuk = true; render();
+  sySync(); SY.f.fotoYuk = true; SY.f.elle = !!String(SY.f.endeks || "").trim(); render(); syOcr(fl);
   ttFotoKucult(fl).then(u => { if (SY.f){ SY.f.foto = u || SY.f.foto; SY.f.fotoYuk = false; render(); setTimeout(() => { const el = document.getElementById("sy_endeks"); if (el && !el.value) el.focus(); }, 80); } });
 });
+/* Sayaç fotoğrafından rakamı okuma (telefonda, Tesseract; ilk kullanımda ~5 MB iner, sonra hızlı).
+   Birkaç kesit (tam, orta şerit, ters renk) okunur; geçen ayın endeksine en mantıklı yakın sayı seçilir. Kullanıcı her zaman kontrol eder. */
+const SYO = {yuk:null};
+function syOcrMotor(){
+  if (SYO.yuk) return SYO.yuk;
+  SYO.yuk = new Promise((ok, no) => { if (window.Tesseract) return ok(); const sc = document.createElement("script"); sc.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"; sc.onload = ok; sc.onerror = () => no(new Error("yuklenemedi")); document.head.appendChild(sc); })
+    .then(async () => { const w = await window.Tesseract.createWorker("eng"); await w.setParameters({tessedit_char_whitelist:"0123456789", tessedit_pageseg_mode:"6"}); return w; })
+    .catch(e => { SYO.yuk = null; throw e; });
+  return SYO.yuk;
+}
+async function syOcrResim(file){
+  const img = await new Promise((ok, no) => { const i = new Image(), u = URL.createObjectURL(file); i.onload = () => { URL.revokeObjectURL(u); ok(i); }; i.onerror = () => { URL.revokeObjectURL(u); no(new Error("resim")); }; i.src = u; });
+  const kes = (x, y, w, h, ters) => { const W = 1400, sx = img.naturalWidth*x, sy = img.naturalHeight*y, sw = img.naturalWidth*w, sh = img.naturalHeight*h, H = Math.round(W * sh / sw);
+    const c = document.createElement("canvas"); c.width = W; c.height = Math.min(H, 1400); const g = c.getContext("2d"); g.drawImage(img, sx, sy, sw, sh, 0, 0, W, c.height);
+    const d = g.getImageData(0, 0, c.width, c.height), p = d.data; let mn = 255, mx = 0;
+    for (let i = 0; i < p.length; i += 4){ const v = .3*p[i] + .59*p[i+1] + .11*p[i+2]; p[i] = v; if (v < mn) mn = v; if (v > mx) mx = v; }
+    const k = 255 / Math.max(1, mx - mn); for (let i = 0; i < p.length; i += 4){ let v = (p[i] - mn) * k; if (ters) v = 255 - v; p[i] = p[i+1] = p[i+2] = v; }
+    g.putImageData(d, 0, 0); return c; };
+  return [kes(.12, .28, .76, .44), kes(0, 0, 1, 1), kes(.12, .28, .76, .44, true), kes(.05, .15, .9, .7)];
+}
+function syOcrSec(metinler, once){
+  const adaylar = [];
+  metinler.forEach(t => { const tt = String(t || "").replace(/(\d)[ \t]+(?=\d)/g, "$1"); (tt.match(/\d{3,9}/g) || []).forEach(sq => { const n = +sq; [n, n/10, n/100, n/1000].forEach((v, b) => adaylar.push({v, b, sq})); }); });
+  if (!adaylar.length) return null;
+  if (once != null && isFinite(once)){
+    const ust = Math.max(once * 0.5, 2000);
+    const uy = adaylar.filter(a => a.v >= once && a.v - once <= ust).sort((a, b) => (a.v - once) - (b.v - once) || a.b - b.b);
+    if (uy.length) return uy[0].v;
+    return null;
+  }
+  const tam = adaylar.filter(a => a.b === 0).sort((a, b) => b.sq.length - a.sq.length);
+  return tam.length ? tam[0].v : null;
+}
+async function syOcr(file){
+  const f = SY.f; if (!f) return; const a = SY.A.find(x => x.id === f.abone) || {}, once = syHesap(a, f.ay).once;
+  f.ocr = "okunuyor"; syOcrDurum();
+  try {
+    const [w, kesitler] = await Promise.all([syOcrMotor(), syOcrResim(file)]); const metinler = []; let bulunan = null;
+    for (const c of kesitler){ if (SY.f !== f) return; const r = await w.recognize(c); metinler.push(r.data.text); bulunan = syOcrSec(metinler, once); if (bulunan != null && once != null) break; }
+    if (SY.f !== f) return;
+    if (bulunan == null){ f.ocr = "yok"; syOcrDurum(); return; }
+    f.ocr = "ok"; f.ocrDeger = bulunan;
+    if (!f.elle){ f.endeks = String(bulunan).replace(".", ","); const el = document.getElementById("sy_endeks"); if (el){ el.value = f.endeks; el.dispatchEvent(new Event("input", {bubbles:true})); } }
+    syOcrDurum();
+  } catch(e){ console.warn("ocr", e); if (SY.f === f){ f.ocr = "hata"; syOcrDurum(); } }
+}
+function syOcrDurumHTML(f){
+  return f.ocr === "okunuyor" ? "🤖 Fotoğraftaki rakam okunuyor… (ilk seferde biraz sürebilir)"
+    : f.ocr === "ok" ? `🤖 Fotoğraftan okunan: <b>${syYaz(f.ocrDeger)}</b> — fotoğrafla karşılaştırıp doğruysa kaydedin${f.elle && String(syNum(f.endeks)) !== String(f.ocrDeger) ? ` · <a href="#" data-act="syOcrKullan">bunu kullan</a>` : ""}`
+    : f.ocr === "yok" ? "🤖 Rakam fotoğraftan okunamadı, elle yazın. Daha yakından ve düz çekerseniz okuyabilir."
+    : f.ocr === "hata" ? "🤖 Otomatik okuma şu an çalışmadı, elle yazın." : "";
+}
+function syOcrDurum(){ const el = document.getElementById("sy_ocr"); if (el && SY.f) el.innerHTML = syOcrDurumHTML(SY.f); }
 /* Yazdırma: aylık liste ve dükkâna verilecek borç bildirimi (sayaç fotoğrafıyla) */
 const SY_CSS = `.izf-a4.sy{padding:34px 46px 10px}.sy table.l{width:100%;border-collapse:collapse;font-size:12px}.sy table.l th,.sy table.l td{border:1px solid #222;padding:5px 6px;text-align:right}.sy table.l th{background:#eee;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sy table.l td:first-child,.sy table.l td:nth-child(2){text-align:left}.sy table.l tr.t td{font-weight:700;background:#f4f4f4}
 .sy .bf{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px}.sy .bf img{width:100%;height:300px;object-fit:contain;border:1px solid #222;background:#f5f5f5}.sy .bf figcaption{font-size:11px;text-align:center;margin-top:3px}.sy .bf figure{margin:0}
@@ -2276,13 +2331,14 @@ async function syAksiyon(act, id){
     try { await store.sayacYaz("sayac_ayar", {tur:"sayacAyar", fiyat:F}); SY.fiyat = F; toast("✓ Birim fiyatlar kaydedildi"); } catch(e){ toast("Kaydedilemedi: " + (e.code||"")); } render(); return; }
   if (act === "syOku"){ const a = SY.A.find(x => x.id === id); if (!a) return; const r = syHesap(a, ay);
     SY.f = r.bu ? {id: r.bu.id, abone: id, ay, endeks: String(r.bu.endeks).replace(".", ","), foto: r.bu.foto || null, odendi: r.bu.odendi, ts: r.bu.ts} : {abone: id, ay, endeks: "", foto: null}; render(); return; }
+  if (act === "syOcrKullan"){ if (SY.f && SY.f.ocrDeger != null){ SY.f.endeks = String(SY.f.ocrDeger).replace(".", ","); SY.f.elle = false; render(); } return; }
   if (act === "syOkuSil"){ if (!confirmBas("syOkuSil")) return; try { await store.sayacSil(id); SY.f = null; toast("Okuma silindi"); } catch(e){ toast("Silinemedi"); } render(); return; }
   if (act === "syOkuKaydet"){ const f = SY.f, a = SY.A.find(x => x.id === f.abone) || {}, n = syNum(f.endeks);
     if (!f.foto){ f.hata = "Önce sayacın fotoğrafını çekin"; render(); return; }
     if (!isFinite(n) || n < 0){ f.hata = "Sayaçtaki rakamı yazın"; render(); return; }
     const r = syHesap(a, f.ay); if (r.once != null && n < r.once && !confirmBas("syKucuk")){ f.hata = "Rakam öncekinden küçük. Doğruysa (sayaç değiştiyse) Kaydet'e tekrar basın."; render(); return; }
     const fy = syNum(SY.fiyat[a.cins]), oid = f.id || `sy_${f.abone}_${f.ay}`;
-    const v = {tur:"sayacOkuma", abone: f.abone, ay: f.ay, endeks: n, foto: f.foto, fiyat: isFinite(fy) ? fy : null, ts: f.ts || Date.now(), guncel: Date.now(), by: dashAd() || "", odendi: !!f.odendi};
+    const v = {tur:"sayacOkuma", abone: f.abone, ay: f.ay, endeks: n, foto: f.foto, ...(f.ocrDeger != null ? {ocr: f.ocrDeger} : {}), fiyat: isFinite(fy) ? fy : null, ts: f.ts || Date.now(), guncel: Date.now(), by: dashAd() || "", odendi: !!f.odendi};
     SY.mesgul = true; render();
     try { await store.sayacYaz(oid, v); SY.f = null; toast("✓ Okuma kaydedildi"); } catch(e){ f.hata = "Kaydedilemedi: " + (e.code || e.message || ""); }
     SY.mesgul = false; render(); return; }
