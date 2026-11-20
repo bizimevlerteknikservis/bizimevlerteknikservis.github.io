@@ -728,6 +728,23 @@ function desenModal(){
     DESEN_TASLAK = D; };
   goster();
 }
+/* İlk sürümde "örnek" olarak kaydedilen güvenlik düzeni (2 gün kaymış) yönetimin Kasım 2026 kâğıt çizelgesine çevrilir.
+   Sadece o eski örnek değerler aynen duruyorsa değişir; amirin kendi girdiği bir düzene dokunulmaz. Bir kez kaydedilir. */
+const ESKI_ORNEK = {"1. Vardiya":"2026-11-01", "2. Vardiya":"2026-10-30", "3. Vardiya":"2026-10-28"};
+let DESEN_GOC_YAZILDI = false;
+function desenGoc(){
+  const D = P.ayar.desen || {}; let degisti = false; const yeni = {...D};
+  for (const [v, baz] of Object.entries(ESKI_ORNEK)){
+    const d = D[v];
+    if (d && d.seq === "G,G,N,N,HT,HT" && d.baz === baz){ yeni[v] = {...ESKI_CIZELGE[v]}; degisti = true; }
+  }
+  if (!degisti) return;
+  P.ayar.desen = yeni;
+  const r = cizelgeKisiler(); if (r.n) P.ayar.kisiler = r.K;
+  try { MS_CACHE.clear(); } catch(e){}
+  if (!DESEN_GOC_YAZILDI && (P.rol.tech || P.rol.tesis || P.rol.yon)){ DESEN_GOC_YAZILDI = true;
+    DB.ayarYaz({desen:yeni, desenOnay:true, ...(r.n ? {kisiler:r.K} : {})}).then(() => toast("✓ Güvenlik vardiya düzeni kâğıt çizelgeye göre düzeltildi")).catch(e => console.warn(e)); }
+}
 let DESEN_TASLAK = null, DESEN_KISI = false;
 /* Çizelgedeki vardiya üyeliğini kayıtlı kişi listesine uygula (isim eşleşirse) */
 function cizelgeKisiler(){
@@ -980,7 +997,7 @@ async function canli(){
     $("#kimAd").textContent = P.rol.tech ? "Teknisyen" : P.rol.tesis ? "Müdür" : "Amir";
     $("#giris").hidden = true; $("#app").hidden = false;
     if (bas) return; bas = true;
-    DB.ayarDinle(v => { P.ayar = {kisiler:{}, desen:{}, ...v}; P.ayarGeldi = true; if (!POP) ciz(); });
+    DB.ayarDinle(v => { P.ayar = {kisiler:{}, desen:{}, ...v}; P.ayarGeldi = true; desenGoc(); if (!POP) ciz(); });
     DB.izinDinle(L => { P.izin = L; if (!POP) ciz(); });
     DB.planDinle(v => { P.plan = planCoz(v); if (!POP) ciz(); });
     DB.degisimDinle(L => { P.degisim = L; if (!POP) ciz(); });
@@ -1015,7 +1032,7 @@ function bellek(){
   };
   P.rol = window.TEST_ROL || {tech:true, tesis:false, yon:false}; P.kim = "Test";
   $("#kimAd").textContent = "Test"; $("#giris").hidden = true; $("#app").hidden = false;
-  DB.ayarDinle(v=>{ P.ayar = {kisiler:{}, desen:{}, ...v}; ciz(); }); DB.izinDinle(L=>{ P.izin = L; }); DB.planDinle(v=>{ P.plan = planCoz(v); }); DB.degisimDinle(L=>{ P.degisim = L; }); DB.konumDinle(v=>{ P.siteKonum = v; }); ayDinle();
+  DB.ayarDinle(v=>{ P.ayar = {kisiler:{}, desen:{}, ...v}; desenGoc(); ciz(); }); DB.izinDinle(L=>{ P.izin = L; }); DB.planDinle(v=>{ P.plan = planCoz(v); }); DB.degisimDinle(L=>{ P.degisim = L; }); DB.konumDinle(v=>{ P.siteKonum = v; }); ayDinle();
 }
 window.__PT = {P, oto, hucre, kisiler, excelYap, raporHTML, gecDk, saatAyar};
 if (window.FB_CONFIG) canli().catch(e=>{ console.error(e); $("#giris").hidden = false; $("#gHata").textContent = "Bağlantı kurulamadı, sayfayı yenileyin."; });
