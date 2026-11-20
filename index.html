@@ -1098,20 +1098,26 @@ function fotoBtn(id, sayi, tur, yetki){
   const n = +sayi || 0; if (yetki === undefined) yetki = store.isTech() || !!(store.isTesis && store.isTesis());
   return `${n ? `<button class="pill-btn foto-b" data-act="foto" data-id="${esc(id)}">📷 Form${n > 1 ? ` (${n})` : ""}</button>` : ""}${yetki === false ? "" : `<button class="pill-btn foto-b ekle" data-act="kayitFoto" data-id="${esc(id)}" data-tur="${tur||"tesis"}" data-n="${n}">${n ? "＋" : "📷 Form ekle"}</button>`}`;
 }
+/* Dosya seçici hemen açılır (telefon dokunuşu gerektiriyor). Aynı anda kayıtta önceden kaydedilmiş fotoğraf var mı bakılır:
+   varsa sayısı düzeltilir, yeni fotoğraflar onların arkasına eklenir. */
 function kayitFotoSec(id, tur, n){
+  const sayiYaz = async k => {
+    if (tur === "appt"){ const a = [...(S.all||[]), ...(IK.pers||[]), ...(S.mine||[])].find(x => x.id === id) || {id}; await store.update(a, {fotoSayi:k}); a.fotoSayi = k; }
+    else { await store.updateTesis(id, {fotoSayi:k}); const r = (T.kayit||[]).find(x => x.id === id); if (r) r.fotoSayi = k; }
+  };
+  const mevcut = (!n && store.getFoto) ? store.getFoto(id).then(L => (L||[]).length).catch(() => 0) : Promise.resolve(n);
+  mevcut.then(async k => { if (k > n){ n = k; try { await sayiYaz(k); } catch(e){ console.warn(e); } toast(`📷 Bu kayıtta önceden ${k} fotoğraf bulundu`); render(); } });
   const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*"; inp.multiple = true; inp.style.display = "none";
   document.body.appendChild(inp);
   inp.onchange = async () => {
     const F = [...(inp.files||[])].slice(0, 6); inp.remove(); if (!F.length) return;
+    await mevcut;
     toast(`📷 ${F.length} fotoğraf yükleniyor…`);
-    let k = 0;
-    for (const f of F){ try { const d = await fotoKucult(f); await store.addFoto(id, n + k, d); k++; } catch(e){ console.error(e); } }
-    if (!k){ toast("Fotoğraf yüklenemedi"); return; }
-    try {
-      if (tur === "appt"){ const a = [...(S.all||[]), ...(IK.pers||[]), ...(S.mine||[])].find(x => x.id === id) || {id}; await store.update(a, {fotoSayi: n + k}); a.fotoSayi = n + k; }
-      else { await store.updateTesis(id, {fotoSayi: n + k}); const r = (T.kayit||[]).find(x => x.id === id); if (r) r.fotoSayi = n + k; }
-      toast(`✓ ${k} fotoğraf eklendi`);
-    } catch(e){ console.error(e); toast("Fotoğraf eklendi ama sayısı güncellenemedi" + (e.code ? " (" + e.code + ")" : "")); }
+    let k = 0, hata = "";
+    for (const f of F){ try { const d = await fotoKucult(f); await store.addFoto(id, n + k, d); k++; } catch(e){ console.error(e); hata = e.code || e.message || ""; } }
+    if (!k){ toast("⚠️ Fotoğraf yüklenemedi" + (hata ? " (" + hata + ")" : "")); return; }
+    try { await sayiYaz(n + k); toast(`✓ ${k} fotoğraf eklendi`); }
+    catch(e){ console.error(e); toast("Fotoğraf eklendi ama sayısı güncellenemedi" + (e.code ? " (" + e.code + ")" : "")); }
     render();
   };
   inp.click();
@@ -4378,6 +4384,7 @@ function tForm(){
 /* Kaydet neden pasif: kullanıcıya eksik olanı söyle */
 function tEksik(){
   const f = T.f; if (!f) return "";
+  if (f.fotoYuk) return "📷 Fotoğraf hazırlanıyor, birkaç saniye bekleyin…";
   if (f.tip==="yakit"){ if (!(f.jenler||[]).length) return "Jeneratörü seçin"; if (f.seviye === "" || f.seviye === undefined) return "Seviyeyi (%) yazın"; if (+f.seviye < 0 || +f.seviye > 100) return "Seviye 0 ile 100 arasında olmalı"; }
   if (f.tip==="ariza"){ if (!f.blok) return "Bloğu seçin"; if (!f.no) return "Asansörü seçin"; if (f.mahsur === undefined) return "Mahsur kalan var mı, seçin"; }
   if (f.tip==="bakim" && !(f.ekipmanlar||[]).length) return "Bakımı yapılanları seçin";
@@ -4388,6 +4395,7 @@ function tEksik(){
 }
 function tFormHazir(){
   const f = T.f; if (!f) return false;
+  if (f.fotoYuk) return false;
   if (f.tip==="ariza") return !!(f.blok && f.no && f.mahsur !== undefined);
   if (f.tip==="bakim") return (f.ekipmanlar||[]).length > 0;
   if (f.tip==="pompa") return !!(f.unit && f.zon && f.no);
@@ -4412,7 +4420,7 @@ async function yakitKaydet(f, by){
         ...(i === 0 ? {...(f.litre?{litre:+f.litre}:{}), ...(f.tutar?{tutar:+f.tutar}:{}), ...(f.saat && J.length===1?{saat:+f.saat}:{}), fotoSayi:(f.fotolar||[]).length} : {grup:ilk, fotoSayi:(f.fotolar||[]).length}),
         ...(J.length > 1 ? {toplu:J.length} : {})};
       const id = await store.addTesis(rec);
-      if (i === 0){ ilk = id; for (let k = 0; k < (f.fotolar||[]).length; k++) try { await store.addFoto(id, k, f.fotolar[k]); } catch(e){ console.error(e); } }
+      if (i === 0){ ilk = id; for (let k = 0; k < (f.fotolar||[]).length; k++) try { await store.addFoto(id, k, f.fotolar[k]); } catch(e){ console.error(e); toast("⚠️ Fotoğraf yüklenemedi: " + (e.code||"") + " · Form ekle ile tekrar deneyin"); } }
       if (sv < YAKIT_UYARI) tgGonder(`⛽ Yakıt düşük: ${jenAd(jid)} %${sv}`);
     }
     toast(J.length > 1 ? `✓ ${J.length} jeneratöre yakıt kaydedildi` : "Kaydedildi"); T.f = null;
@@ -4431,7 +4439,7 @@ async function tKaydet(){
   T.kaydediliyor = true; render();
   try {
     const id = await store.addTesis({...rec, ts: Date.now()});
-    for (let i = 0; i < (f.fotolar||[]).length; i++) try { await store.addFoto(id, i, f.fotolar[i]); } catch(e){ console.error(e); }
+    for (let i = 0; i < (f.fotolar||[]).length; i++) try { await store.addFoto(id, i, f.fotolar[i]); } catch(e){ console.error(e); toast("⚠️ Fotoğraf yüklenemedi: " + (e.code||"") + " · Form ekle ile tekrar deneyin"); }
     if (rec.tur==="ariza") tgGonder([`🛗 ASANSÖR ARIZASI`, `📍 ${asAd(rec.ekipman)}`, rec.mahsur?"🚨 İçeride mahsur kalan var!":"", (kronikSay(rec.ekipman)+1) >= KRONIK_ESIK ? `♻️ Kronik: ${KRONIK_GUN} günde ${kronikSay(rec.ekipman)+1}. arıza` : "", rec.not?`📝 ${rec.not}`:"", `🕒 ${saatStr(Date.now())}`].filter(Boolean).join("\n"));
     if (rec.tur==="yakit" && rec.seviye < YAKIT_UYARI) tgGonder(`⛽ Yakıt düşük: ${jenAd(rec.ekipman)} %${rec.seviye}`);
     if (rec.tur==="kesinti") tgGonder(`💡 Elektrik geldi${rec.jen==="evet"?" · jeneratör çalıştı":rec.jen==="hayir"?" · jeneratör ÇALIŞMADI":""}\n🕒 ${saatStr(Date.now())}`);
@@ -4564,9 +4572,9 @@ document.addEventListener("click", async e => {
 document.addEventListener("change", async e => {
   if (e.target.id === "yb_foto" && e.target.files && T.ybf){ ybSync(); T.ybf.fotolar ||= []; for (const x of [...e.target.files].slice(0,6)){ try { T.ybf.fotolar.push(await fotoKucult(x)); } catch(err){ toast("Fotoğraf okunamadı"); } } T.ybf.fotolar = T.ybf.fotolar.slice(0,6); render(); return; }
   if (e.target.id === "t_foto" && e.target.files && e.target.files[0] && T.f){
-    tSync(); const F = [...e.target.files].slice(0, 6); T.f.fotolar ||= [];
-    for (const x of F){ try { T.f.fotolar.push(await fotoKucult(x)); } catch(err){ toast("Fotoğraf okunamadı"); } }
-    T.f.fotolar = T.f.fotolar.slice(0, 6); render();
+    tSync(); const F = [...e.target.files].slice(0, 6); T.f.fotolar ||= []; T.f.fotoYuk = true; render();
+    for (const x of F){ try { T.f.fotolar.push(await fotoKucult(x)); } catch(err){ toast("Fotoğraf okunamadı · başka bir fotoğraf deneyin"); } }
+    T.f.fotolar = T.f.fotolar.slice(0, 6); T.f.fotoYuk = false; render();
   }
 });
 document.addEventListener("input", e => {
