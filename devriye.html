@@ -785,7 +785,8 @@ nav.tabs a[aria-current="page"]{color:#fff;background:rgba(59,140,255,.16)}nav.t
   .m-akis-l li:last-child{border-bottom:0}
   .m-akis-l i{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 22%,transparent);border:1px solid color-mix(in srgb,var(--c) 50%,transparent)}
   .m-akis-l i svg{width:17px;height:17px;stroke:var(--c);fill:none;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
-  .m-akis-l li.kirmizi{--c:#ff5a66}.m-akis-l li.turuncu{--c:#ffab3d}.m-akis-l li.yesil{--c:#2fd18a}
+  .m-akis-l i{position:relative}.m-ok{position:absolute;right:-4px;bottom:-4px;width:16px;height:16px;border-radius:50%;background:#2fd18a;color:#06281a;font:800 10px/16px var(--body);text-align:center;font-style:normal}
+  .m-akis-l li.kirmizi{--c:#ff5a66}.m-akis-l li.mavi{--c:#6fb1ff}.m-akis-l li.turuncu{--c:#ffab3d}.m-akis-l li.yesil{--c:#2fd18a}
   .m-akis-l b{display:block;color:var(--c);font:700 15px/1.25 var(--display)}
   .m-akis-l span{display:block;color:#d3ddeb;font-size:14px;margin-top:2px}
   .m-akis-l time{display:block;color:#8ea3c0;font-size:13px;margin-top:3px}
@@ -827,7 +828,7 @@ nav.tabs a[aria-current="page"]{color:#fff;background:rgba(59,140,255,.16)}nav.t
   body.yon-masa.gunduz .d-link{background:#eaf2ff;color:#1d4ed8}
   body.yon-masa.gunduz .m-ses{background:#fff4e0 !important;color:#8a5a00 !important}body.yon-masa.gunduz .m-ses.acik{background:#e8f7ee !important;color:#1b6e3d !important}
   body.yon-masa.gunduz .m-bas-ik{stroke:#1f6fe0}
-  body.yon-masa.gunduz .m-akis-l li.kirmizi{--c:#d93545}body.yon-masa.gunduz .m-akis-l li.turuncu{--c:#c46d06}body.yon-masa.gunduz .m-akis-l li.yesil{--c:#16935c}
+  body.yon-masa.gunduz .m-akis-l li.kirmizi{--c:#d93545}body.yon-masa.gunduz .m-akis-l li.mavi{--c:#1f6fe0}body.yon-masa.gunduz .m-akis-l li.turuncu{--c:#c46d06}body.yon-masa.gunduz .m-akis-l li.yesil{--c:#16935c}
   body.yon-masa.gunduz .m-akis-l span{color:#3d5068}body.yon-masa.gunduz .m-akis-l time{color:#6b7f97}
   body.yon-masa.gunduz #masaSerit{background:rgba(255,255,255,.97);border-top-color:#dfe7f1}
   body.yon-masa.gunduz .ms-o{color:#13243b}body.yon-masa.gunduz .ms-o time{color:#1f6fe0}body.yon-masa.gunduz .ms-ay{color:#9aaac0}
@@ -2102,7 +2103,7 @@ function asWaListe(){
   const ap = (L || []).filter(a => (a.cat==="p_asansor" || a.cat==="asansor") && acik(a) && Date.now() - a.createdAt < 2*864e5 && !bagli.has(a.id));
   return [
     ...T_.map(k => ({id:k.id, tip:"tesis", blok:String(k.ekipman||"").split("-")[0], no:String(k.ekipman||"").split("-")[1], ariza:k.not || "", ts:k.ts, kim:bolumOf(k), mahsur:!!k.mahsur, fotoAid:(k.bildirenler && k.bildirenler[0]) || (k.fotoSayi ? k.id : null), bildirildi:k.bildirildi || null})),
-    ...ap.map(a => ({id:a.id, tip:"appt", blok:a.block || "", no:a.asNo || "", ariza:[...(a.issues||[]).filter(x=>x!=="Diğer"), a.desc].filter(Boolean).join(" — "), ts:a.createdAt, kim:asBolum(a), mahsur:/mahsur/i.test(a.desc||""), fotoAid:a.fotoSayi ? a.id : null, bildirildi:null}))
+    ...ap.map(a => ({id:a.id, tip:"appt", blok:a.block || "", no:a.asNo || "", ariza:bildirimMetni(a), ts:a.createdAt, kim:asBolum(a), mahsur:/mahsur/i.test(a.desc||""), fotoAid:a.fotoSayi ? a.id : null, bildirildi:null}))
   ].sort((a,b) => b.ts - a.ts);
 }
 function asWaMetin(k, kisa){
@@ -2252,15 +2253,22 @@ function yanMenuCiz(){
     <button class="ym-cikis" data-act="cikis">${ic("sag")}<span>Çıkış</span></button></div>`;
 }
 /* Sağ sütun: son olaylar (yeni bildirim · ilgileniliyor · çözüldü), en yeni üstte */
+/* Bildirim metni: seçilen maddeler + açıklama; aynı ifade iki kez yazılmaz ("Tırmık — Tırmık — Tırmık lazım" olmaz) */
+function bildirimMetni(a){
+  const gor = new Set(), L = [];
+  [...(a.issues||[]), a.desc||""].forEach(x => String(x||"").split(/\s+—\s+/).forEach(p => { const t = p.trim(), k = t.toLocaleLowerCase("tr"); if (!t || t === "Diğer" || gor.has(k)) return; gor.add(k); L.push(t); }));
+  return L.join(" — ");
+}
 function masaOlaylar(){
   const tech = store.isTech(), L = (tech ? S.all : (IK.pers||[])).filter(a => a.status !== "iptal" && !["p_tasinma","p_gelemiyorum"].includes(a.cat));
   const E = [];
   L.forEach(a => {
     const yer = a.src==="personel" ? (a.alan || (a.block ? a.block + " Blok" : "Ortak alan")) : (a.block ? a.block + " Blok" : "Daire");
-    const ne = catOf(a.cat).ad || "Arıza", ack = [...(a.issues||[]).filter(x => x !== "Diğer"), a.desc].filter(Boolean).join(" — ").slice(0,70);
-    E.push({t:a.createdAt||0, tur:"yeni", b:`${yer} – ${ne}`, m: ack || "Arıza bildirildi"});
-    if (a.status==="tamamlandi" && a.completedAt) E.push({t:a.completedAt, tur:"tamam", b:`${yer} – ${ne}`, m: a.note ? `${a.karan || "Teknisyen"}: ${String(a.note).slice(0,60)}` : "Arıza giderildi"});
-    else if (a.status==="onaylandi" && a.guncelTs) E.push({t:a.guncelTs, tur:"isl", b:`${yer} – ${ne}`, m: a.note ? `${a.karan || "Teknisyen"}: ${String(a.note).slice(0,60)}` : "Teknisyen ilgileniyor"});
+    const k = catOf(a.cat), ne = k.ad || "Arıza", ack = bildirimMetni(a).slice(0,80), talep = a.cat === "p_malzeme";
+    const kim = a.src==="personel" && a.name ? ` · ${String(a.name).split(" ")[0]}` : "";
+    E.push({t:a.createdAt||0, tur: talep ? "talep" : "yeni", ic:k.ic, b:`${yer} – ${ne}`, m: (ack || (talep ? "Talep edildi" : "Arıza bildirildi")) + kim});
+    if (a.status==="tamamlandi" && a.completedAt) E.push({t:a.completedAt, tur:"tamam", ic:k.ic, b:`${yer} – ${ne}`, m: a.note ? `${a.karan || "Teknisyen"}: ${String(a.note).slice(0,60)}` : (talep ? "Talep karşılandı" : "Arıza giderildi")});
+    else if (a.status==="onaylandi" && a.guncelTs) E.push({t:a.guncelTs, tur:"isl", ic:k.ic, b:`${yer} – ${ne}`, m: a.note ? `${a.karan || "Teknisyen"}: ${String(a.note).slice(0,60)}` : (talep ? "Talep ile ilgileniliyor" : "Teknisyen ilgileniyor")});
   });
   return E.filter(e => e.t > Date.now() - 3*864e5).sort((a,b) => b.t - a.t);
 }
@@ -2270,7 +2278,7 @@ function masaSeritCiz(){
   if (!masaAktif() || !document.body.classList.contains("dash")){ if (el) el.hidden = true; return; }
   if (!el){ el = document.createElement("div"); el.id = "masaSerit"; el.innerHTML = `<b class="ms-bas">CANLI</b><div class="ms-pen"><div class="ms-ic"></div></div>`; document.body.appendChild(el); }
   el.hidden = false;
-  const IK_ = {yeni:"🔴", isl:"🟠", tamam:"✅"}, AD = {yeni:"Yeni", isl:"İlgileniliyor", tamam:"Çözüldü"};
+  const IK_ = {yeni:"🔴", talep:"📦", isl:"🟠", tamam:"✅"}, AD = {yeni:"Yeni", talep:"Talep", isl:"İlgileniliyor", tamam:"Çözüldü"};
   const L = masaOlaylar().slice(0, 14);
   const parca = L.length ? L.map(e => `<span class="ms-o"><time>${saatYaz(e.t)}</time>${IK_[e.tur]} ${esc(e.b.replace(" – ", " · "))} · ${AD[e.tur]}</span>`).join(`<i class="ms-ay">•</i>`) : `<span class="ms-o">Son 3 günde olay yok</span>`;
   if (el.dataset.k === parca) return; el.dataset.k = parca;
@@ -2281,9 +2289,9 @@ function masaSeritCiz(){
 function masaAkisKart(){
   const S_ = masaOlaylar().slice(0,7);
   const zmn = t => { const x = new Date(t); return x.toDateString()===new Date().toDateString() ? saatYaz(t) : x.toLocaleDateString("tr-TR",{day:"numeric",month:"short"}) + " " + saatYaz(t); };
-  const IKN = {yeni:["alert","kirmizi"], isl:["wrench","turuncu"], tamam:["check","yesil"]};
+  const IKN = {yeni:["alert","kirmizi"], talep:["clip","mavi"], isl:["wrench","turuncu"], tamam:["check","yesil"]};
   return `<section class="d-kart masa-only m-akis"><div class="d-bas"><h2>${ic("bell","m-bas-ik")}Son Bildirimler</h2><a class="d-link" href="kontrol.html">Canlı ${ic("sag")}</a></div>
-    ${S_.length ? `<ol class="m-akis-l">${S_.map(e => `<li class="${IKN[e.tur][1]}"><i>${ic(IKN[e.tur][0])}</i><div><b>${esc(e.b)}</b><span>${esc(e.m)}</span><time>${zmn(e.t)}</time></div></li>`).join("")}</ol>` : `<p class="hint">Son 3 günde olay yok.</p>`}
+    ${S_.length ? `<ol class="m-akis-l">${S_.map(e => `<li class="${IKN[e.tur][1]}"><i>${e.ic ? `<svg viewBox="0 0 24 24" aria-hidden="true">${e.ic}</svg>` : ic(IKN[e.tur][0])}${e.tur==="tamam" ? `<em class="m-ok">✓</em>` : ""}</i><div><b>${esc(e.b)}</b><span>${esc(e.m)}</span><time>${zmn(e.t)}</time></div></li>`).join("")}</ol>` : `<p class="hint">Son 3 günde olay yok.</p>`}
   </section>`;
 }
 /* Ana sayfadaki canlı harita: Canlı Kontrol Merkezi'nin haritası gömülü (kontrol.html?gomulu=1).
@@ -2524,7 +2532,7 @@ function arzListeAc(tur){
   const zmn = t => { const x = new Date(t); return x.toDateString()===new Date().toDateString() ? saatYaz(t) : x.toLocaleDateString("tr-TR",{day:"numeric",month:"short"}) + " " + saatYaz(t); };
   const baslik = {yeni:"🔴 Açık arızalar", isleniyor:"🟠 İşlemdeki arızalar", tamam:"🟢 Bugün çözülenler"}[tur];
   const yer = a => a.alan || (a.block ? `${a.block} Blok${a.kat ? " · " + a.kat : ""}` : "Ortak alan");
-  const metin = a => [...(a.issues||[]).filter(x => x !== "Diğer"), a.desc].filter(Boolean).join(" — ");
+  const metin = a => bildirimMetni(a);
   d.innerHTML = `<div class="hv-ic"><div class="hv-ust"><div><b>${baslik} · ${L.length}</b><small>Personelin bildirdiği arızalar</small></div><button class="hv-x" aria-label="Kapat">✕</button></div>
     <div class="arz-l">${L.map(a => `<div class="arz-s"><b>${esc(catOf(a.cat).ad || "Arıza")} · ${esc(yer(a))}</b>${metin(a) ? `<span>${esc(metin(a).slice(0,140))}</span>` : ""}
       <small>👤 ${esc(a.name || "Personel")}${a.rol ? ` (${esc(a.rol)})` : ""} · Bildirildi ${zmn(a.createdAt)}${a.status==="tamamlandi" && a.completedAt ? ` · Çözüldü ${zmn(a.completedAt)}` : ""}</small>
@@ -2567,7 +2575,7 @@ function pDashKim(){
 function pBildirimlerKart(){
   const L = (IK.pers||[]).filter(a => !["p_tasinma","p_gelemiyorum"].includes(a.cat) && a.status !== "iptal" && a.createdAt > Date.now() - 2*864e5).sort((a,b) => (acik(b) - acik(a)) || (b.createdAt - a.createdAt));   // önce açık olanlar
   if (!L.length) return "";
-  const metin = a => { const is = (a.issues||[]).filter(x => x !== "Diğer"), d = String(a.desc||"").trim(); return (d && !is.some(x => d.toLocaleLowerCase("tr").startsWith(x.toLocaleLowerCase("tr"))) ? [...is, d] : is.length ? is : [d]).filter(Boolean).join(" — "); };
+  const metin = a => bildirimMetni(a);
   const bolum = r => r === "Güvenlik" ? "Güvenlik" : r === BAHCIVAN ? "Bahçe" : r === "Temizlik" ? "Temizlik" : (r || "Personel");
   const durum = a => a.status === "bekliyor" ? `<span class="pb-d yeni">Yeni</span>` : a.status === "onaylandi" ? `<span class="pb-d ilg">İlgileniliyor</span>` : `<span class="pb-d tam">Çözüldü</span>`;
   const yer = a => a.alan || (a.block ? `${a.block} Blok${a.kat ? " · " + a.kat : ""}` : "Ortak alan");
@@ -2593,7 +2601,7 @@ function malzemeKart(){
   const tur = {p_malzeme:"📦 Malzeme", p_temiz:"🧹 Temizlik", p_bahce:"🌿 Bahçe"}, turAd = a => tur[a.cat] || ("🔧 " + (catOf(a.cat).ad || "Arıza"));
   return `<section class="d-kart mz-kart"><div class="d-bas"><h2>📋 Personel talepleri ve arızaları${ac ? ` · ${ac} açık` : ""}</h2></div>
     ${L.map(a => `<div class="mz">
-      <div class="mz-m"><span class="mz-t">${turAd(a)}</span><b>${esc(a.cat === "p_malzeme" ? (a.desc || (a.issues||[]).join(", ") || "Malzeme") : [...(a.issues||[]).filter(x => x !== "Diğer"), a.desc].filter(Boolean).join(" — ") || catOf(a.cat).ad)}</b><small>👤 ${esc(a.name||"Personel")}${a.rol ? ` (${esc(a.rol)})` : ""} · ${esc(a.alan || (a.block ? a.block + " Blok" : ""))} · ${new Date(a.createdAt).toDateString() === new Date().toDateString() ? saatYaz(a.createdAt) : new Date(a.createdAt).toLocaleDateString("tr-TR",{day:"numeric",month:"short"}) + " " + saatYaz(a.createdAt)}</small>${durum(a)}
+      <div class="mz-m"><span class="mz-t">${turAd(a)}</span><b>${esc(bildirimMetni(a) || (a.cat === "p_malzeme" ? "Malzeme" : catOf(a.cat).ad))}</b><small>👤 ${esc(a.name||"Personel")}${a.rol ? ` (${esc(a.rol)})` : ""} · ${esc(a.alan || (a.block ? a.block + " Blok" : ""))} · ${new Date(a.createdAt).toDateString() === new Date().toDateString() ? saatYaz(a.createdAt) : new Date(a.createdAt).toLocaleDateString("tr-TR",{day:"numeric",month:"short"}) + " " + saatYaz(a.createdAt)}</small>${durum(a)}
         ${String(a.note||"").trim() ? `<p class="pb-not">💬 <b>${esc(a.karan || "Not")}:</b> ${esc(String(a.note).slice(0,160))}</p>` : ""}</div>
       ${acik(a) && !mud(a) ? `<div class="mz-b"><span class="mz-tk">Teknisyen ilgilenecek</span><button class="pill-btn" data-act="mzNotAc" data-id="${a.id}">💬 Not</button></div>` : ""}
       ${acik(a) && mud(a) ? `<div class="mz-b">${a.status === "bekliyor" ? `<button class="pill-btn" data-act="mzDurum" data-v="onaylandi" data-id="${a.id}">🔧 İlgileniyorum</button>` : ""}<button class="pill-btn vd-ok" data-act="mzDurum" data-v="tamamlandi" data-id="${a.id}">✅ ${bitti(a)}</button><button class="pill-btn" data-act="mzNotAc" data-id="${a.id}">💬 Not</button></div>` : ""}
