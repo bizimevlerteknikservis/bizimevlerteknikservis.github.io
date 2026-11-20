@@ -1220,6 +1220,9 @@ function DemoStore(){
     izinFormDinle: cb => sub(() => cb(mem.izinform || [])),
     async izinFormYaz(id, v){ mem.izinform = [...(mem.izinform||[]).filter(x => x.id !== id), {...v, id}]; save(); },
     async izinFormSil(id){ mem.izinform = (mem.izinform||[]).filter(x => x.id !== id); save(); },
+    tutanakDinle: cb => sub(() => cb(mem.tutanak || [])),
+    async tutanakYaz(id, v){ mem.tutanak = [...(mem.tutanak||[]).filter(x => x.id !== id), {...v, id}]; save(); },
+    async tutanakSil(id){ mem.tutanak = (mem.tutanak||[]).filter(x => x.id !== id); save(); },
     listenGelemeyen: cb => sub(() => cb(mem.appts.filter(a => a.cat==="p_gelemiyorum"))),
     async setIzin(v){ mem.izin = v; save(); },
     async setDuyuru(v){ mem.duyuru = v; save(); },
@@ -1360,6 +1363,9 @@ function FirebaseStore(cfg){
     izinFormDinle(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"puantaj"), fs.where("tur","==","izinform")), sn => cb(sn.docs.map(d => ({...d.data(), id: d.id.replace(/^if_/,"")}))), e => { console.warn("izinform", e && e.code); cb([]); }); },
     async izinFormYaz(id, v){ await fs.setDoc(fs.doc(db,"puantaj","if_"+id), {...v, tur:"izinform"}); },
     async izinFormSil(id){ await fs.deleteDoc(fs.doc(db,"puantaj","if_"+id)); },
+    tutanakDinle(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"puantaj"), fs.where("tur","==","tutanak")), sn => cb(sn.docs.map(d => ({...d.data(), id: d.id.replace(/^tt_/,"")}))), e => { console.warn("tutanak", e && e.code); cb([]); }); },
+    async tutanakYaz(id, v){ const {id:_, ...w} = v; await fs.setDoc(fs.doc(db,"puantaj","tt_"+id), {...w, tur:"tutanak"}); },
+    async tutanakSil(id){ await fs.deleteDoc(fs.doc(db,"puantaj","tt_"+id)); },
     listenGelemeyen(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"appointments"), fs.where("src","==","personel"), fs.where("cat","==","p_gelemiyorum")), sn => cb(sn.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.warn("gelemeyen", e && e.code); cb([]); }); },
     async addFoto(aid, i, data, kod){
       await fs.setDoc(fs.doc(db, "foto", aid + "_" + i), {aid, i, data, uid: user.uid, ts: Date.now(), ...(kod ? {kod} : {})});
@@ -1821,12 +1827,14 @@ document.addEventListener("change", e => {
 document.addEventListener("input", e => { if (IZF.f && e.target.id && e.target.id.startsWith("izf_")){ izfSync(); if (e.target.id === "izf_ad") izfAyna(); } });
 /* Yazdır: telefonun/bilgisayarın yazdırma ekranı açılır; oradan yazıcı ya da "PDF olarak kaydet" seçilir (ek kütüphane gerekmez) */
 const izfDosyaAd = x => `yillik-izin-formu-${String(x.ad || "personel").toLocaleLowerCase("tr").replace(/[^a-z0-9çğıöşü]+/gi, "-")}-${x.cikis || ""}`;
-function izfYazdir(x){
+function a4Yazdir(html, ekCss, ad){
   let d = document.getElementById("izfBaski"); if (!d){ d = document.createElement("div"); d.id = "izfBaski"; document.body.appendChild(d); }
-  d.innerHTML = `<style>#izfBaski{display:none}@media print{@page{size:A4;margin:0}html,body{background:#fff!important;height:auto!important;min-height:0!important;overflow:visible!important;padding:0!important;margin:0!important}body>*:not(#izfBaski){display:none!important}#izfBaski{display:block!important}#izfBaski .izf-a4{width:210mm;height:296mm;min-height:0;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}}${IZF_CSS}</style>${izfSayfaHTML(x)}`;
-  const eski = document.title; document.title = izfDosyaAd(x);
-  setTimeout(() => { try { window.print(); } catch(e){ toast("Yazdırma açılamadı"); } setTimeout(() => { document.title = eski; }, 1500); }, 60);
+  d.innerHTML = `<style>#izfBaski{display:none}@media print{@page{size:A4;margin:0}html,body{background:#fff!important;height:auto!important;min-height:0!important;overflow:visible!important;padding:0!important;margin:0!important}body>*:not(#izfBaski){display:none!important}#izfBaski{display:block!important}#izfBaski .izf-a4{width:210mm;height:296mm;min-height:0;overflow:hidden;page-break-after:always;break-after:page;-webkit-print-color-adjust:exact;print-color-adjust:exact}#izfBaski .izf-a4:last-child{page-break-after:auto;break-after:auto}}${IZF_CSS}${ekCss||""}</style>${html}`;
+  const eski = document.title; document.title = ad;
+  const imgs = [...d.querySelectorAll("img")].filter(i => !i.complete);
+  Promise.all(imgs.map(i => new Promise(ok => { i.onload = i.onerror = ok; }))).then(() => setTimeout(() => { try { window.print(); } catch(e){ toast("Yazdırma açılamadı"); } setTimeout(() => { document.title = eski; }, 1500); }, 60));
 }
+function izfYazdir(x){ a4Yazdir(izfSayfaHTML(x), "", izfDosyaAd(x)); }
 /* PDF: formu A4 sayfa olarak çizip (html2canvas) jsPDF ile dosyaya çevirir */
 let IZF_KUTUP = null;
 function izfKutuphane(){
@@ -1921,6 +1929,163 @@ async function izfAksiyon(act, id){
     return;
   }
 }
+/* ================= Olay yeri tutanağı (güvenlik amiri · teknisyen · yönetim) =================
+   Kayıt: puantaj koleksiyonu (tur:"tutanak", belge "tt_<id>"), personel okuyamaz. Fotoğraflar küçültülüp kayda gömülür. */
+const TT = {L:[], un:null, f:null, mesgul:false, hepsi:false};
+const TT_TUR = ["Hırsızlık / hırsızlık girişimi","Kavga / tartışma","Kaza (araç / yaya)","Mala zarar verme","Su baskını / sızıntı","Yangın / duman","Elektrik arızası / kesinti","Asansör olayı","Şüpheli şahıs / araç","Gürültü / rahatsızlık","Yaralanma / sağlık","Hayvan olayı","Otopark ihlali","Diğer"];
+const TT_BIRIM = [["polis","Polis"],["itfaiye","İtfaiye"],["ambulans","Ambulans"],["zabita","Zabıta"]];
+const TT_ALAN = ["no","tarih","saat","yer","tur","turDiger","bildiren","kisiler","taniklar","olus","islem","hasar","duzenleyen","tanik1","tanik2","ilgili","amir","mudur"];
+const ttYetki = () => store.isTech() || (store.isTesis && store.isTesis()) || (store.isYetkili && store.isYetkili());
+function ttBaslat(){ if (TT.un || !store.tutanakDinle) return; TT.un = true;
+  TT.un = store.tutanakDinle(L => { TT.L = L || []; if (S.view === "tutanak" && !TT.f) setTimeout(render, 0); }); }
+function ttYeniNo(){ const y = new Date().getFullYear(), n = TT.L.filter(x => String(x.no||"").startsWith(y + "/")).map(x => +String(x.no).split("/")[1] || 0); return `${y}/${String((n.length ? Math.max(...n) : 0) + 1).padStart(3, "0")}`; }
+function ttSync(){ const f = TT.f; if (!f) return;
+  TT_ALAN.forEach(k => { const el = document.getElementById("tt_" + k); if (el) f[k] = el.value; });
+  f.birim = TT_BIRIM.map(([k]) => k).filter(k => { const el = document.getElementById("ttb_" + k); return el ? el.checked : (f.birim||[]).includes(k); }); }
+const ttTurYaz = x => x.tur === "Diğer" ? (x.turDiger ? "Diğer: " + x.turDiger : "Diğer") : (x.tur || "");
+function vTutanak(){
+  if (!ttYetki()) return vPanel();
+  ttBaslat();
+  const L = [...TT.L].sort((a,b) => `${b.tarih}${b.saat}`.localeCompare(`${a.tarih}${a.saat}`));
+  return `<div class="sayfa-bas" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px">
+      <h2 style="margin:0;font:600 22px/1.2 var(--display)">Olay Yeri Tutanağı</h2>
+      <a class="pill-btn" href="#panel" style="text-decoration:none;color:var(--ink)">${store.isTech() ? "← İş paneli" : "← Menü"}</a></div>
+    <section class="card"><p class="hint" style="margin-top:0">Olay olduğunda tutanağı buradan hemen yazın. Kâğıt tutanak gibi yazdırılır, PDF olarak kaydedilir ya da muhasebeye/yönetime gönderilir. Tutanakları sadece teknisyen, müdür ve amirler görür.</p>
+      <div class="grid2"><button class="cta" data-act="ttYeni">＋ Yeni tutanak</button><button class="cta ghost" data-act="ttBos">🖨️ Boş tutanak yazdır</button></div>
+      ${L.length ? `<div class="izf-l">${L.slice(0, TT.hepsi ? 300 : 10).map(x => `<div class="izf-s">
+        <div><b>${esc(ttTurYaz(x) || "Tutanak")}</b><small>No ${esc(x.no||"")} · ${izfTr(x.tarih)} ${esc(x.saat||"")} · ${esc(x.yer||"")}${(x.foto||[]).length ? ` · 📷 ${x.foto.length}` : ""}</small>
+          <small>Düzenleyen: ${esc(x.duzenleyen || x.by || "")}</small>${x.gonderildi ? `<em class="izf-ok">✓ Gönderildi ${tarihSaat(x.gonderildi)}</em>` : ""}</div>
+        <div class="izf-b"><button class="pill-btn" data-act="ttYazdir" data-id="${x.id}">🖨️ Yazdır / PDF</button><button class="pill-btn" data-act="ttGonder" data-id="${x.id}">📤 Gönder</button><button class="pill-btn" data-act="ttDuzenle" data-id="${x.id}">✏️</button></div></div>`).join("")}</div>
+        ${L.length > 10 && !TT.hepsi ? `<button class="pill-btn" data-act="ttHepsi" style="margin-top:8px">Tümünü göster (${L.length})</button>` : ""}` : `<p class="hint" style="margin-top:12px">Henüz tutanak yok.</p>`}
+    </section>
+    ${TT.f ? ttForm() : ""}`;
+}
+function ttForm(){
+  const f = TT.f, V = k => esc(f[k] ?? "");
+  const inp = (k, tip, ek) => `<input id="tt_${k}" ${tip ? `type="${tip}"` : ""} value="${V(k)}" ${ek||""}>`;
+  const ta = (k, r, ph) => `<textarea id="tt_${k}" rows="${r}" maxlength="3000" ${ph ? `placeholder="${ph}"` : ""}>${V(k)}</textarea>`;
+  const r = (e, v, u) => `<tr${u ? ' class="uzun"' : ""}><td class="e">${e}</td><td class="c">:</td><td class="v">${v}</td></tr>`;
+  const imz = (k, bas, ph) => `<div><span class="tt-ib">${bas}</span><span>Adı Soyadı</span><input id="tt_${k}" class="orta" maxlength="50" value="${V(k)}" placeholder="${ph||""}"><span>İmza</span><i></i></div>`;
+  return `<div class="t-sheet"><div class="t-sheet-in izf-sheet">
+    <style>${IZF_CSS}${TT_CSS}</style>
+    <h2>📝 Olay yeri tutanağı</h2>
+    <p class="hint">Mavi alanları doldurun. Kaydedin, sonra <b>🖨️ Yazdır / PDF</b> ile yazdırın ya da PDF kaydedin. İmzalar kâğıt üzerinde atılır.</p>
+    <div class="izf-a4 izf-ed tt">
+      <div class="tt-ust"><b>BİZİMEVLER 1 SİTESİ YÖNETİMİ</b><span>Tutanak No: <input id="tt_no" class="kisa" style="width:96px" value="${V("no")}"></span></div>
+      <div class="baslik">OLAY YERİ TUTANAĞI</div>
+      <table>${r("TARİH / SAAT", `<span class="tt-iki">${inp("tarih","date")}${inp("saat","time")}</span>`)}${r("OLAYIN YERİ", inp("yer","",'maxlength="120" placeholder="Blok, daire, otopark, bahçe…"'))}
+        ${r("OLAYIN TÜRÜ", `<select id="tt_tur"><option value="">Seçin</option>${TT_TUR.map(t => `<option ${f.tur===t?"selected":""}>${t}</option>`).join("")}</select>${f.tur==="Diğer" ? inp("turDiger","",'maxlength="80" placeholder="Olayı kısaca yazın" style="margin-top:4px"') : ""}`)}
+        ${r("BİLDİREN / İHBAR EDEN", inp("bildiren","",'maxlength="120" placeholder="Ad soyad, daire, telefon"'))}
+        ${r("OLAYA KARIŞAN KİŞİLER", ta("kisiler", 2, "Ad soyad · daire · telefon"), 1)}${r("TANIKLAR", ta("taniklar", 2, "Ad soyad · daire · telefon"), 1)}
+        ${r("ÇAĞRILAN BİRİMLER", `<span class="tt-cb">${TT_BIRIM.map(([k,a]) => `<label><input type="checkbox" id="ttb_${k}" ${(f.birim||[]).includes(k)?"checked":""}> ${a}</label>`).join("")}</span>`)}</table>
+      <div class="tt-kutu"><div class="tt-kb">OLAYIN OLUŞ ŞEKLİ</div>${ta("olus", 7, "Olay ne zaman, nerede, nasıl oldu? Gördüklerinizi sırayla yazın.")}</div>
+      <div class="tt-kutu"><div class="tt-kb">YAPILAN İŞLEMLER / ALINAN ÖNLEMLER</div>${ta("islem", 4, "Kim haberdar edildi, ne yapıldı?")}</div>
+      <div class="tt-kutu"><div class="tt-kb">HASAR / ZARAR DURUMU</div>${ta("hasar", 2, "Yoksa “Yok” yazın")}</div>
+      <p class="metin">İşbu tutanak olay yerinde tarafımızca düzenlenmiş olup, okunarak birlikte imza altına alınmıştır.</p>
+      <div class="tt-imza">${imz("duzenleyen","TUTANAĞI DÜZENLEYEN")}${imz("tanik1","TANIK")}${imz("tanik2","TANIK")}${imz("ilgili","İLGİLİ KİŞİ")}${imz("amir","GÜVENLİK AMİRİ")}${imz("mudur","SİTE MÜDÜRÜ")}</div>
+    </div>
+    <div class="tt-foto"><b>📷 Olay yeri fotoğrafları</b> <small>(en fazla 4 · tutanağın 2. sayfasına basılır)</small>
+      <div>${(f.foto||[]).map((u,i) => `<span><img src="${u}" alt=""><button type="button" data-act="ttFotoSil" data-id="${i}">✕</button></span>`).join("")}
+      ${(f.foto||[]).length < 4 ? `<label class="tt-fekle">＋<input type="file" accept="image/*" id="tt_fotoSec" multiple hidden></label>` : ""}</div></div>
+    ${f.hata ? `<p class="err">${esc(f.hata)}</p>` : ""}
+    <button class="cta" data-act="ttKaydet" ${TT.mesgul ? "disabled" : ""}>${TT.mesgul ? "Kaydediliyor…" : "💾 Kaydet"}</button>
+    <button class="cta ghost" data-act="ttYazdirF" style="margin-top:8px">🖨️ Yazdır / PDF</button>
+    <div class="grid2" style="margin-top:8px">${f.id ? `<button class="cta ghost" data-act="ttSil" data-id="${f.id}">🗑️ Sil</button>` : ""}<button class="cta ghost" data-act="ttKapat">Kapat</button></div>
+  </div></div>`;
+}
+document.addEventListener("input", e => { if (TT.f && e.target.id && (e.target.id.startsWith("tt_") || e.target.id.startsWith("ttb_"))) ttSync(); });
+document.addEventListener("change", e => {
+  if (!TT.f || !e.target.id) return;
+  if (e.target.id === "tt_tur"){ ttSync(); render(); return; }
+  if (e.target.id.startsWith("ttb_")){ ttSync(); return; }
+  if (e.target.id === "tt_fotoSec"){ ttSync(); const files = [...(e.target.files||[])].slice(0, 4 - (TT.f.foto||[]).length); if (!files.length) return;
+    toast("📷 Fotoğraf ekleniyor…");
+    Promise.all(files.map(ttFotoKucult)).then(L => { TT.f.foto = [...(TT.f.foto||[]), ...L.filter(Boolean)].slice(0, 4); render(); }).catch(() => toast("Fotoğraf eklenemedi")); }
+});
+function ttFotoKucult(file){ return new Promise(ok => { const img = new Image(), u = URL.createObjectURL(file);
+  img.onload = () => { URL.revokeObjectURL(u); let w = img.naturalWidth, h = img.naturalHeight; const m = 900 / Math.max(w, h); if (m < 1){ w = Math.round(w*m); h = Math.round(h*m); }
+    const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(img, 0, 0, w, h); ok(c.toDataURL("image/jpeg", .6)); };
+  img.onerror = () => { URL.revokeObjectURL(u); ok(null); }; img.src = u; }); }
+function ttSayfaHTML(x){
+  const B = !!x.bos, t = s => izfTr(s) || "";
+  const r = (a, b, h) => `<tr${h ? ` style="height:${h}px"` : ""}><td class="e">${a}</td><td class="c">:</td><td class="v">${b}</td></tr>`;
+  const kutu = (bas, v, h) => `<div class="tt-kutu"><div class="tt-kb">${bas}</div><div class="tt-ki" style="min-height:${h}px">${esc(v||"")}</div></div>`;
+  const imz = (bas, ad) => `<div><span class="tt-ib">${bas}</span><span>Adı Soyadı</span><b>${esc(ad||"")}</b><span>İmza</span><i></i></div>`;
+  const birim = TT_BIRIM.map(([k,a]) => `${!B && (x.birim||[]).includes(k) ? "☒" : "☐"} ${a}`).join("&nbsp;&nbsp;&nbsp;") + `&nbsp;&nbsp;&nbsp;${!B && x.birim && !x.birim.length ? "☒" : "☐"} Çağrılmadı`;
+  const s1 = `<div class="izf-a4 tt">
+    <div class="tt-ust"><b>BİZİMEVLER 1 SİTESİ YÖNETİMİ</b><span>Tutanak No: ${B ? "…………" : esc(x.no||"")}</span></div>
+    <div class="baslik">OLAY YERİ TUTANAĞI</div>
+    <table>${r("TARİH / SAAT", B ? "……/……/20……&nbsp;&nbsp;&nbsp;&nbsp;Saat: ……:……" : `${t(x.tarih)}${x.saat ? "&nbsp;&nbsp;&nbsp;Saat: " + esc(x.saat) : ""}`)}${r("OLAYIN YERİ", esc(x.yer||""))}${r("OLAYIN TÜRÜ", esc(ttTurYaz(x)))}${r("BİLDİREN / İHBAR EDEN", esc(x.bildiren||""))}${r("OLAYA KARIŞAN KİŞİLER", esc(x.kisiler||""), 46)}${r("TANIKLAR", esc(x.taniklar||""), 40)}${r("ÇAĞRILAN BİRİMLER", birim)}</table>
+    ${kutu("OLAYIN OLUŞ ŞEKLİ", x.olus, 230)}${kutu("YAPILAN İŞLEMLER / ALINAN ÖNLEMLER", x.islem, 110)}${kutu("HASAR / ZARAR DURUMU", x.hasar, 46)}
+    <p class="metin">İşbu tutanak olay yerinde tarafımızca düzenlenmiş olup, okunarak birlikte imza altına alınmıştır.</p>
+    <div class="tt-imza">${imz("TUTANAĞI DÜZENLEYEN", x.duzenleyen)}${imz("TANIK", x.tanik1)}${imz("TANIK", x.tanik2)}${imz("İLGİLİ KİŞİ", x.ilgili)}${imz("GÜVENLİK AMİRİ", x.amir)}${imz("SİTE MÜDÜRÜ", x.mudur)}</div>
+  </div>`;
+  const F = B ? [] : (x.foto||[]);
+  const s2 = F.length ? `<div class="izf-a4 tt"><div class="tt-ust"><b>BİZİMEVLER 1 SİTESİ YÖNETİMİ</b><span>Tutanak No: ${esc(x.no||"")}</span></div><div class="baslik">OLAY YERİ TUTANAĞI · FOTOĞRAFLAR</div>
+    <div class="tt-fs">${F.map((u,i) => `<figure><img src="${u}" alt=""><figcaption>Fotoğraf ${i+1} · ${t(x.tarih)} ${esc(x.saat||"")} · ${esc(x.yer||"")}</figcaption></figure>`).join("")}</div></div>` : "";
+  return s1 + s2;
+}
+const TT_CSS = `.izf-a4.tt{padding:28px 48px 8px}.izf-a4.tt td{height:26px}.izf-a4.tt td.e{width:30%}
+.tt-ust{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;margin-bottom:6px}.tt-ust b{letter-spacing:.03em}
+.tt-kutu{border:1px solid #222;margin-bottom:8px}.tt-kb{font-weight:700;font-size:12px;padding:4px 8px;border-bottom:1px solid #222;background:#f2f2f2;-webkit-print-color-adjust:exact;print-color-adjust:exact}.tt-ki{padding:6px 8px;white-space:pre-wrap;font-size:13px;line-height:1.45;background-image:repeating-linear-gradient(transparent 0 25px,#e3e3e3 25px 26px);background-position:0 6px}
+.izf-a4.tt .metin{margin:6px 0 6px;text-indent:24px;font-size:12.5px;line-height:1.5}
+.tt-imza{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 14px}.tt-imza div{display:flex;flex-direction:column;align-items:center;text-align:center;font-size:12px}.tt-imza .tt-ib{font-weight:700;font-size:11.5px;margin-bottom:1px}.tt-imza b{display:block;min-height:30px;padding-top:3px}.tt-imza i{display:block;height:60px}
+.tt-fs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}.tt-fs figure{margin:0;border:1px solid #222;padding:6px}.tt-fs img{width:100%;height:440px;object-fit:contain;background:#f5f5f5;display:block}.tt-fs figcaption{font-size:11px;margin-top:4px;text-align:center}
+.izf-ed.tt{padding:14px 10px}.izf-ed .tt-kutu textarea{border-radius:0!important;min-height:0}.izf-ed .tt-imza{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.izf-ed .tt-imza i{height:30px;border-bottom:1px dashed #bbb;width:100%}.izf-ed .tt-imza input.orta{width:100%}
+.tt-iki{display:flex;gap:6px}.tt-iki input:last-child{max-width:120px}.tt-cb{display:flex;flex-wrap:wrap;gap:4px 14px}.tt-cb label{display:flex;align-items:center;gap:5px;font-size:13px;color:#111}.izf-ed .tt-cb input{width:20px;min-height:20px;flex:0 0 auto}
+.tt-foto{margin:12px 0}.tt-foto>div{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.tt-foto span{position:relative}.tt-foto img{width:84px;height:84px;object-fit:cover;border-radius:10px;display:block}.tt-foto span button{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:#d63a35;color:#fff;font-weight:700}
+.tt-fekle{width:84px;height:84px;border:2px dashed var(--line,#c9d4e3);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:30px;color:var(--muted,#789);cursor:pointer}
+@media (min-width:700px){.izf-ed.tt{padding:30px 40px}}`;
+const ttDosyaAd = x => x.bos ? "olay-yeri-tutanagi-bos" : `olay-yeri-tutanagi-${String(x.no||"").replace(/\//g,"-")}-${x.tarih||""}`;
+async function ttPdfUret(x){
+  await izfKutuphane();
+  const kap = document.createElement("div"); kap.style.cssText = "position:fixed;left:-10000px;top:0;z-index:-1";
+  kap.innerHTML = `<style>${IZF_CSS}${TT_CSS}.izf-a4{height:1123px;overflow:hidden}</style>${ttSayfaHTML(x)}`; document.body.appendChild(kap);
+  try {
+    const pdf = new window.jspdf.jsPDF({unit:"mm", format:"a4"});
+    const S_ = [...kap.querySelectorAll(".izf-a4")];
+    for (let i = 0; i < S_.length; i++){ const cv = await window.html2canvas(S_[i], {scale:2, backgroundColor:"#fff"}); if (i) pdf.addPage(); pdf.addImage(cv.toDataURL("image/jpeg", .85), "JPEG", 0, 0, 210, Math.min(297, cv.height * 210 / cv.width)); }
+    return new File([pdf.output("blob")], ttDosyaAd(x) + ".pdf", {type:"application/pdf"});
+  } finally { kap.remove(); }
+}
+async function ttAksiyon(act, id){
+  if (act === "ttYeni"){ const d = new Date(); TT.f = {no: ttYeniNo(), tarih: ymdS(d), saat: `${pad(d.getHours())}:${pad(d.getMinutes())}`, birim:[], foto:[], duzenleyen: dashAd() || ""}; render(); return; }
+  if (act === "ttKapat"){ TT.f = null; render(); return; }
+  if (act === "ttHepsi"){ TT.hepsi = true; render(); return; }
+  if (act === "ttBos"){ a4Yazdir(ttSayfaHTML({bos:true}), TT_CSS, ttDosyaAd({bos:true})); return; }
+  if (act === "ttYazdir"){ const x = TT.L.find(y => y.id === id); if (x) a4Yazdir(ttSayfaHTML(x), TT_CSS, ttDosyaAd(x)); return; }
+  if (act === "ttYazdirF"){ ttSync(); a4Yazdir(ttSayfaHTML(TT.f), TT_CSS, ttDosyaAd(TT.f)); return; }
+  if (act === "ttDuzenle"){ const x = TT.L.find(y => y.id === id); if (x){ TT.f = {...x, foto:[...(x.foto||[])], birim:[...(x.birim||[])]}; render(); } return; }
+  if (act === "ttFotoSil"){ ttSync(); TT.f.foto = (TT.f.foto||[]).filter((_, i) => i !== +id); render(); return; }
+  if (act === "ttSil"){ if (!confirmBas("ttSil")) return; try { await store.tutanakSil(id); TT.f = null; toast("Tutanak silindi"); } catch(e){ toast("Silinemedi: " + (e.code||"")); } render(); return; }
+  if (act === "ttKaydet"){
+    ttSync(); const f = TT.f;
+    if (!f.tarih){ f.hata = "Olay tarihini girin"; render(); return; }
+    if (!String(f.yer||"").trim()){ f.hata = "Olayın yerini yazın"; render(); return; }
+    if (!f.tur){ f.hata = "Olayın türünü seçin"; render(); return; }
+    if (!String(f.olus||"").trim()){ f.hata = "Olayın oluş şeklini yazın"; render(); return; }
+    const yeni = !f.id, tid = f.id || ("t" + Date.now().toString(36));
+    const kayit = {}; TT_ALAN.forEach(k => { kayit[k] = String(f[k] ?? "").trim(); });
+    Object.assign(kayit, {birim: f.birim || [], foto: (f.foto||[]).slice(0, 4), by: store.kim ? store.kim() : (dashAd() || ""), ts: f.ts || Date.now(), guncel: Date.now(), ...(f.gonderildi ? {gonderildi: f.gonderildi} : {})});
+    if (JSON.stringify(kayit).length > 950000){ f.hata = "Fotoğraflar çok büyük, birini çıkarın"; render(); return; }
+    TT.mesgul = true; render();
+    try { await store.tutanakYaz(tid, kayit); TT.f = null; toast(yeni ? "✓ Tutanak kaydedildi" : "✓ Tutanak güncellendi"); }
+    catch(e){ console.error(e); f.hata = "Kaydedilemedi: " + (e.code || e.message || ""); }
+    TT.mesgul = false; render(); return;
+  }
+  if (act === "ttGonder"){
+    const x = TT.L.find(y => y.id === id); if (!x) return;
+    toast("📄 PDF hazırlanıyor…");
+    let file; try { file = await ttPdfUret(x); } catch(e){ console.error(e); toast("PDF oluşturulamadı · 🖨️ Yazdır / PDF ile kaydedip gönderin"); return; }
+    const metin = `Olay yeri tutanağı No ${x.no} · ${ttTurYaz(x)} · ${izfTr(x.tarih)} ${x.saat||""} · ${x.yer||""}`;
+    let gitti = false;
+    try { if (navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title: metin, text: metin}); gitti = true; } } catch(e){ if (e && e.name === "AbortError") return; }
+    if (!gitti){ izfIndir(file); toast("PDF indirildi · e-posta ya da WhatsApp ile ekleyip gönderin"); }
+    try { await store.tutanakYaz(x.id, {...x, gonderildi: Date.now()}); } catch(e){ console.warn(e); }
+    return;
+  }
+}
+
 const confirmBas = (() => { let son = "", t = 0; return k => { if (son === k && Date.now() - t < 4000){ son = ""; return true; } son = k; t = Date.now(); toast("Silmek için tekrar basın"); return false; }; })();
 
 function yiSync(){ const f = YI.f; if (!f) return; [["yi_ad","ad"],["yi_tur","tur"],["yi_bas","bas"],["yi_bit","bit"],["yi_not","not"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; }); }
@@ -2439,6 +2604,7 @@ const IC = {
   pin:'<path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>',
   ses:'<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>',
   sag:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  tutanak:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
   izin:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M9 15l2 2 4-4"/>',
   kul:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>',
   qr:'<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2"/>'
@@ -2477,6 +2643,7 @@ function yanMenuCiz(){
       ${L("#gorev", "clip", "Görev Ver", v==="gorev", "", "", "camgobegi")}
       ${L("puantaj.html", "cal", "Puantaj")}
       ${L("#izinler", "izin", "İzinler", v==="izinler")}
+      ${L("#tutanak", "tutanak", "Olay Tutanağı", v==="tutanak", "", "", "kirmizi")}
       ${tech || tesis ? L("#calisma", "broom", "Temizlik", v==="calisma") : ""}
       ${L("#ik", "users", "Personel İşleri", v==="ik")}
       ${L("#tasinma", "building", "Taşınma & Tadilat", v==="tasinma")}
@@ -2901,6 +3068,7 @@ function vDash(isler, ayar){
     (tech || tesis) && `<a class="d-tile turuncu" href="#tesis" data-act="tSekmeGit" data-v="ozet"><i>${ic("wrench")}</i><b>Tesis & Bakım</b><small>Asansör · takvim · stok</small></a>`,
     T("#ik", "users", "mor", "Personel", "İzin · Puantaj"),
     T("#gorev", "clip", "camgobegi", "Görev Ver"),
+    T("#tutanak", "tutanak", "kirmizi", "Olay Tutanağı", "Yaz · yazdır · PDF"),
     (tech || tesis) && T("#calisma", "broom", "yesil", "Temizlik", "Çalışma listesi"),
     T("bizkontrol.html", "chart", "lacivert", "BizKontrol", "Rapor"),
     tech && T("muhasebe.html", "wallet", "altin", "Muhasebe"),
@@ -2978,6 +3146,7 @@ function vIK(){
       ${(tech || tesis || yon) ? T("#izinler", "izin", "mor", "İzinler", (tech || tesis) ? "Yıllık · rapor" : "Güvenlik izinleri") : ""}
       ${T("puantaj.html", "clock", "yesil", "Puantaj", "Aylık · Excel")}
       ${T("#gorev", "clip", "camgobegi", "Görev Ver")}
+      ${T("#tutanak", "tutanak", "kirmizi", "Olay Tutanağı", "Yaz · PDF")}
       ${(tech || tesis) ? T("#calisma", "broom", "turuncu", "Çalışma", "Hafta sonu") : ""}
       ${T("bizkontrol.html", "chart", "lacivert", "Devam", "Rapor")}
       ${T("puantaj.html", "qr", "mavi", "QR Mesai", "Giriş-çıkış")}
@@ -5041,13 +5210,13 @@ function kodBaslat(){
 function render(){
   syncForm();
   const keep = document.activeElement && document.activeElement.id;
-  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="calisma" ? vCalisma() : S.view==="izinler" ? vIzinler() : S.view==="ik" ? vIK() : S.view==="gorev" ? vGorev() : S.view==="gtasinma" ? vGuvTasinma() : S.view==="personel" ? pDash(vPersonel()) : S.view==="devriye" ? pDash(vDevriye()) : vRandevu();
+  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="calisma" ? vCalisma() : S.view==="izinler" ? vIzinler() : S.view==="tutanak" ? vTutanak() : S.view==="ik" ? vIK() : S.view==="gorev" ? vGorev() : S.view==="gtasinma" ? vGuvTasinma() : S.view==="personel" ? pDash(vPersonel()) : S.view==="devriye" ? pDash(vDevriye()) : vRandevu();
   const dash = (S.view==="panel" && (store.isTech() || (store.isYetkili && store.isYetkili())) && !S.panelEski) || (["personel","devriye","gtasinma"].includes(S.view) && !!pDashKim());
   document.body.classList.toggle("dash", dash);
   document.querySelector("nav.tabs").hidden = dash || ((store.isTech() || (store.isYetkili && store.isYetkili())) && !["randevu","randevularim"].includes(S.view)) || S.view==="personel" || S.view==="devriye" || S.view==="gtasinma" || (appDosya()==="teknik.html" && !store.isTech());
   $("#ustYazi").textContent = S.view==="personel" && appDosya()==="devriye.html" ? "Bizimevler 1 · Güvenlik" : S.view==="personel" ? "Bizimevler 1 · Personel" : S.view==="devriye" || S.view==="gtasinma" ? "Bizimevler 1 · Güvenlik" : (AYAR.ustYazi || "Teknik Servis");
   const personelMi = store.isTech() || (store.isYetkili && store.isYetkili());
-  const icsayfa = !dash && personelMi && ["tesis","tasinma","gorev","izinler","calisma","ik","panel","personel","devriye"].includes(S.view);
+  const icsayfa = !dash && personelMi && ["tesis","tasinma","gorev","izinler","tutanak","calisma","ik","panel","personel","devriye"].includes(S.view);
   document.body.classList.toggle("icsayfa", icsayfa);
   const masa = MASA.matches && personelMi && ((dash && S.view==="panel") || icsayfa || (S.view==="personel" && !dash) || S.view==="gorev" || S.view==="tasinma");
   document.body.classList.toggle("yon-masa", masa);
@@ -5068,6 +5237,7 @@ function render(){
     : S.view==="panel" ? (personelMi ? "Gelen arızaları gör, durumlarını güncelle." : "Teknisyen ve yönetim hesabıyla giriş yapın.")
     : S.view==="tesis" ? "Asansör, hidrofor, jeneratör, yangın ekipmanı, bakım takvimi ve stok."
     : S.view==="izinler" ? "Yıllık izin, rapor ve mazeretler · puantaja kendiliğinden işlenir."
+    : S.view==="tutanak" ? "Olay yeri tutanağı · yazdır, PDF kaydet, gönder."
     : S.view==="calisma" ? "Temizlik hafta sonu çalışma listesi · her hafta kendiliğinden döner."
     : S.view==="randevu" ? "Arızanı bildir, uygun saati seç. Teknisyen kapına gelsin."
     : S.view==="tasinma" ? "Taşınma ve tadilat kayıtları · Pzt–Cmt 10:00–17:00, pazar yasak."
@@ -5309,6 +5479,7 @@ document.addEventListener("click", async e => {
       catch(e){ console.error(e); g.hata = (e && e.code === "permission-denied") ? "Gönderilemedi: kodunuz geçersiz ya da pasif." : "Gönderilemedi, internet bağlantınızı kontrol edin."; }
       S.sending = false; render(); return; }
     else if (act && act.startsWith("izf")){ e.preventDefault(); izfAksiyon(act, id); return; }
+    else if (act && /^tt[A-Z]/.test(act)){ e.preventDefault(); ttAksiyon(act, id); return; }
     else if (act==="yiEkle"){ syncForm(); const f = YI.f;
       if (!f.ad){ toast("Kişiyi seçin"); return; } if (!f.bas){ toast("Başlangıç tarihini seçin"); return; }
       if (yiSadeceGuv() && !String(f.ad).startsWith("g|")){ toast("Amirler sadece güvenlik izni girebilir"); return; }
@@ -5470,7 +5641,7 @@ function route(){
     if (n) noktaOkut(n); else toast("QR kodu tanınmadı");
     return;
   }
-  S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma","calisma","izinler","gtasinma","gorev","ik"].includes(h) ? h : "randevu";
+  S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma","calisma","izinler","tutanak","gtasinma","gorev","ik"].includes(h) ? h : "randevu";
   // B1 Teknik uygulamasında sakin arıza formu yok (amirler görmesin); teknisyen #randevu ile yine açabilir
   if (appDosya()==="teknik.html" && (S.view==="randevu"||S.view==="randevularim") && !store.isTech()){ S.view = "panel"; history.replaceState(null, "", location.pathname + "#panel"); }
   if (S.view !== "tesis"){ T.f = null; T.detay = null; }
