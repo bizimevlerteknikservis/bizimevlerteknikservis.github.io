@@ -103,7 +103,7 @@ table.pt{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:10
 .k-X{color:var(--ink)}
 .k-HT{color:var(--muted);background:var(--panel2)}
 .k-Yİ{background:#e3f2ff;color:#1b5ea8}.k-R{background:#fde7e7;color:#b4232a}.k-Mİ{background:#efe7fb;color:#6a3fb5}.k-Üİ{background:#eceff3;color:#4a5a6d}
-.k-D{background:#d63a35;color:#fff}.k-X.gk2{background:#1d3557;color:#fff}.k-RT{background:#fff0c7;color:#8a5a00}
+.k-D{background:#d63a35;color:#fff}.k-X.gk2{background:#1d3557;color:#fff}.k-X.gk3{background:#e7dcff;color:#4b2a8a}.k-RT{background:#fff0c7;color:#8a5a00}
 :root[data-theme="dark"] .k-Yİ,:root[data-theme="dark"] .k-R,:root[data-theme="dark"] .k-Mİ,:root[data-theme="dark"] .k-Üİ,:root[data-theme="dark"] .k-RT{filter:brightness(.55) saturate(1.3);color:#fff}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .k-Yİ,:root:not([data-theme="light"]) .k-R,:root:not([data-theme="light"]) .k-Mİ,:root:not([data-theme="light"]) .k-Üİ,:root:not([data-theme="light"]) .k-RT{filter:brightness(.55) saturate(1.3);color:#fff}}
 .pt td.top{padding:0 8px;font-weight:700;font-variant-numeric:tabular-nums;font-size:12.5px;min-width:40px}
@@ -121,7 +121,7 @@ table.pt{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:10
 .pop .kodlar{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .pop .kodlar button{border:1px solid var(--line);border-radius:10px;padding:8px 0;font-weight:800;cursor:pointer;background:transparent}
 .pop .kodlar button[aria-pressed="true"]{outline:2px solid var(--accent)}
-.pop .kodlar button.k-D{background:#d63a35;color:#fff;border-color:#d63a35}.pop .kodlar button.gk2{background:#1d3557;color:#fff;border-color:#1d3557}.pop .kodlar button[aria-pressed="true"]{outline-offset:2px}
+.pop .kodlar button.k-D{background:#d63a35;color:#fff;border-color:#d63a35}.pop .kodlar button.gk2{background:#1d3557;color:#fff;border-color:#1d3557}.pop .kodlar button.gk3{background:#e7dcff;color:#4b2a8a;border-color:#b9a3ef}.pop .kodlar button[aria-pressed="true"]{outline-offset:2px}
 .pop .oto{margin-top:8px;width:100%}
 .pop p{margin:8px 0 0;font-size:12px;color:var(--muted)}
 .modal{position:fixed;inset:0;z-index:50;background:rgba(5,12,22,.55);display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto}
@@ -136,7 +136,7 @@ table.pt{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:10
 @media (max-width:560px){.form{grid-template-columns:1fr}}
 .desen{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
 .desen button.g{width:44px;height:40px;border-radius:10px;border:1px solid var(--line);font-weight:800;cursor:pointer}
-.desen .G{background:#fff4d6;color:#8a5a00}.desen .N{background:#1d3557;color:#fff}.desen .HT{background:var(--panel2);color:var(--muted)}
+.desen .G{background:#fff4d6;color:#8a5a00}.desen .N{background:#1d3557;color:#fff}.desen .A{background:#e7dcff;color:#4b2a8a}.desen .HT{background:var(--panel2);color:var(--muted)}
 .onizle{display:flex;gap:3px;flex-wrap:wrap;margin-top:6px}
 .onizle span{width:30px;text-align:center;font-size:11px;border-radius:6px;padding:3px 0}
 .vd{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
@@ -363,23 +363,23 @@ function oto(key, k, d){
   return o;
 }
 /* Mesai saatleri (⏰): uyarılar ve geç kalma hesabı için. Bildirim sunucusu da aynı ayarı okur. */
-const SAAT_VARSAYILAN = {temizlik:{bas:"08:00", bit:"17:00"}, bahce:{bas:"08:00", bit:"17:00"}, diger:{bas:"08:00", bit:"17:00"}, G:{bas:"08:00", bit:"20:00"}, N:{bas:"20:00", bit:"08:00"}, tolerans:15, gelmeyen:true, cikis:true};
-function saatAyar(){ const x = P.ayar.saat || {}, D = SAAT_VARSAYILAN; return {...D, ...x, temizlik:{...D.temizlik, ...(x.temizlik||{})}, bahce:{...D.bahce, ...(x.bahce||{})}, diger:{...D.diger, ...(x.diger||{})}, G:{...D.G, ...(x.G||{})}, N:{...D.N, ...(x.N||{})}}; }
+const SAAT_VARSAYILAN = {temizlik:{bas:"08:00", bit:"17:00"}, bahce:{bas:"08:00", bit:"17:00"}, diger:{bas:"08:00", bit:"17:00"}, G:{bas:"08:00", bit:"20:00"}, N:{bas:"20:00", bit:"08:00"}, A:{bas:"13:00", bit:"21:00"}, tolerans:15, gelmeyen:true, cikis:true};
+function saatAyar(){ const x = P.ayar.saat || {}, D = SAAT_VARSAYILAN; return {...D, ...x, temizlik:{...D.temizlik, ...(x.temizlik||{})}, bahce:{...D.bahce, ...(x.bahce||{})}, diger:{...D.diger, ...(x.diger||{})}, G:{...D.G, ...(x.G||{})}, N:{...D.N, ...(x.N||{})}, A:{...D.A, ...(x.A||{})}}; }
 /* O günkü girişte kaç dakika geç kalmış (tolerans içindeyse 0) */
-function gecDk(k, d, o, gece){
+function gecDk(k, d, o, gece, ara){
   if (!o || !o.giris) return 0; const S = saatAyar();
-  const v = k.grup==="guvenlik" ? (gece ? S.N : S.G) : (S[k.grup] || S.temizlik);
+  const v = k.grup==="guvenlik" ? (gece ? S.N : ara ? S.A : S.G) : (S[k.grup] || S.temizlik);
   const [h, dk] = String(v.bas).split(":").map(Number); const bas = new Date(d); bas.setHours(h, dk, 0, 0);
   const fark = Math.round((o.giris - bas.getTime())/6e4);
   return fark > (+S.tolerans || 15) && fark < 8*60 ? fark : 0;
 }
 /* Bir kişinin bir gününün otomatik kodu ve nedeni (vardiya değişimi hariç) */
 function otoTemel(key, k, d){
-  let kod = "X", neden = "", gece = false;
+  let kod = "X", neden = "", gece = false, ara = false;
   if (k.grup==="guvenlik"){
     const ds = (P.ayar.desen||{})[k.vardiya] || DESEN_VARSAYILAN[k.vardiya];
     if (ds){ const seq = ds.seq.split(","); const i = ((gunFark(d, ymdT(ds.baz)) % seq.length) + seq.length) % seq.length; const s = seq[i];
-      kod = s==="HT" ? "HT" : "X"; gece = s==="N"; neden = s==="HT" ? "Vardiya düzeni: izin günü" : s==="N" ? "Vardiya düzeni: gece (20–08)" : "Vardiya düzeni: gündüz (08–20)"; }
+      kod = s==="HT" ? "HT" : "X"; gece = s==="N"; ara = s==="A"; neden = s==="HT" ? "Vardiya düzeni: izin günü" : s==="N" ? "Vardiya düzeni: gece (20–08)" : s==="A" ? "Vardiya düzeni: ara vardiya (13–21)" : "Vardiya düzeni: gündüz (08–20)"; }
     else { kod = d.getDay()===0 ? "HT" : "X"; neden = "Vardiya düzeni girilmedi"; }
   } else if (k.duzen==="temizlik" || (k.grup==="temizlik" && !k.gunler)){
     const g = d.getDay();
@@ -391,8 +391,8 @@ function otoTemel(key, k, d){
   const t = tatil(d);
   if (t && kod==="X" && k.grup!=="guvenlik"){ kod = "RT"; neden = t; }
   const iz = izinBul(k, d);
-  if (iz && kod!=="HT"){ kod = IZIN_KOD[iz.tur] || "Yİ"; neden = `İzinler: ${({yillik:"Yıllık izin",rapor:"Rapor",mazeret:"Mazeret",ucretsiz:"Ücretsiz izin"})[iz.tur]||"İzin"}${iz.not?" · "+iz.not:""}`; gece = false; }
-  return {kod, neden, gece};
+  if (iz && kod!=="HT"){ kod = IZIN_KOD[iz.tur] || "Yİ"; neden = `İzinler: ${({yillik:"Yıllık izin",rapor:"Rapor",mazeret:"Mazeret",ucretsiz:"Ücretsiz izin"})[iz.tur]||"İzin"}${iz.not?" · "+iz.not:""}`; gece = false; ara = false; }
+  return {kod, neden, gece, ...(ara ? {ara:true} : {})};
 }
 function izinBul(k, d){
   const s = ymd(d);
@@ -404,15 +404,23 @@ function izinBul(k, d){
 function hucre(key, k, d, gi){
   const g = grupOf(k), kes = ((P.doc.kesin||{})[g]||{})[key];
   const o = oto(key, k, d);
-  if (kes){ const kod = kes.split(",")[gi]; if (kod === "1" || kod === "2") return {kod:"X", kesin:true, elle:false, neden:o.neden, gece:kod === "2"}; return {kod, kesin:true, elle:false, neden:o.neden, gece:o.gece}; }
+  if (kes){ const kod = kes.split(",")[gi]; if (kod === "1" || kod === "2" || kod === "3") return {kod:"X", kesin:true, elle:false, neden:o.neden, gece:kod === "2", ...(kod === "3" ? {ara:true} : {})}; return {kod, kesin:true, elle:false, neden:o.neden, gece:o.gece}; }
   const el = (((P.doc.kisi||{})[key]||{}).gun||{})[String(gi+1)];
-  if (el === "1" || el === "2") return {kod:"X", elle:true, neden:`Elle değiştirildi · otomatik: ${gKod({kod:o.kod, gece:o.gece}, k)}`, gece:el === "2", oto:o.kod};
-  return el ? {kod:el, elle:true, neden:`Elle değiştirildi · otomatik: ${o.kod}`, gece:el === "X" && o.gece, oto:o.kod} : {...o, elle:false};
+  if (el === "1" || el === "2" || el === "3") return {kod:"X", elle:true, neden:`Elle değiştirildi · otomatik: ${gKod(o, k)}`, gece:el === "2", ...(el === "3" ? {ara:true} : {}), oto:o.kod};
+  if (el) return {kod:el, elle:true, neden:`Elle değiştirildi · otomatik: ${o.kod}`, gece:el === "X" && o.gece, ...(el === "X" && o.ara ? {ara:true} : {}), oto:o.kod};
+  return {...qrAra(k, d, o), elle:false};
+}
+/* QR ile öğlen (11:30–15:30 arası) giriş yapan güvenlik personeli o gün ara vardiyada (3: 13:00–21:00) sayılır */
+function qrAra(k, d, o){
+  if (k.grup !== "guvenlik" || o.kod !== "X" || o.gece || o.ara) return o;
+  const gl = (mesaiGun(k).G || {})[d.getDate()] || [], g = gl.find(x => x.giris); if (!g) return o;
+  const t = new Date(g.giris), dk = t.getHours()*60 + t.getMinutes();
+  return ymd(t) === ymd(d) && dk >= 690 && dk <= 930 ? {...o, ara:true, neden:`QR girişi ${pad(t.getHours())}:${pad(t.getMinutes())} · ara vardiya (13–21)`} : o;
 }
 /* Güvenlik çizelgesindeki gösterim: 1 = gündüz (08–20), 2 = gece (20–08), T = tatil, Y = yıllık izin, R = rapor, G = gelmedi */
 const G_KOD = {HT:"T", RT:"T", "Yİ":"Y", D:"G"};
-const G_KODLAR = {"1":{ad:"Gündüz 08:00–20:00", ic:"X", gece:false}, "2":{ad:"Gece 20:00–08:00", ic:"X", gece:true}, "T":{ad:"Tatil", ic:"HT"}, "Y":{ad:"Yıllık izin", ic:"Yİ"}, "R":{ad:"Rapor", ic:"R"}, "G":{ad:"Gelmedi", ic:"D"}, "Üİ":{ad:"Ücretsiz izin", ic:"Üİ"}, "Mİ":{ad:"Mazeret izni", ic:"Mİ"}};
-const gKod = (h, k) => (k && k.grup !== "guvenlik") ? h.kod : h.kod === "X" ? (h.gece ? "2" : "1") : (G_KOD[h.kod] || h.kod);
+const G_KODLAR = {"1":{ad:"Gündüz 08:00–20:00", ic:"X", gece:false}, "2":{ad:"Gece 20:00–08:00", ic:"X", gece:true}, "3":{ad:"Ara 13:00–21:00", ic:"X", gece:false, ara:true}, "T":{ad:"Tatil", ic:"HT"}, "Y":{ad:"Yıllık izin", ic:"Yİ"}, "R":{ad:"Rapor", ic:"R"}, "G":{ad:"Gelmedi", ic:"D"}, "Üİ":{ad:"Ücretsiz izin", ic:"Üİ"}, "Mİ":{ad:"Mazeret izni", ic:"Mİ"}};
+const gKod = (h, k) => (k && k.grup !== "guvenlik") ? h.kod : h.kod === "X" ? (h.gece ? "2" : h.ara ? "3" : "1") : (G_KOD[h.kod] || h.kod);
 const grupOf = k => k.grup==="guvenlik" ? "guvenlik" : "temizlik";
 /* Mesai (QR giriş/çıkış): kişinin kayıtlarını eşleştir, giriş-çıkış çiftlerini günlere dağıt */
 const msEslesir = (k, r) => k.grup==="guvenlik" ? anahtar(r.ad)===anahtar(k.ad) : (r.grup!=="guvenlik" && adKok(r.ad)===adKok(k.ad));
@@ -519,7 +527,7 @@ function ciz(){
       if (h.kod==="X" && tatil(d)) T.RTc++; if (q) T.QR++;
       const uyar = (q || (ms && ms.some(o=>o.giris))) && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod);
       const t = tatil(d), hs = d.getDay()===0||d.getDay()===6;
-      return `<td class="c k-${h.kod}${P.grup==="guvenlik"&&h.kod==="X"&&h.gece?" gk2":""}${h.elle?" elle":""}${uyar?" uyar":""}${t?" tat":""}${ymd(d)===bugun?" bugun":""}" data-k="${esc(key)}" data-g="${i}" title="${esc(`${d.getDate()} ${AY[d.getMonth()]} · ${P.grup==="guvenlik" ? (G_KODLAR[gKod(h,k)]?.ad || h.kod) : (KODLAR[h.kod]?.ad||h.kod)}\n${h.neden}${q?`\n✓ QR okuttu (${q})`:""}${ms?`\n${msMetin(ms)}`:""}`)}">${h.gece&&h.kod==="X"&&P.grup!=="guvenlik"?`<i class="gece">☾</i>`:""}${q?`<i class="qr"></i>`:""}${ms?`<i class="ms${ms.some(msSupheli)?" supheli":ms.some(o=>!o.giris||(!o.cikis&&!o.acik))?" eksik":""}"></i>`:""}<span>${gKod(h, k)}</span></td>`; }).join("");
+      return `<td class="c k-${h.kod}${P.grup==="guvenlik"&&h.kod==="X"&&h.gece?" gk2":P.grup==="guvenlik"&&h.kod==="X"&&h.ara?" gk3":""}${h.elle?" elle":""}${uyar?" uyar":""}${t?" tat":""}${ymd(d)===bugun?" bugun":""}" data-k="${esc(key)}" data-g="${i}" title="${esc(`${d.getDate()} ${AY[d.getMonth()]} · ${P.grup==="guvenlik" ? (G_KODLAR[gKod(h,k)]?.ad || h.kod) : (KODLAR[h.kod]?.ad||h.kod)}\n${h.neden}${q?`\n✓ QR okuttu (${q})`:""}${ms?`\n${msMetin(ms)}`:""}`)}">${h.gece&&h.kod==="X"&&P.grup!=="guvenlik"?`<i class="gece">☾</i>`:""}${q?`<i class="qr"></i>`:""}${ms?`<i class="ms${ms.some(msSupheli)?" supheli":ms.some(o=>!o.giris||(!o.cikis&&!o.acik))?" eksik":""}"></i>`:""}<span>${gKod(h, k)}</span></td>`; }).join("");
     const kd = ((P.doc.kisi||{})[key]) || {};
     const z = v => `<td class="top${v?"":" zero"}">${v}</td>`;
     sat.push(`<tr data-satir="${esc(key)}"><td class="ad"><a data-kisi="${esc(key)}"><b>${esc(k.ad)}${k.amir?" ⭐":""}${KS.say[key] ? `<span class="sorun-n" title="Kontrol edilecek">${KS.say[key]}</span>` : ""}</b><small>${esc(k.grup==="guvenlik"?(k.vardiya||""):k.grup==="bahce"?"Bahçe":k.grup==="diger"?"Diğer":"Temizlik")}</small></a></td>${hc}
@@ -533,7 +541,7 @@ function ciz(){
   // ilk açılışta bugünün sütununa kaydır (telefonda tablo dar); sonraki çizimlerde konumu koru
   const anahtarAy = P.ay + P.grup;
   if (P.kaydir !== anahtarAy){ P.kaydir = anahtarAy; if (simdiAy) bugunGit(false); } else { $("#tw").scrollLeft = twSol; $("#tw").scrollTop = twUst; }
-  $("#lej").innerHTML = (P.grup==="guvenlik" ? Object.entries(G_KODLAR).map(([k,v])=>`<span><b class="k-${v.ic}${k==="2"?" gk2":""}">${k}</b>${v.ad}</span>`) : Object.entries(KODLAR).map(([k,v])=>`<span><b class="k-${k}">${k}</b>${v.ad}</span>`)).join("") +
+  $("#lej").innerHTML = (P.grup==="guvenlik" ? Object.entries(G_KODLAR).map(([k,v])=>`<span><b class="k-${v.ic}${k==="2"?" gk2":k==="3"?" gk3":""}">${k}</b>${v.ad}</span>`) : Object.entries(KODLAR).map(([k,v])=>`<span><b class="k-${k}">${k}</b>${v.ad}</span>`)).join("") +
     `<span>☾ Gece vardiyası</span><span><i style="width:14px;height:4px;border-radius:2px;background:#2b7cd3;display:inline-block"></i> QR giriş-çıkış var</span><span><i style="width:14px;height:4px;border-radius:2px;background:#d9851b;display:inline-block"></i> Giriş/çıkış eksik</span><span><i style="width:14px;height:4px;border-radius:2px;background:#d63a35;display:inline-block"></i> Konum şüpheli</span>${P.grup==="guvenlik"?`<span><i style="width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block"></i> QR okuttu</span>`:""}<span><b style="text-decoration:underline">X</b> Elle değiştirildi</span><span>🇹🇷 Resmi tatil · ½ yarım gün</span>`;
 }
 function bugunGit(yumusak){
@@ -587,7 +595,7 @@ function popAc(td){
   const pop = $("#pop");
   pop.innerHTML = `<h4>${esc(k.ad)} · ${d.getDate()} ${AY[d.getMonth()]} ${GK[d.getDay()]}<small>${esc(o.neden)}${tatil(d)?" · "+tatil(d):""}</small></h4>
     <div class="kodlar">${k.grup==="guvenlik"
-      ? Object.entries(G_KODLAR).map(([c,v])=>`<button class="k-${v.ic}${c==="2"?" gk2":""}" data-kod="${c}" aria-pressed="${gKod(h,k)===c}" title="${v.ad}">${c}</button>`).join("")
+      ? Object.entries(G_KODLAR).map(([c,v])=>`<button class="k-${v.ic}${c==="2"?" gk2":c==="3"?" gk3":""}" data-kod="${c}" aria-pressed="${gKod(h,k)===c}" title="${v.ad}">${c}</button>`).join("")
       : Object.keys(KODLAR).map(c=>`<button class="k-${c}" data-kod="${c}" aria-pressed="${h.kod===c}" title="${KODLAR[c].ad}">${c}</button>`).join("")}</div>
     <button class="btn ikincil oto" data-kod="">↺ Otomatik (${gKod(o, k)})</button>
     ${(mesaiGun(k).G[gi+1]||[]).map(m=>`<div class="pms">🕘 ${m.giris?`Giriş ${saatKisa(m.giris)} ${msKonum(m.gk)}`:"Giriş yok"}<br>🏁 ${m.cikis?`Çıkış ${saatKisa(m.cikis)} ${msKonum(m.ck)}`:m.acik?"hâlâ işte":m.unutuldu?"çıkış unutuldu (sistem kapattı)":"çıkış yok"}</div>`).join("")}
@@ -600,9 +608,9 @@ function popAc(td){
 function popKapat(){ $("#pop").hidden = true; POP = null; }
 async function kodYaz(kod){
   const {key, gi} = POP; popKapat();
-  const k = kisiler()[key], d = ayBilgi().gunler[gi], o = oto(key, k, d);
+  const k = kisiler()[key], d = ayBilgi().gunler[gi], o = qrAra(k, d, oto(key, k, d));
   let kd = kod;
-  if (k.grup==="guvenlik" && kod && G_KODLAR[kod]){ const v = G_KODLAR[kod]; kd = v.ic === "X" ? ((o.kod === "X" && !!o.gece === v.gece) ? o.kod : kod) : v.ic; }
+  if (k.grup==="guvenlik" && kod && G_KODLAR[kod]){ const v = G_KODLAR[kod]; kd = v.ic === "X" ? ((o.kod === "X" && !!o.gece === !!v.gece && !!o.ara === !!v.ara) ? o.kod : kod) : v.ic; }
   const deger = kd && kd !== o.kod ? kd : "";
   P.doc.kisi ||= {}; P.doc.kisi[key] ||= {}; P.doc.kisi[key].gun ||= {}; P.doc.kisi[key].gun[String(gi+1)] = deger; ciz();
   try { await kisilerKaydetIlk(); await DB.ayYaz(P.ay, {kisi:{[key]:{gun:{[String(gi+1)]:deger}}}, son:{by:P.kim, ts:Date.now()}}); } catch(e){ hata(e); }
@@ -615,7 +623,7 @@ async function onayla(tur){
   if (tur==="mudur"){
     if (!confirm(`${AY[ayBilgi().m-1]} ${g==="guvenlik"?"güvenlik":"temizlik & bahçe"} puantajı kesinleşsin mi? Sonra değişiklik için kilidin açılması gerekir.`)) return;
     const {gunler} = ayBilgi(); const kes = {};
-    grupKisileri(g).forEach(([key,k])=>{ kes[key] = gunler.map((d,i)=>{ const h = hucre(key,k,d,i); return g==="guvenlik" && h.kod==="X" ? (h.gece ? "2" : "1") : h.kod; }).join(","); });
+    grupKisileri(g).forEach(([key,k])=>{ kes[key] = gunler.map((d,i)=>{ const h = hucre(key,k,d,i); return g==="guvenlik" && h.kod==="X" ? (h.gece ? "2" : h.ara ? "3" : "1") : h.kod; }).join(","); });
     try { await kisilerKaydetIlk(); await DB.ayYaz(P.ay, {onay:{[g]:{mudur:{by:P.kim, ts:Date.now()}}}, kesin:{[g]:kes}}); toast("✓ Kesinleşti. Excel'i muhasebeye gönderebilirsiniz."); } catch(e){ hata(e); }
   } else {
     if (!confirm("Güvenlik puantajını amir olarak onaylıyor musunuz?")) return;
@@ -708,9 +716,9 @@ $("#modal").addEventListener("mousedown", e => { if (e.target.id==="modal") kapa
 function desenModal(){
   const D = {...DESEN_VARSAYILAN, ...(P.ayar.desen||{})};
   const yaz = () => Object.entries(D).map(([v, ds])=>{ const seq = ds.seq.split(","); const b = ymdT(ds.baz);
-    const on14 = Array.from({length:14}, (_,i)=>{ const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate()+i); const s = seq[((gunFark(d,b)%seq.length)+seq.length)%seq.length]; return `<span class="${s}" style="${s==="G"?"background:#fff4d6;color:#8a5a00":s==="N"?"background:#1d3557;color:#fff":"background:var(--panel2);color:var(--muted)"}">${d.getDate()}<br>${s==="G"?"☀":s==="N"?"☾":"–"}</span>`; }).join("");
+    const on14 = Array.from({length:14}, (_,i)=>{ const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate()+i); const s = seq[((gunFark(d,b)%seq.length)+seq.length)%seq.length]; return `<span class="${s}" style="${s==="G"?"background:#fff4d6;color:#8a5a00":s==="N"?"background:#1d3557;color:#fff":s==="A"?"background:#e7dcff;color:#4b2a8a":"background:var(--panel2);color:var(--muted)"}">${d.getDate()}<br>${s==="G"?"☀":s==="N"?"☾":s==="A"?"3":"–"}</span>`; }).join("");
     return `<div class="vd" data-vd="${esc(v)}"><b>${esc(v)}</b> <span class="mut" style="font-size:12.5px">· ${VARDIYA.find(x=>x.ad===v)?.kisiler.map(x=>x[0].split(" ")[0]).join(", ")||""}</span>
-      <div class="desen">${seq.map((s,i)=>`<button type="button" class="g ${s}" data-dz="${esc(v)}|${i}">${s==="G"?"☀ G":s==="N"?"☾ N":"HT"}</button>`).join("")}
+      <div class="desen">${seq.map((s,i)=>`<button type="button" class="g ${s}" data-dz="${esc(v)}|${i}">${s==="G"?"☀ G":s==="N"?"☾ N":s==="A"?"◐ 3":"HT"}</button>`).join("")}
         <button type="button" class="ibtn" data-dzek="${esc(v)}">＋</button><button type="button" class="ibtn" data-dzsil="${esc(v)}">－</button></div>
       <label class="mut" style="font-size:13px;font-weight:600">Düzenin 1. günü <input class="inp" type="date" data-dzbaz="${esc(v)}" value="${esc(ds.baz)}"></label>
       <div class="onizle">${on14}</div></div>`; }).join("");
@@ -720,7 +728,7 @@ function desenModal(){
     ${yaz()}<button class="btn yesil" data-act="desenKaydet">✓ Kaydet</button>`);
     $("#cizelgeDoldur").onclick = () => { Object.assign(D, JSON.parse(JSON.stringify(ESKI_CIZELGE))); DESEN_KISI = true; goster(); toast("Çizelgeye göre dolduruldu · önizlemeyi kontrol edip Kaydet'e basın"); };
     $("#mic").onclick = e => { const b = e.target.closest("[data-dz],[data-dzek],[data-dzsil]"); if (!b) return;
-      if (b.dataset.dz){ const [v,i] = b.dataset.dz.split("|"); const s = D[v].seq.split(","); s[+i] = s[+i]==="G" ? "N" : s[+i]==="N" ? "HT" : "G"; D[v] = {...D[v], seq:s.join(",")}; }
+      if (b.dataset.dz){ const [v,i] = b.dataset.dz.split("|"); const s = D[v].seq.split(","); s[+i] = s[+i]==="G" ? "N" : s[+i]==="N" ? "A" : s[+i]==="A" ? "HT" : "G"; D[v] = {...D[v], seq:s.join(",")}; }
       if (b.dataset.dzek){ const v = b.dataset.dzek; D[v] = {...D[v], seq: D[v].seq + ",HT"}; }
       if (b.dataset.dzsil){ const v = b.dataset.dzsil; const s = D[v].seq.split(","); if (s.length > 2){ s.pop(); D[v] = {...D[v], seq:s.join(",")}; } }
       goster(); };
@@ -780,7 +788,7 @@ function raporSatirlar(g){
     gunler.forEach((d, i) => { const h = hucre(key, k, d, i), ms = MSG.G[i+1] || [];
       if (T[h.kod] !== undefined) T[h.kod]++; if (h.kod==="X" && tatil(d)) T.RTc++; if (h.degisim) T.degisim++;
       ms.forEach(o => { T.dk += msDk(o); if (o.giris && !o.cikis && !o.acik) T.unut++; });
-      const ilk = ms.find(o => o.giris); const gd = h.kod==="X" ? gecDk(k, d, ilk, h.gece) : 0; if (gd){ T.gec++; T.gecDk += gd; } });
+      const ilk = ms.find(o => o.giris); const gd = h.kod==="X" ? gecDk(k, d, ilk, h.gece, h.ara) : 0; if (gd){ T.gec++; T.gecDk += gd; } });
     return {k, T, fm: parseFloat(String(kd.fm||"0").replace(",","."))||0, not: kd.not||"", qr: MSG.var};
   });
 }
@@ -818,7 +826,7 @@ function raporHTML(){
 /* Güvenlik aylık çalışma programı: yönetimin kâğıt çizelgesiyle aynı biçim (1 = 08–20, 2 = 20–08, T = tatil, Y, R, G…) */
 function programKod(h, o){
   const c = h.kod;
-  if (c === "X") return h.gece ? "2" : "1";
+  if (c === "X") return h.gece ? "2" : h.ara ? "3" : "1";
   return {HT:"T", RT:"T", "Yİ":"Y", R:"R", D:"G", "Üİ":"Üİ", "Mİ":"Mİ"}[c] || c || "";
 }
 function programHTML(){

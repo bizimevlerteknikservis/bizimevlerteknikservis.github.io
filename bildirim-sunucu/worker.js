@@ -233,7 +233,7 @@ const tatil = gun => DINI_TATIL.has(gun) || !!SABIT_TATIL[gun.slice(5)];
 const VARDIYA_LISTE = [["1. Vardiya", ["Rüstem Eryüksel", "Ali Vesek", "Tayfun Özdemir", "Erkan Bavkir"]], ["2. Vardiya", ["Yakup Erol", "Cihan Yıldırım", "Serkan Çinibulak", "Mehmet Ünal"]],
   ["3. Vardiya", ["Nejdet Baydemir", "Yalçın Akyol", "Berke Dursun Tuncer", "Yusuf Nazlım"]], ["Joker", ["Eray Polat"]]];
 const DESEN_VARSAYILAN = { "1. Vardiya": { seq: "G,G,N,N,HT,HT", baz: "2026-08-31" }, "2. Vardiya": { seq: "G,G,N,N,HT,HT", baz: "2026-09-04" }, "3. Vardiya": { seq: "G,G,N,N,HT,HT", baz: "2026-09-02" }, "Joker": { seq: "G,G,G,G,G,HT,HT", baz: "2026-11-02" } };
-const SAAT_VARSAYILAN = { temizlik: { bas: "08:00", bit: "17:00" }, bahce: { bas: "08:00", bit: "17:00" }, diger: { bas: "08:00", bit: "17:00" }, G: { bas: "08:00", bit: "20:00" }, N: { bas: "20:00", bit: "08:00" }, tolerans: 15, gelmeyen: true, cikis: true };
+const SAAT_VARSAYILAN = { temizlik: { bas: "08:00", bit: "17:00" }, bahce: { bas: "08:00", bit: "17:00" }, diger: { bas: "08:00", bit: "17:00" }, G: { bas: "08:00", bit: "20:00" }, N: { bas: "20:00", bit: "08:00" }, A: { bas: "13:00", bit: "21:00" }, tolerans: 15, gelmeyen: true, cikis: true };
 const saatAyar = a => { const s = (a && a.saat) || {}; return { ...SAAT_VARSAYILAN, ...s, temizlik: { ...SAAT_VARSAYILAN.temizlik, ...(s.temizlik || {}) }, bahce: { ...SAAT_VARSAYILAN.bahce, ...(s.bahce || {}) },
   diger: { ...SAAT_VARSAYILAN.diger, ...(s.diger || {}) }, G: { ...SAAT_VARSAYILAN.G, ...(s.G || {}) }, N: { ...SAAT_VARSAYILAN.N, ...(s.N || {}) } }; };
 
@@ -292,7 +292,7 @@ function degisimUygula(degisim, k, gun, tur, turBul) {
   return tur;
 }
 function vardiyaSaat(S, k, tur, gun) {
-  const s = tur === "G" || tur === "N" ? S[tur] : (S[k.grup] || S.temizlik);
+  const s = tur === "G" || tur === "N" || tur === "A" ? (S[tur] || SAAT_VARSAYILAN[tur]) : (S[k.grup] || S.temizlik);
   const bas = tsOf(gun, s.bas); let bit = tsOf(gun, s.bit); if (bit <= bas) bit += 864e5;
   return { bas, bit };
 }
