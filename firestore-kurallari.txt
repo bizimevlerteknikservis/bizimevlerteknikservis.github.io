@@ -52,13 +52,13 @@ service cloud.firestore {
         || (isTesis()
             && resource.data.get('src', '') == 'personel'
             && resource.data.get('cat', '') in ['p_malzeme', 'p_temiz', 'p_bahce']
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','note','completedAt','guncelTs','karan'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','note','completedAt','guncelTs','karan','fotoSayi'])
             && request.resource.data.status in ['bekliyor','onaylandi','tamamlandi']
             && request.resource.data.get('note', '').size() <= 160)
         // Müdür (tesis) temizlikçi ve güvenlikten gelen tüm personel arızalarına not yazabilir (durumu teknisyen değiştirir)
         || (isTesis()
             && resource.data.get('src', '') == 'personel'
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['note','guncelTs','karan'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['note','guncelTs','karan','fotoSayi'])
             && request.resource.data.get('note', '').size() <= 160)
         || (signedIn()
             && resource.data.uid == request.auth.uid
