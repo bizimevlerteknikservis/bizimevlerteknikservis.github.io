@@ -512,6 +512,7 @@ nav.tabs a[aria-current="page"]{color:#fff;background:rgba(59,140,255,.16)}nav.t
 .yb-ozet.gecti .yb-d{background:rgba(214,64,64,.14);color:#b3262e}.yb-ozet.yok .yb-d{background:rgba(239,138,16,.12);color:#8a5a00}
 @media (max-width:420px){.yb-kart .yb-ozet{grid-template-columns:1fr 1fr}.yb-ozet .yb-d{grid-column:1/-1}}
 .yb-gec{display:grid;gap:8px}
+.t-eksik{margin:12px 0 0;padding:10px 12px;border-radius:12px;background:#fff4e0;color:#8a5a00;font-weight:600;font-size:14px}
 .foto-sat{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.foto-sat:empty{display:none}
 .foto-b{font-size:13px !important;padding:5px 11px !important}.foto-b.ekle{background:transparent;border:1px dashed var(--line,#c9d5e4);color:var(--muted)}.yb-s{border:1px solid var(--line,#e3e9f2);border-radius:14px;padding:10px 12px}
 .yb-s-bas{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.yb-s-bas span{font-size:13px;color:var(--muted)}
@@ -4368,8 +4369,20 @@ function tForm(){
       <div class="prefs"><button class="pref" data-t="fJenCalisti" data-v="evet" aria-pressed="${f.jen==="evet"}">Evet, çalıştı</button><button class="pref" data-t="fJenCalisti" data-v="hayir" aria-pressed="${f.jen==="hayir"}">Hayır</button><button class="pref" data-t="fJenCalisti" data-v="" aria-pressed="${f.jen===""}">Bilmiyorum</button></div>`;
   }
   return `<div class="t-sheet"><div class="t-sheet-in">${ic}
+    ${!tFormHazir() && tEksik() ? `<p class="t-eksik">⚠️ ${tEksik()}</p>` : ""}
     <div class="grid2" style="margin-top:14px"><button class="cta ghost" data-t="kapat">Vazgeç</button><button class="cta" data-t="kaydet" ${tFormHazir()?"":"disabled"}>${T.kaydediliyor?"Kaydediliyor…":"Kaydet"}</button></div>
   </div></div>`;
+}
+/* Kaydet neden pasif: kullanıcıya eksik olanı söyle */
+function tEksik(){
+  const f = T.f; if (!f) return "";
+  if (f.tip==="yakit"){ if (!f.ekipman) return "Yukarıdan jeneratörü seçin"; if (f.seviye === "" || f.seviye === undefined) return "Seviyeyi (%) yazın"; if (+f.seviye < 0 || +f.seviye > 100) return "Seviye 0 ile 100 arasında olmalı"; }
+  if (f.tip==="ariza"){ if (!f.blok) return "Bloğu seçin"; if (!f.no) return "Asansörü seçin"; if (f.mahsur === undefined) return "Mahsur kalan var mı, seçin"; }
+  if (f.tip==="bakim" && !(f.ekipmanlar||[]).length) return "Bakımı yapılanları seçin";
+  if ((f.tip==="pompa" || f.tip==="tank") && !(f.unit && f.zon)) return "Hidroforu ve zonu seçin";
+  if (f.tip==="pompa" && !f.no) return "Pompayı seçin";
+  if (f.tip==="kesinti-bitti" && f.jen === undefined) return "Jeneratör çalıştı mı, seçin";
+  return "";
 }
 function tFormHazir(){
   const f = T.f; if (!f) return false;
@@ -4533,7 +4546,7 @@ document.addEventListener("change", async e => {
   }
 });
 document.addEventListener("input", e => {
-  if (T.f && e.target.id && e.target.id.startsWith("t_")){ tSync(); const k = document.querySelector('[data-t="kaydet"]'); if (k) k.disabled = !tFormHazir(); }
+  if (T.f && e.target.id && e.target.id.startsWith("t_")){ tSync(); const k = document.querySelector('[data-t="kaydet"]'); if (k) k.disabled = !tFormHazir(); const u = document.querySelector('.t-eksik'); if (u){ const m = tFormHazir() ? "" : tEksik(); u.hidden = !m; u.textContent = "⚠️ " + m; } }
 });
 
 /* =================== TAŞINMA & TADİLAT =================== */
