@@ -1344,7 +1344,10 @@ function FirebaseStore(cfg){
       const u2 = fs.onSnapshot(fs.query(fs.collection(db,"gorev"), fs.where("tur","==","talimat")), s => { A.tal = s.docs.map(d=>({id:d.id, ...d.data()})); ver(); }, e => { console.warn("talimat", e && e.code); });
       return () => { u1(); u2(); }; },
     async gorevEkle(o){ const r = await fs.addDoc(fs.collection(db,"gorev"), {...o, uid:user.uid}); bildirimTetik("gorev", r.id); },
-    async mesaiEkle(o){ await fs.addDoc(fs.collection(db,"mesai"), {...o, uid:user.uid}); },
+    /* İnternet yoksa kayıt telefonda bekler (saat, okutulduğu an), internet gelince kendiliğinden Firebase'e gider */
+    async mesaiEkle(o){ const ref = fs.doc(fs.collection(db,"mesai")), p = fs.setDoc(ref, {...o, uid:user.uid});
+      if (!navigator.onLine){ p.catch(e => console.warn("mesai bekleyen", e)); return "bekliyor"; }
+      return Promise.race([p, new Promise(ok => setTimeout(() => ok("bekliyor"), 6000))]).then(r => { if (r === "bekliyor") p.catch(e => console.warn("mesai bekleyen", e)); return r; }); },
     listenMesaiSon(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"mesai"), fs.where("ts",">=",Date.now() - 20*36e5)), s => cb(s.docs.map(d=>({id:d.id, ...d.data()}))), e => { console.warn("mesai son", e && e.code); cb([]); }); },
     listenPersonelSon(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"appointments"), fs.where("src","==","personel")), s => cb(s.docs.map(d=>({id:d.id, ...d.data()})).filter(a => a.createdAt > Date.now() - 30*864e5)), e => { console.warn("personel son", e && e.code); cb([]); }); },
     async getSiteKonum(){ if (this._sk !== undefined) return this._sk; try { const s = await fs.getDoc(fs.doc(db,"duyuru","konum")); this._sk = s.exists() ? s.data() : null; } catch(e){ this._sk = null; } return this._sk; },
@@ -2413,10 +2416,11 @@ async function mesaiKaydet(tip, nokta){
   if (d){ const h = d.querySelector(".mesai-ic"); if (h && !h.querySelector(".ms-konum")) h.insertAdjacentHTML("beforeend", `<p class="hint ms-konum" style="margin:10px 0 0">📍 Konum alınıyor, birkaç saniye…</p>`); }
   const konum = await konumAl(true);
   const o = {ad:ben.ad, kod:ben.kod, grup:ben.grup, tip, nokta, ts:Date.now(), konum: konum || null, ...(konum ? {} : {konumHata:KONUM_HATA || "zaman"}), ...(MS.fotoIle ? {foto:true} : {})}; MS.fotoIle = false;
-  if (konum && store.getSiteKonum){ try { const m = await store.getSiteKonum(); if (m && m.lat){ o.uzakM = Math.round(mesafeM(konum, m)); } } catch(e){} }
-  try { await store.mesaiEkle(o); MS.liste.unshift(o);
+  if (konum && store.getSiteKonum){ try { const m = await Promise.race([store.getSiteKonum(), new Promise(ok => setTimeout(() => ok(null), 2500))]); if (m && m.lat){ o.uzakM = Math.round(mesafeM(konum, m)); } } catch(e){} }
+  try { const sonuc = await store.mesaiEkle(o); MS.liste.unshift(o);
+    const bekle = sonuc === "bekliyor" ? `<p class="t-uyari turuncu" style="margin:8px 0">📶 Telefon şu an internete bağlı değil. Kaydınız <b>${saatYaz(o.ts)}</b> saatiyle telefonda saklandı; internet gelince sisteme kendiliğinden gönderilecek. Uygulamayı silmeyin, internet gelince bir kez açın.</p>` : "";
     const not = !konum ? `<p class="t-uyari turuncu" style="margin:8px 0">📍 Konum alınamadı: ${KONUM_NEDEN[o.konumHata] || "bilinmeyen neden"}. Kayıt "konumsuz" olarak işaretlendi. ${o.konumHata==="izin" ? "Adres çubuğundaki 🔒 → İzinler → Konum → İzin ver." : o.konumHata==="kapali" ? "Telefonun üst menüsünden Konum'u açın." : "Bir dahaki sefere kulübe kapısının dışında okutun."}</p>` : o.uzakM > 400 ? `<p class="t-uyari kirmizi" style="margin:8px 0">📍 Konumunuz siteden ${o.uzakM >= 1000 ? (o.uzakM/1000).toFixed(1).replace(".",",") + " km" : o.uzakM + " m"} uzakta görünüyor. Kayıt amire işaretli gider.</p>` : "";
-    if (d) d.innerHTML = `<div class="mesai-ic"><div style="font-size:54px">${tip==="giris"?"✅":"🏁"}</div><h3>${tip==="giris"?"Giriş kaydedildi":"Çıkış kaydedildi"}</h3><div class="mesai-saat">${saatYaz(o.ts)}</div>${not}<p>${tip==="giris"?"İyi çalışmalar!":"Emeğinize sağlık, iyi dinlenmeler."}</p><button class="cta" data-act="mesaiKapat">Tamam</button></div>`;
+    if (d) d.innerHTML = `<div class="mesai-ic"><div style="font-size:54px">${tip==="giris"?"✅":"🏁"}</div><h3>${tip==="giris"?"Giriş kaydedildi":"Çıkış kaydedildi"}</h3><div class="mesai-saat">${saatYaz(o.ts)}</div>${bekle}${not}<p>${tip==="giris"?"İyi çalışmalar!":"Emeğinize sağlık, iyi dinlenmeler."}</p><button class="cta" data-act="mesaiKapat">Tamam</button></div>`;
     if (navigator.vibrate) navigator.vibrate(80); render(); }
   catch(e){ console.error(e); toast(e && e.code==="permission-denied" ? "Kaydedilemedi: kodunuzla giriş yapın" : "Kaydedilemedi, internet bağlantısını kontrol edin"); if (d) d.querySelectorAll("button").forEach(x => x.disabled = false); }
   MS.kayit = false;
