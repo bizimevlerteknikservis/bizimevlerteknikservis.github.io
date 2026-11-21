@@ -200,6 +200,69 @@ button.d-hava{width:100%;text-align:left;font:inherit;cursor:pointer;position:re
 .sy-ocr{font-size:13.5px;color:var(--muted);margin:-2px 0 8px;min-height:1em}.sy-ocr b{color:var(--ink)}
 .sy-endeks{font-size:26px!important;font-weight:800;text-align:center;letter-spacing:.04em}.sy-hes{display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 0 12px;font-size:15px}.sy-uy{color:#c0392b;font-weight:600}
 .sy-onck{display:flex;gap:10px;align-items:center;background:var(--panel2,#f1f5fb);border-radius:14px;padding:8px;margin-bottom:6px}.sy-onck img{width:64px;height:64px;object-fit:cover;border-radius:10px}.sy-onck small{display:block;color:var(--muted)}.sy-onck b{font-size:20px}
+/* ===== Mesajlar ===== */
+.msj{--m-bg:#e7edf4;--m-pan:#ffffff;--m-ust:#0f2a5c;--m-ben:#d6f5dd;--m-o:#ffffff;--m-ink:#14283b;--m-mut:#667a8f;--m-cizgi:#e3e9f0;--m-vurgu:#16a06b;
+  position:fixed;inset:0;z-index:70;display:flex;background:var(--m-pan);color:var(--m-ink);font-size:15px}
+html.koyu .msj{--m-bg:#0b141a;--m-pan:#111b21;--m-ust:#1f2c34;--m-ben:#005c4b;--m-o:#1f2c34;--m-ink:#e9edef;--m-mut:#8696a0;--m-cizgi:#222e35}
+.msj.masa{inset:20px;max-width:1180px;margin:0 auto;border-radius:18px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.45),0 0 0 100vmax rgba(5,12,25,.6)}
+.msj-sol{width:100%;display:flex;flex-direction:column;min-width:0;background:var(--m-pan)}
+.msj-sag{display:none;flex:1;flex-direction:column;min-width:0;position:relative;background:var(--m-bg) radial-gradient(circle at 1px 1px,rgba(120,140,170,.14) 1px,transparent 0) 0 0/22px 22px}
+.msj.acik .msj-sol{display:none}.msj.acik .msj-sag{display:flex}
+.msj.masa .msj-sol{display:flex;width:360px;flex:0 0 360px;border-right:1px solid var(--m-cizgi)}.msj.masa .msj-sag{display:flex}.msj.masa .msj-geri{display:none}
+.msj-bas{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;background:var(--m-ust);color:#fff;min-height:58px}
+.msj-bas>b{font-size:20px;font-weight:800;flex:1}.msj-test{font-size:11.5px;background:rgba(255,255,255,.14);border-radius:999px;padding:3px 9px}
+.msj-ib{width:40px;height:40px;border-radius:50%;border:0;background:transparent;color:inherit;font-size:20px;display:grid;place-items:center;cursor:pointer;flex:0 0 40px}.msj-ib:hover{background:rgba(255,255,255,.12)}
+.msj-ara{padding:8px 12px;border-bottom:1px solid var(--m-cizgi)}.msj-ara input{width:100%;border:0;border-radius:10px;background:var(--m-bg);color:var(--m-ink);padding:9px 12px;font-size:15px;min-height:0}
+.msj-liste{flex:1;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)}
+.msj-bl{font-size:12.5px;font-weight:700;color:var(--m-vurgu);padding:12px 16px 4px;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;list-style:none}.msj-kisi summary::-webkit-details-marker{display:none}
+.msj-s{display:flex;gap:12px;align-items:center;width:100%;padding:9px 14px;border:0;background:none;color:inherit;text-align:left;cursor:pointer;font:inherit}.msj-s:hover,.msj-s.on{background:var(--m-bg)}
+.msj-av{border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 60%,#000));color:#fff;font-weight:800}
+.msj-s-o{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;border-bottom:1px solid var(--m-cizgi);padding-bottom:9px}
+.msj-s-u{display:flex;justify-content:space-between;gap:8px}.msj-s-u b{font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.msj-s-u time{font-size:12px;color:var(--m-mut);flex:0 0 auto}.msj-s-u time.yeni{color:var(--m-vurgu);font-weight:700}
+.msj-s-a{display:flex;justify-content:space-between;gap:8px;color:var(--m-mut);font-size:14px}.msj-s-a>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.msj-s-a i{font-style:normal;color:var(--m-ink);opacity:.75}.msj-s-a em{font-style:normal}
+.msj-s-a u{text-decoration:none;color:var(--m-vurgu);font-size:13px}
+.msj-sb{gap:8px;padding-left:6px}.msj-sb-o{flex:1;min-width:0;display:flex;flex-direction:column}.msj-sb-o b{font-size:16.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.msj-sb-o small{opacity:.75;font-size:12.5px}
+.msj-akis{flex:1;overflow-y:auto;padding:10px 4% 14px;display:flex;flex-direction:column;gap:2px;overscroll-behavior:contain}
+.msj-not{align-self:center;max-width:88%;text-align:center;font-size:12.5px;background:color-mix(in srgb,#ffe9a8 80%,transparent);color:#5b4a14;border-radius:10px;padding:6px 12px;margin:8px 0}
+html.koyu .msj-not{background:#182229;color:#d1b25c}
+.msj-gun{align-self:center;margin:10px 0 6px;position:sticky;top:4px;z-index:1}.msj-gun span{background:var(--m-pan);color:var(--m-mut);font-size:12.5px;font-weight:600;border-radius:9px;padding:5px 12px;box-shadow:0 1px 1px rgba(0,0,0,.08)}
+.msj-eski{align-self:center;border:0;border-radius:999px;background:var(--m-pan);color:var(--m-vurgu);font-weight:700;padding:7px 14px;margin:6px 0;cursor:pointer}
+.msj-m{display:flex;margin-top:8px;user-select:text;-webkit-touch-callout:none}.msj-m.ard{margin-top:2px}.msj-m.ben{justify-content:flex-end}
+.msj-b{position:relative;max-width:min(78%,560px);background:var(--m-o);border-radius:10px;border-top-left-radius:3px;padding:6px 9px 7px;box-shadow:0 1px 1px rgba(0,0,0,.1);word-wrap:break-word;overflow-wrap:anywhere}
+.msj-m.ben .msj-b{background:var(--m-ben);border-top-left-radius:10px;border-top-right-radius:3px}.msj-m.ard .msj-b{border-radius:10px}
+.msj-m.parla .msj-b{animation:msjParla 1.6s}@keyframes msjParla{30%{box-shadow:0 0 0 4px rgba(22,160,107,.5)}}
+.msj-ad{display:block;font-size:13px;font-weight:700;margin-bottom:2px}
+.msj-t{line-height:1.4;white-space:normal;padding-right:2px}.msj-t a{color:#1a73e8}
+.msj-meta{float:right;display:inline-flex;gap:3px;align-items:center;font-size:11px;color:var(--m-mut);margin:6px 0 -3px 10px;line-height:1}
+.msj-tik{font-size:12px;letter-spacing:-3px;padding-right:3px}.msj-tik.mavi{color:#34b7f1}
+.msj-b.silik{font-style:italic;color:var(--m-mut)}
+.msj-foto{display:block;max-width:100%;width:280px;max-height:340px;object-fit:cover;border-radius:7px;cursor:zoom-in;margin:2px 0 4px}
+.msj-b.sadece-foto{padding:3px}.msj-b.sadece-foto .msj-meta{position:absolute;right:10px;bottom:9px;margin:0;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.msj-alinti{border-left:4px solid var(--c);background:rgba(0,0,0,.05);border-radius:6px;padding:5px 8px;margin:1px 0 5px;cursor:pointer;display:flex;flex-direction:column;font-size:13px}.msj-alinti b{color:var(--c);font-size:12.5px}.msj-alinti span{color:var(--m-mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:420px}
+html.koyu .msj-alinti{background:rgba(255,255,255,.06)}
+.msj-ses{display:flex;align-items:center;gap:9px;min-width:220px;padding:2px 0}.msj-oynat{width:38px;height:38px;border-radius:50%;border:0;background:var(--m-vurgu);color:#fff;font-size:15px;cursor:pointer;flex:0 0 38px}
+.msj-dalga{flex:1;display:flex;align-items:center;gap:2px;height:28px}.msj-dalga i{flex:1;background:color-mix(in srgb,var(--m-mut) 55%,transparent);border-radius:2px;min-height:3px}.msj-dalga i.cal{background:var(--m-vurgu)}
+.msj-ses small{font-size:11.5px;color:var(--m-mut);min-width:30px}
+.msj-konum{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit;background:rgba(0,0,0,.05);border-radius:8px;padding:10px 12px;min-width:200px}.msj-konum span{font-size:28px}.msj-konum b{flex:1}.msj-konum small{color:#1a73e8;font-weight:600}
+.msj-asagi{position:absolute;right:16px;bottom:84px;border:0;border-radius:999px;background:var(--m-pan);color:var(--m-vurgu);font-weight:800;padding:8px 14px;box-shadow:0 2px 8px rgba(0,0,0,.2);cursor:pointer;z-index:2}
+.msj-yaz{background:var(--m-pan);padding:8px 8px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--m-cizgi)}
+.msj-yaz-s{display:flex;align-items:flex-end;gap:6px}
+.msj-yaz textarea{flex:1;resize:none;border:0;border-radius:22px;background:var(--m-bg);color:var(--m-ink);padding:11px 16px;font:inherit;font-size:16px;line-height:1.3;max-height:140px;min-height:44px;box-shadow:none}
+.msj-ekb{color:var(--m-mut);font-size:26px}.msj-ekb.on{transform:rotate(45deg);color:var(--m-vurgu)}
+.msj-gon{width:46px;height:46px;border-radius:50%;border:0;background:var(--m-vurgu);color:#fff;font-size:20px;display:grid;place-items:center;cursor:pointer;flex:0 0 46px;box-shadow:0 2px 6px rgba(22,160,107,.35)}
+.msj-yanit-on{display:flex;align-items:center;gap:8px;margin:0 4px 8px}.msj-yanit-on span{flex:1;border-left:4px solid var(--c);background:var(--m-bg);border-radius:8px;padding:6px 10px;display:flex;flex-direction:column;font-size:13px;color:var(--m-mut);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.msj-yanit-on b{color:var(--c)}.msj-yanit-on button{border:0;background:none;color:var(--m-mut);font-size:18px;cursor:pointer}
+.msj-ek{display:flex;gap:10px;justify-content:space-around;padding:6px 4px 12px}.msj-ek label,.msj-ek button{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:28px;border:0;background:none;color:var(--m-ink);cursor:pointer;width:84px}.msj-ek span{font-size:12.5px;color:var(--m-mut)}
+.msj-kayit{display:flex;align-items:center;gap:10px}.msj-kay-n{flex:1;display:flex;align-items:center;gap:8px;color:var(--m-mut)}.msj-kay-n i{width:11px;height:11px;border-radius:50%;background:#e53935;animation:msjNabiz 1s infinite}.msj-kay-n b{color:var(--m-ink);font-variant-numeric:tabular-nums}
+@keyframes msjNabiz{50%{opacity:.25}}
+.msj-bos{margin:auto;text-align:center;color:var(--m-mut);max-width:320px}.msj-bos div{font-size:64px}.msj-bos b{display:block;font-size:22px;color:var(--m-ink);margin:8px 0}
+.msj-menu-ar{position:absolute;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center;z-index:5}
+.msj-menu{width:min(420px,100%);background:var(--m-pan);border-radius:18px 18px 0 0;padding:8px 8px calc(10px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
+.msj.masa .msj-menu-ar{align-items:center}.msj.masa .msj-menu{border-radius:16px}
+.msj-menu-o{padding:10px 14px;color:var(--m-mut);font-size:13.5px;border-bottom:1px solid var(--m-cizgi);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msj-menu button{border:0;background:none;color:var(--m-ink);text-align:left;font:inherit;font-size:16px;padding:13px 16px;border-radius:12px;cursor:pointer}.msj-menu button:hover{background:var(--m-bg)}.msj-menu button.kirmizi{color:#e53935}
+.msj-gordu{padding:10px 16px;font-size:13.5px;color:var(--m-mut);background:var(--m-bg);border-radius:12px;margin:4px 6px}.msj-gordu b{display:block;color:#34b7f1;margin-bottom:2px}
+.msj-tam{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:zoom-out}.msj-tam img{max-width:100%;max-height:88vh;object-fit:contain}.msj-tam small{color:#ddd}
+a[href="#mesaj"].msj-var .d-t-ic{box-shadow:0 0 0 3px rgba(22,160,107,.6)}
 .ksn-kart{margin:14px 0 4px;background:linear-gradient(135deg,rgba(255,196,0,.22),rgba(255,140,0,.16));border:1px solid rgba(255,196,0,.6);border-radius:18px;padding:12px 14px;color:#fff6d8;backdrop-filter:blur(6px)}.ksn-ust{display:flex;justify-content:space-between;align-items:center;gap:8px}.ksn-ust b{font-size:16px;color:#ffe08a}.ksn-ust button{background:none;border:0;color:#ffe08a;font-size:18px;cursor:pointer}.ksn-kart p{margin:6px 0;font-size:14px;line-height:1.45}.ksn-kart small{color:#ffe7a8;font-size:12.5px}
 .d-bugun{margin:18px 0 2px;display:grid;gap:10px}.d-bg-t{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.d-bg-t b{font:800 30px/1 var(--display);color:#fff;letter-spacing:-.01em}.d-bg-t>span{font-size:16px;color:rgba(232,242,255,.85);font-weight:600}
 .d-bg-l{display:flex;gap:8px;flex-wrap:wrap}.d-bg-c{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:rgba(10,30,70,.55);border:1px solid rgba(140,190,255,.28);color:#e6f0ff;font-size:13.5px;text-decoration:none;backdrop-filter:blur(6px)}.d-bg-c b{color:#fff}.d-bg-c.gec{border-color:rgba(255,120,110,.6);color:#ffd2cc}.d-bg-c.gec b{color:#ff9a8f}
@@ -1239,6 +1302,13 @@ function DemoStore(){
     async izinFormYaz(id, v){ mem.izinform = [...(mem.izinform||[]).filter(x => x.id !== id), {...v, id}]; save(); },
     async izinFormSil(id){ mem.izinform = (mem.izinform||[]).filter(x => x.id !== id); save(); },
     tutanakDinle: cb => sub(() => cb(mem.tutanak || [])),
+    msjKanallarDinle: cb => sub(() => cb(Object.entries(mem.sohbet || {}).map(([id, v]) => ({id, ...v})))),
+    msjDinle: (k, n, cb) => sub(() => cb(((mem.sohbetM || {})[k] || []).slice(-n).map(x => ({...x})))),
+    msjOkunduDinle: (id, cb) => sub(() => cb({...((mem.sohbetOk || {})[id] || {})})),
+    msjOkunduHerkesDinle: cb => sub(() => cb(JSON.parse(JSON.stringify(mem.sohbetOk || {})))),
+    async msjOkundu(id, k, ts){ ((mem.sohbetOk ||= {})[id] ||= {})[k] = ts; save(); },
+    async msjGonder(k, id, v, son, adlar){ ((mem.sohbetM ||= {})[k] ||= []).push({...v, id}); (mem.sohbet ||= {})[k] = {...(mem.sohbet[k] || {}), son, ts: v.ts, ...(adlar ? {adlar} : {})}; save(); },
+    async msjSil(k, id){ const m = ((mem.sohbetM || {})[k] || []).find(x => x.id === id); if (m) Object.assign(m, {silindi:true, metin:"", foto:null, ses:null}); save(); },
     sayacDinle: cb => sub(() => cb(mem.sayac || [])),
     async sayacYaz(id, v){ mem.sayac = [...(mem.sayac||[]).filter(x => x.id !== id.replace(/^sa_/,"")), {...v, id: id.replace(/^sa_/,"")}]; save(); },
     async sayacSil(id){ mem.sayac = (mem.sayac||[]).filter(x => x.id !== id); save(); },
@@ -1391,6 +1461,14 @@ function FirebaseStore(cfg){
     sayacDinle(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"puantaj"), fs.where("tur","in",["sayacAbone","sayacOkuma","sayacAyar"])), sn => cb(sn.docs.map(d => ({...d.data(), id: d.id.replace(/^sa_/,"")}))), e => { console.warn("sayac", e && e.code); cb([]); }); },
     async sayacYaz(id, v){ await fs.setDoc(fs.doc(db,"puantaj",id), v); },
     async sayacSil(id){ await fs.deleteDoc(fs.doc(db,"puantaj",id)); },
+    msjKanallarDinle(cb){ return fs.onSnapshot(fs.collection(db,"sohbet"), sn => cb(sn.docs.map(d => ({id:d.id, ...d.data()}))), e => { console.warn("sohbet", e && e.code); cb([]); }); },
+    msjDinle(k, n, cb){ return fs.onSnapshot(fs.query(fs.collection(db,"sohbet",k,"m"), fs.orderBy("ts","desc"), fs.limit(n)), {includeMetadataChanges:true},
+      sn => cb(sn.docs.map(d => ({...d.data(), id:d.id, bekliyor:d.metadata.hasPendingWrites})).reverse()), e => { console.warn("mesaj", e && e.code); cb([]); }); },
+    msjOkunduDinle(id, cb){ return fs.onSnapshot(fs.doc(db,"sohbetOkundu",id), s => cb(s.exists() ? s.data() : {}), e => cb({})); },
+    msjOkunduHerkesDinle(cb){ return fs.onSnapshot(fs.collection(db,"sohbetOkundu"), sn => { const o = {}; sn.docs.forEach(d => o[d.id] = d.data()); cb(o); }, e => cb({})); },
+    async msjOkundu(id, k, ts){ await fs.setDoc(fs.doc(db,"sohbetOkundu",id), {[k]: ts}, {merge:true}); },
+    async msjGonder(k, id, v, son, adlar){ const b = fs.writeBatch(db); b.set(fs.doc(db,"sohbet",k,"m",id), {...v, uid:user.uid}); b.set(fs.doc(db,"sohbet",k), {son, ts:v.ts, ...(adlar ? {adlar} : {})}, {merge:true}); await b.commit(); },
+    async msjSil(k, id){ await fs.updateDoc(fs.doc(db,"sohbet",k,"m",id), {silindi:true, metin:"", foto:null, ses:null}); },
     tutanakDinle(cb){ return fs.onSnapshot(fs.query(fs.collection(db,"puantaj"), fs.where("tur","==","tutanak")), sn => cb(sn.docs.map(d => ({...d.data(), id: d.id.replace(/^tt_/,"")}))), e => { console.warn("tutanak", e && e.code); cb([]); }); },
     async tutanakYaz(id, v){ const {id:_, ...w} = v; await fs.setDoc(fs.doc(db,"puantaj","tt_"+id), {...w, tur:"tutanak"}); },
     async tutanakSil(id){ await fs.deleteDoc(fs.doc(db,"puantaj","tt_"+id)); },
@@ -2356,6 +2434,248 @@ async function syAksiyon(act, id){
     izfIndir(file); toast("PDF indirildi · WhatsApp ile dükkâna gönderebilirsiniz"); return; }
 }
 
+/* ===================== MESAJLAR (WhatsApp benzeri ekip sohbeti) =====================
+   Şimdilik deneme: sadece teknisyen görür (msjYetki). Gruplar + birebir; yazı, fotoğraf, sesli mesaj, konum,
+   yanıtla, kopyala, sil, "Arızaya çevir", görüldü (✓✓). Firestore: sohbet/{kanal} (özet) · sohbet/{kanal}/m/{id} · sohbetOkundu/{kişi}.
+   Yeni mesaj gelince sadece mesaj alanı yenilenir; yazılan metin ve klavye kaybolmaz. */
+const MSJ = {k:null, L:[], kanallar:{}, okundu:{}, okHerkes:{}, lim:60, unK:null, unM:null, unO:null, unOH:null, yanit:null, taslak:{}, ara:"", menu:null, kayit:null, bekle:{}, sesCal:null, ekMenu:false, sonOk:{}};
+const MSJ_GRUP = [
+  {id:"g_genel", ad:"Genel", ik:"📢", renk:"#1e88e5", alt:"Tüm ekip"},
+  {id:"g_guvenlik", ad:"Güvenlik", ik:"🛡️", renk:"#3949ab", alt:"Güvenlik ekibi ve amirler"},
+  {id:"g_temizlik", ad:"Temizlik", ik:"🧹", renk:"#00897b", alt:"Kat görevlileri"},
+  {id:"g_bahce", ad:"Bahçe", ik:"🌳", renk:"#43a047", alt:"Bahçıvanlar"},
+  {id:"g_yonetim", ad:"Yönetim", ik:"👔", renk:"#8e24aa", alt:"Müdür, yönetim, teknik"}
+];
+const msjYetki = () => store.isTech();
+const msjBen = () => store.isTech() ? {id:"teknisyen", ad: dashAd()} : {id:"y_" + String(store.kim ? store.kim() : "x").toLowerCase().replace(/[^a-z0-9]/g, "_"), ad: dashAd()};
+const msjRenk = s => { let h = 0; for (const c of String(s)) h = (h*31 + c.charCodeAt(0)) >>> 0; return `hsl(${h % 360} 62% ${document.documentElement.classList.contains("koyu") ? 68 : 40}%)`; };
+const msjSaat = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function msjGunAd(ts){ const d = new Date(ts), b = new Date(); b.setHours(0,0,0,0); const g = Math.round((new Date(d).setHours(0,0,0,0) - b) / 864e5);
+  return g === 0 ? "Bugün" : g === -1 ? "Dün" : g > -7 ? ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"][d.getDay()] : d.toLocaleDateString("tr-TR", {day:"numeric", month:"long", year: d.getFullYear() === b.getFullYear() ? undefined : "numeric"}); }
+const msjListeSaat = ts => { if (!ts) return ""; const g = msjGunAd(ts); return g === "Bugün" ? msjSaat(ts) : g; };
+const msjSure = s => `${Math.floor(s/60)}:${pad(Math.floor(s%60))}`;
+function msjKisiler(){
+  const ben = msjBen(), L = [];
+  (KOD.liste || []).filter(k => k.aktif !== false && k.ad).forEach(k => L.push({id:"p_" + k.id, ad:k.ad, alt: k.tip === "guvenlik" ? "Güvenlik" : k.grup === "bahce" ? "Bahçe" : "Personel"}));
+  [...(S.roller||[]), ...(S.rolTesis||[])].forEach(e => L.push({id:"y_" + e.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "_"), ad: e.split("@")[0].replace(/[._-]+/g, " ").replace(/\b\p{L}/gu, c => c.toLocaleUpperCase("tr")), alt:"Yönetim"}));
+  const g = new Set(); return L.filter(x => x.id !== ben.id && !g.has(x.id) && g.add(x.id)).sort((a,b) => a.ad.localeCompare(b.ad, "tr"));
+}
+const msjDmId = (a, b) => "d_" + [a, b].sort().join("__");
+function msjKanalBilgi(k){
+  const g = MSJ_GRUP.find(x => x.id === k); if (g) return {...g, grup:true};
+  const ben = msjBen().id, o = String(k).slice(2).split("__").find(x => x !== ben) || "", kisi = msjKisiler().find(x => x.id === o);
+  const ad = kisi ? kisi.ad : (MSJ.kanallar[k] && MSJ.kanallar[k].adlar && MSJ.kanallar[k].adlar[o]) || o;
+  return {id:k, ad, ik: (ad || "?").trim().charAt(0).toLocaleUpperCase("tr"), renk: msjRenk(o), alt: kisi ? kisi.alt : "Birebir", grup:false};
+}
+const msjAvatar = (b, n = 46) => `<span class="msj-av" style="--c:${b.renk};width:${n}px;height:${n}px;font-size:${Math.round(n*.45)}px">${esc(b.ik)}</span>`;
+function msjOzet(s){ if (!s) return ""; const t = s.tip === "foto" ? "📷 Fotoğraf" + (s.metin ? " · " + s.metin : "") : s.tip === "ses" ? "🎤 Sesli mesaj" + (s.sure ? " (" + msjSure(s.sure) + ")" : "") : s.tip === "konum" ? "📍 Konum" : s.metin || ""; return t; }
+/* ---------- Dinleyiciler ---------- */
+function msjBaslat(){
+  if (!MSJ.unK && store.msjKanallarDinle){ MSJ.unK = store.msjKanallarDinle(L => { MSJ.kanallar = {}; L.forEach(x => MSJ.kanallar[x.id] = x); if (S.view === "mesaj" && !MSJ.k) msjListeYenile(); else if (S.view === "panel") msjRozet(); }) || true; }
+  if (!MSJ.unO && store.msjOkunduDinle){ MSJ.unO = store.msjOkunduDinle(msjBen().id, v => { MSJ.okundu = v || {}; if (S.view === "mesaj" && !MSJ.k) msjListeYenile(); else if (S.view === "panel") msjRozet(); }) || true; }
+}
+function msjKanalAc(k){
+  if (MSJ.unM && MSJ.unM !== true) MSJ.unM(); if (MSJ.unOH && MSJ.unOH !== true) MSJ.unOH();
+  MSJ.k = k; MSJ.L = []; MSJ.lim = 60; MSJ.yanit = null; MSJ.menu = null; MSJ.ekMenu = false; MSJ.ilkYuk = true;
+  if (!k) { MSJ.unM = MSJ.unOH = null; return; }
+  MSJ.unM = store.msjDinle(k, MSJ.lim, L => { const ilk = MSJ.ilkYuk; MSJ.ilkYuk = false; MSJ.L = L; msjAkisYenile(false, ilk); msjOkunduYaz(); });
+  MSJ.unOH = store.msjOkunduHerkesDinle ? store.msjOkunduHerkesDinle(v => { MSJ.okHerkes = v || {}; msjAkisYenile(true); }) : null;
+}
+let msjOkT = null;
+function msjOkunduYaz(){ clearTimeout(msjOkT); msjOkT = setTimeout(() => { const k = MSJ.k; if (!k || document.hidden) return; const son = MSJ.L.length ? MSJ.L[MSJ.L.length-1].ts : 0;
+  if (son && son > (MSJ.okundu[k] || 0) && son > (MSJ.sonOk[k] || 0)){ MSJ.sonOk[k] = son; store.msjOkundu(msjBen().id, k, son).catch(e => console.warn("okundu", e)); } }, 900); }
+document.addEventListener("visibilitychange", () => { if (!document.hidden && S.view === "mesaj" && MSJ.k) msjOkunduYaz(); });
+/* ---------- Ekran ---------- */
+function vMesaj(){
+  if (!msjYetki()) return vPanel();
+  msjBaslat();
+  const masa = matchMedia("(min-width:900px)").matches;
+  return `<div class="msj${MSJ.k ? " acik" : ""}${masa ? " masa" : ""}" id="msjKok">
+    <aside class="msj-sol" id="msjSol">${msjListeHTML()}</aside>
+    <section class="msj-sag" id="msjSag">${MSJ.k ? msjSohbetHTML() : `<div class="msj-bos"><div>💬</div><b>Bizimevler 1 Mesajlar</b><p>Soldan bir grup ya da kişi seçin.</p><small>🔒 Mesajlar sadece site ekibi arasında kalır.</small></div>`}</section>
+    ${msjMenuHTML()}
+  </div>`;
+}
+function msjListeHTML(){
+  const ok = MSJ.okundu, ara = MSJ.ara.toLocaleLowerCase("tr"), ben = msjBen().id;
+  const dm = Object.values(MSJ.kanallar).filter(x => x.id.startsWith("d_") && x.id.slice(2).split("__").includes(ben)).map(x => x.id);
+  const sat = k => { const b = msjKanalBilgi(k), s = (MSJ.kanallar[k] || {}).son, yeni = s && s.ts > (ok[k] || 0) && s.kimId !== ben;
+    if (ara && !b.ad.toLocaleLowerCase("tr").includes(ara)) return "";
+    return `<button type="button" class="msj-s${MSJ.k === k ? " on" : ""}" data-act="msjAc" data-id="${esc(k)}">${msjAvatar(b)}
+      <span class="msj-s-o"><span class="msj-s-u"><b>${esc(b.ad)}</b><time class="${yeni ? "yeni" : ""}">${msjListeSaat(s && s.ts)}</time></span>
+      <span class="msj-s-a"><span>${s ? (b.grup && s.kimAd && s.kimId !== ben ? `<i>${esc(s.kimAd.split(" ")[0])}:</i> ` : s.kimId === ben ? "<i>Sen:</i> " : "") + esc(msjOzet(s)) : `<em>${esc(b.alt)}</em>`}</span>${yeni ? `<u>●</u>` : ""}</span></span></button>`; };
+  const kisi = msjKisiler().filter(x => !ara || x.ad.toLocaleLowerCase("tr").includes(ara));
+  return `<header class="msj-bas"><b>Mesajlar</b><span class="msj-test">Deneme · sadece sen</span><button type="button" class="msj-ib" data-act="msjKapat" aria-label="Kapat">✕</button></header>
+    <div class="msj-ara"><input id="msj_ara" placeholder="🔍 Ara" value="${esc(MSJ.ara)}" autocomplete="off"></div>
+    <div class="msj-liste" id="msjListe">
+      <div class="msj-bl">Gruplar</div>${MSJ_GRUP.map(g => sat(g.id)).join("")}
+      ${dm.length ? `<div class="msj-bl">Sohbetler</div>${dm.sort((a,b) => ((MSJ.kanallar[b].son||{}).ts||0) - ((MSJ.kanallar[a].son||{}).ts||0)).map(sat).join("")}` : ""}
+      <details class="msj-kisi"${ara ? " open" : ""}><summary class="msj-bl">Kişiler · yeni sohbet (${kisi.length})</summary>
+        ${kisi.map(x => { const b = {ik:x.ad.charAt(0).toLocaleUpperCase("tr"), renk:msjRenk(x.id)}; return `<button type="button" class="msj-s" data-act="msjDm" data-id="${esc(x.id)}">${msjAvatar(b, 40)}<span class="msj-s-o"><b>${esc(x.ad)}</b><span class="msj-s-a"><em>${esc(x.alt)}</em></span></span></button>`; }).join("")}</details>
+    </div>`;
+}
+function msjListeYenile(){ const el = document.getElementById("msjListe"); if (!el){ return; } const y = el.scrollTop, a = document.activeElement && document.activeElement.id;
+  const sol = document.getElementById("msjSol"); if (sol){ sol.innerHTML = msjListeHTML(); const l = document.getElementById("msjListe"); if (l) l.scrollTop = y; if (a === "msj_ara"){ const i = document.getElementById("msj_ara"); if (i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); } } } }
+function msjSohbetHTML(){
+  const b = msjKanalBilgi(MSJ.k), y = MSJ.yanit, tas = MSJ.taslak[MSJ.k] || "";
+  return `<header class="msj-bas msj-sb"><button type="button" class="msj-ib msj-geri" data-act="msjGeri" aria-label="Geri">←</button>${msjAvatar(b, 38)}<span class="msj-sb-o"><b>${esc(b.ad)}</b><small>${esc(b.alt)}</small></span></header>
+    <div class="msj-akis" id="msjAkis">${msjAkisHTML()}</div>
+    <button type="button" class="msj-asagi" id="msjAsagi" data-act="msjAsagi" hidden>↓ <span></span></button>
+    ${MSJ.kayit ? msjKayitHTML() : `<footer class="msj-yaz">
+      ${y ? `<div class="msj-yanit-on"><span style="--c:${msjRenk(y.kimId)}"><b>${esc(y.kimAd)}</b>${esc(y.ozet)}</span><button type="button" data-act="msjYanitIptal" aria-label="Yanıtı kaldır">✕</button></div>` : ""}
+      ${MSJ.ekMenu ? `<div class="msj-ek"><label>📷<span>Kamera</span><input type="file" accept="image/*" capture="environment" id="msj_kamera" hidden></label><label>🖼️<span>Galeri</span><input type="file" accept="image/*" id="msj_galeri" hidden></label><button type="button" data-act="msjKonum">📍<span>Konum</span></button></div>` : ""}
+      <div class="msj-yaz-s"><button type="button" class="msj-ib msj-ekb${MSJ.ekMenu ? " on" : ""}" data-act="msjEk" aria-label="Ekle">＋</button>
+        <textarea id="msj_metin" rows="1" placeholder="Mesaj" maxlength="2000">${esc(tas)}</textarea>
+        <button type="button" class="msj-gon" id="msjGon" data-act="${tas.trim() ? "msjGonder" : "msjSes"}" aria-label="${tas.trim() ? "Gönder" : "Sesli mesaj"}">${tas.trim() ? "➤" : "🎤"}</button></div></footer>`}`;
+}
+function msjKayitHTML(){ return `<footer class="msj-yaz msj-kayit"><button type="button" class="msj-ib" data-act="msjSesIptal" aria-label="İptal">🗑️</button><span class="msj-kay-n"><i></i><b id="msjKaySure">0:00</b> Kaydediliyor…</span><button type="button" class="msj-gon" data-act="msjSesBitir" aria-label="Gönder">➤</button></footer>`; }
+function msjAkisHTML(){
+  if (MSJ.ilkYuk && !MSJ.L.length) return `<div class="msj-not">Yükleniyor…</div>`;
+  const ben = msjBen().id, b = msjKanalBilgi(MSJ.k), out = [];
+  if (MSJ.L.length >= MSJ.lim) out.push(`<button type="button" class="msj-eski" data-act="msjEski">Daha eski mesajlar</button>`);
+  out.push(`<div class="msj-not">🔒 Bu sohbet sadece site ekibine açıktır.${msjYetki() && store.isTech() ? " Şu an deneme modunda: sadece sen görüyorsun." : ""}</div>`);
+  let gun = "", onc = null;
+  const okH = MSJ.okHerkes;
+  MSJ.L.forEach(m => {
+    const g = msjGunAd(m.ts); if (g !== gun){ gun = g; onc = null; out.push(`<div class="msj-gun"><span>${g}</span></div>`); }
+    const benim = m.kimId === ben, ard = onc && onc.kimId === m.kimId && m.ts - onc.ts < 5*60e3; onc = m;
+    if (m.silindi){ out.push(`<div class="msj-m ${benim ? "ben" : ""}${ard ? " ard" : ""}"><div class="msj-b silik">🚫 Bu mesaj silindi<span class="msj-meta">${msjSaat(m.ts)}</span></div></div>`); return; }
+    let ic = "";
+    if (m.yanit) ic += `<div class="msj-alinti" data-act="msjGit" data-id="${esc(m.yanit.id)}" style="--c:${msjRenk(m.yanit.kimId)}"><b>${esc(m.yanit.kimAd)}</b><span>${esc(m.yanit.ozet)}</span></div>`;
+    if (m.tip === "foto") ic += `<img class="msj-foto" src="${m.foto}" alt="Fotoğraf" data-act="msjFotoBak" data-id="${esc(m.id)}" loading="lazy">`;
+    if (m.tip === "ses") ic += msjSesHTML(m);
+    if (m.tip === "konum") ic += `<a class="msj-konum" href="https://www.google.com/maps?q=${+m.lat},${+m.lng}" target="_blank" rel="noopener"><span>📍</span><b>Konum</b><small>Haritada aç ›</small></a>`;
+    if (m.metin) ic += `<div class="msj-t">${esc(m.metin).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, "<br>")}</div>`;
+    let tik = "";
+    if (benim){ const bek = m.bekliyor; const okuyan = Object.entries(okH).filter(([id, v]) => id !== ben && v && (v[MSJ.k] || 0) >= m.ts).length;
+      tik = bek ? `<span class="msj-tik" title="Gönderiliyor">🕓</span>` : `<span class="msj-tik${okuyan ? " mavi" : ""}" title="${okuyan ? okuyan + " kişi gördü" : "Gönderildi"}">${okuyan ? "✓✓" : "✓"}</span>`; }
+    out.push(`<div class="msj-m ${benim ? "ben" : ""}${ard ? " ard" : ""}" id="m_${esc(m.id)}" data-mid="${esc(m.id)}">
+      <div class="msj-b${m.tip === "foto" && !m.metin ? " sadece-foto" : ""}">${!benim && b.grup && !ard ? `<b class="msj-ad" style="color:${msjRenk(m.kimId)}">${esc(m.kimAd)}</b>` : ""}${ic}<span class="msj-meta">${msjSaat(m.ts)}${tik}</span></div></div>`);
+  });
+  if (!MSJ.L.length) out.push(`<div class="msj-not">Henüz mesaj yok. İlk mesajı siz yazın 👋</div>`);
+  return out.join("");
+}
+function msjSesHTML(m){
+  let h = 0; for (const c of String(m.id)) h = (h*17 + c.charCodeAt(0)) >>> 0;
+  const bar = Array.from({length:28}, (_, i) => 25 + ((h >> (i % 24)) & 7) * 9 + (i % 3) * 6);
+  return `<div class="msj-ses" data-mid="${esc(m.id)}"><button type="button" class="msj-oynat" data-act="msjSesCal" data-id="${esc(m.id)}" aria-label="Oynat">▶</button>
+    <span class="msj-dalga">${bar.map(v => `<i style="height:${Math.min(100, v)}%"></i>`).join("")}</span><small>${msjSure(m.sure || 0)}</small></div>`;
+}
+function msjAkisYenile(sadeceTik, ilk){
+  const el = document.getElementById("msjAkis"); if (!el) return;
+  const altta = el.scrollHeight - el.scrollTop - el.clientHeight < 120, oncH = el.scrollHeight, oncT = el.scrollTop;
+  const sonId = el.dataset.son, yeniSon = MSJ.L.length ? MSJ.L[MSJ.L.length-1].id : "";
+  el.innerHTML = msjAkisHTML(); el.dataset.son = yeniSon;
+  if (ilk || altta || (MSJ.L.length && MSJ.L[MSJ.L.length-1].kimId === msjBen().id && sonId !== yeniSon)) el.scrollTop = el.scrollHeight;
+  else if (MSJ.eskiYuk){ el.scrollTop = el.scrollHeight - oncH + oncT; MSJ.eskiYuk = false; }
+  else { el.scrollTop = oncT; if (!sadeceTik && sonId && sonId !== yeniSon){ const a = document.getElementById("msjAsagi"); if (a){ a.hidden = false; a.querySelector("span").textContent = "Yeni mesaj"; } } }
+  if (MSJ.sesCal && MSJ.sesCal.id){ const p = el.querySelector(`.msj-ses[data-mid="${CSS.escape(MSJ.sesCal.id)}"] .msj-oynat`); if (p) p.textContent = "❚❚"; }
+}
+function msjMenuHTML(){
+  const m = MSJ.menu && MSJ.L.find(x => x.id === MSJ.menu); if (!m) return "";
+  const benim = m.kimId === msjBen().id, okH = MSJ.okHerkes;
+  const gordu = benim ? Object.entries(okH).filter(([id, v]) => id !== m.kimId && v && (v[MSJ.k] || 0) >= m.ts).map(([id]) => (msjKisiler().find(x => x.id === id) || {ad: id === "teknisyen" ? (AYAR.teknisyenAd || "Teknisyen") : id}).ad) : [];
+  return `<div class="msj-menu-ar" data-act="msjMenuKapat"><div class="msj-menu" role="menu">
+    <div class="msj-menu-o">${esc(msjOzet(m).slice(0, 80))}</div>
+    <button type="button" data-act="msjYanitla" data-id="${esc(m.id)}">↩️ Yanıtla</button>
+    ${m.metin ? `<button type="button" data-act="msjKopyala" data-id="${esc(m.id)}">📋 Kopyala</button>` : ""}
+    ${m.metin || m.tip === "foto" ? `<button type="button" data-act="msjAriza" data-id="${esc(m.id)}">🔧 Arızaya çevir</button>` : ""}
+    ${benim ? `<div class="msj-gordu"><b>✓✓ Görenler</b>${gordu.length ? gordu.map(esc).join(", ") : "Henüz kimse görmedi"}</div>` : ""}
+    ${benim || store.isTech() ? `<button type="button" class="kirmizi" data-act="msjSil" data-id="${esc(m.id)}">🗑️ Herkesten sil</button>` : ""}
+    <button type="button" data-act="msjMenuKapat">Vazgeç</button></div></div>`;
+}
+function msjMenuYenile(){ const kok = document.getElementById("msjKok"); if (!kok) return; kok.querySelectorAll(".msj-menu-ar").forEach(x => x.remove()); kok.insertAdjacentHTML("beforeend", msjMenuHTML()); }
+function msjGonBtn(){ const b = document.getElementById("msjGon"), t = document.getElementById("msj_metin"); if (!b || !t) return; const v = t.value.trim();
+  b.dataset.act = v ? "msjGonder" : "msjSes"; b.textContent = v ? "➤" : "🎤"; b.setAttribute("aria-label", v ? "Gönder" : "Sesli mesaj");
+  t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 140) + "px"; }
+/* ---------- Gönderme ---------- */
+async function msjYolla(m){
+  const ben = msjBen(), k = MSJ.k; if (!k) return;
+  const id = "m" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const v = {...m, kimId: ben.id, kimAd: ben.ad, ts: Date.now(), ...(MSJ.yanit ? {yanit: MSJ.yanit} : {})};
+  MSJ.yanit = null;
+  const son = {tip: v.tip, metin: String(v.metin || "").slice(0, 120), kimId: ben.id, kimAd: ben.ad, ts: v.ts, ...(v.sure ? {sure: v.sure} : {})};
+  const adlar = k.startsWith("d_") ? {[ben.id]: ben.ad, ...(() => { const o = k.slice(2).split("__").find(x => x !== ben.id), kk = msjKisiler().find(x => x.id === o); return kk ? {[o]: kk.ad} : {}; })()} : null;
+  try { await store.msjGonder(k, id, v, son, adlar); }
+  catch(e){ console.error(e); toast(e && e.code === "permission-denied" ? "Gönderilemedi: Firebase kurallarına mesaj izni eklenmeli" : "Gönderilemedi"); }
+}
+async function msjSesBaslat(){
+  if (!navigator.mediaDevices || !window.MediaRecorder){ toast("Bu tarayıcı sesli mesajı desteklemiyor"); return; }
+  let st; try { st = await navigator.mediaDevices.getUserMedia({audio:true}); } catch(e){ toast("Mikrofon izni verilmedi"); return; }
+  const tip = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg;codecs=opus", ""].find(t => !t || MediaRecorder.isTypeSupported(t));
+  const r = new MediaRecorder(st, {...(tip ? {mimeType: tip} : {}), audioBitsPerSecond: 24000}), parca = [];
+  MSJ.kayit = {r, st, bas: Date.now(), iptal: false};
+  r.ondataavailable = e => { if (e.data && e.data.size) parca.push(e.data); };
+  r.onstop = async () => { st.getTracks().forEach(t => t.stop()); const kay = MSJ.kayit; MSJ.kayit = null; clearInterval(kay && kay.t); render();
+    if (!kay || kay.iptal) return; const sure = Math.round((Date.now() - kay.bas) / 1000); if (sure < 1){ toast("Çok kısa"); return; }
+    const blob = new Blob(parca, {type: r.mimeType || tip || "audio/webm"}); if (blob.size > 700000){ toast("Sesli mesaj çok uzun (en fazla ~2 dk)"); return; }
+    const url = await new Promise(ok => { const f = new FileReader(); f.onload = () => ok(f.result); f.readAsDataURL(blob); });
+    msjYolla({tip:"ses", ses:url, sure}); };
+  r.start(); if (navigator.vibrate) navigator.vibrate(30);
+  MSJ.kayit.t = setInterval(() => { const s = (Date.now() - MSJ.kayit.bas)/1000, el = document.getElementById("msjKaySure"); if (el) el.textContent = msjSure(s); if (s >= 120) r.stop(); }, 250);
+  render();
+}
+function msjSesCal(id){
+  const m = MSJ.L.find(x => x.id === id); if (!m || !m.ses) return;
+  const c = MSJ.sesCal; if (c){ c.a.pause(); const b = document.querySelector(`.msj-ses[data-mid="${CSS.escape(c.id)}"] .msj-oynat`); if (b) b.textContent = "▶"; MSJ.sesCal = null; if (c.id === id) return; }
+  const a = new Audio(m.ses); MSJ.sesCal = {id, a};
+  const btn = () => document.querySelector(`.msj-ses[data-mid="${CSS.escape(id)}"]`);
+  a.ontimeupdate = () => { const el = btn(); if (!el) return; const p = a.duration && isFinite(a.duration) ? a.currentTime / a.duration : a.currentTime / (m.sure || 1);
+    el.querySelectorAll(".msj-dalga i").forEach((x, i, all) => x.classList.toggle("cal", i / all.length <= p)); el.querySelector("small").textContent = msjSure(a.currentTime); };
+  a.onended = () => { const el = btn(); if (el){ el.querySelector(".msj-oynat").textContent = "▶"; el.querySelectorAll(".msj-dalga i").forEach(x => x.classList.remove("cal")); el.querySelector("small").textContent = msjSure(m.sure || 0); } MSJ.sesCal = null; };
+  a.play().then(() => { const el = btn(); if (el) el.querySelector(".msj-oynat").textContent = "❚❚"; }).catch(() => toast("Ses çalınamadı"));
+}
+/* ---------- Olaylar ---------- */
+document.addEventListener("input", e => {
+  if (e.target.id === "msj_metin" && MSJ.k){ MSJ.taslak[MSJ.k] = e.target.value; msjGonBtn(); }
+  if (e.target.id === "msj_ara"){ MSJ.ara = e.target.value; msjListeYenile(); }
+});
+document.addEventListener("keydown", e => { if (e.target.id === "msj_metin" && e.key === "Enter" && !e.shiftKey && matchMedia("(min-width:900px)").matches){ e.preventDefault(); msjAksiyon("msjGonder"); } });
+document.addEventListener("change", e => {
+  if (!["msj_kamera", "msj_galeri"].includes(e.target.id)) return; const fl = e.target.files && e.target.files[0]; if (!fl) return;
+  MSJ.ekMenu = false; render(); toast("📷 Fotoğraf gönderiliyor…");
+  ttFotoKucult(fl).then(u => { if (!u){ toast("Fotoğraf okunamadı"); return; } const t = document.getElementById("msj_metin"), metin = t ? t.value.trim() : ""; if (t){ t.value = ""; MSJ.taslak[MSJ.k] = ""; msjGonBtn(); }
+    msjYolla({tip:"foto", foto:u, metin}); });
+});
+document.addEventListener("scroll", e => { if (e.target.id === "msjAkis"){ const el = e.target, a = document.getElementById("msjAsagi"); if (a && el.scrollHeight - el.scrollTop - el.clientHeight < 80) a.hidden = true; } }, true);
+/* Uzun basma (telefon) ve sağ tık (bilgisayar) → mesaj menüsü */
+let msjUzun = null;
+document.addEventListener("pointerdown", e => { const m = e.target.closest && e.target.closest(".msj-m[data-mid]"); if (!m || e.target.closest("button,a,img,.msj-ses")) return; clearTimeout(msjUzun);
+  msjUzun = setTimeout(() => { MSJ.menu = m.dataset.mid; if (navigator.vibrate) navigator.vibrate(20); msjMenuYenile(); }, 480); });
+["pointerup", "pointercancel", "pointermove"].forEach(t => document.addEventListener(t, ev => { if (t !== "pointermove" || Math.abs(ev.movementY) > 4) clearTimeout(msjUzun); }, true));
+document.addEventListener("contextmenu", e => { const m = e.target.closest && e.target.closest(".msj-m[data-mid]"); if (!m) return; e.preventDefault(); MSJ.menu = m.dataset.mid; msjMenuYenile(); });
+async function msjAksiyon(act, id){
+  if (act === "msjKapat"){ msjKanalAc(null); if (MSJ.kayit){ MSJ.kayit.iptal = true; MSJ.kayit.r.stop(); } location.hash = "#panel"; return; }
+  if (act === "msjAc"){ MSJ.k === id || msjKanalAc(id); render(); setTimeout(() => { const t = document.getElementById("msj_metin"); if (t && matchMedia("(min-width:900px)").matches) t.focus(); msjGonBtn(); }, 30); return; }
+  if (act === "msjDm"){ msjKanalAc(msjDmId(msjBen().id, id)); render(); return; }
+  if (act === "msjGeri"){ msjKanalAc(null); render(); return; }
+  if (act === "msjEk"){ MSJ.ekMenu = !MSJ.ekMenu; render(); return; }
+  if (act === "msjAsagi"){ const el = document.getElementById("msjAkis"); if (el) el.scrollTo({top: el.scrollHeight, behavior:"smooth"}); return; }
+  if (act === "msjEski"){ MSJ.lim += 60; MSJ.eskiYuk = true; const k = MSJ.k; if (MSJ.unM && MSJ.unM !== true) MSJ.unM(); MSJ.unM = store.msjDinle(k, MSJ.lim, L => { MSJ.L = L; msjAkisYenile(); }); return; }
+  if (act === "msjGonder"){ const t = document.getElementById("msj_metin"), v = t ? t.value.trim() : ""; if (!v) return;
+    t.value = ""; MSJ.taslak[MSJ.k] = ""; msjGonBtn(); const yv = document.querySelector(".msj-yanit-on"); if (yv) yv.remove(); t.focus(); msjYolla({tip:"metin", metin:v}); return; }
+  if (act === "msjSes"){ msjSesBaslat(); return; }
+  if (act === "msjSesBitir"){ if (MSJ.kayit) MSJ.kayit.r.stop(); return; }
+  if (act === "msjSesIptal"){ if (MSJ.kayit){ MSJ.kayit.iptal = true; MSJ.kayit.r.stop(); } return; }
+  if (act === "msjSesCal"){ msjSesCal(id); return; }
+  if (act === "msjKonum"){ MSJ.ekMenu = false; render(); if (!navigator.geolocation){ toast("Konum desteklenmiyor"); return; } toast("📍 Konum alınıyor…");
+    navigator.geolocation.getCurrentPosition(p => msjYolla({tip:"konum", lat: +p.coords.latitude.toFixed(6), lng: +p.coords.longitude.toFixed(6)}), () => toast("Konum alınamadı"), {enableHighAccuracy:true, timeout:15000}); return; }
+  if (act === "msjMenuKapat"){ MSJ.menu = null; msjMenuYenile(); return; }
+  if (act === "msjYanitla"){ const m = MSJ.L.find(x => x.id === id); MSJ.menu = null; if (m) MSJ.yanit = {id: m.id, kimId: m.kimId, kimAd: m.kimAd, ozet: msjOzet(m).slice(0, 100)}; const t = MSJ.taslak; render(); setTimeout(() => { const el = document.getElementById("msj_metin"); if (el){ el.focus(); msjGonBtn(); } }, 30); return; }
+  if (act === "msjYanitIptal"){ MSJ.yanit = null; render(); return; }
+  if (act === "msjKopyala"){ const m = MSJ.L.find(x => x.id === id); MSJ.menu = null; msjMenuYenile(); try { await navigator.clipboard.writeText(m.metin); toast("Kopyalandı"); } catch(e){ toast("Kopyalanamadı"); } return; }
+  if (act === "msjSil"){ const m = MSJ.L.find(x => x.id === id); MSJ.menu = null; msjMenuYenile(); if (!m || !confirmBas("msjSil")){ MSJ.menu = id; msjMenuYenile(); return; }
+    try { await store.msjSil(MSJ.k, id); } catch(e){ toast("Silinemedi"); } return; }
+  if (act === "msjGit"){ const el = document.getElementById("m_" + id); if (el){ el.scrollIntoView({behavior:"smooth", block:"center"}); el.classList.add("parla"); setTimeout(() => el.classList.remove("parla"), 1600); } else toast("Mesaj daha eskide"); return; }
+  if (act === "msjFotoBak"){ const m = MSJ.L.find(x => x.id === id); if (!m) return; const d = document.createElement("div"); d.className = "msj-tam"; d.innerHTML = `<img src="${m.foto}" alt=""><small>${esc(m.kimAd)} · ${msjGunAd(m.ts)} ${msjSaat(m.ts)}</small>`; d.onclick = () => d.remove(); document.body.appendChild(d); return; }
+  if (act === "msjAriza"){ const m = MSJ.L.find(x => x.id === id); MSJ.menu = null; if (!m) return; msjKanalAc(null);
+    location.hash = "#personel"; setTimeout(() => { try { if (m.metin) sesUygula(m.metin); render(); toast("🔧 Mesajdan arıza formu dolduruldu · kontrol edip gönderin"); } catch(e){ console.warn(e); } }, 120); return; }
+}
+
+/* Ana sayfadaki "Mesajlar" kutusunda okunmamış sohbet sayısı */
+function msjYeniSay(){ const ben = msjBen().id; return Object.values(MSJ.kanallar).filter(x => x.son && x.son.kimId !== ben && x.son.ts > (MSJ.okundu[x.id] || 0) && (x.id.startsWith("g_") || x.id.slice(2).split("__").includes(ben))).length; }
+function msjRozet(){ const n = msjYeniSay(); document.querySelectorAll('a[href="#mesaj"] small, a[href="#mesaj"] .d-t-alt').forEach(el => { el.textContent = n ? n + " yeni sohbet" : "Ekip sohbeti"; }); document.querySelectorAll('a[href="#mesaj"]').forEach(a => a.classList.toggle("msj-var", !!n)); }
+
 const confirmBas = (() => { let son = "", t = 0; return k => { if (son === k && Date.now() - t < 4000){ son = ""; return true; } son = k; t = Date.now(); toast("Silmek için tekrar basın"); return false; }; })();
 
 function yiSync(){ const f = YI.f; if (!f) return; [["yi_ad","ad"],["yi_tur","tur"],["yi_bas","bas"],["yi_bit","bit"],["yi_not","not"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; }); }
@@ -2875,6 +3195,7 @@ const IC = {
   pin:'<path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>',
   ses:'<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>',
   sag:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  mesaj:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.5-4.8A8 8 0 1 1 21 12z"/><path d="M8.5 11h7M8.5 14h4"/>',
   sayac:'<circle cx="12" cy="13" r="8"/><path d="M12 13l4-4M8 5.5V3h8v2.5"/>',
   tutanak:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
   izin:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M9 15l2 2 4-4"/>',
@@ -2917,6 +3238,7 @@ function yanMenuCiz(){
       ${L("#izinler", "izin", "İzinler", v==="izinler")}
       ${L("#tutanak", "tutanak", "Olay Tutanağı", v==="tutanak", "", "", "kirmizi")}
       ${L("#sayac", "sayac", "Sayaç Okuma", v==="sayac", "", "", "camgobegi")}
+      ${msjYetki() ? L("#mesaj", "mesaj", "Mesajlar", v==="mesaj", "", "", "yesil") : ""}
       ${tech || tesis ? L("#calisma", "broom", "Temizlik", v==="calisma") : ""}
       ${L("#ik", "users", "Personel İşleri", v==="ik")}
       ${L("#tasinma", "building", "Taşınma & Tadilat", v==="tasinma")}
@@ -3343,6 +3665,7 @@ function vDash(isler, ayar){
     T("#gorev", "clip", "camgobegi", "Görev Ver"),
     T("#tutanak", "tutanak", "kirmizi", "Olay Tutanağı", "Yaz · yazdır · PDF"),
     T("#sayac", "sayac", "camgobegi", "Sayaç Okuma", "Dükkân · market"),
+    msjYetki() && (msjBaslat(), T("#mesaj", "mesaj", "yesil", "Mesajlar", msjYeniSay() ? msjYeniSay() + " yeni sohbet" : "Ekip sohbeti")),
     (tech || tesis) && T("#calisma", "broom", "yesil", "Temizlik", "Çalışma listesi"),
     T("bizkontrol.html", "chart", "lacivert", "BizKontrol", "Rapor"),
     tech && T("muhasebe.html", "wallet", "altin", "Muhasebe"),
@@ -5508,13 +5831,13 @@ function kodBaslat(){
 function render(){
   syncForm();
   const keep = document.activeElement && document.activeElement.id;
-  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="calisma" ? vCalisma() : S.view==="izinler" ? vIzinler() : S.view==="tutanak" ? vTutanak() : S.view==="sayac" ? vSayac() : S.view==="ik" ? vIK() : S.view==="gorev" ? vGorev() : S.view==="gtasinma" ? vGuvTasinma() : S.view==="personel" ? pDash(vPersonel()) : S.view==="devriye" ? pDash(vDevriye()) : vRandevu();
+  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="calisma" ? vCalisma() : S.view==="izinler" ? vIzinler() : S.view==="tutanak" ? vTutanak() : S.view==="sayac" ? vSayac() : S.view==="mesaj" ? vMesaj() : S.view==="ik" ? vIK() : S.view==="gorev" ? vGorev() : S.view==="gtasinma" ? vGuvTasinma() : S.view==="personel" ? pDash(vPersonel()) : S.view==="devriye" ? pDash(vDevriye()) : vRandevu();
   const dash = (S.view==="panel" && (store.isTech() || (store.isYetkili && store.isYetkili())) && !S.panelEski) || (["personel","devriye","gtasinma"].includes(S.view) && !!pDashKim());
   document.body.classList.toggle("dash", dash);
   document.querySelector("nav.tabs").hidden = dash || ((store.isTech() || (store.isYetkili && store.isYetkili())) && !["randevu","randevularim"].includes(S.view)) || S.view==="personel" || S.view==="devriye" || S.view==="gtasinma" || (appDosya()==="teknik.html" && !store.isTech());
   $("#ustYazi").textContent = S.view==="personel" && appDosya()==="devriye.html" ? "Bizimevler 1 · Güvenlik" : S.view==="personel" ? "Bizimevler 1 · Personel" : S.view==="devriye" || S.view==="gtasinma" ? "Bizimevler 1 · Güvenlik" : (AYAR.ustYazi || "Teknik Servis");
   const personelMi = store.isTech() || (store.isYetkili && store.isYetkili());
-  const icsayfa = !dash && personelMi && ["tesis","tasinma","gorev","izinler","tutanak","sayac","calisma","ik","panel","personel","devriye"].includes(S.view);
+  const icsayfa = !dash && personelMi && ["tesis","tasinma","gorev","izinler","tutanak","sayac","mesaj","calisma","ik","panel","personel","devriye"].includes(S.view);
   document.body.classList.toggle("icsayfa", icsayfa);
   const masa = MASA.matches && personelMi && ((dash && S.view==="panel") || icsayfa || (S.view==="personel" && !dash) || S.view==="gorev" || S.view==="tasinma");
   document.body.classList.toggle("yon-masa", masa);
@@ -5537,6 +5860,7 @@ function render(){
     : S.view==="izinler" ? "Yıllık izin, rapor ve mazeretler · puantaja kendiliğinden işlenir."
     : S.view==="tutanak" ? "Olay yeri tutanağı · yazdır, PDF kaydet, gönder."
     : S.view==="sayac" ? "Süzme sayaç okuma · fotoğraf, fark, tutar."
+    : S.view==="mesaj" ? "Ekip mesajları."
     : S.view==="calisma" ? "Temizlik hafta sonu çalışma listesi · her hafta kendiliğinden döner."
     : S.view==="randevu" ? "Arızanı bildir, uygun saati seç. Teknisyen kapına gelsin."
     : S.view==="tasinma" ? "Taşınma ve tadilat kayıtları · Pzt–Cmt 10:00–17:00, pazar yasak."
@@ -5780,6 +6104,7 @@ document.addEventListener("click", async e => {
     else if (act && act.startsWith("izf")){ e.preventDefault(); izfAksiyon(act, id); return; }
     else if (act && /^tt[A-Z]/.test(act)){ e.preventDefault(); ttAksiyon(act, id); return; }
     else if (act==="ksnKapat"){ try { localStorage.setItem("bz1-kesinti-kapat", id); } catch(e){} render(); return; }
+    else if (act && /^msj[A-Z]/.test(act)){ if (b.tagName === "A") e.preventDefault(); msjAksiyon(act, id); return; }
     else if (act && /^sy[A-Z]/.test(act)){ e.preventDefault(); syAksiyon(act, id); return; }
     else if (act==="yiEkle"){ syncForm(); const f = YI.f;
       if (!f.ad){ toast("Kişiyi seçin"); return; } if (!f.bas){ toast("Başlangıç tarihini seçin"); return; }
@@ -5951,7 +6276,7 @@ function route(){
     if (n) noktaOkut(n); else toast("QR kodu tanınmadı");
     return;
   }
-  S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma","calisma","izinler","tutanak","sayac","gtasinma","gorev","ik"].includes(h) ? h : "randevu";
+  S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma","calisma","izinler","tutanak","sayac","mesaj","gtasinma","gorev","ik"].includes(h) ? h : "randevu";
   // B1 Teknik uygulamasında sakin arıza formu yok (amirler görmesin); teknisyen #randevu ile yine açabilir
   if (appDosya()==="teknik.html" && (S.view==="randevu"||S.view==="randevularim") && !store.isTech()){ S.view = "panel"; history.replaceState(null, "", location.pathname + "#panel"); }
   if (S.view !== "tesis"){ T.f = null; T.detay = null; }

@@ -204,6 +204,17 @@ service cloud.firestore {
     }
 
     // Puantaj: amirler (yönetim), müdür (tesis) ve teknisyen okur/yazar
+    // Mesajlar (ekip sohbeti) · DENEME: şimdilik sadece teknisyen. Personele açılınca genişletilecek.
+    match /sohbet/{kanal} {
+      allow read, write: if isTech();
+      match /m/{id} {
+        allow read, write: if isTech();
+      }
+    }
+    match /sohbetOkundu/{id} {
+      allow read, write: if isTech();
+    }
+
     match /puantaj/{id} {
       allow read, write: if isTech() || isYonetim() || isTesis();
     }
