@@ -263,6 +263,24 @@ html.koyu .msj-alinti{background:rgba(255,255,255,.06)}
 .msj-gordu{padding:10px 16px;font-size:13.5px;color:var(--m-mut);background:var(--m-bg);border-radius:12px;margin:4px 6px}.msj-gordu b{display:block;color:#34b7f1;margin-bottom:2px}
 .msj-tam{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:zoom-out}.msj-tam img{max-width:100%;max-height:88vh;object-fit:contain}.msj-tam small{color:#ddd}
 a[href="#mesaj"].msj-var .d-t-ic{box-shadow:0 0 0 3px rgba(22,160,107,.6)}
+.brs{display:flex;align-items:center;width:100%;margin:14px 0 2px;padding:0;border:1px solid #3a2a00;border-radius:12px;background:#07090d;color:#e8e8e8;overflow:hidden;cursor:pointer;font:600 13.5px/1 ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;text-align:left;height:40px}
+.brs-et{flex:0 0 auto;background:#ff9800;color:#111;font-weight:900;letter-spacing:.06em;padding:0 10px;height:100%;display:flex;align-items:center;font-size:12px}
+.brs-k{flex:1;overflow:hidden;height:100%;display:flex;align-items:center;-webkit-mask:linear-gradient(90deg,transparent,#000 12px,#000 calc(100% - 20px),transparent);mask:linear-gradient(90deg,transparent,#000 12px,#000 calc(100% - 20px),transparent)}
+.brs-ak{display:inline-flex;white-space:nowrap;animation:brsKay 38s linear infinite;will-change:transform}.brs:hover .brs-ak{animation-play-state:paused}
+@keyframes brsKay{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.brs-ak{animation:none}}
+.brs-o{display:inline-flex;align-items:baseline;gap:7px;padding:0 16px;border-right:1px solid #22262d}.brs-o b{color:#ffb74d;font-weight:800;letter-spacing:.04em;font-size:12px}.brs-o i{font-style:normal;color:#fff;font-size:14px}.brs-o em{font-style:normal;font-size:12px;color:#9aa4b2}
+.brs-o.art em{color:#22c55e}.brs-o.eks em{color:#ff5252}
+.brs-p{background:#07090d!important;color:#e8e8e8;max-width:720px;font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace}
+.brs-ph{display:flex;align-items:center;gap:10px;border-bottom:2px solid #ff9800;padding-bottom:10px;margin-bottom:12px}.brs-ph b{color:#ff9800;font-size:17px;letter-spacing:.08em;flex:1}.brs-ph span{color:#9aa4b2;font-size:12.5px}.brs-ph button{border:0;background:#1a1f27;color:#fff;width:34px;height:34px;border-radius:8px;cursor:pointer}
+.brs-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.brs-c{background:#0f131a;border:1px solid #1f252e;border-left:3px solid #555;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}.brs-c.art{border-left-color:#22c55e}.brs-c.eks{border-left-color:#ff5252}
+.brs-c1{display:flex;justify-content:space-between;align-items:baseline}.brs-c1 b{color:#ffb74d;font-size:13px;letter-spacing:.05em}.brs-c1 small{color:#6b7480;font-size:11px}
+.brs-c2{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.brs-c2 i{font-style:normal;font-size:22px;font-weight:800;color:#fff}.brs-c2 em{font-style:normal;font-size:13px;color:#9aa4b2;white-space:nowrap}
+.brs-c.art .brs-c2 em{color:#22c55e}.brs-c.eks .brs-c2 em{color:#ff5252}
+.brs-sp{width:100%;height:34px}.brs-sp polyline{stroke:#9aa4b2}.brs-sp.art polyline{stroke:#22c55e}.brs-sp.eks polyline{stroke:#ff5252}
+.brs-c3{display:flex;justify-content:space-between;font-size:11px;color:#6b7480}.brs-c3 b{color:#c9d1d9;font-weight:600}
+.brs-n{font-size:11.5px;color:#6b7480;margin:12px 0 0;line-height:1.5;font-family:inherit}
 .ksn-kart{margin:14px 0 4px;background:linear-gradient(135deg,rgba(255,196,0,.22),rgba(255,140,0,.16));border:1px solid rgba(255,196,0,.6);border-radius:18px;padding:12px 14px;color:#fff6d8;backdrop-filter:blur(6px)}.ksn-ust{display:flex;justify-content:space-between;align-items:center;gap:8px}.ksn-ust b{font-size:16px;color:#ffe08a}.ksn-ust button{background:none;border:0;color:#ffe08a;font-size:18px;cursor:pointer}.ksn-kart p{margin:6px 0;font-size:14px;line-height:1.45}.ksn-kart small{color:#ffe7a8;font-size:12.5px}
 .d-bugun{margin:18px 0 2px;display:grid;gap:10px}.d-bg-t{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.d-bg-t b{font:800 30px/1 var(--display);color:#fff;letter-spacing:-.01em}.d-bg-t>span{font-size:16px;color:rgba(232,242,255,.85);font-weight:600}
 .d-bg-l{display:flex;gap:8px;flex-wrap:wrap}.d-bg-c{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;background:rgba(10,30,70,.55);border:1px solid rgba(140,190,255,.28);color:#e6f0ff;font-size:13.5px;text-decoration:none;backdrop-filter:blur(6px)}.d-bg-c b{color:#fff}.d-bg-c.gec{border-color:rgba(255,120,110,.6);color:#ffd2cc}.d-bg-c.gec b{color:#ff9a8f}
@@ -2676,6 +2694,84 @@ async function msjAksiyon(act, id){
 function msjYeniSay(){ const ben = msjBen().id; return Object.values(MSJ.kanallar).filter(x => x.son && x.son.kimId !== ben && x.son.ts > (MSJ.okundu[x.id] || 0) && (x.id.startsWith("g_") || x.id.slice(2).split("__").includes(ben))).length; }
 function msjRozet(){ const n = msjYeniSay(); document.querySelectorAll('a[href="#mesaj"] small, a[href="#mesaj"] .d-t-alt').forEach(el => { el.textContent = n ? n + " yeni sohbet" : "Ekip sohbeti"; }); document.querySelectorAll('a[href="#mesaj"]').forEach(a => a.classList.toggle("msj-var", !!n)); }
 
+/* ===================== PİYASA (Bloomberg tarzı şerit) — teknisyen ve tesis yetkilisi (müdür) =====================
+   Kaynak: Binance halka açık piyasa verisi (anahtarsız, tarayıcıdan). Dolar = USDT/TRY, Euro = EUR/USDT × USDT/TRY,
+   gram altın = PAXG (1 ons altın karşılığı) × USDT/TRY ÷ 31,1035. Değerler yaklaşıktır; banka/kuyumcu fiyatından biraz farklı olabilir. */
+const BRS = {v:null, ts:0, yuk:false, hata:false, acik:false, spark:null, sparkTs:0};
+const BRS_KAYNAK = ["https://data-api.binance.vision", "https://api.binance.com"];
+const brsYetki = () => store.isTech() || (store.isTesis && store.isTesis());
+try { const c = JSON.parse(localStorage.getItem("bz1-borsa") || "null"); if (c && c.v) { BRS.v = c.v; BRS.ts = c.ts; } } catch(e){}
+async function brsGetir(yol){
+  let son; for (const k of BRS_KAYNAK){ try { const r = await fetch(k + yol, {cache:"no-store"}); if (r.ok) return await r.json(); son = new Error("http " + r.status); } catch(e){ son = e; } }
+  throw son;
+}
+function brsHesap(T){
+  const g = s => { const x = T.find(t => t.symbol === s); return x ? {s: +x.lastPrice, o: +x.openPrice, h: +x.highPrice, l: +x.lowPrice} : null; };
+  const u = g("USDTTRY"), e = g("EURUSDT"), p = g("PAXGUSDT"), b = g("BTCUSDT"), et = g("ETHUSDT"); if (!u) return null;
+  const k = (ad, kod, s, o, h, l, br, ond) => ({ad, kod, s, o, h, l, br, ond, d: o ? (s - o) / o * 100 : 0});
+  const L = [k("DOLAR", "USD/TRY", u.s, u.o, u.h, u.l, "₺", 3)];
+  if (e) L.push(k("EURO", "EUR/TRY", e.s*u.s, e.o*u.o, e.h*u.s, e.l*u.s, "₺", 3));
+  if (p) L.push(k("GRAM ALTIN", "XAU/TRY g", p.s*u.s/31.1035, p.o*u.o/31.1035, p.h*u.s/31.1035, p.l*u.s/31.1035, "₺", 2));
+  if (p) L.push(k("ONS ALTIN", "XAU/USD", p.s, p.o, p.h, p.l, "$", 2));
+  if (b) L.push(k("BITCOIN", "BTC/USD", b.s, b.o, b.h, b.l, "$", 0));
+  if (et) L.push(k("ETHEREUM", "ETH/USD", et.s, et.o, et.h, et.l, "$", 0));
+  return L;
+}
+async function brsYukle(zorla){
+  if (BRS.yuk || (!zorla && Date.now() - BRS.ts < 55e3) || document.hidden) return;
+  BRS.yuk = true;
+  try {
+    const sem = encodeURIComponent(JSON.stringify(["USDTTRY","EURUSDT","PAXGUSDT","BTCUSDT","ETHUSDT"]));
+    const v = brsHesap(await brsGetir("/api/v3/ticker/24hr?symbols=" + sem));
+    if (v){ BRS.v = v; BRS.ts = Date.now(); BRS.hata = false; try { localStorage.setItem("bz1-borsa", JSON.stringify({v, ts:BRS.ts})); } catch(e){} }
+  } catch(e){ console.warn("borsa", e); BRS.hata = true; }
+  BRS.yuk = false; brsYenile();
+}
+async function brsSparkYukle(){
+  if (BRS.sparkYuk || Date.now() - BRS.sparkTs < 5*6e4) return; BRS.sparkYuk = true;
+  try {
+    const kl = async s => (await brsGetir(`/api/v3/klines?symbol=${s}&interval=1h&limit=24`)).map(r => +r[4]);
+    const [u, e, p, b, et] = await Promise.all(["USDTTRY","EURUSDT","PAXGUSDT","BTCUSDT","ETHUSDT"].map(s => kl(s).catch(() => null)));
+    const carp = (a, c, f = 1) => a && c ? a.map((x, i) => x * (c[i] ?? c[c.length-1]) * f) : null;
+    BRS.spark = {"USD/TRY": u, "EUR/TRY": carp(e, u), "XAU/TRY g": carp(p, u, 1/31.1035), "XAU/USD": p, "BTC/USD": b, "ETH/USD": et}; BRS.sparkTs = Date.now();
+  } catch(e){ console.warn("borsa grafik", e); }
+  BRS.sparkYuk = false; brsYenile();
+}
+const brsSayi = (n, ond) => (+n).toLocaleString("tr-TR", {minimumFractionDigits: ond, maximumFractionDigits: ond});
+const brsYuzde = d => `${d > 0.005 ? "▲" : d < -0.005 ? "▼" : "■"} %${brsSayi(Math.abs(d), 2)}`;
+const brsYon = d => d > 0.005 ? "art" : d < -0.005 ? "eks" : "";
+function brsSerit(){
+  if (!brsYetki()) return "";
+  brsYukle();
+  const L = BRS.v;
+  const ic = L ? L.map(x => `<span class="brs-o ${brsYon(x.d)}"><b>${x.ad}</b><i>${brsSayi(x.s, x.ond)}</i><em>${brsYuzde(x.d)}</em></span>`).join("") : `<span class="brs-o"><b>PİYASA</b><i>${BRS.hata ? "bağlanılamadı" : "yükleniyor…"}</i></span>`;
+  return `<button type="button" class="brs" data-act="brsAc" aria-label="Piyasa ayrıntıları"><span class="brs-et">● PİYASA</span><span class="brs-k"><span class="brs-ak">${ic}${L ? ic : ""}</span></span></button>`;
+}
+function brsPanelHTML(){
+  const L = BRS.v || [];
+  const spark = (kod, yon) => { const a = BRS.spark && BRS.spark[kod]; if (!a || a.length < 2) return `<svg class="brs-sp" viewBox="0 0 100 30"></svg>`;
+    const mn = Math.min(...a), mx = Math.max(...a), r = mx - mn || 1, pts = a.map((v, i) => `${(i/(a.length-1)*100).toFixed(1)},${(28 - (v - mn)/r*26).toFixed(1)}`).join(" ");
+    return `<svg class="brs-sp ${yon}" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`; };
+  return `<div class="t-sheet" data-act="brsKapat"><div class="t-sheet-in brs-p" data-act="brsIc">
+    <div class="brs-ph"><b>● PİYASALAR</b><span>${BRS.ts ? "Son: " + new Date(BRS.ts).toLocaleTimeString("tr-TR", {hour:"2-digit", minute:"2-digit", second:"2-digit"}) : ""}</span><button type="button" data-act="brsKapat" aria-label="Kapat">✕</button></div>
+    <div class="brs-g">${L.map(x => `<div class="brs-c ${brsYon(x.d)}"><div class="brs-c1"><b>${x.ad}</b><small>${x.kod}</small></div>
+      <div class="brs-c2"><i>${x.br === "$" ? "$" : ""}${brsSayi(x.s, x.ond)}${x.br === "₺" ? " ₺" : ""}</i><em>${brsYuzde(x.d)}</em></div>
+      ${spark(x.kod, brsYon(x.d))}
+      <div class="brs-c3"><span>24s düşük <b>${brsSayi(x.l, x.ond)}</b></span><span>yüksek <b>${brsSayi(x.h, x.ond)}</b></span></div></div>`).join("") || `<p class="hint">${BRS.hata ? "Piyasa verisine şu an ulaşılamıyor." : "Yükleniyor…"}</p>`}</div>
+    <p class="brs-n">Değişim: son 24 saat · Grafik: saatlik · Kaynak: Binance piyasa verisi. Dolar USDT/TRY, altın PAXG üzerinden hesaplanır; banka ve kuyumcu fiyatlarından biraz farklı olabilir. Yatırım tavsiyesi değildir.</p>
+  </div></div>`;
+}
+function brsYenile(){
+  document.querySelectorAll(".brs").forEach(el => { el.outerHTML = brsSerit(); });
+  const p = document.querySelector(".brs-p"); if (p && BRS.acik){ p.closest(".t-sheet").outerHTML = brsPanelHTML(); }
+}
+setInterval(() => { if (document.querySelector(".brs") || BRS.acik){ brsYukle(); if (BRS.acik) brsSparkYukle(); } }, 60e3);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && document.querySelector(".brs")) brsYukle(); });
+function brsAksiyon(act){
+  if (act === "brsAc"){ BRS.acik = true; document.body.insertAdjacentHTML("beforeend", brsPanelHTML()); brsYukle(true); brsSparkYukle(); return; }
+  if (act === "brsKapat"){ BRS.acik = false; document.querySelectorAll(".brs-p").forEach(p => p.closest(".t-sheet").remove()); return; }
+}
+
 const confirmBas = (() => { let son = "", t = 0; return k => { if (son === k && Date.now() - t < 4000){ son = ""; return true; } son = k; t = Date.now(); toast("Silmek için tekrar basın"); return false; }; })();
 
 function yiSync(){ const f = YI.f; if (!f) return; [["yi_ad","ad"],["yi_tur","tur"],["yi_bas","bas"],["yi_bit","bit"],["yi_not","not"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) f[k] = el.value; }); }
@@ -3682,7 +3778,7 @@ function vDash(isler, ayar){
     <div class="d-kim"><span class="d-av">${ic("kul")}</span><div><b>${selam}, ${esc(dashAd())} 👋</b><small>Bizimevler 1 ${tech ? "Teknik Servis Paneli" : "Yönetim Paneli"}</small></div></div>
     <h1 class="masa-only">${MASA.matches && S.masaBolum==="isler" ? "Arıza Listesi" : MASA.matches && S.masaBolum==="ayarlar" ? "Ayarlar" : "Teknik Servis"}</h1>
     <p class="masa-only">${tech ? "Gelen arızaları gör, durumlarını güncelle, sahayı tek ekrandan yönet." : "Personel, devriye ve arıza durumunu tek ekrandan takip et."}</p>
-    ${MASA.matches ? "" : dBugun(tech, tesis)}${kesintiKart()}
+    ${MASA.matches ? "" : dBugun(tech, tesis)}${brsSerit()}${kesintiKart()}
     <div class="d-say">
       <a class="d-s kirmizi" href="#panel" data-act="dFiltre" data-v="yeni">${ic("alert")}<strong>${yeni}</strong><span>Açık arıza</span><em class="masa-only">Detay ${ic("sag")}</em></a>
       <a class="d-s turuncu" href="#panel" data-act="dFiltre" data-v="isleniyor">${ic("wrench")}<strong>${isl}</strong><span>İşlemde</span><em class="masa-only">Detay ${ic("sag")}</em></a>
@@ -6115,6 +6211,8 @@ document.addEventListener("click", async e => {
     else if (act && act.startsWith("izf")){ e.preventDefault(); izfAksiyon(act, id); return; }
     else if (act && /^tt[A-Z]/.test(act)){ e.preventDefault(); ttAksiyon(act, id); return; }
     else if (act==="ksnKapat"){ try { localStorage.setItem("bz1-kesinti-kapat", id); } catch(e){} render(); return; }
+    else if (act === "brsIc"){ return; }
+    else if (act && /^brs[A-Z]/.test(act)){ brsAksiyon(act); return; }
     else if (act && /^msj[A-Z]/.test(act)){ if (b.tagName === "A") e.preventDefault(); msjAksiyon(act, id); return; }
     else if (act && /^sy[A-Z]/.test(act)){ e.preventDefault(); syAksiyon(act, id); return; }
     else if (act==="yiEkle"){ syncForm(); const f = YI.f;
