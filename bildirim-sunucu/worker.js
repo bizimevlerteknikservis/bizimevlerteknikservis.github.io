@@ -576,6 +576,36 @@ async function tgSiteden(env, sa, g) {
   return r.ok ? { ok: true } : { hata: "telegram " + r.status, kod: 502 };
 }
 
+/* =====================================================================
+   BORSA İSTANBUL — sitenin piyasa şeridi için BIST 100 ve hisse fiyatları (Yahoo Finance, ~15 dk gecikmeli).
+   GET ?borsa=XU100.IS,THYAO.IS  → [{sembol, ad, son, onceki, degisim, yuksek, dusuk, zaman, seri:[...]}]
+   Aynı istek 60 sn önbellekte tutulur (Yahoo'ya yük bindirmemek için).
+   ===================================================================== */
+async function borsaTek(sembol) {
+  let son;
+  for (const h of ["query1", "query2"]) {
+    try {
+      const r = await fetch(`https://${h}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sembol)}?interval=15m&range=1d`, { headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36", "accept": "application/json" } });
+      if (!r.ok) { son = "yahoo " + r.status; continue; }
+      const j = await r.json(), x = j && j.chart && j.chart.result && j.chart.result[0]; if (!x) { son = "veri yok"; continue; }
+      const m = x.meta || {}, kap = ((x.indicators && x.indicators.quote && x.indicators.quote[0] && x.indicators.quote[0].close) || []).filter(v => v != null);
+      const sonF = +m.regularMarketPrice, onc = +(m.chartPreviousClose || m.previousClose || 0);
+      return { sembol, ad: m.shortName || m.longName || sembol, son: sonF, onceki: onc, degisim: onc ? (sonF - onc) / onc * 100 : 0,
+        yuksek: +(m.regularMarketDayHigh || Math.max(...kap, sonF)), dusuk: +(m.regularMarketDayLow || Math.min(...kap, sonF)), zaman: (m.regularMarketTime || 0) * 1000, para: m.currency || "TRY", seri: kap.slice(-40) };
+    } catch (e) { son = String(e.message || e); }
+  }
+  return { sembol, hata: son || "alınamadı" };
+}
+async function borsaYanit(req, url) {
+  const L = [...new Set(String(url.searchParams.get("borsa") || "XU100.IS").toUpperCase().split(",").map(x => x.trim()).filter(x => /^[A-Z0-9.^=-]{1,15}$/.test(x)))].slice(0, 12);
+  const anahtar = new Request("https://borsa.onbellek/" + L.join(","), { method: "GET" });
+  const c = caches.default, eski = await c.match(anahtar); if (eski) return new Response(eski.body, { headers: { "content-type": "application/json; charset=utf-8", ...CORS } });
+  const veri = await Promise.all(L.map(borsaTek));
+  const yanit = JSON.stringify(veri);
+  if (veri.some(v => !v.hata)) await c.put(anahtar, new Response(yanit, { headers: { "content-type": "application/json", "cache-control": "max-age=60" } }));
+  return new Response(yanit, { headers: { "content-type": "application/json; charset=utf-8", ...CORS } });
+}
+
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "content-type" };
 function hazirla(env) {
   const sa = JSON.parse(env.SERVICE_ACCOUNT);
@@ -594,11 +624,14 @@ export default {
       try { return new Response(JSON.stringify(await havaOlcum(ctx)), { headers: { "content-type": "application/json", "cache-control": "max-age=300", ...CORS } }); }
       catch (e) { return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 502, headers: { "content-type": "application/json", ...CORS } }); }
     }
+    if (req.method === "GET" && new URL(req.url).searchParams.has("borsa")) {
+      try { return await borsaYanit(req, new URL(req.url)); } catch (e) { return new Response(JSON.stringify([{ hata: String(e.message || e) }]), { status: 502, headers: { "content-type": "application/json; charset=utf-8", ...CORS } }); }
+    }
     if (req.method === "GET" && new URL(req.url).searchParams.has("kesinti")) {
       try { const k = await kesintiBul(env); return new Response(JSON.stringify({ kaynak: "BEDAŞ", toplamKayit: k.toplam, avcilarKayit: k.avcilar, mahalleFiltresi: k.mah, bizimIcin: k.bizim.map(kesintiYazi), avcilarOrnek: k.avcOrnek, ornekHam: k.bizim[0] || k.ornek || null }, null, 2), { headers: { "content-type": "application/json; charset=utf-8", ...CORS } }); }
       catch (e) { return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 502, headers: { "content-type": "application/json; charset=utf-8", ...CORS } }); }
     }
-    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 5.2: mesai, bakım, arıza notu, yedek, telegram, kesinti)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
+    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 5.3: mesai, bakım, arıza notu, yedek, telegram, kesinti, borsa)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
     if (req.method !== "POST") return new Response("", { status: 405, headers: CORS });
     let g; try { g = JSON.parse(await req.text()); } catch (e) { return new Response("{}", { status: 400, headers: CORS }); }
     const tur = String(g.tur || ""), id = String(g.id || "");

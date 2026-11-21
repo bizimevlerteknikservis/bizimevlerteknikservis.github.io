@@ -280,6 +280,9 @@ a[href="#mesaj"].msj-var .d-t-ic{box-shadow:0 0 0 3px rgba(22,160,107,.6)}
 .brs-c.art .brs-c2 em{color:#22c55e}.brs-c.eks .brs-c2 em{color:#ff5252}
 .brs-sp{width:100%;height:34px}.brs-sp polyline{stroke:#9aa4b2}.brs-sp.art polyline{stroke:#22c55e}.brs-sp.eks polyline{stroke:#ff5252}
 .brs-c3{display:flex;justify-content:space-between;font-size:11px;color:#6b7480}.brs-c3 b{color:#c9d1d9;font-weight:600}
+.brs-bl{color:#ff9800;font-weight:800;letter-spacing:.06em;font-size:12.5px;margin:14px 0 8px}.brs-bl small{color:#6b7480;font-weight:500;letter-spacing:0;margin-left:6px}
+.brs-sil{border:0;background:none;color:#6b7480;cursor:pointer;font-size:12px;padding:0 0 0 6px}.brs-sil:hover{color:#ff5252}
+.brs-ekle{display:flex;gap:8px;margin:10px 0 4px}.brs-ekle input{flex:1;background:#0f131a!important;border:1px solid #2a313b!important;color:#fff!important;font:inherit;padding:9px 12px;border-radius:8px;min-height:0;text-transform:uppercase}.brs-ekle button{border:0;background:#ff9800;color:#111;font-weight:800;border-radius:8px;padding:0 14px;cursor:pointer;font-family:inherit}
 .brs-n{font-size:11.5px;color:#6b7480;margin:12px 0 0;line-height:1.5;font-family:inherit}
 .ksn-kart{margin:14px 0 4px;background:linear-gradient(135deg,rgba(255,196,0,.22),rgba(255,140,0,.16));border:1px solid rgba(255,196,0,.6);border-radius:18px;padding:12px 14px;color:#fff6d8;backdrop-filter:blur(6px)}.ksn-ust{display:flex;justify-content:space-between;align-items:center;gap:8px}.ksn-ust b{font-size:16px;color:#ffe08a}.ksn-ust button{background:none;border:0;color:#ffe08a;font-size:18px;cursor:pointer}.ksn-kart p{margin:6px 0;font-size:14px;line-height:1.45}.ksn-kart small{color:#ffe7a8;font-size:12.5px}
 .d-bugun{margin:18px 0 2px;display:grid;gap:10px}.d-bg-t{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.d-bg-t b{font:800 30px/1 var(--display);color:#fff;letter-spacing:-.01em}.d-bg-t>span{font-size:16px;color:rgba(232,242,255,.85);font-weight:600}
@@ -2697,10 +2700,23 @@ function msjRozet(){ const n = msjYeniSay(); document.querySelectorAll('a[href="
 /* ===================== PİYASA (Bloomberg tarzı şerit) — teknisyen ve tesis yetkilisi (müdür) =====================
    Kaynak: Binance halka açık piyasa verisi (anahtarsız, tarayıcıdan). Dolar = USDT/TRY, Euro = EUR/USDT × USDT/TRY,
    gram altın = PAXG (1 ons altın karşılığı) × USDT/TRY ÷ 31,1035. Değerler yaklaşıktır; banka/kuyumcu fiyatından biraz farklı olabilir. */
-const BRS = {v:null, ts:0, yuk:false, hata:false, acik:false, spark:null, sparkTs:0};
+const BRS = {v:null, ts:0, yuk:false, hata:false, acik:false, spark:null, sparkTs:0, bist:null, bistHata:false};
+/* Borsa İstanbul: postacı üzerinden (Yahoo, ~15 dk gecikmeli). İzleme listesi her kişinin kendi telefonunda saklanır. */
+const BIST_AD = {"XU100.IS":"BIST 100", "XU030.IS":"BIST 30", "XBANK.IS":"BANKA", "XUSIN.IS":"SINAİ"};
+const bistListe = () => { try { const L = JSON.parse(localStorage.getItem("bz1-bist") || "null"); if (Array.isArray(L) && L.length) return L; } catch(e){} return ["XU100.IS", "XU030.IS"]; };
+const bistKaydet = L => { try { localStorage.setItem("bz1-bist", JSON.stringify(L)); } catch(e){} };
+const bistAd = s => BIST_AD[s] || s.replace(/\.IS$/, "");
 const BRS_KAYNAK = ["https://data-api.binance.vision", "https://api.binance.com"];
 const brsYetki = () => store.isTech() || (store.isTesis && store.isTesis());
-try { const c = JSON.parse(localStorage.getItem("bz1-borsa") || "null"); if (c && c.v) { BRS.v = c.v; BRS.ts = c.ts; } } catch(e){}
+try { const c = JSON.parse(localStorage.getItem("bz1-borsa") || "null"); if (c && c.v) { BRS.v = c.v; BRS.ts = c.ts; BRS.bist = c.bist || null; } } catch(e){}
+async function bistYukle(){
+  if (!AYAR.bildirimSunucu) return;
+  try { const r = await fetch(AYAR.bildirimSunucu + "?borsa=" + encodeURIComponent(bistListe().join(",")), {cache:"no-store"}); if (!r.ok) throw new Error("http " + r.status);
+    const L = await r.json(); if (!Array.isArray(L)) throw new Error("biçim");
+    BRS.bist = L.filter(x => x && !x.hata && isFinite(x.son)).map(x => ({ad: bistAd(x.sembol), kod: x.sembol, s: x.son, o: x.onceki, h: x.yuksek, l: x.dusuk, d: x.degisim, br: "", ond: x.son >= 1000 ? 0 : 2, seri: x.seri, zaman: x.zaman, bist: true}));
+    BRS.bistHata = !BRS.bist.length && L.some(x => x && x.hata);
+  } catch(e){ console.warn("bist", e); BRS.bistHata = true; }
+}
 async function brsGetir(yol){
   let son; for (const k of BRS_KAYNAK){ try { const r = await fetch(k + yol, {cache:"no-store"}); if (r.ok) return await r.json(); son = new Error("http " + r.status); } catch(e){ son = e; } }
   throw son;
@@ -2722,8 +2738,10 @@ async function brsYukle(zorla){
   BRS.yuk = true;
   try {
     const sem = encodeURIComponent(JSON.stringify(["USDTTRY","EURUSDT","PAXGUSDT","BTCUSDT","ETHUSDT"]));
-    const v = brsHesap(await brsGetir("/api/v3/ticker/24hr?symbols=" + sem));
-    if (v){ BRS.v = v; BRS.ts = Date.now(); BRS.hata = false; try { localStorage.setItem("bz1-borsa", JSON.stringify({v, ts:BRS.ts})); } catch(e){} }
+    const [t] = await Promise.all([brsGetir("/api/v3/ticker/24hr?symbols=" + sem).catch(e => { console.warn("borsa", e); return null; }), bistYukle()]);
+    const v = t && brsHesap(t);
+    if (v){ BRS.v = v; BRS.hata = false; } else BRS.hata = true;
+    if (v || BRS.bist){ BRS.ts = Date.now(); try { localStorage.setItem("bz1-borsa", JSON.stringify({v: BRS.v, bist: BRS.bist, ts:BRS.ts})); } catch(e){} }
   } catch(e){ console.warn("borsa", e); BRS.hata = true; }
   BRS.yuk = false; brsYenile();
 }
@@ -2743,17 +2761,24 @@ const brsYon = d => d > 0.005 ? "art" : d < -0.005 ? "eks" : "";
 function brsSerit(){
   if (!brsYetki()) return "";
   brsYukle();
-  const L = BRS.v;
+  const L = (BRS.bist || BRS.v) ? [...(BRS.bist || []), ...(BRS.v || [])] : null;
   const ic = L ? L.map(x => `<span class="brs-o ${brsYon(x.d)}"><b>${x.ad}</b><i>${brsSayi(x.s, x.ond)}</i><em>${brsYuzde(x.d)}</em></span>`).join("") : `<span class="brs-o"><b>PİYASA</b><i>${BRS.hata ? "bağlanılamadı" : "yükleniyor…"}</i></span>`;
   return `<button type="button" class="brs" data-act="brsAc" aria-label="Piyasa ayrıntıları"><span class="brs-et">● PİYASA</span><span class="brs-k"><span class="brs-ak">${ic}${L ? ic : ""}</span></span></button>`;
 }
 function brsPanelHTML(){
-  const L = BRS.v || [];
-  const spark = (kod, yon) => { const a = BRS.spark && BRS.spark[kod]; if (!a || a.length < 2) return `<svg class="brs-sp" viewBox="0 0 100 30"></svg>`;
+  const L = BRS.v || [], B = BRS.bist || [];
+  const spark = (kod, yon) => { const bx = B.find(x => x.kod === kod), a = bx ? bx.seri : BRS.spark && BRS.spark[kod]; if (!a || a.length < 2) return `<svg class="brs-sp" viewBox="0 0 100 30"></svg>`;
     const mn = Math.min(...a), mx = Math.max(...a), r = mx - mn || 1, pts = a.map((v, i) => `${(i/(a.length-1)*100).toFixed(1)},${(28 - (v - mn)/r*26).toFixed(1)}`).join(" ");
     return `<svg class="brs-sp ${yon}" viewBox="0 0 100 30" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`; };
   return `<div class="t-sheet" data-act="brsKapat"><div class="t-sheet-in brs-p" data-act="brsIc">
     <div class="brs-ph"><b>● PİYASALAR</b><span>${BRS.ts ? "Son: " + new Date(BRS.ts).toLocaleTimeString("tr-TR", {hour:"2-digit", minute:"2-digit", second:"2-digit"}) : ""}</span><button type="button" data-act="brsKapat" aria-label="Kapat">✕</button></div>
+    <div class="brs-bl">BORSA İSTANBUL <small>~15 dk gecikmeli${B[0] && B[0].zaman ? " · " + new Date(B[0].zaman).toLocaleTimeString("tr-TR", {hour:"2-digit", minute:"2-digit"}) : ""}</small></div>
+    <div class="brs-g">${B.map(x => `<div class="brs-c ${brsYon(x.d)}"><div class="brs-c1"><b>${esc(x.ad)}</b><small>${esc(x.kod.replace(/\.IS$/, ""))} <button type="button" class="brs-sil" data-act="brsSil" data-id="${esc(x.kod)}" aria-label="Listeden çıkar">✕</button></small></div>
+      <div class="brs-c2"><i>${brsSayi(x.s, x.ond)}${x.kod.startsWith("XU") || x.kod.startsWith("XB") ? "" : " ₺"}</i><em>${brsYuzde(x.d)}</em></div>
+      ${spark(x.kod, brsYon(x.d))}
+      <div class="brs-c3"><span>gün düşük <b>${brsSayi(x.l, x.ond)}</b></span><span>yüksek <b>${brsSayi(x.h, x.ond)}</b></span></div></div>`).join("") || `<p class="hint">${BRS.bistHata ? "Borsa verisine şu an ulaşılamıyor (postacının güncellenmesi gerekebilir)." : "Yükleniyor…"}</p>`}</div>
+    <div class="brs-ekle"><input id="brs_hisse" placeholder="Hisse ekle: THYAO, ASELS, GARAN…" maxlength="12" autocomplete="off" autocapitalize="characters"><button type="button" data-act="brsEkle">＋ Ekle</button></div>
+    <div class="brs-bl">DÖVİZ · ALTIN · KRİPTO <small>anlık</small></div>
     <div class="brs-g">${L.map(x => `<div class="brs-c ${brsYon(x.d)}"><div class="brs-c1"><b>${x.ad}</b><small>${x.kod}</small></div>
       <div class="brs-c2"><i>${x.br === "$" ? "$" : ""}${brsSayi(x.s, x.ond)}${x.br === "₺" ? " ₺" : ""}</i><em>${brsYuzde(x.d)}</em></div>
       ${spark(x.kod, brsYon(x.d))}
@@ -2765,11 +2790,17 @@ function brsYenile(){
   document.querySelectorAll(".brs").forEach(el => { el.outerHTML = brsSerit(); });
   const p = document.querySelector(".brs-p"); if (p && BRS.acik){ p.closest(".t-sheet").outerHTML = brsPanelHTML(); }
 }
+document.addEventListener("keydown", e => { if (e.target.id === "brs_hisse" && e.key === "Enter"){ e.preventDefault(); brsAksiyon("brsEkle"); } });
 setInterval(() => { if (document.querySelector(".brs") || BRS.acik){ brsYukle(); if (BRS.acik) brsSparkYukle(); } }, 60e3);
 document.addEventListener("visibilitychange", () => { if (!document.hidden && document.querySelector(".brs")) brsYukle(); });
-function brsAksiyon(act){
+async function brsAksiyon(act, id){
   if (act === "brsAc"){ BRS.acik = true; document.body.insertAdjacentHTML("beforeend", brsPanelHTML()); brsYukle(true); brsSparkYukle(); return; }
   if (act === "brsKapat"){ BRS.acik = false; document.querySelectorAll(".brs-p").forEach(p => p.closest(".t-sheet").remove()); return; }
+  if (act === "brsEkle"){ const el = document.getElementById("brs_hisse"), v = String(el && el.value || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, ""); if (!v) return;
+    const kod = v + ".IS", L = bistListe();
+    if (L.includes(kod)){ toast("Zaten listede"); return; } if (L.length >= 12){ toast("En fazla 12 hisse"); return; }
+    bistKaydet([...L, kod]); toast(v + " ekleniyor…"); await bistYukle(); if (!(BRS.bist || []).some(x => x.kod === kod)){ bistKaydet(bistListe().filter(x => x !== kod)); toast(v + " bulunamadı"); } brsYenile(); return; }
+  if (act === "brsSil"){ bistKaydet(bistListe().filter(x => x !== id)); BRS.bist = (BRS.bist || []).filter(x => x.kod !== id); brsYenile(); return; }
 }
 
 const confirmBas = (() => { let son = "", t = 0; return k => { if (son === k && Date.now() - t < 4000){ son = ""; return true; } son = k; t = Date.now(); toast("Silmek için tekrar basın"); return false; }; })();
@@ -6212,7 +6243,7 @@ document.addEventListener("click", async e => {
     else if (act && /^tt[A-Z]/.test(act)){ e.preventDefault(); ttAksiyon(act, id); return; }
     else if (act==="ksnKapat"){ try { localStorage.setItem("bz1-kesinti-kapat", id); } catch(e){} render(); return; }
     else if (act === "brsIc"){ return; }
-    else if (act && /^brs[A-Z]/.test(act)){ brsAksiyon(act); return; }
+    else if (act && /^brs[A-Z]/.test(act)){ brsAksiyon(act, id); return; }
     else if (act && /^msj[A-Z]/.test(act)){ if (b.tagName === "A") e.preventDefault(); msjAksiyon(act, id); return; }
     else if (act && /^sy[A-Z]/.test(act)){ e.preventDefault(); syAksiyon(act, id); return; }
     else if (act==="yiEkle"){ syncForm(); const f = YI.f;
