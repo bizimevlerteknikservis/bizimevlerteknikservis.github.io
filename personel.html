@@ -3387,16 +3387,19 @@ function telSesKontrol(){
   const katSoz = a => (catOf(a.cat).ad || "Arıza").replace(/\s*\/\s*/g, " ");
   const yeni = L.filter(a => !(a.id in once) && a.status === "bekliyor" && (a.createdAt||0) > Date.now() - 15*6e4);
   const coz = L.filter(a => a.id in once && once[a.id] !== "tamamlandi" && a.status === "tamamlandi");
+  let benS = null; try { benS = JSON.parse(localStorage.getItem("bz1-son-islem") || "null"); } catch(e){}
+  const ilg = L.filter(a => once[a.id] === "bekliyor" && a.status === "onaylandi" && !(benS && benS.id === a.id && Date.now() - benS.ts < 120000));
   const sira = [];
   yeni.slice(0,3).forEach(a => { const acil = [...(a.issues||[]), a.desc||""].join(" ").toLocaleLowerCase("tr").includes("mahsur");
     sira.push({acil, soz: `${acil ? "Acil! " : ""}Yeni arıza bildirimi. ${yerSoz(a)}. ${katSoz(a)}.`}); });
   coz.slice(0,3).forEach(a => sira.push({ok:true, soz:`Arıza giderildi. ${yerSoz(a)}. ${katSoz(a)}.`}));
+  ilg.slice(0,3).forEach(a => sira.push({ilgi:true, soz:`Arızayla ilgileniliyor. ${yerSoz(a)}. ${katSoz(a)}.`}));
   sira.forEach((o,i) => setTimeout(() => masaSes(o), i*5500));
 }
 function masaSes(o){
   const c = MSES.c;
   if (c && c.state === "running"){
-    const notalar = o.acil ? [880,660,880,660,880,660] : o.ok ? [523,659,784,1047] : [784,1047,1319];
+    const notalar = o.acil ? [880,660,880,660,880,660] : o.ilgi ? [587,880] : o.ok ? [523,659,784,1047] : [784,1047,1319];
     notalar.forEach((f,k) => { const os = c.createOscillator(), g = c.createGain(), t = c.currentTime + k*(o.acil?.22:.18);
       os.type = o.acil ? "square" : "sine"; os.frequency.value = f;
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(o.acil?.18:.35, t+.02); g.gain.exponentialRampToValueAtTime(0.0001, t+(o.acil?.2:.9));
@@ -6016,7 +6019,7 @@ document.addEventListener("click", async e => {
     else if (act==="mzNotAc"){ MZ.not = MZ.not === id ? null : id; render(); setTimeout(() => { const i = document.getElementById("mz_not"); if (i) i.focus(); }, 50); return; }
     else if (act==="mzDurum" || act==="mzNotKaydet"){
       const a = (IK.pers||[]).find(x => x.id === id); if (!a || MZ.kayit) return; MZ.kayit = true; b.disabled = true;
-      const kim = dashAd() || "Müdür", patch = {guncelTs:Date.now(), karan:kim};
+      const kim = dashAd() || "Müdür", patch = {guncelTs:Date.now(), karan:kim}; try { localStorage.setItem("bz1-son-islem", JSON.stringify({id, ts:Date.now()})); } catch(e){}
       if (act==="mzDurum"){ patch.status = v; if (v === "tamamlandi") patch.completedAt = Date.now(); }
       else { const n = String((document.getElementById("mz_not")||{}).value || "").trim().slice(0,160); if (!n){ MZ.kayit = false; b.disabled = false; toast("Not yazın"); return; } patch.note = n; }
       try { await store.update(a, patch); bildirimTetik("arizaGuncel", a.id); MZ.not = null; toast(act==="mzNotKaydet" ? "Not kaydedildi · bildirene bildirim gitti" : v==="tamamlandi" ? `✓ ${a.cat==="p_malzeme" ? "Karşılandı" : "Çözüldü"} olarak işaretlendi` : "İlgileniyorum olarak işaretlendi"); }
@@ -6233,7 +6236,7 @@ document.addEventListener("click", async e => {
       try { await store.setRoller({yonetim: L, tesis: TL}); S.roller = L; S.rolTesis = TL; $("#rolListe").value = L.join("\n"); $("#rolTesis").value = TL.join("\n"); toast(`${L.length} yönetim · ${TL.length} tesis hesabı kaydedildi`); render(); } catch(err){ console.error(err); toast("Kaydedilemedi: Firebase kurallarını kontrol edin"); }
     }
     else if (act==="filtre"){ syncForm(); S.filter = v; render(); }
-    else if (act==="durum"){ syncForm(); const a = find(S.all); const patch = {status: v}; if (v==="tamamlandi") patch.completedAt = Date.now(); if (S.notes[id] !== undefined && String(S.notes[id]).trim() !== String(a.note||"").trim()) patch.note = S.notes[id];
+    else if (act==="durum"){ syncForm(); const a = find(S.all); const patch = {status: v}; try { localStorage.setItem("bz1-son-islem", JSON.stringify({id, ts:Date.now()})); } catch(e){} if (v==="tamamlandi") patch.completedAt = Date.now(); if (S.notes[id] !== undefined && String(S.notes[id]).trim() !== String(a.note||"").trim()) patch.note = S.notes[id];
       if (a.src === "personel" && v !== "iptal"){ patch.guncelTs = Date.now(); if (patch.note !== undefined) patch.karan = "Teknisyen"; } await store.update(a, patch); if (patch.guncelTs) bildirimTetik("arizaGuncel", a.id); toast(DURUM[v] + " olarak işaretlendi"); }
     else if (act==="not"){ syncForm(); const a = find(S.all); const yeniNot = String(S.notes[id] ?? "").trim(); const patch = {note: yeniNot};
       const bildir = a.src === "personel" && yeniNot && yeniNot !== String(a.note||"").trim(); if (bildir){ patch.guncelTs = Date.now(); patch.karan = "Teknisyen"; }
