@@ -2960,11 +2960,13 @@ function devKuyruk(){ return yerel("bz1-devriye-kuyruk") || []; }
 const MESAI_NOKTA = {"k-d9c97a":"Güvenlik kulübesi", "p-a24eaa":"Kat görevlisi · Bahçıvan"};
 const MS = {un:null, liste:[], bekleyen:null, kayit:false};
 function mesaiCoz(txt){ const m = String(txt||"").match(/[?&]mesai=([a-z]-[0-9a-f]{6})/i); return m && MESAI_NOKTA[m[1].toLowerCase()] ? m[1].toLowerCase() : null; }
+/* Rolden mesai grubu: güvenlik amiri güvenlik puantajına girer; müdür/yönetim/teknik yönetim kodunda mesai tutulmaz */
+const mesaiGrupRol = r => r==="Güvenlik" || r==="Güvenlik Amiri" ? "guvenlik" : r===BAHCIVAN ? "bahce" : ["Site Müdürü","Yönetim","Teknik"].includes(r) ? null : "temizlik";
 function mesaiBen(){
-  if (S.view==="devriye" && S.d && S.d.kim && S.d.kim.kod) return {ad:S.d.kim.ad, kod:S.d.kim.kod, grup:"guvenlik"};
-  if (S.p && S.p.kod && S.p.name) return {ad:S.p.name.trim(), kod:S.p.kod, grup: S.p.rol==="Güvenlik" ? "guvenlik" : S.p.rol===BAHCIVAN ? "bahce" : "temizlik"};
-  try { const g = JSON.parse(localStorage.getItem("bz1-kod-guvenlik") || localStorage.getItem("bz1-gorevli") || "null"); if (g && g.kod && g.ad) return {ad:g.ad, kod:g.kod, grup:"guvenlik"}; } catch(e){}
-  try { const k = JSON.parse(localStorage.getItem("bz1-kod-personel") || "null"); if (k && k.kod && k.ad) return {ad:k.ad, kod:k.kod, grup: k.rol==="Güvenlik" ? "guvenlik" : k.rol===BAHCIVAN ? "bahce" : "temizlik"}; } catch(e){}
+  if (S.view==="devriye" && S.d && S.d.kim && S.d.kim.kod){ const g = ["Site Müdürü","Yönetim","Teknik"].includes(S.d.kim.vardiya) ? null : "guvenlik"; return g ? {ad:S.d.kim.ad, kod:S.d.kim.kod, grup:g} : null; }
+  if (S.p && S.p.kod && S.p.name){ const g = mesaiGrupRol(S.p.rol); return g ? {ad:S.p.name.trim(), kod:S.p.kod, grup:g} : null; }
+  try { const g = JSON.parse(localStorage.getItem("bz1-kod-guvenlik") || localStorage.getItem("bz1-gorevli") || "null"); if (g && g.kod && g.ad && !["Site Müdürü","Yönetim","Teknik"].includes(g.vardiya)) return {ad:g.ad, kod:g.kod, grup:"guvenlik"}; } catch(e){}
+  try { const k = JSON.parse(localStorage.getItem("bz1-kod-personel") || "null"); if (k && k.kod && k.ad && mesaiGrupRol(k.rol)) return {ad:k.ad, kod:k.kod, grup: mesaiGrupRol(k.rol)}; } catch(e){}
   return null;
 }
 function mesaiBaslat(){ if (!MS.un && store.listenMesaiBen) MS.un = store.listenMesaiBen(L => { MS.liste = L.sort((a,b)=>b.ts-a.ts); if (["personel","devriye"].includes(S.view)) setTimeout(render,0); }); }
@@ -5709,7 +5711,8 @@ document.addEventListener("click", async e => {
 
 /* =================== PERSONEL / GÜVENLİK KODLARI =================== */
 /* Her personelin 6 haneli kişisel kodu var. Kod Firebase'de kontrol edilir; pasif yapılınca gönderim durur. */
-const KOD = { liste:[], un:null, form:{tip:"personel", ad:"", rol:"Temizlik", vardiya:"1. Vardiya"}, yeni:null };
+const KOD = { liste:[], un:null, form:{tip:"personel", ad:"", rol:"Temizlik", vardiya:"1. Vardiya", yRol:"Güvenlik Amiri"}, yeni:null };
+const YON_ROLLER = ["Güvenlik Amiri", "Site Müdürü", "Yönetim", "Teknik"];
 const kodSakla = (tip, v) => yerel("bz1-kod-" + tip, v);
 const kodAl = tip => yerel("bz1-kod-" + tip);
 /* Yanlış kod denemesi sınırı: 5 yanlışta 5 dk, 8'de 15 dk, 10 ve üstünde 1 saat bekleme (bu telefonda) */
@@ -5731,6 +5734,8 @@ function kodGirisEkrani(tip){
 async function kodDogrula(tip, kod){
   const k = await store.kodOku(kod);
   if (!k || k.aktif === false) return null;
+  // Yönetim kodu (amir, müdür, yönetim): tek kodla hem Devriye hem Personel sayfasına girer
+  if (k.tip === "yonetim") return tip === "guvenlik" ? Object.assign({}, k, {vardiya: k.rol || "Yönetim"}) : Object.assign({}, k, {rol: k.rol || "Yönetim"});
   if (tip === "guvenlik" && k.tip !== "guvenlik") return null;
   // Güvenlik kodu personel sayfasında da geçer (arıza bildirimi için ayrı kod gerekmez)
   if (tip === "personel" && k.tip === "guvenlik") return Object.assign({}, k, {rol:"Güvenlik"});
@@ -5767,7 +5772,7 @@ function kodPanel(){
   const f = KOD.form, link = location.origin + location.pathname.replace(/[^/]*$/, "");
   const guvYok = !L.some(k=>k.tip==="guvenlik");
   const satir = k => `<div class="kod-satir${k.aktif===false?" pasif":""}">
-      <div><b>${esc(k.ad)}</b><small>${k.tip==="guvenlik" ? "🛡️ " + esc(k.vardiya||"Güvenlik") : "👷 " + esc(k.rol||"")}${k.aktif===false?" · <b>PASİF</b>":""}</small></div>
+      <div><b>${esc(k.ad)}</b><small>${k.tip==="guvenlik" ? "🛡️ " + esc(k.vardiya||"Güvenlik") : k.tip==="yonetim" ? "👔 " + esc(k.rol||"Yönetim") + " · Devriye + Personel" : "👷 " + esc(k.rol||"")}${k.aktif===false?" · <b>PASİF</b>":""}</small></div>
       <code>${esc(k.id)}</code>
       <div class="kod-btn">
         ${k.aktif===false ? `<button class="pill-btn" data-act="kodAktif" data-id="${k.id}" data-v="1">Aktif yap</button>`
@@ -5777,10 +5782,12 @@ function kodPanel(){
   return `<details class="card t-ayar" style="margin-top:14px" id="kodKart" ${S.kodAcik?"open":""}><summary><b>🔑 Personel ve güvenlik kodları</b> · ${L.filter(k=>k.aktif!==false).length} aktif</summary>
     <p class="hint">Personel ve güvenlik uygulamaları sadece geçerli kodla çalışır. İşten ayrılan kişide <b>İşten ayrıldı · kapat</b>'a basın: kodu tek tuşla kapanır, telefonundaki uygulama açılışta durur, bildirimleri kesilir. Yanlış kod denemesi 5'i geçince o telefon 5 dakika (tekrarlarsa 1 saate kadar) bekletilir.</p>
     ${KOD.yeni ? `<div class="t-uyari yesil">✓ <b>${esc(KOD.yeni.ad)}</b> için kod: <b style="font-size:20px;letter-spacing:2px">${esc(KOD.yeni.id)}</b></div>` : ""}
-    <div class="prefs"><button class="pref" data-act="kodTip" data-v="personel" aria-pressed="${f.tip==="personel"}">👷 Personel</button><button class="pref" data-act="kodTip" data-v="guvenlik" aria-pressed="${f.tip==="guvenlik"}">🛡️ Güvenlik</button></div>
+    <div class="prefs"><button class="pref" data-act="kodTip" data-v="personel" aria-pressed="${f.tip==="personel"}">👷 Personel</button><button class="pref" data-act="kodTip" data-v="guvenlik" aria-pressed="${f.tip==="guvenlik"}">🛡️ Güvenlik</button><button class="pref" data-act="kodTip" data-v="yonetim" aria-pressed="${f.tip==="yonetim"}">👔 Yönetim</button></div>
     <div class="grid2" style="margin-top:8px">
       <label class="f">Ad soyad<input id="kodAd" maxlength="60" value="${esc(f.ad)}"></label>
-      ${f.tip==="personel"
+      ${f.tip==="yonetim"
+        ? `<label class="f">Görev<select id="kodYRol">${YON_ROLLER.map(r=>`<option ${f.yRol===r?"selected":""}>${r}</option>`).join("")}</select></label>`
+        : f.tip==="personel"
         ? `<label class="f">Görev<select id="kodRol">${ROLLER.map(r=>`<option ${f.rol===r?"selected":""}>${r}</option>`).join("")}</select></label>`
         : `<label class="f">Vardiya<select id="kodVardiya">${["1. Vardiya","2. Vardiya","3. Vardiya","Joker"].map(r=>`<option ${f.vardiya===r?"selected":""}>${r}</option>`).join("")}</select></label>`}
     </div>
@@ -5806,15 +5813,16 @@ async function linkKodu(kod){
     const k = await store.kodOku(kod);
     if (!k || k.aktif === false){ toast("Linkteki kod geçersiz ya da pasif"); return; }
     if (k.tip === "guvenlik") kodUygula("guvenlik", kod, k);
-    kodUygula("personel", kod, k.tip === "guvenlik" ? Object.assign({}, k, {rol:"Güvenlik"}) : k);
+    if (k.tip === "yonetim") kodUygula("guvenlik", kod, Object.assign({}, k, {vardiya: k.rol || "Yönetim"}));
+    kodUygula("personel", kod, k.tip === "guvenlik" ? Object.assign({}, k, {rol:"Güvenlik"}) : k.tip === "yonetim" ? Object.assign({}, k, {rol: k.rol || "Yönetim"}) : k);
     S.kodYoklandi = Date.now(); toast(`Hoş geldiniz ${String(k.ad||"").split(" ")[0]} · kodunuz kaydedildi`); render();
   } catch(e){ toast("Kod kontrol edilemedi, internet bağlantısını kontrol edin"); }
 }
 function kodMesaj(k){
   const link = location.origin + location.pathname.replace(/[^/]*$/, "");
-  const g = k.tip==="guvenlik";
+  const g = k.tip==="guvenlik" || k.tip==="yonetim";
   const q = "?kod=" + k.id;
-  return `Bizimevler 1 ${g?"güvenlik":"personel"} kodunuz: ${k.id}\n\n👉 Bu linke dokunun, kod otomatik girilir:\n${link}${g?"devriye.html":"personel.html"}${q}${g?`\n\nArıza bildirimi:\n${link}personel.html${q}`:""}\n\nKod sorarsa yukarıdaki 6 haneli kodu yazın.`;
+  return `Bizimevler 1 ${k.tip==="yonetim"?"yönetim":g?"güvenlik":"personel"} kodunuz: ${k.id}\n\n👉 Bu linke dokunun, kod otomatik girilir:\n${link}${g?"devriye.html":"personel.html"}${q}${g?`\n\nArıza bildirimi:\n${link}personel.html${q}`:""}\n\nKod sorarsa yukarıdaki 6 haneli kodu yazın.`;
 }
 async function yeniKod(){
   for (let i = 0; i < 20; i++){
@@ -5897,7 +5905,7 @@ function syncForm(){
   if (S.view === "gorev") gvSync();
   const gn = document.getElementById("gel_not"); if (gn && S.gel) S.gel.not = gn.value;
   const kg = document.getElementById("kodGir"); if (kg) S.kodTaslak = kg.value;
-  [["kodAd","ad"],["kodRol","rol"],["kodVardiya","vardiya"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) KOD.form[k] = el.value; });
+  [["kodAd","ad"],["kodRol","rol"],["kodVardiya","vardiya"],["kodYRol","yRol"]].forEach(([id,k]) => { const el = document.getElementById(id); if (el) KOD.form[k] = el.value; });
   const rl = document.getElementById("rolListe"); if (rl) S.rolTaslak = rl.value;
   const rt = document.getElementById("rolTesis"); if (rt) S.rolTesisTaslak = rt.value;
   const f = S.form;
@@ -6050,7 +6058,7 @@ document.addEventListener("click", async e => {
       syncForm(); const f = KOD.form, ad = f.ad.trim();
       if (ad.length < 3){ toast("Ad soyad yazın"); return; }
       const id = await yeniKod();
-      const v2 = f.tip==="guvenlik" ? {ad, tip:"guvenlik", vardiya:f.vardiya, aktif:true, ts:Date.now()} : {ad, tip:"personel", rol:f.rol, aktif:true, ts:Date.now()};
+      const v2 = f.tip==="guvenlik" ? {ad, tip:"guvenlik", vardiya:f.vardiya, aktif:true, ts:Date.now()} : f.tip==="yonetim" ? {ad, tip:"yonetim", rol:f.yRol || YON_ROLLER[0], aktif:true, ts:Date.now()} : {ad, tip:"personel", rol:f.rol, aktif:true, ts:Date.now()};
       await store.setKod(id, v2); KOD.yeni = {id, ad}; KOD.form.ad = ""; const ka = $("#kodAd"); if (ka) ka.value = ""; S.kodAcik = true; toast("Kod oluşturuldu: " + id); render();
     }
     else if (act==="duySebep"||act==="duySure"){ S.duyF.not = ($("#duyNot")||{}).value || ""; const sa = $("#duySaat"); if (sa) S.duyF.saat = sa.value;
