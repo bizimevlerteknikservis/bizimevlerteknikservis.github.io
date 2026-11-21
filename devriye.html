@@ -4241,10 +4241,11 @@ function vPanel(){
     ${yedekKart()}
     <details class="card t-ayar" id="rolKart" ${S.rolAcik?"open":""}><summary><b>👥 Yönetim erişimi</b> · Kontrol Merkezi'ne kim girebilir</summary>
       <p class="hint">Buraya yazılan e-postalar <b>sadece Canlı Kontrol Merkezi'ni</b> görebilir (personel bildirimleri, devriye, tesis durumu, raporlar). <b>Daire arızalarını ve bu paneli göremezler.</b> Her satıra bir e-posta.</p>
+      ${S.rolYuk === "ok" ? "" : S.rolYuk === "hata" ? `<p class="t-uyari turuncu" style="margin:8px 0">⚠️ Kayıtlı liste şu an yüklenemedi${S.rolHata === "resource-exhausted" ? " (Firebase'in günlük ücretsiz okuma hakkı dolmuş, 11:00'de yenilenir)" : ""}. Kayıtlı kişiler yine girebilir; sadece burada görünmüyor. Yanlışlıkla silinmesin diye Kaydet kilitli. <a href="#" data-act="rolTekrar">Tekrar dene</a></p>` : `<p class="hint">Liste yükleniyor…</p>`}
       <textarea id="rolListe" rows="4" placeholder="mudur@ornek.com&#10;yonetim@ornek.com">${esc(S.rolTaslak ?? (S.roller||[]).join("\n"))}</textarea>
       <p class="hint" style="margin-top:12px"><b>🏢 Tesis takibe de girebilenler</b> · Bu e-postalar ayrıca <b>Tesis takip</b> sayfasına girip asansör, jeneratör, hidrofor ve kesinti kaydı yapabilir. (Daire arızalarını yine göremezler.)</p>
       <textarea id="rolTesis" rows="2" placeholder="ali@ornek.com">${esc(S.rolTesisTaslak ?? (S.rolTesis||[]).join("\n"))}</textarea>
-      <button class="cta ghost" data-act="rolKaydet" style="margin-top:8px">Kaydet</button>
+      <button class="cta ghost" data-act="rolKaydet" style="margin-top:8px" ${S.rolYuk === "ok" ? "" : "disabled"}>Kaydet</button>
       <p class="hint">Sonra Firebase → Authentication → <b>Add user</b> ile bu e-postalara birer şifre tanımlayın.</p></details>
     ${kodPanel()}`);
   return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="margin:0;font:600 22px/1.2 var(--display)">İş paneli</h2><button class="pill-btn cikis-btn" style="margin-left:auto" data-act="cikis"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Çıkış yap</button></div>
@@ -4272,10 +4273,11 @@ function vPanel(){
     <a class="cta ghost" href="#kontrol" style="display:block;text-align:center;text-decoration:none;margin-top:18px">🗺️ Canlı Kontrol Merkezi</a>
     <details class="card t-ayar" style="margin-top:18px" id="rolKart" ${S.rolAcik?"open":""}><summary><b>👥 Yönetim erişimi</b> · Kontrol Merkezi'ne kim girebilir</summary>
       <p class="hint">Buraya yazılan e-postalar <b>sadece Canlı Kontrol Merkezi'ni</b> görebilir (personel bildirimleri, devriye, tesis durumu, raporlar). <b>Daire arızalarını ve bu paneli göremezler.</b> Her satıra bir e-posta.</p>
+      ${S.rolYuk === "ok" ? "" : S.rolYuk === "hata" ? `<p class="t-uyari turuncu" style="margin:8px 0">⚠️ Kayıtlı liste şu an yüklenemedi${S.rolHata === "resource-exhausted" ? " (Firebase'in günlük ücretsiz okuma hakkı dolmuş, 11:00'de yenilenir)" : ""}. Kayıtlı kişiler yine girebilir; sadece burada görünmüyor. Yanlışlıkla silinmesin diye Kaydet kilitli. <a href="#" data-act="rolTekrar">Tekrar dene</a></p>` : `<p class="hint">Liste yükleniyor…</p>`}
       <textarea id="rolListe" rows="4" placeholder="mudur@ornek.com&#10;yonetim@ornek.com">${esc(S.rolTaslak ?? (S.roller||[]).join("\n"))}</textarea>
       <p class="hint" style="margin-top:12px"><b>🏢 Tesis takibe de girebilenler</b> · Bu e-postalar ayrıca <b>Tesis takip</b> sayfasına girip asansör, jeneratör, hidrofor ve kesinti kaydı yapabilir. (Daire arızalarını yine göremezler.)</p>
       <textarea id="rolTesis" rows="2" placeholder="ali@ornek.com">${esc(S.rolTesisTaslak ?? (S.rolTesis||[]).join("\n"))}</textarea>
-      <button class="cta ghost" data-act="rolKaydet" style="margin-top:8px">Kaydet</button>
+      <button class="cta ghost" data-act="rolKaydet" style="margin-top:8px" ${S.rolYuk === "ok" ? "" : "disabled"}>Kaydet</button>
       <p class="hint">Sonra Firebase → Authentication → <b>Add user</b> ile bu e-postalara birer şifre tanımlayın.</p></details>
     ${kodPanel()}
     <a class="cta ghost" href="#calisma" style="display:block;text-align:center;text-decoration:none;margin-top:14px">📅 Temizlik hafta sonu çalışma listesi</a>`;
@@ -5890,7 +5892,9 @@ document.addEventListener("click", async e => {
       catch(err){ S.err = err.code==="yonetim" ? "YONETIM" : err.code==="yetki" ? "Bu hesap teknisyen olarak tanımlı değil." : store.mode==="demo" ? "PIN hatalı." : "E-posta veya şifre hatalı."; render(); }
     }
     else if (act==="cikis"){ try { localStorage.removeItem("bz1-masa-rol"); } catch(err){} if (unAll) unAll(); unAll = null; S.all = []; tesisDurdur(); await store.logout(); render(); }
+    else if (act==="rolTekrar"){ e.preventDefault(); rolYukle(); render(); }
     else if (act==="rolKaydet"){
+      if (S.rolYuk !== "ok"){ toast("Önce kayıtlı liste yüklenmeli"); return; }
       const temiz = id => $(id).value.split(/[\s,;]+/).map(x=>x.trim().toLowerCase()).filter(x=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
       const L = temiz("#rolListe"), TL = temiz("#rolTesis");
       try { await store.setRoller({yonetim: L, tesis: TL}); S.roller = L; S.rolTesis = TL; $("#rolListe").value = L.join("\n"); $("#rolTesis").value = TL.join("\n"); toast(`${L.length} yönetim · ${TL.length} tesis hesabı kaydedildi`); render(); } catch(err){ console.error(err); toast("Kaydedilemedi: Firebase kurallarını kontrol edin"); }
@@ -5910,10 +5914,17 @@ document.addEventListener("click", async e => {
   } catch(err){ console.error(err); toast("İşlem yapılamadı, tekrar deneyin"); }
 });
 
+/* Yönetim erişimi listesini yükle; yüklenemezse Kaydet kilitlenir (boş listeyle üstüne yazıp herkesin erişimini silmesin) */
+function rolYukle(){
+  if (!(store.isTech() && store.getRoller)) return;
+  S.rolYuk = "yukleniyor";
+  store.getRoller().then(r => { S.roller = r.yonetim || []; S.rolTesis = r.tesis || []; S.rolYuk = "ok"; S.rolTaslak = undefined; S.rolTesisTaslak = undefined; if (S.view==="panel") render(); })
+    .catch(e => { console.warn("roller", e && e.code); S.rolYuk = "hata"; S.rolHata = (e && e.code) || ""; if (S.view==="panel") render(); });
+}
 function startPanel(){
   if (unAll) unAll();
   kodBaslat();
-  if (store.isTech() && store.getRoller) store.getRoller().then(r => { S.roller = r.yonetim || []; S.rolTesis = r.tesis || []; if (S.view==="panel") render(); }).catch(()=>{});
+  rolYukle();
   unAll = store.isTech() ? store.listenAll(list => { S.all = list; if (S.view==="panel") render(); }) : null;
   render();
 }
