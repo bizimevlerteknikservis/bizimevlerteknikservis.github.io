@@ -2987,7 +2987,15 @@ function sesBitir(r, mesaj){
   else if (mesaj){ SES.hata = mesaj; if (SES_IOS) SES.klavye = true; }
   render();
 }
+/* iPhone: tarayıcının ses tanıma servisi uygulama her açıldığında yalnızca 1 kez çalışıyor (sayfa yenilemek de düzeltmiyor,
+   uygulamayı kapatıp açmak gerekiyor). Bu yüzden 2. kullanımdan itibaren doğrudan klavye dikte kutusu açılır (her zaman çalışır). */
+const sesIosKullanildi = () => { try { return SES_IOS && sessionStorage.getItem("bz1-ses-kullanildi") === "1"; } catch(e){ return false; } };
+function sesKlavyeAc(){
+  SES.klavye = true; SES.hata = ""; SES.iosKlavye = true; render();
+  const t = document.getElementById("sesYazi"); if (t){ try { t.focus(); t.scrollIntoView({block:"center"}); } catch(e){} }
+}
 function sesBaslat(){
+  if (sesIosKullanildi()){ sesKlavyeAc(); return; }
   if (!SR){ SES.hata = "Bu telefonda sesli bildirim desteklenmiyor. Chrome ile açın."; SES.klavye = true; render(); return; }
   if (SES.r){ const eski = SES.r; SES.r = null; try { if (!eski._bitti) eski.abort(); } catch(e){} }
   if (SES_IOS){ try { if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel(); } catch(e){} }   // konuşan ses varken iPhone mikrofonu vermez
@@ -2999,7 +3007,7 @@ function sesBaslat(){
   SES.dinliyor = true; SES.metin = ""; SES.ara = ""; SES.hata = ""; SES.sonuc = null; SES.basladi = false; render();
   const takildi = "Mikrofon açılmadı. Tekrar basın" + (SES_IOS ? " ya da aşağıya klavyedeki 🎤 ile söyleyin." : ".");
   const sesYok = SES_IOS ? "Ses alınamadı. Aşağıdaki kutuya dokunun, klavyedeki 🎤 tuşuyla söyleyin ya da yazın." : "Ses duyulmadı, tekrar deneyin.";
-  const basla = () => { if (SES.r !== r) return; SES.basladi = true; clearTimeout(SES.tBas); };
+  const basla = () => { if (SES.r !== r) return; SES.basladi = true; clearTimeout(SES.tBas); if (SES_IOS) try { sessionStorage.setItem("bz1-ses-kullanildi", "1"); } catch(e){} };
   const duydu = () => { if (SES.r !== r) return; basla(); SES.duydu = true; clearTimeout(SES.tDuy); };
   r.onstart = basla; r.onaudiostart = basla; r.onspeechstart = duydu;
   r.onresult = e => { if (SES.r !== r) return; duydu(); let son = "", ara = ""; for (const x of e.results){ if (x.isFinal) son += x[0].transcript + " "; else ara += x[0].transcript; } if (son) SES.metin = (SES.metin + " " + son).trim(); SES.ara = ara; const el = document.getElementById("sesCanli"); if (el) el.textContent = (SES.metin + " " + SES.ara).trim() || "Dinliyorum…";
@@ -3019,7 +3027,8 @@ function sesKart(){
       <p class="ses-canli" id="sesCanli">${esc((SES.metin + " " + SES.ara).trim() || "Dinliyorum… konuşun")}</p><p class="hint">Bitince susun ya da mikrofona tekrar basın.</p></section>`;
   return `<section class="step ses-k"><div class="ses-ust"><button class="ses-btn" data-act="sesBas">🎙️</button>
       <div><b>Konuşarak bildirin</b><small>Mikrofona basın, sorunu söyleyin. Örnek: <i>“C1 blok üçüncü kat merdiven lambası yanmıyor”</i></small></div></div>
-    ${SES.hata ? `<p class="err">${esc(SES.hata)}</p>${SES_IOS && SES.klavye ? `<button class="pill-btn" data-act="sesYenile" style="margin-top:6px">🔄 Sayfayı yenile, mikrofon tekrar çalışsın</button>` : ""}` : ""}
+    ${SES.hata ? `<p class="err">${esc(SES.hata)}</p>` : ""}
+    ${SES.klavye && SES.iosKlavye ? `<p class="hint" style="margin:8px 0 0">📱 iPhone'da: <b>klavyenin altındaki 🎤 tuşuna</b> basıp söyleyin, sonra <b>Anla ve doldur</b>'a dokunun.</p>` : ""}
     ${SES.klavye ? `<label class="f" style="margin-top:8px">Klavyedeki 🎤 tuşuna basıp söyleyin ya da yazın<textarea id="sesYazi" rows="2" placeholder="Örn. C1 blok merdiven lambası yanmıyor"></textarea></label><button class="cta ghost" data-act="sesYaziUygula" style="margin-top:6px">Anla ve doldur</button>` : ""}
     ${o ? `<div class="ses-sonuc"><small>Anladığım:</small><p>“${esc(SES.metin)}”</p>
       <div class="ses-cip">${o.cat ? `<span>${esc(catOf(o.cat).ad)}</span>` : `<span class="yok">Arıza türü anlaşılmadı</span>`}${(o.issues||[]).map(x=>`<span>${esc(x)}</span>`).join("")}
