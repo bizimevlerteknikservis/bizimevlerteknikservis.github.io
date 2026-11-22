@@ -3215,6 +3215,14 @@ function asBolum(a){
   if (a.src !== "personel") return "Site sakini";
   return a.rol === "Güvenlik" ? "Güvenlik" : a.rol === BAHCIVAN ? "Bahçe / Peyzaj" : a.rol === "Temizlik" ? "Temizlik" : "Site personeli";
 }
+/* Açık kayda sonradan eklenen personel bildirimlerinin en yenisi (devam eden arıza: firmaya en güncel hâli gider) */
+function asSonBildirim(k){
+  if (!k || !(k.bildirenler || []).length) return null;
+  const tum = [...(T.pAs || []), ...((store.isTech() ? S.all : IK.pers) || [])];
+  const L = k.bildirenler.map(id => tum.find(a => a.id === id)).filter(Boolean).sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  const s = L[0]; if (!s || (s.createdAt||0) <= (k.ts||0) + 6e4) return null;
+  return {id:s.id, ts:s.createdAt, metin:bildirimMetni(s), kim:[s.name, s.rol].filter(Boolean).join(" · "), fotoSayi:s.fotoSayi||0, mahsur:/mahsur/i.test(s.desc||"")};
+}
 function asWaListe(){
   const T_ = (T.kayit || []).filter(k => k.tur==="ariza" && !k.cozuldu);
   const bagli = new Set(T_.flatMap(k => k.bildirenler || []));
@@ -3223,7 +3231,12 @@ function asWaListe(){
   const bolumOf = k => { const B_ = [...new Set((k.bildirenler || []).map(id => asBolum(tumAp.find(a => a.id === id))).filter(Boolean))]; return B_.length ? B_.join(", ") : (k.kaynak === "personel" ? "Site personeli" : "Teknik Servis"); };
   const ap = (L || []).filter(a => (a.cat==="p_asansor" || a.cat==="asansor") && acik(a) && Date.now() - a.createdAt < 2*864e5 && !bagli.has(a.id));
   return [
-    ...T_.map(k => ({id:k.id, tip:"tesis", blok:String(k.ekipman||"").split("-")[0], no:String(k.ekipman||"").split("-")[1], ariza:k.not || "", ts:k.ts, kim:bolumOf(k), mahsur:!!k.mahsur, fotoAid:(k.bildirenler && k.bildirenler[0]) || (k.fotoSayi ? k.id : null), bildirildi:k.bildirildi || null})),
+    ...T_.map(k => { const son = asSonBildirim(k);
+      return {id:k.id, tip:"tesis", blok:String(k.ekipman||"").split("-")[0], no:String(k.ekipman||"").split("-")[1],
+        ariza:son ? son.metin : (k.not || ""), ts:son ? son.ts : k.ts, ilkTs:son ? k.ts : null, ilkAriza:son ? (k.not || "") : null,
+        kim:bolumOf(k), mahsur:!!k.mahsur || !!(son && son.mahsur),
+        fotoAid:son && son.fotoSayi ? son.id : ((k.bildirenler && k.bildirenler[0]) || (k.fotoSayi ? k.id : null)),
+        bildirildi:k.bildirildi && !(son && son.ts > k.bildirildi) ? k.bildirildi : null}; }),
     ...ap.map(a => ({id:a.id, tip:"appt", blok:a.block || "", no:a.asNo || "", ariza:bildirimMetni(a), ts:a.createdAt, kim:asBolum(a), mahsur:/mahsur/i.test(a.desc||""), fotoAid:a.fotoSayi ? a.id : null, bildirildi:null}))
   ].sort((a,b) => b.ts - a.ts);
 }
@@ -3231,7 +3244,8 @@ function asWaMetin(k, kisa){
   const d = new Date(k.ts), tarih = `${d.getDate()} ${AYLAR_TR[d.getMonth()]} ${d.getFullYear()} – ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
   const asansor = k.no && k.no !== "?" ? `${k.no}. asansör` : "Belirtilmedi (blok genel / ilgili kabin)";
   const ariza = (k.ariza || "Asansör arızalı").trim();
-  if (kisa) return [`🚨 ASANSÖR ARIZASI – Bizimevler 1`, `📍 ${k.blok} Blok${k.no && k.no !== "?" ? " · " + k.no + ". asansör" : ""}`, k.mahsur ? `🆘 İÇERİDE MAHSUR KALAN VAR` : null, `⚠️ ${ariza}`, `🕒 ${tarih}`, ``, `Lütfen arızanın alındığını teyit ediniz.`].filter(x => x !== null).join("\n");
+  const di = k.ilkTs ? new Date(k.ilkTs) : null, ilkT = di ? `${di.getDate()} ${AYLAR_TR[di.getMonth()]} – ${String(di.getHours()).padStart(2,"0")}:${String(di.getMinutes()).padStart(2,"0")}` : "";
+  if (kisa) return [`🚨 ASANSÖR ARIZASI – Bizimevler 1`, `📍 ${k.blok} Blok${k.no && k.no !== "?" ? " · " + k.no + ". asansör" : ""}`, k.mahsur ? `🆘 İÇERİDE MAHSUR KALAN VAR` : null, `⚠️ ${ariza}`, `🕒 ${tarih}`, di ? `🔁 Arıza devam ediyor (ilk bildirim: ${ilkT})` : null, ``, `Lütfen arızanın alındığını teyit ediniz.`].filter(x => x !== null).join("\n");
   return [
     `BİZİMEVLER 1 – TEKNİK SERVİS`,
     `🚨 ASANSÖR ARIZA BİLDİRİMİ`,
@@ -3240,6 +3254,7 @@ function asWaMetin(k, kisa){
     `🛗 Asansör: ${asansor}`,
     `⚠️ Arıza: ${ariza}`,
     `🕒 Bildirim: ${tarih}`,
+    di ? `🔁 Arıza devam ediyor – ilk bildirim: ${ilkT}${k.ilkAriza && k.ilkAriza.trim() !== ariza ? ` (${k.ilkAriza.trim()})` : ""}` : null,
     `👤 Bildiren: ${k.kim || "Teknik Servis / Site Personeli"}`,
     ASW.foto ? `📷 Fotoğraf: Ekli` : null,
     ``,
@@ -5211,7 +5226,9 @@ async function pAsAktar(){
     if (bagli){ pAsIslenen.add(ap.id); continue; }
     pAsIslenen.add(ap.id);
     const ekip = ap.asNo ? `${ap.block}-${ap.asNo}` : `${ap.block}-?`;
-    const acik = T.kayit.filter(k => k.tur==="ariza" && !k.cozuldu && (k.ekipman===ekip || (!ap.asNo && k.ekipman.startsWith(ap.block+"-")) || (k.ekipman===`${ap.block}-?`))).sort((a,b)=>b.ts-a.ts)[0];
+    /* Asansör numarası belirtilmemişse yalnızca son 6 saatte açılmış aynı blok kaydına bağlanır; eski kayda (belki diğer asansör) karışmaz */
+    const yakin = k => (ap.createdAt||Date.now()) - (k.ts||0) < 6*36e5;
+    const acik = T.kayit.filter(k => k.tur==="ariza" && !k.cozuldu && (k.ekipman===ekip || (!ap.asNo && k.ekipman.startsWith(ap.block+"-") && yakin(k)) || (k.ekipman===`${ap.block}-?`))).sort((a,b)=>b.ts-a.ts)[0];
     const kim = [ap.name, ap.rol].filter(Boolean).join(" · ");
     try {
       if (acik) await store.setTesis(acik.id, {bildirenler:{__ekle:[ap.id]}, bildirenAd:{__ekle:[kim]}});
@@ -5371,7 +5388,9 @@ function tAcikArizalar(H){
       ${a.kaynak==="personel" || (a.bildirenAd||[]).length ? `<p class="t-desc" style="margin:4px 0">📣 Bildiren: ${esc((a.bildirenAd||[a.by]).join(", "))}</p>` : ""}
       ${/-\?$/.test(a.ekipman) ? `<div style="margin:6px 0;display:flex;gap:6px;align-items:center;flex-wrap:wrap">Hangi asansör? <button class="pill-btn" data-t="asNoSec" data-id="${a.id}" data-v="${esc(a.ekipman.split("-")[0])}-1">1</button><button class="pill-btn" data-t="asNoSec" data-id="${a.id}" data-v="${esc(a.ekipman.split("-")[0])}-2">2</button></div>` : ""}
       ${kronikSay(a.ekipman, a.ts) >= KRONIK_ESIK ? `<div class="t-uyari kirmizi" style="margin:6px 0 0">♻️ Kronik: ${KRONIK_GUN} günde ${kronikSay(a.ekipman, a.ts)}. arıza</div>` : kronikSay(a.ekipman, a.ts) === 2 ? `<div class="t-uyari turuncu" style="margin:6px 0 0">↻ ${KRONIK_GUN} gün içinde 2. arıza</div>` : ""}
-      ${a.not ? `<p class="t-desc">${esc(a.not)}</p>` : ""}
+      ${(() => { const son = asSonBildirim(a); return son
+        ? `<div class="t-uyari turuncu" style="margin:6px 0 0;display:block">🆕 <b>Son bildirim · ${tarihSaat(son.ts)}</b>${son.kim ? ` · ${esc(son.kim)}` : ""}<br>${esc(son.metin)}</div>${a.not ? `<p class="t-desc" style="opacity:.75">İlk bildirim: ${esc(a.not)}</p>` : ""}`
+        : (a.not ? `<p class="t-desc">${esc(a.not)}</p>` : ""); })()}
       <div class="t-adim">
         <span class="${a.ts?"ok":""}">Açıldı ${tarihSaat(a.ts)}</span>
         <span class="${a.bildirildi?"ok":""}">Bildirildi${a.bildirildi?" "+tarihSaat(a.bildirildi):""}</span>
