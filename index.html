@@ -121,6 +121,7 @@ body.dash #demoBand{max-width:560px;margin:10px auto 0}
 .pb-liste{display:grid;border:1px solid #e3ebf5;border-radius:14px;overflow:hidden}
 .pb{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:10px 12px;border-top:1px solid #edf2f8}
 .pb-alt{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:5px}
+.pb-wa{margin-top:8px;font-size:13px;padding:7px 12px}
 .pb-alt time{font:600 12px/1 var(--mono);color:#5f7387;white-space:nowrap}
 .pb:first-child{border-top:0}
 .pb.as{background:#effaf9}
@@ -1658,6 +1659,7 @@ function fis(a, panel){
       <div class="actions">
         ${a.status==="bekliyor"?`<button class="act primary" data-act="durum" data-id="${a.id}" data-v="onaylandi">İlgileniyorum</button>`:""}
         ${a.status==="onaylandi"?`<button class="act primary" data-act="durum" data-id="${a.id}" data-v="tamamlandi">Tamamlandı</button>`:""}
+        ${asWaBtn(a)}
         <button class="act" data-act="not" data-id="${a.id}">Notu kaydet</button>
         ${acik(a)?`<button class="act ${armed?"armed":"danger"}" data-act="iptal" data-id="${a.id}">${armed?"Eminim, iptal et":"İptal et"}</button>`:""}
         ${!acik(a)?`<button class="act" data-act="durum" data-id="${a.id}" data-v="bekliyor">Yeniden aç</button>`:""}
@@ -3271,9 +3273,29 @@ function asWaKart(){
       <small>${esc(k.ariza || "Asansör arızalı")} · ${saatYaz(k.ts)}${k.bildirildi ? ` · ✓ firmaya bildirildi ${saatYaz(k.bildirildi)}` : ""}</small>
       <button class="asw-b${k.bildirildi ? " tamam" : ""}" data-act="asWa" data-v="${k.tip}:${esc(k.id)}">📲 ${k.bildirildi ? "Tekrar gönder" : "Gruba gönder"}</button></div>`).join("")}</div></section>`;
 }
+/* Asansör bildirimi kartlarında "Gruba gönder": teknisyen, tesis/yönetim girişi, amirler ve yönetim kodlu kişiler (Tuğrul, Ali vb.) */
+function asWaYetki(){
+  if (store.isTech() || (store.isTesis && store.isTesis()) || (store.isYetkili && store.isYetkili())) return true;
+  const Y = typeof YON_ROLLER !== "undefined" ? YON_ROLLER : ["Güvenlik Amiri","Site Müdürü","Yönetim","Teknik"];
+  if (S.d && S.d.kim && Y.includes(S.d.kim.vardiya)) return true;
+  if (S.p && S.p.kod && Y.includes(S.p.rol)) return true;
+  try { const g = JSON.parse(localStorage.getItem("bz1-kod-guvenlik") || localStorage.getItem("bz1-gorevli") || "null"); if (g && g.kod && Y.includes(g.vardiya)) return true; } catch(e){}
+  try { const k = JSON.parse(localStorage.getItem("bz1-kod-personel") || "null"); if (k && k.kod && Y.includes(k.rol)) return true; } catch(e){}
+  return false;
+}
+function asWaBtn(a, sinif){
+  if (!a || a.cat !== "p_asansor" || !acik(a) || !asWaYetki()) return "";
+  const k = (T.kayit || []).find(x => x.tur === "ariza" && !x.cozuldu && (x.id === "p_" + a.id || (x.bildirenler || []).includes(a.id)));
+  return `<button class="${sinif || "act"}" data-act="asWa" data-v="${k ? "tesis:" + esc(k.id) : "appt:" + esc(a.id)}" style="background:#1fa855;color:#fff;border-color:#1fa855">📲 Gruba gönder</button>`;
+}
 async function asWaAc(anahtar){
   const [tip, id] = String(anahtar).split(/:(.+)/);
-  const k = asWaListe().find(x => x.tip === tip && x.id === id); if (!k) { toast("Arıza bulunamadı"); return; }
+  let k = asWaListe().find(x => x.tip === tip && x.id === id);
+  if (!k && tip === "appt"){   // listede yoksa (ör. yönetim/amir telefonu): bildirimin kendisinden kur
+    const a = [...(S.all || []), ...(IK.pers || []), ...(T.pAs || [])].find(x => x.id === id);
+    if (a) k = {id:a.id, tip:"appt", blok:a.block || "", no:a.asNo || "", ariza:bildirimMetni(a), ts:a.createdAt, kim:asBolum(a), mahsur:/mahsur/i.test(a.desc||""), fotoAid:a.fotoSayi ? a.id : null, bildirildi:null};
+  }
+  if (!k) { toast("Arıza bulunamadı"); return; }
   ASW.k = k; ASW.foto = null; ASW.fotoYuk = !!(k.fotoAid && store.getFoto);
   let d = document.getElementById("aswModal"); if (!d){ d = document.createElement("div"); d.id = "aswModal"; d.className = "mesai-modal"; document.body.appendChild(d); }
   const ciz = () => {
@@ -3728,7 +3750,7 @@ function pBildirimlerKart(){
   const goster = S.pbTum ? L : L.slice(0, 2);
   return `<section class="d-kart pb-kart"><div class="d-bas"><h2>📋 Bildirimler</h2><span class="pb-say">Son 2 gün · ${L.length}</span></div>
     <div class="pb-liste">${goster.map(a => `<div class="pb${a.cat==="p_asansor" ? " as" : ""}"><span class="pb-ic" style="--c:${({p_isik:"#f08c00",p_kapi:"#7c3aed",p_asansor:"#0e9f9a",p_su:"#1d6ff2",p_hasar:"#e11d48",p_bahce:"#15a34a",p_malzeme:"#c2620c",p_temiz:"#d1338c"})[a.cat] || "#475569"}"><svg viewBox="0 0 24 24">${(PKAT.find(k => k.id === a.cat) || {ic:""}).ic}</svg></span>
-      <div class="pb-m"><b>${esc(catOf(a.cat).ad)} · ${esc(yer(a))}</b><small>${esc(metin(a).slice(0, 90))}</small><div class="pb-alt"><span class="pb-kim">👤 ${esc(a.name || "Personel")} · ${bolum(a.rol)}</span>${durum(a)}<time>${gun(a.createdAt)}</time></div>${String(a.note||"").trim() ? `<p class="pb-not">${a.karan && a.karan !== "Teknisyen" ? "💬" : "🔧"} <b>${esc(a.karan || "Teknisyen")}:</b> ${esc(String(a.note).trim().slice(0, 160))}</p>` : ""}</div></div>`).join("")}</div>
+      <div class="pb-m"><b>${esc(catOf(a.cat).ad)} · ${esc(yer(a))}</b><small>${esc(metin(a).slice(0, 90))}</small><div class="pb-alt"><span class="pb-kim">👤 ${esc(a.name || "Personel")} · ${bolum(a.rol)}</span>${durum(a)}<time>${gun(a.createdAt)}</time></div>${asWaBtn(a, "pill-btn pb-wa")}${String(a.note||"").trim() ? `<p class="pb-not">${a.karan && a.karan !== "Teknisyen" ? "💬" : "🔧"} <b>${esc(a.karan || "Teknisyen")}:</b> ${esc(String(a.note).trim().slice(0, 160))}</p>` : ""}</div></div>`).join("")}</div>
     ${L.length > 2 ? `<button class="pill-btn" data-act="pbTum" style="margin-top:10px;width:100%">${S.pbTum ? "Daha az göster" : `+${L.length - 2} bildirim daha · tümünü göster`}</button>` : ""}</section>`;
 }
 /* Müdür (tesis): malzeme talepleri + temizlik ve bahçe arızalarını "İlgileniyorum / Karşılandı-Çözüldü / Not" ile yönetir; talebi açana bildirim gider */
@@ -3748,7 +3770,7 @@ function malzemeKart(){
     ${L.map(a => `<div class="mz">
       <div class="mz-m"><span class="mz-t">${turAd(a)}</span><b>${esc(bildirimMetni(a) || (a.cat === "p_malzeme" ? "Malzeme" : catOf(a.cat).ad))}</b><small>👤 ${esc(a.name||"Personel")}${a.rol ? ` (${esc(a.rol)})` : ""} · ${esc(a.alan || (a.block ? a.block + " Blok" : ""))} · ${new Date(a.createdAt).toDateString() === new Date().toDateString() ? saatYaz(a.createdAt) : new Date(a.createdAt).toLocaleDateString("tr-TR",{day:"numeric",month:"short"}) + " " + saatYaz(a.createdAt)}</small>${durum(a)}
         ${String(a.note||"").trim() ? `<p class="pb-not">💬 <b>${esc(a.karan || "Not")}:</b> ${esc(String(a.note).slice(0,160))}</p>` : ""}
-        <div class="foto-sat">${fotoBtn(a.id, a.fotoSayi, "appt")}</div></div>
+        <div class="foto-sat">${fotoBtn(a.id, a.fotoSayi, "appt")}${asWaBtn(a, "pill-btn")}</div></div>
       ${acik(a) && !mud(a) ? `<div class="mz-b"><span class="mz-tk">Teknisyen ilgilenecek</span><button class="pill-btn" data-act="mzNotAc" data-id="${a.id}">💬 Not</button></div>` : ""}
       ${acik(a) && mud(a) ? `<div class="mz-b">${a.status === "bekliyor" ? `<button class="pill-btn" data-act="mzDurum" data-v="onaylandi" data-id="${a.id}">🔧 İlgileniyorum</button>` : ""}<button class="pill-btn vd-ok" data-act="mzDurum" data-v="tamamlandi" data-id="${a.id}">✅ ${bitti(a)}</button><button class="pill-btn" data-act="mzNotAc" data-id="${a.id}">💬 Not</button></div>` : ""}
       ${MZ.not === a.id ? `<div class="mz-f"><input id="mz_not" maxlength="160" placeholder="Örn. Yarın sabah depodan alınacak" value="${esc(a.note||"")}"><button class="pill-btn" data-act="mzNotKaydet" data-id="${a.id}">Kaydet</button></div>` : ""}
