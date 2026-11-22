@@ -5436,7 +5436,7 @@ function tAcikArizalar(H){
 }
 function tAsansorIzgara(H){
   const acik = new Set(H.acikAriza.map(a=>a.ekipman));
-  const renk = a => acik.has(a.id) ? "kirmizi" : !H.sonBakim[a.id] ? "gri" : gunOnce(H.sonBakim[a.id].ts) > BAKIM_GUN ? "turuncu" : "yesil";
+  const renk = a => acik.has(a.id) || acik.has(a.id.split("-")[0] + "-?") ? "kirmizi" : !H.sonBakim[a.id] ? "gri" : gunOnce(H.sonBakim[a.id].ts) > BAKIM_GUN ? "turuncu" : "yesil";
   return `<div class="card"><h2>44 asansör</h2>
     <p class="hint"><i class="nokta yesil"></i>Bakımı güncel <i class="nokta turuncu"></i>Bakım gecikti <i class="nokta kirmizi"></i>Arızalı <i class="nokta gri"></i>Kayıt yok</p>
     <div class="as-izgara">${AYAR.bloklar.map(b=>`<div class="as-blok"><b>${b}</b>${[1,2].map(n=>{ const a = ASANSOR.find(x=>x.id===`${b}-${n}`); const et = (T.ayar.etiket||{})[a.id];
