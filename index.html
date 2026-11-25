@@ -4468,7 +4468,9 @@ function vDevriyeIc(){
     </section>`;
   }
   const gec = devGecmis();
-  const tur = {}; gec.filter(k => k.ts > Date.now() - 2*36e5).forEach(k => { if (!tur[k.nokta] || k.ts > tur[k.nokta]) tur[k.nokta] = k.ts; });
+  /* Bu tur: kendi okutmalarınız, arada 20 dk'dan uzun boşluk olmadan (tur 40 dk, ara 15 dk; önceki tur sayılmaz) */
+  const tur = {}; { const sir = gec.filter(k => k.ts > Date.now() - 2*36e5).sort((x,y) => y.ts - x.ts); let onceki = Date.now();
+    for (const k of sir){ if (onceki - k.ts > 20*6e4) break; if (!tur[k.nokta] || k.ts > tur[k.nokta]) tur[k.nokta] = k.ts; onceki = k.ts; } }
   const kuyruk = devKuyruk().length;
   const son = d.son && Date.now() - d.son.ts < 3*6e4 ? d.son : null;
   return `
@@ -4493,7 +4495,7 @@ function vDevriyeIc(){
   ${!navigator.onLine ? `<p class="kuyruk">📵 İnternet yok. Okutmaya devam edin, hepsi telefonda saklanıyor ve internet gelince kendiliğinden gönderilecek.</p>` : ""}
   ${kuyruk ? `<p class="kuyruk">📶 ${kuyruk} okutma henüz gönderilmedi, otomatik tekrar denenecek.${S.d.hata?`<br><b>${esc(S.d.hata)}</b>`:""}</p>` : ""}
   <section class="step"><h2><span>🔁</span>Bu tur <em class="turnum">${Object.keys(tur).length}/21</em></h2>
-    <p class="hint">Son 2 saatte okuttuğunuz noktalar yeşil.</p>
+    <p class="hint">Bu turda okuttuğunuz noktalar yeşil. 20 dakika okutma yapılmazsa yeni tur başlar.</p>
     <div class="nlist">${DEV_NOKTA.map(n=>`<div class="nrow${tur[n.id]?" on":""}"><i>${n.no}</i><span>${esc(n.ad)}</span><em>${tur[n.id]?saatStr(tur[n.id]):""}</em></div>`).join("")}</div>
   </section>
 
