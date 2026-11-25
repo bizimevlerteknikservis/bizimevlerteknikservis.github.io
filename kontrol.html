@@ -1054,7 +1054,7 @@ function turlar(kayit){
       const yeni = !t || (k.ts - onceki.ts > TUR.araDk*6e4) || sinir || (t.set.has(k.nokta) && onceki.nokta !== k.nokta);
       if (yeni){ t = {gorevli:k.gorevli, vardiya:k.vardiya, bas:k.ts, son:k.ts, ilkNo:no, sonNo:no, set:new Set(), yon:0}; out.push(t); }
       else if (!t.yon && no !== oNo) t.yon = ((no - oNo + 21) % 21) <= 10 ? 1 : -1;
-      t.set.add(k.nokta); t.son = k.ts; t.sonNo = no;
+      t.set.add(k.nokta); t.son = k.ts; t.sonNo = no; if (k.elle) t.elle = (t.elle||0) + 1;
     });
   });
   out.forEach(t=>{ t.sayi = t.set.size; t.eksik = NOKTA.filter(n=>!t.set.has(n.id)).map(n=>n.no); t.sureDk = Math.round((t.son - t.bas)/6e4);
@@ -1111,10 +1111,10 @@ function devriyePanel(){
     if (devriyeSaati()){
       const sonOk = DEV.kayit.filter(k=>k.tip!=="sorun").reduce((m,k)=>Math.max(m,k.ts),0);
       const bekle = Math.round((Date.now() - Math.max(sonOk, gb)) / 6e4);
-      if (gt.length) ek += `<div class="card"><h2>🔁 Bu gecenin turları</h2>${gt.length ? `<div class="rows">${gt.map(t=>`<div class="row"><div><b>${saat(new Date(t.bas))}–${saat(new Date(t.son))} · ${esc(kisaAd(t.gorevli))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${t.sayi}/21 nokta · ${t.sureDk} dk${t.eksik.length && t.eksik.length<21 ? ` · eksik: ${t.eksik.join(", ")}` : ""}</small></div><em style="color:${t.durum==="Tam tur"?"var(--ok)":"var(--warn)"}">${t.durum}</em></div>`).join("")}</div>` : ""}<p class="note">Her satır bir görevlinin bir turu. Kırmızı noktalar yalnızca devam eden turda görünür.</p></div>`;
+      if (gt.length) ek += `<div class="card"><h2>🔁 Bu gecenin turları</h2>${gt.length ? `<div class="rows">${gt.map(t=>`<div class="row"><div><b>${saat(new Date(t.bas))}–${saat(new Date(t.son))} · ${esc(kisaAd(t.gorevli))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${t.sayi}/21 nokta · ${t.sureDk} dk${t.eksik.length && t.eksik.length<21 ? ` · eksik: ${t.eksik.join(", ")}` : ""}${t.elle ? ` · ${t.elle} nokta elle sayıldı (QR okunamadı)` : ""}</small>${window.TEKNIK && t.eksik.length && t.eksik.length<=5 ? `<button class="act" style="margin-top:6px;padding:6px 12px;font-size:13px" data-tamsay="${esc(t.gorevli)}|${t.bas}">✔ Tam say (eksikleri elle ekle)</button>` : ""}</div><em style="color:${t.durum==="Tam tur"?"var(--ok)":"var(--warn)"}">${t.durum}</em></div>`).join("")}</div>` : ""}<p class="note">Her satır bir görevlinin bir turu. Kırmızı noktalar yalnızca devam eden turda görünür.</p></div>`;
       if (bekle >= 30) ek += `<div class="card" style="border-color:var(--bad)"><h2 style="color:var(--bad)">⏰ Devriye bekleniyor</h2><p class="note" style="font-size:14px;color:var(--ink)">${sonOk >= gb ? `Son okutmanın üzerinden <b>${bekle} dk</b> geçti.` : `Gece devriyesi başladı (21:00), henüz okutma yok.`} Her tur 40 dk, aralar 15 dk.</p></div>`;
     } else {
-      ek += `<div class="card"><h2>🌙 Devriye saati dışında</h2><p class="note" style="font-size:14px">Devriye 21:00–07:00 arası. Dün gecenin turları aşağıda; harita yalnız devam eden turu gösterir.</p>${gt.length ? `<div class="rows">${gt.map(t=>`<div class="row"><div><b>${saat(new Date(t.bas))}–${saat(new Date(t.son))} · ${esc(kisaAd(t.gorevli))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${t.sayi}/21 nokta · ${t.sureDk} dk${t.eksik.length && t.eksik.length<21 ? ` · eksik: ${t.eksik.join(", ")}` : ""}</small></div><em style="color:${t.durum==="Tam tur"?"var(--ok)":"var(--warn)"}">${t.durum}</em></div>`).join("")}</div>` : ""}</div>`;
+      ek += `<div class="card"><h2>🌙 Devriye saati dışında</h2><p class="note" style="font-size:14px">Devriye 21:00–07:00 arası. Dün gecenin turları aşağıda; harita yalnız devam eden turu gösterir.</p>${gt.length ? `<div class="rows">${gt.map(t=>`<div class="row"><div><b>${saat(new Date(t.bas))}–${saat(new Date(t.son))} · ${esc(kisaAd(t.gorevli))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${t.sayi}/21 nokta · ${t.sureDk} dk${t.eksik.length && t.eksik.length<21 ? ` · eksik: ${t.eksik.join(", ")}` : ""}${t.elle ? ` · ${t.elle} nokta elle sayıldı (QR okunamadı)` : ""}</small>${window.TEKNIK && t.eksik.length && t.eksik.length<=5 ? `<button class="act" style="margin-top:6px;padding:6px 12px;font-size:13px" data-tamsay="${esc(t.gorevli)}|${t.bas}">✔ Tam say (eksikleri elle ekle)</button>` : ""}</div><em style="color:${t.durum==="Tam tur"?"var(--ok)":"var(--warn)"}">${t.durum}</em></div>`).join("")}</div>` : ""}</div>`;
     }
     const kisiler = {};
     DEV.kayit.filter(k=>k.ts >= Date.now()-3*36e5).forEach(k=>{ const g = kisiler[k.gorevli] ||= {ad:k.gorevli, vardiya:k.vardiya, n:0, son:null}; g.n++; if (!g.son || k.ts>g.son.ts) g.son = k; });
@@ -1150,8 +1150,28 @@ function devriyePanel(){
       <p class="note">Görevliler, noktalar, günlük özet, sorunlar ve tüm okutmalar ayrı sayfalarda.</p></div>
     <div class="card"><h2>Canlı akış</h2><ul class="feed" id="feed">${feedHTML()}</ul></div>`;
   const sb = $("#sos"); if (sb) sb.onclick = sosTest;
+  $("#panel").querySelectorAll("[data-tamsay]").forEach(bt => bt.onclick = () => tamSay(bt));
   $("#raporBtn").onclick = raporIndir;
   $("#raporDonem").onchange = e => { RAPOR_SEC = e.target.value; };
+}
+/* Teknisyen: QR'ı okunamayan noktaları o turun içine (komşu noktanın hemen arkasına) elle ekler */
+async function tamSay(bt){
+  const [g, basS] = bt.dataset.tamsay.split("|"), bas = +basS;
+  const t = turlar(DEV.kayit).find(x => x.gorevli === g && x.bas === bas); if (!t || !window.DEV_ELLE) return;
+  if (!confirm(`${kisaAd(g)} · ${saat(new Date(t.bas))} turu: ${t.eksik.join(", ")}. noktalar "QR okunamadı, elle sayıldı" olarak eklensin mi?`)) return;
+  bt.disabled = true; bt.textContent = "Ekleniyor…";
+  const turK = DEV.kayit.filter(k => k.gorevli === g && k.ts >= t.bas && k.ts <= t.son && N[k.nokta]);
+  const zaman = {}; turK.forEach(k => { zaman[N[k.nokta].no] = k.ts; });
+  const geri = t.yon === -1, sira = [...t.eksik].sort((a,b) => geri ? b-a : a-b), yeni = [];
+  for (const no of sira){
+    const komsu = geri ? no + 1 : no - 1;
+    const ts = (zaman[komsu] || (geri ? t.son : t.bas - 2000)) + 1000;
+    zaman[no] = ts;
+    const id = "n" + String(no).padStart(2,"0");
+    yeni.push({tip:"okutma", nokta:id, ad:N[id].ad, gorevli:g, vardiya:t.vardiya || "", ts, not:"QR okunamadı, teknisyen elle saydı", elle:true});
+  }
+  try { await window.DEV_ELLE(yeni); bt.textContent = "✔ Eklendi"; }
+  catch(e){ console.error(e); bt.disabled = false; bt.textContent = "Eklenemedi, tekrar dene"; }
 }
 /* ============ Devriye raporu (Excel) ============ */
 let RAPOR_CEK = null, RAPOR_SEC = "songece";   // canlı modda Firebase'den kayıt çeker
@@ -1457,6 +1477,8 @@ async function canliBaslat(){
     dinle: cb => fs.onSnapshot(fs.doc(db,"duyuru","harita3d"), sn => cb(sn.exists() ? sn.data() : null), e => { console.warn("harita3d", e && e.code); cb(null); }),
     yaz: v => fs.setDoc(fs.doc(db,"duyuru","harita3d"), v)
   };
+  // Teknisyen: QR'ı okunamayan devriye noktasını elle 'okutuldu' sayar (kayıtta elle:true ve not)
+  window.DEV_ELLE = async L => { for (const r of L) await fs.addDoc(fs.collection(db,"devriye"), {...r, uid: auth.currentUser.uid}); };
   const izinli = e => (window.FB_TEKNISYEN||[]).map(x=>x.toLowerCase()).includes((e||"").toLowerCase());
   const giris = $("#login");
   $("#loginForm").onsubmit = async e => {
@@ -1467,6 +1489,7 @@ async function canliBaslat(){
   let unsub = null, unsubD = null;
   au.onAuthStateChanged(auth, async u => {
     if (unsub){ unsub(); unsub = null; } if (unsubD){ unsubD(); unsubD = null; }
+    window.TEKNIK = !!(u && !u.isAnonymous && izinli(u.email));
     // Personel (temizlik, bahçe, güvenlik): bu telefonda personel kodu kayıtlıysa sadece Arıza ekranı açılır (kodla anonim giriş)
     const pkod = (() => { try { return JSON.parse(localStorage.getItem("bz1-kod-personel") || localStorage.getItem("bz1-kod-guvenlik") || localStorage.getItem("bz1-gorevli") || "null"); } catch(e){ return null; } })();
     if ((!u || u.isAnonymous) && pkod && pkod.ad){
