@@ -4614,7 +4614,7 @@ async function taramaAc(){
   }
   const track = TARA.stream.getVideoTracks()[0];
   const caps = track && track.getCapabilities ? track.getCapabilities() : {};
-  $("#scanFener").hidden = !caps.torch;
+  $("#scanFener").hidden = false; $("#scanFener").setAttribute("aria-pressed", TARA.fener);   // her telefonda göster; desteklemeyende flaşlı fotoğrafa yönlendirir
   if ("BarcodeDetector" in window && !TARA.det){ try { TARA.det = new BarcodeDetector({formats:["qr_code"]}); } catch(e){ TARA.det = null; } }
   if (!TARA.det) await jsqrYukle();
   $("#scanMsg").textContent = "QR kodu çerçevenin içine getirin";
@@ -4685,11 +4685,40 @@ async function fotoIleOku(inp){
     $("#scanMsg").textContent = txt ? "Bu QR bir devriye noktasına ait değil" : "Fotoğrafta QR bulunamadı. Biraz daha yakından, net çekin.";
   } catch(e){ $("#scanMsg").textContent = "Fotoğraf okunamadı, tekrar deneyin."; }
 }
+/* Fener: Android'de kameranın ışığı (torch) açılır; arka kamera ışıksızsa ışıklı arka kamera aranır.
+   iPhone'da tarayıcı canlı feneri çoğu zaman desteklemez → telefonun kendi kamerasıyla flaşlı fotoğraf çekilir. */
 async function fenerDegistir(){
-  const t = TARA.stream && TARA.stream.getVideoTracks()[0]; if (!t) return;
-  TARA.fener = !TARA.fener;
-  try { await t.applyConstraints({advanced:[{torch:TARA.fener}]}); } catch(e){ TARA.fener = false; }
-  $("#scanFener").setAttribute("aria-pressed", TARA.fener);
+  const btn = $("#scanFener"), t = TARA.stream && TARA.stream.getVideoTracks()[0]; if (!t) return;
+  const ac = !TARA.fener;
+  const dene = async tr => { try { await tr.applyConstraints({advanced:[{torch:ac}]}); const st = tr.getSettings ? tr.getSettings() : {}; return st.torch === undefined ? !!(tr.getCapabilities && tr.getCapabilities().torch) : st.torch === ac; } catch(e){ return false; } };
+  const ayarla = v => { TARA.fener = v; btn.setAttribute("aria-pressed", v); btn.textContent = v ? "🔦 Feneri kapat" : "🔦 Fener"; };
+  if (await dene(t)){ ayarla(ac); return; }
+  if (!ac){ ayarla(false); return; }
+  if (!SES_IOS){
+    // Android: birden çok arka kamera varsa ışığı olanı bul
+    $("#scanMsg").textContent = "Fener aranıyor…";
+    const suAn = t.getSettings ? t.getSettings().deviceId : "";
+    const kameralar = (await navigator.mediaDevices.enumerateDevices().catch(()=>[])).filter(d => d.kind === "videoinput" && d.deviceId && d.deviceId !== suAn && !/front|ön|user|selfie|facing front/i.test(d.label));
+    if (kameralar.length){
+      TARA.stream.getTracks().forEach(x => x.stop()); TARA.stream = null;
+      for (const c of kameralar){
+        let st = null;
+        try {
+          st = await zamanAsimi(navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:c.deviceId}, width:{ideal:1280}}, audio:false}), 5000);
+          const tr = st.getVideoTracks()[0], cp = tr.getCapabilities ? tr.getCapabilities() : {};
+          if (cp.torch && await dene(tr)){ TARA.stream = st; ayarla(true); cancelAnimationFrame(TARA.raf); taramaAc(); return; }   // aynı akışla taramayı yeniden başlat
+        } catch(e){}
+        if (st) st.getTracks().forEach(x => x.stop());
+      }
+      // bulunamadı: eski kamerayı geri aç
+      taramaKapat(true); await taramaAc();
+    }
+  }
+  ayarla(false);
+  $("#scanFotoB").hidden = false;
+  $("#scanMsg").innerHTML = SES_IOS
+    ? "iPhone'da canlı fener açılamıyor.<br><b>📷 Fotoğrafla okut</b>'a basın, kamerada <b>⚡ flaşı açık</b> yapıp QR'ı çekin."
+    : "Bu telefonda canlı fener açılamadı.<br><b>📷 Fotoğrafla okut</b>'a basın, kamerada <b>⚡ flaşı açık</b> yapıp QR'ı çekin.";
 }
 
 function vRandevularim(){
