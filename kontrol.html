@@ -987,12 +987,8 @@ function canliGorevli(yeniler){
 }
 /* Atlanan nokta: aynı görevli sırayla giderken arada kalan noktayı okutmadıysa */
 const ATLA_ARA_DK = 20, TUR_BOSLUK_DK = 12;   // aynı görevlinin okutmaları arasında 12 dk'dan uzun boşluk = yeni tur (noktalar arası ~2 dk, tur arası ara 15 dk)
-/* İlk gece (25→26 Kasım, sabah 07:00'ye kadar) alışma için tur 60 dk gösterilir, sonra kendiliğinden 50 dk'ya döner */
-const ILK_GECE_BITIS = new Date(2026, 10, 26, 7, 0).getTime();
-const turMaksDk = () => Date.now() < ILK_GECE_BITIS ? 60 : 50;
-/* Tur haritada ne zamana kadar görünür: görevli okutmaya devam ettikçe (son okutmadan 10 dk) asla kesilmez;
-   durduktan sonra tur süresi (50/60 dk) dolunca ya da 20 dk okutma olmazsa gri. Sıradaki görevli okutunca hemen onun turu gelir. */
-const turGorunur = (bas, son, simdi = Date.now()) => simdi - son < 10*6e4 || (simdi - bas < turMaksDk()*6e4 && simdi - son < ATLA_ARA_DK*6e4);   // tur en fazla 50 dk gösterilir, sonra harita sıfırlanır (gri)
+const turMaksDk = () => 56;   // tur başından 56 dk sonra harita gri (40 dk tur + 15 dk ara → sıradaki görevli çıkar)
+const turGorunur = (bas, son, simdi = Date.now()) => simdi - bas < turMaksDk()*6e4 && simdi - son < ATLA_ARA_DK*6e4;   // 56 dk dolunca ya da 20 dk okutma olmazsa gri; sıradaki görevli okutunca onun turu
 const ATLA_ARA_DK_ACIKLAMA = 0;   // aynı görevlinin iki okutması arası bundan uzunsa yeni tur sayılır (tur 40 dk, ara 15 dk)
 function atlamalar(kayit){
   const ok = kayit.filter(k=>k.tip!=="sorun" && N[k.nokta]).sort((a,b)=>a.ts-b.ts);
