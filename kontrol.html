@@ -986,7 +986,7 @@ function canliGorevli(yeniler){
   Object.keys(CG).forEach(ad=>{ if (!aktif.find(k=>k.gorevli===ad)){ CG[ad].node.remove(); CG[ad].trail.remove(); delete CG[ad]; } });
 }
 /* Atlanan nokta: aynı görevli sırayla giderken arada kalan noktayı okutmadıysa */
-const ATLA_ARA_DK = 20;
+const ATLA_ARA_DK = 20, TUR_BOSLUK_DK = 12;   // aynı görevlinin okutmaları arasında 12 dk'dan uzun boşluk = yeni tur (noktalar arası ~2 dk, tur arası ara 15 dk)
 /* İlk gece (25→26 Kasım, sabah 07:00'ye kadar) alışma için tur 60 dk gösterilir, sonra kendiliğinden 50 dk'ya döner */
 const ILK_GECE_BITIS = new Date(2026, 10, 26, 7, 0).getTime();
 const turMaksDk = () => Date.now() < ILK_GECE_BITIS ? 60 : 50;
@@ -1000,7 +1000,7 @@ function atlamalar(kayit){
   const out = [];
   Object.values(kisi).forEach(liste=>{
     // görevlinin okutmalarını turlara böl (arada ATLA_ARA_DK'dan uzun boşluk = yeni tur)
-    const turlarK = []; liste.forEach((k,i)=>{ const cur = turlarK[turlarK.length-1]; if (!i || k.ts - liste[i-1].ts > ATLA_ARA_DK*6e4) turlarK.push([]); turlarK[turlarK.length-1].push(k); });
+    const turlarK = []; liste.forEach((k,i)=>{ if (!i || k.ts - liste[i-1].ts > TUR_BOSLUK_DK*6e4) turlarK.push([]); turlarK[turlarK.length-1].push(k); });
     turlarK.forEach(tur=>{
       const turSon = tur[tur.length-1].ts, turBas = tur[0].ts;
       for (let i=1;i<tur.length;i++){
@@ -1049,11 +1049,10 @@ function turlar(kayit){
     let t = null;
     liste.forEach((k,i)=>{
       const onceki = liste[i-1], no = N[k.nokta].no;
-      const yon = t && t.yon, oNo = onceki ? N[onceki.nokta].no : 0;
-      const sinir = yon===1 ? no < oNo : yon===-1 ? no > oNo : false;   // 21→1 geçişi = yeni tur
-      const yeni = !t || (k.ts - onceki.ts > TUR.araDk*6e4) || sinir || (t.set.has(k.nokta) && onceki.nokta !== k.nokta);
+      // yeni tur: ilk okutma, 12 dk'dan uzun boşluk ya da 21 noktanın hepsi okunduktan sonra yeniden başlama (sıra karışık okutulsa da tur bölünmez)
+      const yeni = !t || (k.ts - onceki.ts > TUR_BOSLUK_DK*6e4) || t.set.size >= 21;
       if (yeni){ t = {gorevli:k.gorevli, vardiya:k.vardiya, bas:k.ts, son:k.ts, ilkNo:no, sonNo:no, set:new Set(), yon:0}; out.push(t); }
-      else if (!t.yon && no !== oNo) t.yon = ((no - oNo + 21) % 21) <= 10 ? 1 : -1;
+      else if (!t.yon && no !== N[onceki.nokta].no) t.yon = ((no - N[onceki.nokta].no + 21) % 21) <= 10 ? 1 : -1;
       t.set.add(k.nokta); t.son = k.ts; t.sonNo = no; if (k.elle) t.elle = (t.elle||0) + 1;
     });
   });
@@ -1074,7 +1073,7 @@ function aktifTur(){
   const g = ok[0].gorevli, simdi = Date.now();
   // en son okutan görevlinin son 3 saatteki okutmalarını turlara böl: 20 dk boşluk ya da tur başından 50 dk → yeni tur
   const L = ok.filter(k=>k.gorevli===g && simdi - k.ts < 3*36e5).reverse(); let tur = null;
-  L.forEach((k,i)=>{ if (!tur || k.ts - L[i-1].ts > ATLA_ARA_DK*6e4) tur = {bas:k.ts, son:k.ts, set:{}}; tur.son = k.ts; if (!tur.set[k.nokta]) tur.set[k.nokta] = k.ts; });
+  L.forEach((k,i)=>{ if (!tur || k.ts - L[i-1].ts > TUR_BOSLUK_DK*6e4) tur = {bas:k.ts, son:k.ts, set:{}}; tur.son = k.ts; if (!tur.set[k.nokta]) tur.set[k.nokta] = k.ts; });
   if (!tur || !turGorunur(tur.bas, tur.son, simdi)) return null;   // tur bitti → harita gri
   return {gorevli:g, set:tur.set, bas:tur.bas, sayi:Object.keys(tur.set).length};
 }
@@ -1111,10 +1110,10 @@ function devriyePanel(){
     if (devriyeSaati()){
       const sonOk = DEV.kayit.filter(k=>k.tip!=="sorun").reduce((m,k)=>Math.max(m,k.ts),0);
       const bekle = Math.round((Date.now() - Math.max(sonOk, gb)) / 6e4);
-      if (gt.length) ek += `<div class="card"><h2>🔁 Bu gecenin turları</h2>${gt.length ? `<div class="rows">${gt.map(t=>`<div class="row"><div><b>${saat(new Date(t.bas))}–${saat(new Date(t.son))} · ${esc(kisaAd(t.gorevli))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${t.sayi}/21 nokta · ${t.sureDk} dk${t.eksik.length && t.eksik.length<21 ? ` · eksik: ${t.eksik.join(", ")}` : ""}${t.elle ? ` · ${t.elle} nokta elle sayıldı (QR okunamadı)` : ""}</small>${window.TEKNIK && t.eksik.length && t.eksik.length<=5 ? `<button class="act" style="margin-top:6px;padding:6px 12px;font-size:13px" data-tamsay="${esc(t.gorevli)}|${t.bas}">✔ Tam say (eksikleri elle ekle)</button>` : ""}</div><em style="color:${t.durum==="Tam tur"?"var(--ok)":"var(--warn)"}">${t.durum}</em></div>`).join("")}</div>` : ""}<p class="note">Her satır bir görevlinin bir turu. Kırmızı noktalar yalnızca devam eden turda görünür.</p></div>`;
+      if (gt.length) ek += `<div class="card"><h2>🔁 Bu gecenin turları</h2>${gt.length ? `<div class="rows">${gt.map(t=>`<div class="row"><div><b>${saat(new Date(t.bas))}–${saat(new Date(t.son))} · ${esc(kisaAd(t.gorevli))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${t.sayi}/21 nokta · ${t.sureDk} dk${t.eksik.length && t.eksik.length<21 ? ` · eksik: ${t.eksik.join(", ")}` : ""}${t.elle ? ` · ${t.elle} nokta elle sayıldı (QR okunamadı)` : ""}</small>${window.TEKNIK && t.eksik.length ? `<button class="act" style="margin-top:6px;padding:6px 12px;font-size:13px" data-tamsay="${esc(t.gorevli)}|${t.bas}">✔ Tam say (eksikleri elle ekle)</button>` : ""}</div><em style="color:${t.durum==="Tam tur"?"var(--ok)":"var(--warn)"}">${t.durum}</em></div>`).join("")}</div>` : ""}<p class="note">Her satır bir görevlinin bir turu. Kırmızı noktalar yalnızca devam eden turda görünür.</p></div>`;
       if (bekle >= 30) ek += `<div class="card" style="border-color:var(--bad)"><h2 style="color:var(--bad)">⏰ Devriye bekleniyor</h2><p class="note" style="font-size:14px;color:var(--ink)">${sonOk >= gb ? `Son okutmanın üzerinden <b>${bekle} dk</b> geçti.` : `Gece devriyesi başladı (21:00), henüz okutma yok.`} Her tur 40 dk, aralar 15 dk.</p></div>`;
     } else {
-      ek += `<div class="card"><h2>🌙 Devriye saati dışında</h2><p class="note" style="font-size:14px">Devriye 21:00–07:00 arası. Dün gecenin turları aşağıda; harita yalnız devam eden turu gösterir.</p>${gt.length ? `<div class="rows">${gt.map(t=>`<div class="row"><div><b>${saat(new Date(t.bas))}–${saat(new Date(t.son))} · ${esc(kisaAd(t.gorevli))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${t.sayi}/21 nokta · ${t.sureDk} dk${t.eksik.length && t.eksik.length<21 ? ` · eksik: ${t.eksik.join(", ")}` : ""}${t.elle ? ` · ${t.elle} nokta elle sayıldı (QR okunamadı)` : ""}</small>${window.TEKNIK && t.eksik.length && t.eksik.length<=5 ? `<button class="act" style="margin-top:6px;padding:6px 12px;font-size:13px" data-tamsay="${esc(t.gorevli)}|${t.bas}">✔ Tam say (eksikleri elle ekle)</button>` : ""}</div><em style="color:${t.durum==="Tam tur"?"var(--ok)":"var(--warn)"}">${t.durum}</em></div>`).join("")}</div>` : ""}</div>`;
+      ek += `<div class="card"><h2>🌙 Devriye saati dışında</h2><p class="note" style="font-size:14px">Devriye 21:00–07:00 arası. Dün gecenin turları aşağıda; harita yalnız devam eden turu gösterir.</p>${gt.length ? `<div class="rows">${gt.map(t=>`<div class="row"><div><b>${saat(new Date(t.bas))}–${saat(new Date(t.son))} · ${esc(kisaAd(t.gorevli))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${t.sayi}/21 nokta · ${t.sureDk} dk${t.eksik.length && t.eksik.length<21 ? ` · eksik: ${t.eksik.join(", ")}` : ""}${t.elle ? ` · ${t.elle} nokta elle sayıldı (QR okunamadı)` : ""}</small>${window.TEKNIK && t.eksik.length ? `<button class="act" style="margin-top:6px;padding:6px 12px;font-size:13px" data-tamsay="${esc(t.gorevli)}|${t.bas}">✔ Tam say (eksikleri elle ekle)</button>` : ""}</div><em style="color:${t.durum==="Tam tur"?"var(--ok)":"var(--warn)"}">${t.durum}</em></div>`).join("")}</div>` : ""}</div>`;
     }
     const kisiler = {};
     DEV.kayit.filter(k=>k.ts >= Date.now()-3*36e5).forEach(k=>{ const g = kisiler[k.gorevli] ||= {ad:k.gorevli, vardiya:k.vardiya, n:0, son:null}; g.n++; if (!g.son || k.ts>g.son.ts) g.son = k; });
