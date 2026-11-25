@@ -1062,7 +1062,7 @@ function okut(g, n){
 }
 const renkDk = dk => dk < TUR.yesil ? "--ok" : dk < TUR.kirmizi ? "--warn" : "--bad";
 const nRenk = n => {
-  if (LIVE.on && !devriyeSaati()) return n.son && n.son >= geceBasi() ? "--ok" : "--muted";   // gündüz: son geceyi göster
+  if (LIVE.on && !devriyeSaati()) return n.gece ? "--ok" : "--muted";   // gündüz: yalnız son gecenin (21:00–07:00) okutmaları; gündüz testleri sayılmaz
   return n.son && (!LIVE.on || n.son >= geceBasi()) ? renkDk(dkOnce(n.son)) : "--muted";
 };
 const YANIP_SN = 120;   // yeni okutulan nokta kaç saniye yeşil yanıp sönsün
@@ -1077,7 +1077,7 @@ function devriyeRenk(){
     const atl = !!ATLA[n.id]; n.g.classList.toggle("atlandi", atl);
     if (atl){ n.dot.style.fill = cssv("--bad"); n.halo.style.fill = cssv("--bad"); }
     if (yanip){ n.halo.style.fill = cssv("--ok"); enYakin = Math.min(enYakin, kalan); }
-    n.halo.style.display = yanip || atl || (n.son && dkOnce(n.son)>=TUR.kirmizi) ? "" : "none";
+    n.halo.style.display = yanip || atl || (devriyeSaati() && n.son && n.son >= geceBasi() && dkOnce(n.son)>=TUR.kirmizi) ? "" : "none";   // gündüz yanıp sönme yok
   });
   clearTimeout(yanipT); if (enYakin < Infinity) yanipT = setTimeout(()=>{ if (MODE==="gece") devriyeRenk(); }, enYakin + 50);
 }
@@ -1313,8 +1313,9 @@ function supheliOkutmalar(kayit){
 function devriyeVeri(docs, yeniler){
   const okumalar = docs.filter(d=>d.tip!=="sorun").sort((a,b)=>b.ts-a.ts);
   DEV.kayit = okumalar; DEV.sorun = docs.filter(d=>d.tip==="sorun").sort((a,b)=>b.ts-a.ts);
-  NOKTA.forEach(n=>n.son = null);
-  okumalar.forEach(k=>{ const n = N[k.nokta]; if (n && (!n.son || k.ts > n.son)) n.son = k.ts; });
+  NOKTA.forEach(n=>{ n.son = null; n.gece = null; });
+  const gA = geceBasi(), gB = gA + TUR.saat*36e5;   // bu/son gecenin 21:00–07:00 penceresi
+  okumalar.forEach(k=>{ const n = N[k.nokta]; if (!n) return; if (!n.son || k.ts > n.son) n.son = k.ts; if (k.ts >= gA && k.ts < gB && (!n.gece || k.ts > n.gece)) n.gece = k.ts; });
   (yeniler||[]).forEach(k=>{
     const n = N[k.nokta]; if (!n) return;
     if (k.tip==="sorun"){ if (MODE==="gece") for (let i=0;i<3;i++) setTimeout(()=>ripple(n.x,n.y,cssv("--bad")), i*350);
