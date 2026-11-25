@@ -911,8 +911,8 @@ function devriyeBaslat(){
     DEV.kur = true;
   }
   $("#mapTitle").textContent = "Gece devriyesi";
-  $("#mapSub").textContent = LIVE.on ? "21 kontrol noktası · son QR okutmaya göre renklenir · canlı" : "21 kontrol noktası · son QR okutmaya göre renklenir";
-  if (LIVE.on && !devriyeSaati()) legend([[cssv("--ok"),"Dün gece okutuldu"],[cssv("--muted"),"Dün gece okutulmadı"],[cssv("--bad"),"Atlanan nokta"],[cssv("--accent"),"Görevli"]]); else legend([[cssv("--ok"),`${TUR.yesil} dk içinde`],[cssv("--warn"),`${TUR.yesil}–${TUR.kirmizi} dk`],[cssv("--bad"),`${TUR.kirmizi} dk+ uğranmadı`],[cssv("--muted"),"Bugün okutulmadı"],[cssv("--accent"),LIVE.on?"Görevli (son okuttuğu yer)":"Görevli (demo)"]]);
+  $("#mapSub").textContent = LIVE.on ? "21 kontrol noktası · yalnız devam eden tur gösterilir · canlı" : "21 kontrol noktası · son QR okutmaya göre renklenir";
+  if (LIVE.on) legend([[cssv("--ok"),"Bu turda okutuldu"],[cssv("--muted"),"Henüz okutulmadı"],[cssv("--bad"),"Bu turda atlandı"],[cssv("--accent"),"Görevli"]]); else legend([[cssv("--ok"),`${TUR.yesil} dk içinde`],[cssv("--warn"),`${TUR.yesil}–${TUR.kirmizi} dk`],[cssv("--bad"),`${TUR.kirmizi} dk+ uğranmadı`],[cssv("--muted"),"Bugün okutulmadı"],[cssv("--accent"),LIVE.on?"Görevli (son okuttuğu yer)":"Görevli (demo)"]]);
   L.over.innerHTML = "";
   devriyeRenk(); devriyePanel();
   timers.push(setInterval(()=>{ devriyeRenk(); devriyePanel(); canliGorevli(); }, LIVE.on ? 20000 : 3000));
@@ -1060,9 +1060,17 @@ function okut(g, n){
   ticker(`✅ ${n.no}. ${n.ad} okutuldu · ${g.ad}`); feed("ok", `${n.no}. ${n.ad}`, `QR okutuldu · ${g.ad}`);
   if (n.id==="n04" || n.id==="n11" || n.id==="n19"){ DEV.tur = Math.min(DEV.turHedef, DEV.tur + (Math.random()<.34?1:0)); }
 }
+/* Devam eden tur: en son okutan görevlinin, arada 20 dk'dan uzun boşluk olmayan okutmaları. Tur bitince (20 dk okutma yok) harita griye döner. */
+function aktifTur(){
+  const ok = (DEV.kayit||[]).filter(k=>k.tip!=="sorun" && N[k.nokta]).sort((a,b)=>b.ts-a.ts);
+  if (!ok.length || Date.now() - ok[0].ts > ATLA_ARA_DK*6e4) return null;
+  const g = ok[0].gorevli, set = {}; let onceki = ok[0].ts;
+  for (const k of ok){ if (k.gorevli !== g) continue; if (onceki - k.ts > ATLA_ARA_DK*6e4) break; if (!set[k.nokta]) set[k.nokta] = k.ts; onceki = k.ts; }
+  return {gorevli:g, set, bas:onceki, sayi:Object.keys(set).length};
+}
 const renkDk = dk => dk < TUR.yesil ? "--ok" : dk < TUR.kirmizi ? "--warn" : "--bad";
 const nRenk = n => {
-  if (LIVE.on && !devriyeSaati()) return n.gece ? "--ok" : "--muted";   // gündüz: yalnız son gecenin (21:00–07:00) okutmaları; gündüz testleri sayılmaz
+  if (LIVE.on){ const t = aktifTur(); return t && t.set[n.id] ? "--ok" : "--muted"; }   // canlı: yalnız devam eden tur yeşil, tur bitince gri
   return n.son && (!LIVE.on || n.son >= geceBasi()) ? renkDk(dkOnce(n.son)) : "--muted";
 };
 const YANIP_SN = 120;   // yeni okutulan nokta kaç saniye yeşil yanıp sönsün
@@ -1077,13 +1085,13 @@ function devriyeRenk(){
     const atl = !!ATLA[n.id]; n.g.classList.toggle("atlandi", atl);
     if (atl){ n.dot.style.fill = cssv("--bad"); n.halo.style.fill = cssv("--bad"); }
     if (yanip){ n.halo.style.fill = cssv("--ok"); enYakin = Math.min(enYakin, kalan); }
-    n.halo.style.display = yanip || atl || (devriyeSaati() && n.son && n.son >= geceBasi() && dkOnce(n.son)>=TUR.kirmizi) ? "" : "none";   // gündüz yanıp sönme yok
+    n.halo.style.display = yanip || atl || (!LIVE.on && n.son && dkOnce(n.son)>=TUR.kirmizi) ? "" : "none";   // canlı: yalnız yeni okutulan ve atlanan nokta yanıp söner
   });
   clearTimeout(yanipT); if (enYakin < Infinity) yanipT = setTimeout(()=>{ if (MODE==="gece") devriyeRenk(); }, enYakin + 50);
 }
 function devriyePanel(){
   const sirali = [...NOKTA].sort((a,b)=>(a.son||0)-(b.son||0));
-  const kirmizi = NOKTA.filter(n=>nRenk(n)==="--bad" || nRenk(n)==="--muted");
+  const kirmizi = NOKTA.filter(n=>nRenk(n)==="--bad" || nRenk(n)==="--muted"), AT = LIVE.on ? aktifTur() : null;
   const yuzde = Math.round((NOKTA.length - kirmizi.length)/NOKTA.length*100);
   let kpi1, gorev, ek = "";
   if (LIVE.on){
@@ -1096,7 +1104,7 @@ function devriyePanel(){
       if (gt.length) ek += `<div class="card"><h2>🔁 Bu gecenin turları</h2>${gt.length ? `<div class="rows">${gt.map(t=>`<div class="row"><div><b>${saat(new Date(t.bas))}–${saat(new Date(t.son))} · ${esc(kisaAd(t.gorevli))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${t.sayi}/21 nokta · ${t.sureDk} dk${t.eksik.length && t.eksik.length<21 ? ` · eksik: ${t.eksik.join(", ")}` : ""}</small></div><em style="color:${t.durum==="Tam tur"?"var(--ok)":"var(--warn)"}">${t.durum}</em></div>`).join("")}</div>` : ""}<p class="note">Her satır bir görevlinin bir turu. Kırmızı noktalar yalnızca devam eden turda görünür.</p></div>`;
       if (bekle >= 30) ek += `<div class="card" style="border-color:var(--bad)"><h2 style="color:var(--bad)">⏰ Devriye bekleniyor</h2><p class="note" style="font-size:14px;color:var(--ink)">${sonOk >= gb ? `Son okutmanın üzerinden <b>${bekle} dk</b> geçti.` : `Gece devriyesi başladı (21:00), henüz okutma yok.`} Her tur 40 dk, aralar 15 dk.</p></div>`;
     } else {
-      ek += `<div class="card"><h2>🌙 Devriye saati dışında</h2><p class="note" style="font-size:14px">Devriye 21:00–07:00 arası. Harita dün geceyi gösteriyor: yeşil = gece okutuldu, gri = okutulmadı.</p>${gt.length ? `<div class="rows">${gt.map(t=>`<div class="row"><div><b>${saat(new Date(t.bas))}–${saat(new Date(t.son))} · ${esc(kisaAd(t.gorevli))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${t.sayi}/21 nokta · ${t.sureDk} dk${t.eksik.length && t.eksik.length<21 ? ` · eksik: ${t.eksik.join(", ")}` : ""}</small></div><em style="color:${t.durum==="Tam tur"?"var(--ok)":"var(--warn)"}">${t.durum}</em></div>`).join("")}</div>` : ""}</div>`;
+      ek += `<div class="card"><h2>🌙 Devriye saati dışında</h2><p class="note" style="font-size:14px">Devriye 21:00–07:00 arası. Dün gecenin turları aşağıda; harita yalnız devam eden turu gösterir.</p>${gt.length ? `<div class="rows">${gt.map(t=>`<div class="row"><div><b>${saat(new Date(t.bas))}–${saat(new Date(t.son))} · ${esc(kisaAd(t.gorevli))}</b><small style="display:block;color:var(--muted);font-size:12.5px">${t.sayi}/21 nokta · ${t.sureDk} dk${t.eksik.length && t.eksik.length<21 ? ` · eksik: ${t.eksik.join(", ")}` : ""}</small></div><em style="color:${t.durum==="Tam tur"?"var(--ok)":"var(--warn)"}">${t.durum}</em></div>`).join("")}</div>` : ""}</div>`;
     }
     const kisiler = {};
     DEV.kayit.filter(k=>k.ts >= Date.now()-3*36e5).forEach(k=>{ const g = kisiler[k.gorevli] ||= {ad:k.gorevli, vardiya:k.vardiya, n:0, son:null}; g.n++; if (!g.son || k.ts>g.son.ts) g.son = k; });
@@ -1118,10 +1126,10 @@ function devriyePanel(){
     <div class="card"><h2>${LIVE.on?"Devriye özeti":"Bu gece"}</h2>
       <div class="kpis">
         ${kpi1}
-        <div class="kpi"><strong style="color:${kirmizi.length?"var(--bad)":"var(--ok)"}">${kirmizi.length}</strong><span>${LIVE.on && !devriyeSaati() ? "Dün gece okutulmayan" : TUR.kirmizi+" dk+ uğranmayan"}</span></div>
+        <div class="kpi"><strong style="color:${kirmizi.length?"var(--bad)":"var(--ok)"}">${kirmizi.length}</strong><span>${LIVE.on ? "Bu turda kalan nokta" : TUR.kirmizi+" dk+ uğranmayan"}</span></div>
       </div>
       <div class="meter" aria-label="Kapsama"><i style="width:${yuzde}%"></i></div>
-      <p class="note">21 noktanın %${yuzde}'i ${LIVE.on && !devriyeSaati() ? "dün gece" : `son ${TUR.kirmizi} dakikada`} okutuldu. Devriye ${TUR.bas}:00–0${TUR.bit}:00, ${TUR.dk} dk tur + ${TUR.ara} dk ara, gece ~${TUR.gece} tur.</p></div>
+      <p class="note">${LIVE.on ? (AT ? `Devam eden tur: <b>${esc(kisaAd(AT.gorevli))}</b> · ${saat(new Date(AT.bas))}'den beri ${AT.sayi}/21 nokta.` : `Şu an devam eden tur yok, harita gri. Görevli ilk QR'ı okutunca tur başlar.`) : `21 noktanın %${yuzde}'i son ${TUR.kirmizi} dakikada okutuldu.`} Devriye ${TUR.bas}:00–0${TUR.bit}:00, ${TUR.dk} dk tur + ${TUR.ara} dk ara, gece ~${TUR.gece} tur.</p></div>
     ${ek}
     <div class="card"><h2>Görevdekiler</h2><div class="rows">${gorev}</div></div>
     <div class="card"><h2>En uzun süredir uğranmayan</h2><div class="rows">${sirali.slice(0,5).map(n=>{const dk=n.son?dkOnce(n.son):null;return `<div class="row"><b>${n.no}. ${esc(n.ad)}</b><span class="pill" style="background:${cssv(nRenk(n))}">${dk===null?"okutulmadı":dk>=60?Math.floor(dk/60)+" sa "+(dk%60)+" dk":dk+" dk"}</span></div>`}).join("")}</div>
