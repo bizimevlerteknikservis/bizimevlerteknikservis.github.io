@@ -986,7 +986,10 @@ function canliGorevli(yeniler){
   Object.keys(CG).forEach(ad=>{ if (!aktif.find(k=>k.gorevli===ad)){ CG[ad].node.remove(); CG[ad].trail.remove(); delete CG[ad]; } });
 }
 /* Atlanan nokta: aynı görevli sırayla giderken arada kalan noktayı okutmadıysa */
-const ATLA_ARA_DK = 20, TUR_MAKS_DK = 50;   // tur en fazla 50 dk gösterilir, sonra harita sıfırlanır (gri)
+const ATLA_ARA_DK = 20;
+/* İlk gece (25→26 Kasım, sabah 07:00'ye kadar) alışma için tur 60 dk gösterilir, sonra kendiliğinden 50 dk'ya döner */
+const ILK_GECE_BITIS = new Date(2026, 10, 26, 7, 0).getTime();
+const turMaksDk = () => Date.now() < ILK_GECE_BITIS ? 60 : 50;   // tur en fazla 50 dk gösterilir, sonra harita sıfırlanır (gri)
 const ATLA_ARA_DK_ACIKLAMA = 0;   // aynı görevlinin iki okutması arası bundan uzunsa yeni tur sayılır (tur 40 dk, ara 15 dk)
 function atlamalar(kayit){
   const ok = kayit.filter(k=>k.tip!=="sorun" && N[k.nokta]).sort((a,b)=>a.ts-b.ts);
@@ -994,7 +997,7 @@ function atlamalar(kayit){
   const out = [];
   Object.values(kisi).forEach(liste=>{
     // görevlinin okutmalarını turlara böl (arada ATLA_ARA_DK'dan uzun boşluk = yeni tur)
-    const turlarK = []; liste.forEach((k,i)=>{ const cur = turlarK[turlarK.length-1]; if (!i || k.ts - liste[i-1].ts > ATLA_ARA_DK*6e4 || k.ts - cur[0].ts >= TUR_MAKS_DK*6e4) turlarK.push([]); turlarK[turlarK.length-1].push(k); });
+    const turlarK = []; liste.forEach((k,i)=>{ const cur = turlarK[turlarK.length-1]; if (!i || k.ts - liste[i-1].ts > ATLA_ARA_DK*6e4 || k.ts - cur[0].ts >= turMaksDk()*6e4) turlarK.push([]); turlarK[turlarK.length-1].push(k); });
     turlarK.forEach(tur=>{
       const turSon = tur[tur.length-1].ts, turBas = tur[0].ts;
       for (let i=1;i<tur.length;i++){
@@ -1020,7 +1023,7 @@ let ATLA = {}, atlaGorulen = null;   // nokta -> son atlama olayı (henüz okutu
 function atlaGuncelle(){
   if (!LIVE.on) return;
   const simdi = Date.now(), yeni = {};
-  atlamalar(DEV.kayit).filter(o=>simdi - o.turSon < ATLA_ARA_DK*6e4 && simdi - o.turBas < TUR_MAKS_DK*6e4).forEach(o=>o.atlanan.forEach(id=>{ if (!o.sonra(id)) yeni[id] = o; }));
+  atlamalar(DEV.kayit).filter(o=>simdi - o.turSon < ATLA_ARA_DK*6e4 && simdi - o.turBas < turMaksDk()*6e4).forEach(o=>o.atlanan.forEach(id=>{ if (!o.sonra(id)) yeni[id] = o; }));
   if (atlaGorulen) Object.entries(yeni).forEach(([id,o])=>{ if (!atlaGorulen.has(id+o.ts)){
     const n = N[id], a = N[o.onceki], b = N[o.simdiki];
     ticker(`⛔ ${n.no}. nokta atlandı · ${kisaAd(o.gorevli)} ${a.no}→${b.no} gitti`);
@@ -1068,8 +1071,8 @@ function aktifTur(){
   const g = ok[0].gorevli, simdi = Date.now();
   // en son okutan görevlinin son 3 saatteki okutmalarını turlara böl: 20 dk boşluk ya da tur başından 50 dk → yeni tur
   const L = ok.filter(k=>k.gorevli===g && simdi - k.ts < 3*36e5).reverse(); let tur = null;
-  L.forEach((k,i)=>{ if (!tur || k.ts - L[i-1].ts > ATLA_ARA_DK*6e4 || k.ts - tur.bas >= TUR_MAKS_DK*6e4) tur = {bas:k.ts, son:k.ts, set:{}}; tur.son = k.ts; if (!tur.set[k.nokta]) tur.set[k.nokta] = k.ts; });
-  if (!tur || simdi - tur.son > ATLA_ARA_DK*6e4 || simdi - tur.bas >= TUR_MAKS_DK*6e4) return null;   // tur bitti → harita gri
+  L.forEach((k,i)=>{ if (!tur || k.ts - L[i-1].ts > ATLA_ARA_DK*6e4 || k.ts - tur.bas >= turMaksDk()*6e4) tur = {bas:k.ts, son:k.ts, set:{}}; tur.son = k.ts; if (!tur.set[k.nokta]) tur.set[k.nokta] = k.ts; });
+  if (!tur || simdi - tur.son > ATLA_ARA_DK*6e4 || simdi - tur.bas >= turMaksDk()*6e4) return null;   // tur bitti → harita gri
   return {gorevli:g, set:tur.set, bas:tur.bas, sayi:Object.keys(tur.set).length};
 }
 const renkDk = dk => dk < TUR.yesil ? "--ok" : dk < TUR.kirmizi ? "--warn" : "--bad";
@@ -1133,7 +1136,7 @@ function devriyePanel(){
         <div class="kpi"><strong style="color:${kirmizi.length?"var(--bad)":"var(--ok)"}">${kirmizi.length}</strong><span>${LIVE.on ? "Bu turda kalan nokta" : TUR.kirmizi+" dk+ uğranmayan"}</span></div>
       </div>
       <div class="meter" aria-label="Kapsama"><i style="width:${yuzde}%"></i></div>
-      <p class="note">${LIVE.on ? (AT ? `Devam eden tur: <b>${esc(kisaAd(AT.gorevli))}</b> · ${saat(new Date(AT.bas))}'den beri ${AT.sayi}/21 nokta.` : `Şu an devam eden tur yok, harita gri. Görevli ilk QR'ı okutunca tur başlar; 50 dk sonra harita sıfırlanır.`) : `21 noktanın %${yuzde}'i son ${TUR.kirmizi} dakikada okutuldu.`} Devriye ${TUR.bas}:00–0${TUR.bit}:00, ${TUR.dk} dk tur + ${TUR.ara} dk ara, gece ~${TUR.gece} tur.</p></div>
+      <p class="note">${LIVE.on ? (AT ? `Devam eden tur: <b>${esc(kisaAd(AT.gorevli))}</b> · ${saat(new Date(AT.bas))}'den beri ${AT.sayi}/21 nokta.` : `Şu an devam eden tur yok, harita gri. Görevli ilk QR'ı okutunca tur başlar; ${turMaksDk()} dk sonra harita sıfırlanır.`) : `21 noktanın %${yuzde}'i son ${TUR.kirmizi} dakikada okutuldu.`} Devriye ${TUR.bas}:00–0${TUR.bit}:00, ${TUR.dk} dk tur + ${TUR.ara} dk ara, gece ~${TUR.gece} tur.</p></div>
     ${ek}
     <div class="card"><h2>Görevdekiler</h2><div class="rows">${gorev}</div></div>
     <div class="card"><h2>En uzun süredir uğranmayan</h2><div class="rows">${sirali.slice(0,5).map(n=>{const dk=n.son?dkOnce(n.son):null;return `<div class="row"><b>${n.no}. ${esc(n.ad)}</b><span class="pill" style="background:${cssv(nRenk(n))}">${dk===null?"okutulmadı":dk>=60?Math.floor(dk/60)+" sa "+(dk%60)+" dk":dk+" dk"}</span></div>`}).join("")}</div>
