@@ -332,7 +332,9 @@ function kisiler(){
   }
   return K;
 }
-const grupKisileri = g => Object.entries(kisiler()).filter(([k,v])=>v.aktif!==false && (v.grup===g || (g==="temizlik" && (v.grup==="bahce" || v.grup==="diger")))).sort((a,b)=>(a[1].vardiya||"").localeCompare(b[1].vardiya||"","tr",{numeric:true}) || (b[1].amir?1:0)-(a[1].amir?1:0) || (a[1].sira??0)-(b[1].sira??0) || a[1].ad.localeCompare(b[1].ad,"tr"));
+/* Temizlik sekmesi: önce bölüm (Temizlik → Bahçe → Diğer), aynı bölüm tek başlık altında */
+const GRUP_SIRA = x => x==="bahce" ? 1 : x==="diger" ? 2 : 0;
+const grupKisileri = g => Object.entries(kisiler()).filter(([k,v])=>v.aktif!==false && (v.grup===g || (g==="temizlik" && (v.grup==="bahce" || v.grup==="diger")))).sort((a,b)=>(g!=="guvenlik" ? GRUP_SIRA(a[1].grup)-GRUP_SIRA(b[1].grup) : 0) || (a[1].vardiya||"").localeCompare(b[1].vardiya||"","tr",{numeric:true}) || (b[1].amir?1:0)-(a[1].amir?1:0) || (a[1].sira??0)-(b[1].sira??0) || a[1].ad.localeCompare(b[1].ad,"tr"));
 
 /* Temizlik hafta sonu dönüşümü (index.html ile aynı kural) */
 const cmtBul = d => { d = new Date(d); d.setHours(12,0,0,0); const g = d.getDay(); if (g === 0) d.setDate(d.getDate()-1); else d.setDate(d.getDate() + (6 - g)); return d; };
