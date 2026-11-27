@@ -3138,8 +3138,10 @@ function mesaiAc(nokta){
   if (!ben){ d.innerHTML = `<div class="mesai-ic"><h3>🕘 Giriş / çıkış</h3><p>Önce personel kodunuzla uygulamaya girin, sonra QR'ı tekrar okutun.</p><button class="cta" data-act="mesaiKapat">Tamam</button></div>`; d.hidden = false; return; }
   mesaiBaslat();
   const ic = mesaiIcerde(), simdi = new Date();
+  MS.okutTs = simdi.getTime();   // saat QR'ın okutulduğu an alınır (düğmeye geç basılsa da)
   d.innerHTML = `<div class="mesai-ic"><small>${esc(MESAI_NOKTA[nokta])}</small><h3>${esc(ben.ad)}</h3><div class="mesai-saat">${saatYaz(simdi.getTime())}</div>
-    <p class="hint" style="margin:0 0 12px">${simdi.toLocaleDateString("tr-TR",{weekday:"long", day:"numeric", month:"long"})}</p>
+    <p class="hint" style="margin:0 0 8px">${simdi.toLocaleDateString("tr-TR",{weekday:"long", day:"numeric", month:"long"})}</p>
+    <p class="t-uyari turuncu" style="margin:0 0 12px">👇 Kaydı tamamlamak için aşağıdaki düğmeye basın. Basmazsanız kayıt oluşmaz.</p>
     <div class="grid2"><button class="cta mesai-g${ic?" ghost":""}" data-act="mesaiKaydet" data-v="giris" data-n="${nokta}">✅ İşe giriş</button><button class="cta mesai-c${ic?"":" ghost"}" data-act="mesaiKaydet" data-v="cikis" data-n="${nokta}">🏁 Çıkış</button></div>
     <button class="pill-btn" data-act="mesaiKapat" style="margin-top:10px">Vazgeç</button></div>`;
   d.hidden = false;
@@ -3149,8 +3151,9 @@ async function mesaiKaydet(tip, nokta){
   const d = document.getElementById("mesaiModal");
   if (d) d.querySelectorAll("button").forEach(x => x.disabled = true);
   if (d){ const h = d.querySelector(".mesai-ic"); if (h && !h.querySelector(".ms-konum")) h.insertAdjacentHTML("beforeend", `<p class="hint ms-konum" style="margin:10px 0 0">📍 Konum alınıyor, birkaç saniye…</p>`); }
+  const basTs = Date.now(), okutTs = MS.okutTs && basTs - MS.okutTs < 2*36e5 ? MS.okutTs : basTs; MS.okutTs = 0;   // saat = QR okutma anı (konum beklenmeden)
   const konum = await konumAl(true);
-  const o = {ad:ben.ad, kod:ben.kod, grup:ben.grup, tip, nokta, ts:Date.now(), konum: konum || null, ...(konum ? {} : {konumHata:KONUM_HATA || "zaman"}), ...(MS.fotoIle ? {foto:true} : {})}; MS.fotoIle = false;
+  const o = {ad:ben.ad, kod:ben.kod, grup:ben.grup, tip, nokta, ts:okutTs, ...(basTs - okutTs > 2*6e4 ? {onayTs:basTs} : {}), konum: konum || null, ...(konum ? {} : {konumHata:KONUM_HATA || "zaman"}), ...(MS.fotoIle ? {foto:true} : {})}; MS.fotoIle = false;
   if (konum && store.getSiteKonum){ try { const m = await Promise.race([store.getSiteKonum(), new Promise(ok => setTimeout(() => ok(null), 2500))]); if (m && m.lat){ o.uzakM = Math.round(mesafeM(konum, m)); } } catch(e){} }
   try { const sonuc = await store.mesaiEkle(o); MS.liste.unshift(o);
     const bekle = sonuc === "bekliyor" ? `<p class="t-uyari turuncu" style="margin:8px 0">📶 Telefon şu an internete bağlı değil. Kaydınız <b>${saatYaz(o.ts)}</b> saatiyle telefonda saklandı; internet gelince sisteme kendiliğinden gönderilecek. Uygulamayı silmeyin, internet gelince bir kez açın.</p>` : "";

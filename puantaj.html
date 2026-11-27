@@ -557,6 +557,8 @@ function kontrolCiz(L, gunler){
     gunler.forEach((d,i)=>{ const h = hucre(key, k, d, i); const ms = MSG.G[i+1]; const M = {push: x => ekle(i, x.tur, x.m)};
     if (ms && ms.some(o=>o.giris) && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod)) M.push({tur:"calismis", m:`Puantajda <b>${h.kod}</b> ama <b>işe giriş yapmış</b> (${saatKisa(ms.find(o=>o.giris).giris)}). Çalıştıysa X yapın.`});
     if (MSG.var && MSG.ilk && h.kod==="X" && !ms && d < bugun0 && d >= new Date(MSG.ilk).setHours(0,0,0,0)) M.push({tur:"girisyok", m:`Puantajda X ama <b>giriş kaydı yok</b>. Gelmediyse D, izinliyse ilgili kodu seçin.`});
+    { const hm = x => new Date(x).toTimeString().slice(0,5), G = (ms||[]).flatMap(o=>[o.gk,o.ck]).filter(r=>r && r.onayTs);
+      if (G.length) M.push({tur:"geconay", m:`<b>Geç onaylanmış okutma</b> · ${G.map(r=>`${r.tip==="giris"?"giriş":"çıkış"} QR ${hm(r.ts)}'de okutuldu, düğmeye ${hm(r.onayTs)}'de basıldı (kayıt okutma saatiyle)`).join(" · ")}`}); }
     if (ms && ms.some(msSupheli)) M.push({tur:"supheli", m:`<b>Şüpheli giriş-çıkış</b> · ${ms.filter(msSupheli).map(o=>[o.gs&&"giriş "+o.gs, o.cs&&"çıkış "+o.cs].filter(Boolean).join(", ")).join(" · ")}`});
     if (ms && ms.some(o=>o.giris && !o.cikis && !o.acik)) M.push({tur:"cikisyok", m:`Giriş ${saatKisa(ms.find(o=>o.giris&&!o.cikis).giris)} var, <b>çıkış okutulmamış</b>${ms.some(o=>o.unutuldu) ? " (sistem gece kapattı)" : ""}. Çalıştığı saati FM/Not'a yazın.`});
     if (P.grup==="guvenlik"){ const q = qrGun(k, i); if (q && ["HT","Yİ","R","Mİ","Üİ","D","RT"].includes(h.kod)) M.push({tur:"calismis", m:`Puantajda <b>${h.kod}</b> ama o gece <b>QR okutmuş</b> (${q}). Çalıştıysa X yapın, fazla mesaiyse FM'e yazın.`}); }
@@ -573,7 +575,7 @@ function kontrolCiz(L, gunler){
   });
   P.degisim.filter(v => String(v.tarih).startsWith(ayon) || String(v.karsiTarih||"").startsWith(ayon)).forEach(v => M.unshift(`🔁 <b>Vardiya değişimi (onaylı):</b> ${esc(v.ad)} ⇄ ${esc(v.karsi)} · ${+v.tarih.slice(8)} ${AY[mm-1]}${v.karsiTarih ? ` / ${+v.karsiTarih.slice(8)} ${AY[+v.karsiTarih.slice(5,7)-1]}` : ""} · puantaja otomatik işlendi`));
   const izSay = P.izin.filter(e=>{ const {y,m} = ayBilgi(); const a = `${y}-${pad(m)}-01`, b = `${y}-${pad(m)}-31`; return e.bas <= b && (e.bit||e.bas) >= a; }).length;
-  const TUR = {girisyok:"giriş yok", calismis:"çalışmış görünüyor", cikisyok:"çıkış eksik", supheli:"şüpheli konum", izin:"izin çelişkisi"};
+  const TUR = {geconay:"geç onay", girisyok:"giriş yok", calismis:"çalışmış görünüyor", cikisyok:"çıkış eksik", supheli:"şüpheli konum", izin:"izin çelişkisi"};
   const kisiL = Object.entries(KM).sort((a,b) => b[1].L.length - a[1].L.length);
   const toplam = kisiL.reduce((t,[,x]) => t + x.L.length, 0);
   const gunAd = i => `${gunler[i].getDate()} ${AY[gunler[i].getMonth()].slice(0,3)}`;
