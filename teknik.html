@@ -546,6 +546,7 @@ label.f{display:grid;gap:6px;font-size:14px;font-weight:700;min-width:0;color:va
 .t-no{font:500 12px/1 var(--mono);letter-spacing:.06em;color:var(--muted)}
 .t-when{font:700 20px/1.15 var(--display);font-variant-numeric:tabular-nums}
 .t-meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:14px;color:var(--muted)}
+.as-akis{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.as-akis span{font-size:12.5px;padding:4px 9px;border-radius:999px;background:var(--chip,rgba(127,127,127,.12));color:var(--muted)}.as-akis span.ok{background:rgba(52,168,83,.15);color:#1f8a46;font-weight:600}
 .t-meta b{color:var(--ink)}
 .t-desc{margin:0;overflow-wrap:anywhere}
 .t-note{margin:0;font-size:14px;background:#f3f0ff;color:#3b2f80;border-radius:10px;padding:9px 11px}
@@ -1660,6 +1661,7 @@ function fis(a, panel){
         ${a.status==="bekliyor"?`<button class="act primary" data-act="durum" data-id="${a.id}" data-v="onaylandi">İlgileniyorum</button>`:""}
         ${a.status==="onaylandi"?`<button class="act primary" data-act="durum" data-id="${a.id}" data-v="tamamlandi">Tamamlandı</button>`:""}
         ${asWaBtn(a)}
+      </div>${asAkis(a)}<div class="actions" style="margin-top:0">
         <button class="act" data-act="not" data-id="${a.id}">Notu kaydet</button>
         ${acik(a)?`<button class="act ${armed?"armed":"danger"}" data-act="iptal" data-id="${a.id}">${armed?"Eminim, iptal et":"İptal et"}</button>`:""}
         ${!acik(a)?`<button class="act" data-act="durum" data-id="${a.id}" data-v="bekliyor">Yeniden aç</button>`:""}
@@ -3305,6 +3307,36 @@ function asWaYetki(){
   try { const k = JSON.parse(localStorage.getItem("bz1-kod-personel") || "null"); if (k && k.kod && Y.includes(k.rol)) return true; } catch(e){}
   return false;
 }
+/* Personel asansör bildirimi ↔ tesis arıza kaydı tek akış: bildirildi → firmaya bildirildi → servis geldi → çözüldü */
+const asTesisKaydi = a => (T.kayit || []).find(x => x.tur === "ariza" && (x.id === "p_" + a.id || (x.bildirenler || []).includes(a.id)));
+function asAkis(a){
+  if (!a || a.cat !== "p_asansor") return "";
+  const k = asTesisKaydi(a); if (!k) return "";
+  const sa = x => new Date(x).toLocaleTimeString("tr-TR", {hour:"2-digit", minute:"2-digit"});
+  const adim = [["📝","Bildirildi",k.ts],["📞","Firmaya bildirildi",k.bildirildi],["🚐","Servis geldi",k.geldi],["✅","Çözüldü",k.cozuldu]];
+  const yetki = store.isTech() || (store.isTesis && store.isTesis()) || (store.isYetkili && store.isYetkili());
+  return `<div class="as-akis">${adim.map(([i,t,v]) => `<span class="${v ? "ok" : ""}">${i} ${t}${v ? " · " + sa(v) : ""}</span>`).join("")}</div>`
+    + (yetki && !k.cozuldu && (!k.bildirildi || !k.geldi) ? `<div class="actions" style="margin-top:0">${!k.bildirildi ? `<button class="act" data-act="asAdim" data-v="bildirildi" data-id="${esc(k.id)}" data-a="${esc(a.id)}">📞 Firmaya bildirildi</button>` : ""}${!k.geldi ? `<button class="act" data-act="asAdim" data-v="geldi" data-id="${esc(k.id)}" data-a="${esc(a.id)}">🚐 Servis geldi</button>` : ""}</div>` : "");
+}
+/* Bildirim "tamamlandı" → bağlı tesis arızası "çözüldü" */
+async function asTesisKapat(a){
+  if (!a || a.cat !== "p_asansor" || !store.updateTesis) return;
+  const k = asTesisKaydi(a); if (!k || k.cozuldu) return;
+  try { const t = Date.now(); await store.updateTesis(k.id, {cozuldu: t}); k.cozuldu = t;
+    tgGonder(`✅ Asansör çalışıyor: ${asAd(k.ekipman)}\n⏱️ ${sureYaz(Math.round((t - k.ts)/6e4))} sürdü`); toast("Tesis'teki asansör arızası da kapatıldı"); }
+  catch(e){ console.warn("tesis kapat", e); }
+}
+/* Tesis arızası "çözüldü" → bağlı personel bildirimleri "tamamlandı" */
+async function asBildirimKapat(k){
+  if (!k) return;
+  const ids = new Set([...(k.bildirenler || []), ...(String(k.id).startsWith("p_") ? [String(k.id).slice(2)] : [])]);
+  const havuz = [...(S.all || []), ...(IK.pers || []), ...(T.pAs || [])];
+  for (const id of ids){
+    const a = havuz.find(x => x.id === id); if (!a || a.status === "tamamlandi" || a.status === "iptal") continue;
+    try { await store.update(a, {status:"tamamlandi", completedAt:Date.now(), guncelTs:Date.now(), karan: store.isTech() ? "Teknisyen" : "Tesis"}); bildirimTetik("arizaGuncel", a.id); }
+    catch(e){ console.warn("bildirim kapat", e); }
+  }
+}
 function asWaBtn(a, sinif){
   if (!a || a.cat !== "p_asansor" || !acik(a) || !asWaYetki()) return "";
   const k = (T.kayit || []).find(x => x.tur === "ariza" && !x.cozuldu && (x.id === "p_" + a.id || (x.bildirenler || []).includes(a.id)));
@@ -3792,7 +3824,7 @@ function malzemeKart(){
     ${L.map(a => `<div class="mz">
       <div class="mz-m"><span class="mz-t">${turAd(a)}</span><b>${esc(bildirimMetni(a) || (a.cat === "p_malzeme" ? "Malzeme" : catOf(a.cat).ad))}</b><small>👤 ${esc(a.name||"Personel")}${a.rol ? ` (${esc(a.rol)})` : ""} · ${esc(a.alan || (a.block ? a.block + " Blok" : ""))} · ${new Date(a.createdAt).toDateString() === new Date().toDateString() ? saatYaz(a.createdAt) : new Date(a.createdAt).toLocaleDateString("tr-TR",{day:"numeric",month:"short"}) + " " + saatYaz(a.createdAt)}</small>${durum(a)}
         ${String(a.note||"").trim() ? `<p class="pb-not">💬 <b>${esc(a.karan || "Not")}:</b> ${esc(String(a.note).slice(0,160))}</p>` : ""}
-        <div class="foto-sat">${fotoBtn(a.id, a.fotoSayi, "appt")}${asWaBtn(a, "pill-btn")}</div></div>
+        <div class="foto-sat">${fotoBtn(a.id, a.fotoSayi, "appt")}${asWaBtn(a, "pill-btn")}</div>${asAkis(a)}</div>
       ${acik(a) && !mud(a) ? `<div class="mz-b"><span class="mz-tk">Teknisyen ilgilenecek</span><button class="pill-btn" data-act="mzNotAc" data-id="${a.id}">💬 Not</button></div>` : ""}
       ${acik(a) && mud(a) ? `<div class="mz-b">${a.status === "bekliyor" ? `<button class="pill-btn" data-act="mzDurum" data-v="onaylandi" data-id="${a.id}">🔧 İlgileniyorum</button>` : ""}<button class="pill-btn vd-ok" data-act="mzDurum" data-v="tamamlandi" data-id="${a.id}">✅ ${bitti(a)}</button><button class="pill-btn" data-act="mzNotAc" data-id="${a.id}">💬 Not</button></div>` : ""}
       ${MZ.not === a.id ? `<div class="mz-f"><input id="mz_not" maxlength="160" placeholder="Örn. Yarın sabah depodan alınacak" value="${esc(a.note||"")}"><button class="pill-btn" data-act="mzNotKaydet" data-id="${a.id}">Kaydet</button></div>` : ""}
@@ -5761,7 +5793,7 @@ document.addEventListener("click", async e => {
   else if (t==="adim"){
     const patch = {[v]: Date.now()};
     try { await store.updateTesis(id, patch); toast(v==="cozuldu" ? "Arıza kapatıldı" : "Kaydedildi");
-      if (v==="cozuldu"){ const a = T.kayit.find(k=>k.id===id); if (a) tgGonder(`✅ Asansör çalışıyor: ${asAd(a.ekipman)}\n⏱️ ${sureYaz(Math.round((Date.now()-a.ts)/6e4))} sürdü`); } }
+      if (v==="cozuldu"){ const a = T.kayit.find(k=>k.id===id); if (a) asBildirimKapat(a); if (a) tgGonder(`✅ Asansör çalışıyor: ${asAd(a.ekipman)}\n⏱️ ${sureYaz(Math.round((Date.now()-a.ts)/6e4))} sürdü`); } }
     catch(err){ console.error(err); toast("Kaydedilemedi"); }
   }
   else if (t==="etiketKaydet"){
@@ -6183,6 +6215,13 @@ document.addEventListener("click", async e => {
     else if (act==="asWa"){ e.preventDefault(); asWaAc(b.dataset.v); return; }
     else if (act==="asWaTur"){ ASW.kisa = b.dataset.v === "kisa"; if (ASW.ciz) ASW.ciz(); return; }
     else if (act==="asWaGonder"){ asWaGonder(); return; }
+    else if (act==="asAdim"){ b.disabled = true;
+      try { await store.updateTesis(id, {[v]: Date.now()}); const k = (T.kayit||[]).find(x => x.id === id); if (k) k[v] = Date.now();
+        const a = [...(S.all||[]), ...(IK.pers||[]), ...(T.pAs||[])].find(x => x.id === b.dataset.a);
+        if (v === "geldi" && a && a.status === "bekliyor"){ try { await store.update(a, {status:"onaylandi", guncelTs:Date.now()}); bildirimTetik("arizaGuncel", a.id); } catch(e){} }
+        toast(v === "geldi" ? "🚐 Servis geldi olarak işaretlendi" : "📞 Firmaya bildirildi olarak işaretlendi"); }
+      catch(err){ console.error(err); toast("Kaydedilemedi"); b.disabled = false; }
+      render(); return; }
     else if (act==="asWaKapat"){ const m = document.getElementById("aswModal"); if (m) m.hidden = true; return; }
     else if (act==="dFiltre"){ e.preventDefault(); if (!store.isTech()){ arzListeAc(b.dataset.v); return; } S.filter = b.dataset.v; if (masaAktif()) S.masaBolum = "isler"; render(); requestAnimationFrame(() => { const el = document.getElementById("isler"); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); }); return; }
     else if (act==="havaAc"){ e.preventDefault(); havaPanelAc(); return; }
@@ -6244,7 +6283,7 @@ document.addEventListener("click", async e => {
       const kim = dashAd() || "Müdür", patch = {guncelTs:Date.now(), karan:kim}; try { localStorage.setItem("bz1-son-islem", JSON.stringify({id, ts:Date.now()})); } catch(e){}
       if (act==="mzDurum"){ patch.status = v; if (v === "tamamlandi") patch.completedAt = Date.now(); }
       else { const n = String((document.getElementById("mz_not")||{}).value || "").trim().slice(0,160); if (!n){ MZ.kayit = false; b.disabled = false; toast("Not yazın"); return; } patch.note = n; }
-      try { await store.update(a, patch); bildirimTetik("arizaGuncel", a.id); MZ.not = null; toast(act==="mzNotKaydet" ? "Not kaydedildi · bildirene bildirim gitti" : v==="tamamlandi" ? `✓ ${a.cat==="p_malzeme" ? "Karşılandı" : "Çözüldü"} olarak işaretlendi` : "İlgileniyorum olarak işaretlendi"); }
+      try { await store.update(a, patch); bildirimTetik("arizaGuncel", a.id); MZ.not = null; if (act==="mzDurum" && v==="tamamlandi") asTesisKapat(a); toast(act==="mzNotKaydet" ? "Not kaydedildi · bildirene bildirim gitti" : v==="tamamlandi" ? `✓ ${a.cat==="p_malzeme" ? "Karşılandı" : "Çözüldü"} olarak işaretlendi` : "İlgileniyorum olarak işaretlendi"); }
       catch(err){ console.error(err); toast(err && err.code==="permission-denied" ? "Yetki yok: Firebase kuralları güncellenmeli" : "Kaydedilemedi"); }
       MZ.kayit = false; render(); return;
     }
@@ -6461,7 +6500,7 @@ document.addEventListener("click", async e => {
     }
     else if (act==="filtre"){ syncForm(); S.filter = v; render(); }
     else if (act==="durum"){ syncForm(); const a = find(S.all); const patch = {status: v}; try { localStorage.setItem("bz1-son-islem", JSON.stringify({id, ts:Date.now()})); } catch(e){} if (v==="tamamlandi") patch.completedAt = Date.now(); if (S.notes[id] !== undefined && String(S.notes[id]).trim() !== String(a.note||"").trim()) patch.note = S.notes[id];
-      if (a.src === "personel" && v !== "iptal"){ patch.guncelTs = Date.now(); if (patch.note !== undefined) patch.karan = "Teknisyen"; } await store.update(a, patch); if (patch.guncelTs) bildirimTetik("arizaGuncel", a.id); toast(DURUM[v] + " olarak işaretlendi"); }
+      if (a.src === "personel" && v !== "iptal"){ patch.guncelTs = Date.now(); if (patch.note !== undefined) patch.karan = "Teknisyen"; } await store.update(a, patch); if (patch.guncelTs) bildirimTetik("arizaGuncel", a.id); toast(DURUM[v] + " olarak işaretlendi"); if (v==="tamamlandi") asTesisKapat(a); }
     else if (act==="not"){ syncForm(); const a = find(S.all); const yeniNot = String(S.notes[id] ?? "").trim(); const patch = {note: yeniNot};
       const bildir = a.src === "personel" && yeniNot && yeniNot !== String(a.note||"").trim(); if (bildir){ patch.guncelTs = Date.now(); patch.karan = "Teknisyen"; }
       await store.update(a, patch); if (bildir) bildirimTetik("arizaGuncel", a.id); toast(bildir ? "Not kaydedildi · bildirene bildirim gitti" : "Not kaydedildi"); }

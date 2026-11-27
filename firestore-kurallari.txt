@@ -48,10 +48,10 @@ service cloud.firestore {
         || (signedIn() && resource.data.get('src', '') == 'personel')
         || (signedIn() && resource.data.uid == request.auth.uid);
       allow update: if isTech()
-        // Müdür (tesis) personelin malzeme taleplerini, temizlik ve bahçe arızalarını "ilgileniliyor / çözüldü" yapar ve not yazar
+        // Müdür (tesis) personelin malzeme taleplerini, temizlik, bahçe ve asansör arızalarını "ilgileniliyor / çözüldü" yapar ve not yazar (asansör: Tesis'te çözülünce bildirim de kapanır)
         || (isTesis()
             && resource.data.get('src', '') == 'personel'
-            && resource.data.get('cat', '') in ['p_malzeme', 'p_temiz', 'p_bahce']
+            && resource.data.get('cat', '') in ['p_malzeme', 'p_temiz', 'p_bahce', 'p_asansor']
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','note','completedAt','guncelTs','karan','fotoSayi'])
             && request.resource.data.status in ['bekliyor','onaylandi','tamamlandi']
             && request.resource.data.get('note', '').size() <= 160)
