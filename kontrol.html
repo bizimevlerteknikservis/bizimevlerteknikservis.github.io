@@ -216,6 +216,26 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .big{font:700 clamp(46px,5vw,64px)/1 var(--display);font-variant-numeric:tabular-nums}
 .meter{height:12px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);overflow:hidden;margin-top:10px}
 .meter i{display:block;height:100%;background:var(--ok);border-radius:999px;transition:width 1s ease}
+/* Halı saha ışıkları kartı */
+.hs-ust{display:flex;align-items:center;gap:12px}
+.hs-ikon{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:26px;background:var(--panel-2);border:1px solid var(--line);flex:none;transition:.4s}
+.hs-on .hs-ikon{background:rgba(250,204,21,.18);border-color:rgba(250,204,21,.6);box-shadow:0 0 26px rgba(250,204,21,.4)}
+.hs-dur{font:700 22px/1.1 var(--display);letter-spacing:.02em}
+.hs-on .hs-dur{color:#eab308}
+.hs-alt{font-size:12.5px;color:var(--muted);margin-top:3px}
+.hs-nokta{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.hs-proj{display:flex;gap:10px;justify-content:center;margin:14px 0 10px}
+.hs-proj i{width:44px;height:26px;border-radius:8px 8px 4px 4px;background:var(--panel-2);border:1px solid var(--line);transition:.4s}
+.hs-on .hs-proj i{background:#fde68a;border-color:#facc15;box-shadow:0 8px 26px rgba(250,204,21,.6)}
+.hs-btn{border:0;border-radius:14px;padding:15px;width:100%;font:800 16px var(--body);background:var(--ok);color:#fff}
+.hs-on .hs-btn{background:var(--bad)}
+.hs-btn[disabled]{opacity:.6}
+.hs-cips{display:flex;gap:8px;margin-top:10px}
+.hs-cips button{flex:1;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);border-radius:10px;padding:10px 4px;font:600 13px var(--body)}
+.hs-cips button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.hs-bilgi{margin-top:10px;font-size:13px;font-weight:600;text-align:center;color:var(--muted)}
+.hs-prg{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:8px;align-items:center;font-size:13px;margin-top:10px}
+.hs-prg input[type=time]{width:100%;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font:600 14px var(--mono)}
 .feed{list-style:none;margin:0;padding:0;display:grid;gap:8px;max-height:360px;overflow:auto}
 .feed li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:9px 11px;animation:in .45s ease}
 .feed .dot{width:10px;height:10px;border-radius:50%}
@@ -829,6 +849,93 @@ svg.addEventListener("pointerup", ()=>{
   KONUM[j] = p; try { localStorage.setItem("bz1-konum2", JSON.stringify(KONUM)); } catch(e){}
   if (BULUT) BULUT(KONUM); ticker(`📍 Jeneratör binası yeni yerine taşındı${BULUT?" · kaydedildi":""}`); tesisCiz();
 });
+/* ---------- Halı saha ışıkları (WT32-ETH01 kartı, Realtime Database) ----------
+   cihaz/halisaha/komut/istek   {acik, bitis(ms|0), kim, ts}   ← telefon yazar
+   cihaz/halisaha/komut/program {aktif, hi:"18:00-23:00", hs:"17:30-23:30"}
+   cihaz/halisaha/durum         {acik, kaynak, son, ip, surum, saat, elleBitis}  ← kart yazar
+   cihaz/halisaha/log/*         {acik, kaynak, kim?, ts}                         ← kart yazar
+   Komutlar postacıdan geçer; yetki: teknisyen, yönetim, müdür (Kontrol Merkezi) ve güvenlik (uygulamadan). Demo'da yerel benzetim. */
+const HS_CANLI = false;   // kart kurulup postacı güncellenince true (o zamana kadar canlı ekranda görünmez)
+const HS = { veri:null, log:[], hazir:false, yaz:null, bekle:0, sure:0, prgAc:false };
+function hsDemoKur(){
+  if (HS.hazir || LIVE.on) return; HS.hazir = true;
+  const t = Date.now();
+  HS.veri = { komut:{ program:{aktif:true, hi:"18:00-23:00", hs:"17:30-23:30"} }, durum:{acik:false, kaynak:"program", son:t, surum:"1.0.0", saat:true} };
+  HS.log = [{acik:false, kaynak:"program", ts:t-15*36e5}, {acik:true, kaynak:"program", ts:t-20*36e5}];
+  HS.yaz = async (yol, v) => {
+    const k = HS.veri.komut; if (yol==="istek") k.istek = {...v, ts:Date.now()}; else k.program = v;
+    if (yol==="istek") setTimeout(() => { HS.veri.durum = {...HS.veri.durum, acik:v.acik, kaynak:"telefon", son:Date.now(), elleBitis:v.bitis||0};
+      HS.log.unshift({acik:v.acik, kaynak:"telefon", kim:v.kim, ts:Date.now()}); HS.bekle = 0; hsYenile(); }, 600);
+  };
+}
+const hsSaat = ms => new Date(ms).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"});
+const hsGun = ms => { const d = new Date(ms), b = new Date(); b.setHours(0,0,0,0); return (d>=b ? "Bugün " : d>=b-864e5 ? "Dün " : d.toLocaleDateString("tr-TR",{day:"numeric",month:"short"})+" ") + hsSaat(ms); };
+const HS_KAYNAK = {telefon:"telefondan", "program-degisti":"program değiştirildi", program:"otomatik program", bekleme:"program kapalı", "saat-yok":"saat bekleniyor", guncelleme:"güncelleniyor", baslangic:"açılıyor"};
+function hsKart(){
+  if (LIVE.on && !(HS_CANLI && window.TEKNIK)) return "";   // canlıda yalnızca teknisyen
+  hsDemoKur();
+  if (!HS.veri) return LIVE.on && HS.hazir ? `<div class="card"><h2>⚽ Halı saha ışıkları</h2><p class="note">Karta bağlanılıyor…</p></div>` : "";
+  if (!LIVE.on && HS.veri.durum) HS.veri.durum.son = Date.now();
+  const d = HS.veri.durum || {}, p = (HS.veri.komut||{}).program || {}, simdi = Date.now();
+  const cevrim = d.son && (HS.veri.simdi || simdi) - d.son < 3*6e4, acik = !!d.acik, yetki = true;
+  const bekliyor = HS.bekle && simdi - HS.bekle < 12e3, gec = HS.bekle && !bekliyor;
+  const elle = d.kaynak==="telefon" && d.elleBitis > simdi;
+  const sonGor = d.son ? (simdi-d.son < 36e5 ? Math.round((simdi-d.son)/6e4)+" dk önce" : hsGun(d.son)) : "hiç";
+  const [hb,he] = String(p.hi||"18:00-23:00").split("-"), [sb,se] = String(p.hs||"17:30-23:30").split("-");
+  return `<div class="card${acik?" hs-on":""}" id="hsKart"${!cevrim?' style="border-color:var(--warn)"':""}>
+    <h2>⚽ Halı saha ışıkları</h2>
+    <div class="hs-ust"><div class="hs-ikon">${acik?"💡":"🌑"}</div>
+      <div><div class="hs-dur">${bekliyor?"Gönderiliyor…":acik?"AÇIK":"KAPALI"}</div>
+      <div class="hs-alt"><span class="hs-nokta" style="background:${cevrim?"var(--ok)":"var(--warn)"}"></span>${cevrim?"Kart çevrimiçi":"Kart çevrimdışı · son görülme "+sonGor} · ${HS_KAYNAK[d.kaynak]||"—"}</div></div></div>
+    <div class="hs-proj"><i></i><i></i><i></i><i></i></div>
+    ${yetki ? `<button class="hs-btn" id="hsBtn"${bekliyor||!cevrim?" disabled":""}>${acik?"Işıkları kapat":"Işıkları aç"}</button>
+      <div class="hs-cips" id="hsCips">${[[1,"1 saat"],[2,"2 saat"],[0,"Programa kadar"]].map(([s,t])=>`<button data-s="${s}" aria-pressed="${HS.sure===s}">${t}</button>`).join("")}</div>` : `<p class="note">Açıp kapatma teknisyende. Burada durum izlenir.</p>`}
+    <div class="hs-bilgi">${gec && !cevrim ? "⚠️ Kart yanıt vermedi. Panodaki yedek sigortayla elle açılabilir." : elle ? `⏱ ${hsSaat(d.elleBitis)}'de programa döner` : p.aktif ? `Program: hafta içi ${esc(p.hi||"")} · hafta sonu ${esc(p.hs||"")}` : "Otomatik program kapalı"}</div>
+    ${yetki ? `<button class="act" id="hsPrgBtn" style="margin-top:10px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);padding:10px">🗓 Programı ${HS.prgAc?"kapat":"düzenle"}</button>` : ""}
+    ${yetki && HS.prgAc ? `<div class="hs-prg"><b>Hafta içi</b><input type="time" id="hsHb" value="${esc(hb)}"><span>–</span><input type="time" id="hsHe" value="${esc(he)}">
+      <b>Hafta sonu</b><input type="time" id="hsSb" value="${esc(sb)}"><span>–</span><input type="time" id="hsSe" value="${esc(se)}"></div>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13.5px"><input type="checkbox" id="hsAktif"${p.aktif!==false?" checked":""}> Otomatik program açık</label>
+      <button class="act" id="hsPrgKaydet" style="margin-top:10px">Programı kaydet</button>` : ""}
+    ${HS.log.length ? `<div class="rows" style="margin-top:12px">${HS.log.slice(0,4).map(l=>`<div class="row"><div><b>${l.acik?"💡 Açıldı":"🌑 Kapandı"}</b><small style="display:block;color:var(--muted);font-size:12.5px">${HS_KAYNAK[l.kaynak]||esc(l.kaynak||"")}${l.kim?" · "+esc(l.kim):""}</small></div><em>${hsGun(l.ts)}</em></div>`).join("")}</div>` : ""}
+  </div>`;
+}
+function hsYenile(){ const k = $("#hsKart"); if (!k || MODE!=="tesis") return; k.outerHTML = hsKart(); hsBagla(); }
+function hsBagla(){
+  const b = $("#hsBtn"); if (!b || !HS.yaz) return;
+  const kim = () => LIVE.on ? "Teknisyen" : "Teknisyen (demo)";
+  b.onclick = async () => {
+    const ac = !(HS.veri.durum||{}).acik, bitis = ac && HS.sure ? Date.now() + HS.sure*36e5 : 0;
+    HS.bekle = Date.now(); hsYenile(); setTimeout(hsYenile, 12500);
+    try { await HS.yaz("istek", {acik:ac, bitis, kim:kim()}); ticker(ac ? "💡 Halı saha ışıkları: aç komutu gönderildi" : "🌑 Halı saha ışıkları: kapat komutu gönderildi"); }
+    catch(e){ HS.bekle = 0; ticker("⚠️ Komut gönderilemedi: " + (e.code||e.message)); hsYenile(); }
+  };
+  document.querySelectorAll("#hsCips button").forEach(x => x.onclick = () => { HS.sure = +x.dataset.s; hsYenile(); });
+  const pb = $("#hsPrgBtn"); if (pb) pb.onclick = () => { HS.prgAc = !HS.prgAc; hsYenile(); };
+  const pk = $("#hsPrgKaydet"); if (pk) pk.onclick = async () => {
+    const v = id => $(id).value, ok = x => /^\d\d:\d\d$/.test(x);
+    if (![v("#hsHb"),v("#hsHe"),v("#hsSb"),v("#hsSe")].every(ok)) { ticker("Saatleri eksiksiz girin"); return; }
+    try { await HS.yaz("program", {aktif:$("#hsAktif").checked, hi:v("#hsHb")+"-"+v("#hsHe"), hs:v("#hsSb")+"-"+v("#hsSe")}); HS.prgAc = false; ticker("🗓 Halı saha programı kaydedildi"); hsYenile(); }
+    catch(e){ ticker("⚠️ Program kaydedilemedi: " + (e.code||e.message)); }
+  };
+}
+// Canlı: girişten sonra çağrılır. Komutlar postacıdan geçer (yetki ve "kim yaptı" kaydı orada)
+const HS_SUNUCU = "https://bizimevler1bildirim.teknisyenzeynel91.workers.dev";
+async function hsCanli(auth){
+  if (HS.hazir) return; HS.hazir = true;
+  const istek = async (islem, ek) => {
+    const idToken = await auth.currentUser.getIdToken();
+    const ad = window.TEKNIK ? "Teknisyen" : String(auth.currentUser.email||"").split("@")[0].replace(/[._-]+/g," ");
+    const r = await fetch(HS_SUNUCU, {method:"POST", body: JSON.stringify({tur:"halisaha", islem, idToken, ad, ...(ek||{})})});
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.hata || r.status);
+    HS.veri = {durum: j.durum||{}, komut:{program: j.program||{}}, simdi: j.simdi};
+    HS.log = (j.log||[]).map(l => ({...l, kaynak: l.tur==="komut" ? "telefon" : l.tur==="program" ? "program-degisti" : l.kaynak}));
+    hsYenile(); return j;
+  };
+  HS.yaz = (yol, v) => yol === "istek" ? istek(v.acik ? "ac" : "kapat", {sure: v.bitis ? Math.round((v.bitis - Date.now())/36e5) : 0}).then(() => [1500,4000].forEach(ms => setTimeout(() => istek("durum").catch(()=>{}), ms)))
+                                       : istek("program", {program: v});
+  const oku = () => istek("durum").catch(e => console.warn("halisaha", e.message));
+  oku(); setInterval(() => { if (MODE === "tesis" && document.visibilityState === "visible") oku(); }, 15000);
+}
 function tesisPanel(){
   if (MODE!=="tesis") return;
   const D = tesisDurumTam();
@@ -836,7 +943,7 @@ function tesisPanel(){
   const say = r => tum.filter(id=>asDurum(id,D)===r).length;
   const ay0 = new Date(); ay0.setDate(1); ay0.setHours(0,0,0,0);
   const buAy = D.kesintiler.filter(k=>k.bas>=ay0.getTime());
-  $("#panel").innerHTML = `${tesisKart()}${tasKart()}
+  $("#panel").innerHTML = `${hsKart()}${tesisKart()}${tasKart()}
     <div class="card"><h2>Asansörler</h2><div class="kpis">
       <div class="kpi"><strong style="color:var(--ok)">${say("--ok")}</strong><span>Çalışıyor, bakımı güncel</span></div>
       <div class="kpi"><strong style="color:var(--bad)">${new Set(D.ariza.map(k=>k.ekipman)).size}</strong><span>Arızalı</span></div>
@@ -854,6 +961,7 @@ function tesisPanel(){
       <div class="kpi"><strong>${Math.round(buAy.reduce((s,k)=>s+(k.bit-k.bas),0)/6e4)}<small style="font-size:16px"> dk</small></strong><span>Toplam süre</span></div></div>
       ${LIVE.on ? "" : `<button class="act sos" id="kesTest" style="margin-top:12px">${D.kesik ? "Elektriği geri getir (test)" : "Elektrik kesintisi testi"}</button>`}</div>
     <div class="card"><h2>Canlı akış</h2><ul class="feed" id="feed">${feedHTML()}</ul></div>`;
+  hsBagla();
   const kt = $("#kesTest"); if (kt) kt.onclick = () => {
     const now = Date.now(); TES.kayit.push({id:"dk"+now, tur:"kesinti", olay: D.kesik ? "bitti" : "basladi", ts: now, jen: D.kesik ? "evet" : ""});
     ticker(D.kesik ? "💡 Elektrik geldi" : "⚡ Elektrik kesildi · jeneratörler devrede"); feed(D.kesik?"ok":"bad", D.kesik?"Elektrik geldi":"Elektrik kesildi", "Test");
@@ -1516,6 +1624,7 @@ async function canliBaslat(){
     if (!rol){ giris.hidden = false; $("#loginErr").textContent = neden; au.signOut(auth); return; }
     window.ROL = rol;
     giris.hidden = true;
+    if (HS_CANLI && window.TEKNIK) hsCanli(auth);
     if (rol === "yonetim"){ $("#edit").hidden = true; document.querySelector(".demo").textContent = "Canlı veri · Yönetim"; }
     const cb = $("#cikisBtn"); cb.hidden = false;
     cb.onclick = async () => { if (!confirm("Kontrol Merkezi'nden çıkış yapılsın mı?")) return; await au.signOut(auth); location.reload(); };
