@@ -670,6 +670,8 @@ async function halisaha(env, sa, g, ip) {
   const c = "halisaha";
   if (!hsSinir("ip" + ip, 40)) return { hata: "çok sık", kod: 429 };
   const kim = await hsKim(sa, g); if (!kim) return { hata: "Bu işlem için yetkiniz yok", kod: 403 };
+  // Şimdilik yalnızca teknisyen. Güvenlik, müdür ve yönetime açmak için Cloudflare'de HALISAHA_HERKES = "1" ekleyin.
+  if (env.HALISAHA_HERKES !== "1" && kim.rol !== "teknisyen") return { hata: "Halı saha şimdilik yalnızca teknisyende", kod: 403 };
   const islem = String(g.islem || "durum");
   if (islem === "durum") return { ...(await hsDurum(env, sa, c)), kim: { rol: kim.rol, program: kim.program } };
   if (!hsSinir("k" + kim.rol + kim.ad, 8)) return { hata: "Çok sık deneme, 1 dakika bekleyin", kod: 429 };

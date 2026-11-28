@@ -764,7 +764,7 @@ nav.tabs a[aria-current="page"]{color:#fff;background:rgba(59,140,255,.16)}nav.t
 .hsi-l time{margin-left:auto;font:600 12px var(--mono);color:var(--muted);white-space:nowrap}
 .hsi-prg{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:8px;align-items:center;font-size:13.5px}
 .hsi-prg input{width:100%;padding:9px;border-radius:10px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);font:700 14px var(--mono)}
-.guv-sekme{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:6px;margin:0 0 14px;border-radius:18px;background:var(--card,#fff);box-shadow:0 6px 20px rgba(16,40,80,.08)}
+.guv-sekme{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;padding:6px;margin:0 0 14px;border-radius:18px;background:var(--card,#fff);box-shadow:0 6px 20px rgba(16,40,80,.08)}
 .guv-sekme a{display:block;text-align:center;padding:12px 2px;border-radius:13px;text-decoration:none;font:800 13.5px var(--body,system-ui);color:var(--ink)}
 .guv-sekme a[aria-current="true"]{background:linear-gradient(140deg,var(--accent,#2b7cd3),var(--accent-2,#3b9be0));color:#fff}
 .ses-k{border:2px solid #2b7cd3;background:linear-gradient(160deg,rgba(43,124,211,.07),transparent)}
@@ -1062,6 +1062,8 @@ const AYAR = {
   teknisyenEpostalari: ["teknisyenzeynel91@gmail.com"],  // Firebase'de teknisyen hesabı
   teknisyenAd: "Zeynel Sarı",
   vapid: "BBAd4z3re49GlXKtq50ai2EcUMrleMh0ApjueNziDqIl6CzxPj-qJFndjEPk7TH-ceaeVp9DZDI5HWK9_f_Uu_I",                    // telefon bildirimi: Firebase → Proje ayarları → Cloud Messaging → Web Push sertifikası (ortak anahtar)
+  halisahaCanli: false,   // halı saha kartı kurulup postacı güncellenince true yapılır (o zamana kadar örnek ekran)
+  halisahaHerkes: false,  // false: halı saha yalnızca teknisyende; true: güvenlik, müdür, yönetim de açıp kapatır
   bildirimSunucu: "https://bizimevler1bildirim.teknisyenzeynel91.workers.dev",           // bildirim postacısı (Cloudflare Worker) adresi: https://….workers.dev
   // Firebase'den kopyaladığınız firebaseConfig nesnesini null yerine yapıştırın:
   // Yeni arıza bildirimi (Telegram)
@@ -3890,7 +3892,7 @@ function pDash(icerik){
     ${guv ? `<a href="#devriye"${S.view==="devriye" ? ` aria-current="page"` : ""}>${ic("shield")}<span>Devriye</span></a>` : ""}
     <a href="${S.view==="personel" ? "#" : bildirAdres}" ${S.view==="personel" ? `data-act="pBildirGit"${S.bldPanel ? "" : ` aria-current="page"`}` : ""}>${ic("alert")}<span>${guv ? "Arıza" : "Arıza Bildir"}</span></a>
     ${guv ? `<a href="#gtasinma"${S.view==="gtasinma" ? ` aria-current="page"` : ""}>${ic("building")}<span>Taşınma</span></a>` : ""}
-    ${guv ? `<a href="#halisaha"${S.view==="halisaha" ? ` aria-current="page"` : ""}>${ic("lamba")}<span>Halı saha</span></a>` : ""}
+    ${guv && AYAR.halisahaHerkes ? `<a href="#halisaha"${S.view==="halisaha" ? ` aria-current="page"` : ""}>${ic("lamba")}<span>Halı saha</span></a>` : ""}
     <a href="kontrol.html">${ic("radar")}<span>Canlı</span></a>
     ${guv ? "" : `<a href="#" data-act="pGorevGit">${ic("clip")}<span>Görevler</span>${gor + tal ? `<em>${gor + tal}</em>` : ""}</a>`}
     <a href="#" data-act="bldPanel"${S.bldPanel ? ` aria-current="page"` : ""}>${ic("bell")}<span>Bildirim</span>${bildirimAcikMi() ? "" : `<em>!</em>`}</a>
@@ -3913,7 +3915,7 @@ function vDash(isler, ayar){
     T("#devriye", "shield", "mavi", "Devriye", "QR okut"),
     T("#personel", "alert", "kirmizi", "Arıza Bildir"),
     (tech || tesis) && `<a class="d-tile turuncu" href="#tesis" data-act="tSekmeGit" data-v="ozet"><i>${ic("wrench")}</i><b>Tesis & Bakım</b><small>Asansör · takvim · stok</small></a>`,
-    T("#halisaha", "lamba", "altin", "Halı Saha", "Işık aç · kapat"),
+    hsiYetkili() && T("#halisaha", "lamba", "altin", "Halı Saha", "Işık aç · kapat"),
     T("#ik", "users", "mor", "Personel", "İzin · Puantaj"),
     T("#gorev", "clip", "camgobegi", "Görev Ver"),
     T("#tutanak", "tutanak", "kirmizi", "Olay Tutanağı", "Yaz · yazdır · PDF"),
@@ -4480,14 +4482,15 @@ function duyuruKontrol(){
     <p class="hint">Vardiyadaki herkesin devriye ekranında uyarı çıkar, Kontrol Merkezi'nde de görünür. İstediğiniz an yeniden başlatabilirsiniz.</p></details>`;
 }
 /* Güvenlik uygulamasında iki bölüm: Devriye | Arıza bildir (aynı uygulama, aynı kod) */
-const guvSekme = akt => `<nav class="guv-sekme"><a href="#devriye" aria-current="${akt==="devriye"}">🛡️ Devriye</a><a href="#personel" aria-current="${akt==="ariza"}">📝 Arıza</a><a href="#gtasinma" aria-current="${akt==="tasinma"}">🚚 Taşınma</a><a href="#halisaha" aria-current="${akt==="halisaha"}">⚽ Saha</a><a href="kontrol.html">🗺️ Canlı</a></nav>`;
+const guvSekme = akt => `<nav class="guv-sekme"><a href="#devriye" aria-current="${akt==="devriye"}">🛡️ Devriye</a><a href="#personel" aria-current="${akt==="ariza"}">📝 Arıza</a><a href="#gtasinma" aria-current="${akt==="tasinma"}">🚚 Taşınma</a>${AYAR.halisahaHerkes ? `<a href="#halisaha" aria-current="${akt==="halisaha"}">⚽ Saha</a>` : ""}<a href="kontrol.html">🗺️ Canlı</a></nav>`;
 
 /* ===== Halı saha ışıkları: güvenlik (kodla), teknisyen, müdür, yönetim açar/kapatır; kim yaptıysa kayda yazılır =====
    Komutlar postacıya gider; postacı yetkiyi kontrol eder (güvenlik kodu / yönetim listesi) ve karta iletir. */
 const HSI = { veri:null, hata:"", bekle:0, sure:0, prgAc:false, zam:null, demo:null };
 const HSI_ROL = {teknisyen:"Teknisyen", mudur:"Müdür", yonetim:"Yönetim", guvenlik:"Güvenlik"};
 const HSI_KAYNAK = {program:"Otomatik program", bekleme:"Program kapalı", "saat-yok":"Saat bekleniyor", guncelleme:"Güncelleniyor", baslangic:"Kart açılıyor"};
-const hsiCanli = () => !!(AYAR.firebase && AYAR.bildirimSunucu && store.idToken);
+const hsiCanli = () => !!(AYAR.halisahaCanli && AYAR.firebase && AYAR.bildirimSunucu && store.idToken);
+const hsiYetkili = () => store.isTech() || (AYAR.halisahaHerkes && !!(pDashKim() || (store.isYetkili && store.isYetkili())));
 function hsiDemo(){
   if (HSI.demo) return HSI.demo; const t = Date.now();
   return HSI.demo = { durum:{acik:false, kaynak:"program", son:t}, program:{aktif:true, hi:"18:00-23:00", hs:"17:30-23:30"}, simdi:t, kim:{rol:pDashKim() ? "guvenlik" : "teknisyen", program:!pDashKim()},
@@ -4524,6 +4527,7 @@ function hsiLogSatir(l){
   return `<div class="hsi-l"><span>${l.acik ? "💡" : "🌑"}</span><div><b>${l.acik ? "Açıldı" : "Kapandı"}</b><small>⚙️ ${HSI_KAYNAK[l.kaynak] || "Kart"}</small></div><time>${hsiZaman(l.ts)}</time></div>`;
 }
 function vHaliSaha(){
+  if (!hsiYetkili()) return `<section class="hsi"><h2>⚽ Halı saha ışıkları</h2><p class="hint" style="margin:0">Bu bölüm yalnızca teknisyende açık.</p></section>`;
   const geri = pDashKim() ? (appDosya()==="devriye.html" && S.d && S.d.kim && !store.isYetkili() ? guvSekme("halisaha") : "") : `<a class="pill-btn geri-eski" href="#panel" style="margin-bottom:12px;display:inline-block">← Menü</a>`;
   if (!hsiCanli() && !HSI.veri) HSI.veri = hsiDemo();
   const V = HSI.veri;
