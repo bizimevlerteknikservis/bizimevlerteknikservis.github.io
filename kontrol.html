@@ -854,7 +854,7 @@ svg.addEventListener("pointerup", ()=>{
    cihaz/halisaha/komut/program {aktif, hi:"18:00-23:00", hs:"17:30-23:30"}
    cihaz/halisaha/durum         {acik, kaynak, son, ip, surum, saat, elleBitis}  ← kart yazar
    cihaz/halisaha/log/*         {acik, kaynak, kim?, ts}                         ← kart yazar
-   Canlıda FB_CONFIG.databaseURL yoksa kart hiç görünmez. Demo'da yerel benzetim. */
+   Komutlar postacıdan geçer; yetki: teknisyen, yönetim, müdür (Kontrol Merkezi) ve güvenlik (uygulamadan). Demo'da yerel benzetim. */
 const HS = { veri:null, log:[], hazir:false, yaz:null, bekle:0, sure:0, prgAc:false };
 function hsDemoKur(){
   if (HS.hazir || LIVE.on) return; HS.hazir = true;
@@ -869,13 +869,13 @@ function hsDemoKur(){
 }
 const hsSaat = ms => new Date(ms).toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"});
 const hsGun = ms => { const d = new Date(ms), b = new Date(); b.setHours(0,0,0,0); return (d>=b ? "Bugün " : d>=b-864e5 ? "Dün " : d.toLocaleDateString("tr-TR",{day:"numeric",month:"short"})+" ") + hsSaat(ms); };
-const HS_KAYNAK = {telefon:"telefondan", program:"otomatik program", bekleme:"program kapalı", "saat-yok":"saat bekleniyor", guncelleme:"güncelleniyor", baslangic:"açılıyor"};
+const HS_KAYNAK = {telefon:"telefondan", "program-degisti":"program değiştirildi", program:"otomatik program", bekleme:"program kapalı", "saat-yok":"saat bekleniyor", guncelleme:"güncelleniyor", baslangic:"açılıyor"};
 function hsKart(){
   hsDemoKur();
-  if (!HS.veri) return LIVE.on && window.FB_CONFIG && window.FB_CONFIG.databaseURL ? `<div class="card"><h2>⚽ Halı saha ışıkları</h2><p class="note">Karta bağlanılıyor…</p></div>` : "";
+  if (!HS.veri) return LIVE.on && HS.hazir ? `<div class="card"><h2>⚽ Halı saha ışıkları</h2><p class="note">Karta bağlanılıyor…</p></div>` : "";
   if (!LIVE.on && HS.veri.durum) HS.veri.durum.son = Date.now();
   const d = HS.veri.durum || {}, p = (HS.veri.komut||{}).program || {}, simdi = Date.now();
-  const cevrim = d.son && simdi - d.son < 3*6e4, acik = !!d.acik, yetki = !LIVE.on || window.TEKNIK;
+  const cevrim = d.son && (HS.veri.simdi || simdi) - d.son < 3*6e4, acik = !!d.acik, yetki = true;
   const bekliyor = HS.bekle && simdi - HS.bekle < 12e3, gec = HS.bekle && !bekliyor;
   const elle = d.kaynak==="telefon" && d.elleBitis > simdi;
   const sonGor = d.son ? (simdi-d.son < 36e5 ? Math.round((simdi-d.son)/6e4)+" dk önce" : hsGun(d.son)) : "hiç";
@@ -916,17 +916,23 @@ function hsBagla(){
     catch(e){ ticker("⚠️ Program kaydedilemedi: " + (e.code||e.message)); }
   };
 }
-// Canlı: girişten sonra çağrılır (yalnızca databaseURL tanımlıysa)
-async function hsCanli(ap, U){
-  const cfg = window.FB_CONFIG; if (!cfg || !cfg.databaseURL || HS.hazir) return; HS.hazir = true;
-  try {
-    const rd = await import(U+"firebase-database.js"), rdb = rd.getDatabase(ap), kok = "cihaz/halisaha";
-    HS.yaz = (yol, v) => rd.set(rd.ref(rdb, `${kok}/komut/${yol}`), yol==="istek" ? {...v, ts: rd.serverTimestamp()} : v);
-    rd.onValue(rd.ref(rdb, `${kok}/durum`), s => { HS.veri = {...(HS.veri||{}), durum: s.val()||{}}; if (HS.bekle) HS.bekle = 0; hsYenile(); }, e => console.warn("halisaha", e && e.code));
-    rd.onValue(rd.ref(rdb, `${kok}/komut`), s => { HS.veri = {...(HS.veri||{}), komut: s.val()||{}}; hsYenile(); }, e => console.warn("halisaha komut", e && e.code));
-    rd.onValue(rd.query(rd.ref(rdb, `${kok}/log`), rd.limitToLast(6)), s => { const L = []; s.forEach(c => { L.push(c.val()); }); HS.log = L.reverse(); hsYenile(); }, () => {});
-    setInterval(hsYenile, 6e4);   // "son görülme" yazısı tazelensin
-  } catch(e){ console.warn("halisaha", e); }
+// Canlı: girişten sonra çağrılır. Komutlar postacıdan geçer (yetki ve "kim yaptı" kaydı orada)
+const HS_SUNUCU = "https://bizimevler1bildirim.teknisyenzeynel91.workers.dev";
+async function hsCanli(auth){
+  if (HS.hazir) return; HS.hazir = true;
+  const istek = async (islem, ek) => {
+    const idToken = await auth.currentUser.getIdToken();
+    const ad = window.TEKNIK ? "Teknisyen" : String(auth.currentUser.email||"").split("@")[0].replace(/[._-]+/g," ");
+    const r = await fetch(HS_SUNUCU, {method:"POST", body: JSON.stringify({tur:"halisaha", islem, idToken, ad, ...(ek||{})})});
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.hata || r.status);
+    HS.veri = {durum: j.durum||{}, komut:{program: j.program||{}}, simdi: j.simdi};
+    HS.log = (j.log||[]).map(l => ({...l, kaynak: l.tur==="komut" ? "telefon" : l.tur==="program" ? "program-degisti" : l.kaynak}));
+    hsYenile(); return j;
+  };
+  HS.yaz = (yol, v) => yol === "istek" ? istek(v.acik ? "ac" : "kapat", {sure: v.bitis ? Math.round((v.bitis - Date.now())/36e5) : 0}).then(() => [1500,4000].forEach(ms => setTimeout(() => istek("durum").catch(()=>{}), ms)))
+                                       : istek("program", {program: v});
+  const oku = () => istek("durum").catch(e => console.warn("halisaha", e.message));
+  oku(); setInterval(() => { if (MODE === "tesis" && document.visibilityState === "visible") oku(); }, 15000);
 }
 function tesisPanel(){
   if (MODE!=="tesis") return;
@@ -1616,7 +1622,7 @@ async function canliBaslat(){
     if (!rol){ giris.hidden = false; $("#loginErr").textContent = neden; au.signOut(auth); return; }
     window.ROL = rol;
     giris.hidden = true;
-    if (rol === "teknisyen" || rol === "yonetim") hsCanli(ap, U);
+    hsCanli(auth);
     if (rol === "yonetim"){ $("#edit").hidden = true; document.querySelector(".demo").textContent = "Canlı veri · Yönetim"; }
     const cb = $("#cikisBtn"); cb.hidden = false;
     cb.onclick = async () => { if (!confirm("Kontrol Merkezi'nden çıkış yapılsın mı?")) return; await au.signOut(auth); location.reload(); };

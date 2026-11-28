@@ -1,24 +1,6 @@
 {
   "rules": {
     ".read": false,
-    ".write": false,
-    "yetkili": { ".read": false, ".write": false },
-    "cihazHesap": { ".read": false, ".write": false },
-    "cihaz": {
-      "$c": {
-        ".read": "auth != null && (root.child('yetkili').child(auth.uid).exists() || root.child('cihazHesap').child($c).val() === auth.uid)",
-        "komut": {
-          ".write": "auth != null && root.child('yetkili').child(auth.uid).val() === 'yaz'"
-        },
-        "durum": {
-          ".write": "auth != null && root.child('cihazHesap').child($c).val() === auth.uid"
-        },
-        "log": {
-          "$k": {
-            ".write": "auth != null && !data.exists() && root.child('cihazHesap').child($c).val() === auth.uid"
-          }
-        }
-      }
-    }
+    ".write": false
   }
 }

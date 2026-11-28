@@ -32,15 +32,18 @@ const sade = x => String(x || "").trim().toLocaleLowerCase("tr").replace(/\s+/g,
 const kisa = (s, n) => { s = String(s || "").replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
 
 /* ---------- Google erişim anahtarı (servis hesabıyla, 1 saat geçerli) ---------- */
-let ERISIM = null;
 const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 const b64uMetin = s => b64u(new TextEncoder().encode(s));
-async function erisim(sa) {
+const KAPSAM_ANA = "https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/firebase.messaging";
+const KAPSAM_RT = "https://www.googleapis.com/auth/firebase.database https://www.googleapis.com/auth/userinfo.email";
+const ERISIM_K = {};
+async function erisim(sa, kapsam = KAPSAM_ANA) {
+  const ERISIM = ERISIM_K[kapsam];
   if (ERISIM && ERISIM.son > Date.now() + 60e3) return ERISIM.anahtar;
   const simdi = Math.floor(Date.now() / 1000);
   const govde = b64uMetin(JSON.stringify({ alg: "RS256", typ: "JWT" })) + "." + b64uMetin(JSON.stringify({
     iss: sa.client_email, aud: "https://oauth2.googleapis.com/token", iat: simdi, exp: simdi + 3600,
-    scope: "https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/firebase.messaging"
+    scope: kapsam
   }));
   const pem = sa.private_key.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
   const der = Uint8Array.from(atob(pem), c => c.charCodeAt(0));
@@ -49,8 +52,8 @@ async function erisim(sa) {
   const r = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" },
     body: "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=" + govde + "." + b64u(imza) });
   const j = await r.json(); if (!j.access_token) throw new Error("Google anahtarı alınamadı: " + JSON.stringify(j));
-  ERISIM = { anahtar: j.access_token, son: Date.now() + (j.expires_in || 3600) * 1000 };
-  return ERISIM.anahtar;
+  ERISIM_K[kapsam] = { anahtar: j.access_token, son: Date.now() + (j.expires_in || 3600) * 1000 };
+  return ERISIM_K[kapsam].anahtar;
 }
 
 /* ---------- Firestore (REST) ---------- */
@@ -540,7 +543,8 @@ async function googleAnahtarlar() {
   const j = await r.json(); JWK = { k: j.keys || [], son: Date.now() + 3 * 36e5 }; return JWK.k;
 }
 const b64uCoz = s => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4)), c => c.charCodeAt(0));
-async function kimlikDogrula(idToken, projeId) {
+async function kimlikDogrula(idToken, projeId) { const y = await kimlikYuk(idToken, projeId); return y ? y.sub : null; }
+async function kimlikYuk(idToken, projeId) {
   const p = String(idToken || "").split("."); if (p.length !== 3) return null;
   let bas, yuk; try { bas = JSON.parse(new TextDecoder().decode(b64uCoz(p[0]))); yuk = JSON.parse(new TextDecoder().decode(b64uCoz(p[1]))); } catch (e) { return null; }
   const simdi = Math.floor(Date.now() / 1000);
@@ -548,7 +552,7 @@ async function kimlikDogrula(idToken, projeId) {
   const jwk = (await googleAnahtarlar()).find(k => k.kid === bas.kid); if (!jwk) return null;
   const anahtar = await crypto.subtle.importKey("jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
   const ok = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", anahtar, b64uCoz(p[2]), new TextEncoder().encode(p[0] + "." + p[1]));
-  return ok ? yuk.sub : null;
+  return ok ? yuk : null;
 }
 const TG_SAY = new Map();
 function tgSinir(uid) {
@@ -606,6 +610,96 @@ async function borsaYanit(req, url) {
   return new Response(yanit, { headers: { "content-type": "application/json; charset=utf-8", ...CORS } });
 }
 
+
+/* ---------- HALI SAHA IŞIKLARI (WT32-ETH01 kartı · Realtime Database) ----------
+   Gerekli: RTDB_URL (Cloudflare değişkeni, ör. https://…firebasedatabase.app), CIHAZ_HALISAHA (gizli, kartın anahtarı)
+   Kart:  {tur:"cihazAnahtar", cihaz, anahtar} → yalnızca Realtime Database'e yetkili 1 saatlik erişim anahtarı
+          (Firestore'a erişemez; kişisel veriler Firestore'da kalır)
+   Site:  {tur:"halisaha", islem:"durum"|"ac"|"kapat"|"program", sure, ad, kod, idToken}
+          Yetki: teknisyen, yönetim, müdür (e-postayla) · güvenlik (aktif güvenlik koduyla). Kim yaptıysa kayda yazılır. */
+const TEKNISYEN_EPOSTA = ["teknisyenzeynel91@gmail.com"];
+const CIHAZLAR = ["halisaha"];
+const YETKI_ON = new Map();   // uid+kod → {kim, son}
+const HS_SAY = new Map();
+function hsSinir(anahtar, n) {
+  const dk = Math.floor(Date.now() / 6e4);
+  for (const k of HS_SAY.keys()) if (!k.endsWith("_" + dk)) HS_SAY.delete(k);
+  const a = anahtar + "_" + dk, v = (HS_SAY.get(a) || 0) + 1; HS_SAY.set(a, v); return v <= n;
+}
+async function esitMi(a, b) {
+  const h = async x => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(x))));
+  const [x, y] = await Promise.all([h(a), h(b)]); let f = 0; for (let i = 0; i < x.length; i++) f |= x[i] ^ y[i]; return f === 0 && String(a).length > 0;
+}
+async function rt(env, sa, yontem, yol, govde, ek = "") {
+  if (!env.RTDB_URL) throw new Error("RTDB_URL eklenmemiş");
+  const r = await fetch(`${String(env.RTDB_URL).replace(/\/$/, "")}/${yol}.json?access_token=${await erisim(sa, KAPSAM_RT)}${ek}`,
+    { method: yontem, headers: { "content-type": "application/json" }, ...(govde !== undefined ? { body: JSON.stringify(govde) } : {}) });
+  if (!r.ok) throw new Error("rtdb " + yol + " " + r.status);
+  return r.json();
+}
+async function hsKim(sa, g) {
+  const yuk = await kimlikYuk(g.idToken, sa.project_id); if (!yuk) return null;
+  const kod = /^\d{6}$/.test(String(g.kod || "")) ? String(g.kod) : "";
+  const anahtar = yuk.sub + "|" + kod, on = YETKI_ON.get(anahtar);
+  if (on && on.son > Date.now()) return on.kim;
+  const anonim = (yuk.firebase && yuk.firebase.sign_in_provider) === "anonymous";
+  const eposta = !anonim && yuk.email_verified !== false ? String(yuk.email || "").toLowerCase() : "";
+  const adTemiz = x => String(x || "").replace(/[\u0000-\u001f<>]/g, "").trim().slice(0, 40);
+  let kim = null;
+  if (eposta && TEKNISYEN_EPOSTA.includes(eposta)) kim = { ad: adTemiz(g.ad) || "Teknisyen", rol: "teknisyen", program: true };
+  else if (eposta) {
+    const r = await fsOku(sa, "ayar/roller"); const low = L => (L || []).map(x => String(x).toLowerCase().trim());
+    if (r && low(r.tesis).includes(eposta)) kim = { ad: adTemiz(g.ad) || "Müdür", rol: "mudur", program: true };
+    else if (r && low(r.yonetim).includes(eposta)) kim = { ad: adTemiz(g.ad) || "Yönetim", rol: "yonetim", program: true };
+  }
+  if (!kim && kod) {
+    const k = await fsOku(sa, "kod/" + kod);
+    if (k && k.aktif === true && k.tip === "guvenlik") kim = { ad: adTemiz(k.ad) || "Güvenlik", rol: "guvenlik", program: false };
+  }
+  if (kim) YETKI_ON.set(anahtar, { kim, son: Date.now() + 5 * 6e4 });
+  return kim;
+}
+async function hsDurum(env, sa, c) {
+  const [durum, program, log] = await Promise.all([
+    rt(env, sa, "GET", `cihaz/${c}/durum`), rt(env, sa, "GET", `cihaz/${c}/komut/program`),
+    rt(env, sa, "GET", `cihaz/${c}/log`, undefined, `&orderBy=%22%24key%22&limitToLast=8`)]);
+  const L = Object.entries(log || {}).sort((a, b) => a[0] < b[0] ? 1 : -1).map(([, v]) => v);
+  return { durum: durum || {}, program: program || null, log: L, simdi: Date.now() };
+}
+async function halisaha(env, sa, g, ip) {
+  const c = "halisaha";
+  if (!hsSinir("ip" + ip, 40)) return { hata: "çok sık", kod: 429 };
+  const kim = await hsKim(sa, g); if (!kim) return { hata: "Bu işlem için yetkiniz yok", kod: 403 };
+  const islem = String(g.islem || "durum");
+  if (islem === "durum") return { ...(await hsDurum(env, sa, c)), kim: { rol: kim.rol, program: kim.program } };
+  if (!hsSinir("k" + kim.rol + kim.ad, 8)) return { hata: "Çok sık deneme, 1 dakika bekleyin", kod: 429 };
+  if (islem === "ac" || islem === "kapat") {
+    const acik = islem === "ac", sure = [1, 2, 3].includes(Number(g.sure)) ? Number(g.sure) : 0;
+    const bitis = acik && sure ? Date.now() + sure * 36e5 : 0;
+    await rt(env, sa, "PUT", `cihaz/${c}/komut/istek`, { acik, bitis, kim: kim.ad, rol: kim.rol, ts: { ".sv": "timestamp" } });
+    await rt(env, sa, "POST", `cihaz/${c}/log`, { tur: "komut", acik, bitis, kim: kim.ad, rol: kim.rol, ts: { ".sv": "timestamp" } });
+    return { ok: true, ...(await hsDurum(env, sa, c)), kim: { rol: kim.rol, program: kim.program } };
+  }
+  if (islem === "program") {
+    if (!kim.program) return { hata: "Programı teknisyen, müdür ya da yönetim değiştirir", kod: 403 };
+    const p = g.program || {}, ok = x => /^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$/.test(String(x));
+    if (!ok(p.hi) || !ok(p.hs)) return { hata: "Saatler hatalı", kod: 400 };
+    const v = { aktif: p.aktif !== false, hi: p.hi, hs: p.hs };
+    await rt(env, sa, "PUT", `cihaz/${c}/komut/program`, v);
+    await rt(env, sa, "POST", `cihaz/${c}/log`, { tur: "program", ...v, kim: kim.ad, rol: kim.rol, ts: { ".sv": "timestamp" } });
+    return { ok: true, ...(await hsDurum(env, sa, c)), kim: { rol: kim.rol, program: kim.program } };
+  }
+  return { hata: "bilinmeyen işlem", kod: 400 };
+}
+async function cihazAnahtar(env, sa, g, ip) {
+  if (!hsSinir("cihaz" + ip, 6)) return { hata: "çok sık", kod: 429 };
+  const c = String(g.cihaz || ""); if (!CIHAZLAR.includes(c)) return { hata: "cihaz", kod: 400 };
+  const gizli = env["CIHAZ_" + c.toUpperCase()];
+  if (!gizli || !(await esitMi(g.anahtar || "", gizli))) return { hata: "anahtar", kod: 401 };
+  if (!env.RTDB_URL) return { hata: "RTDB_URL eklenmemiş", kod: 500 };
+  return { token: await erisim(sa, KAPSAM_RT), db: String(env.RTDB_URL).replace(/^https:\/\//, "").replace(/\/$/, ""), sure: Math.floor(((ERISIM_K[KAPSAM_RT] || {}).son - Date.now()) / 1000) };
+}
+
 const CORS = { "access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "content-type" };
 function hazirla(env) {
   const sa = JSON.parse(env.SERVICE_ACCOUNT);
@@ -631,7 +725,7 @@ export default {
       try { const k = await kesintiBul(env); return new Response(JSON.stringify({ kaynak: "BEDAŞ", toplamKayit: k.toplam, avcilarKayit: k.avcilar, mahalleFiltresi: k.mah, bizimIcin: k.bizim.map(kesintiYazi), avcilarOrnek: k.avcOrnek, ornekHam: k.bizim[0] || k.ornek || null }, null, 2), { headers: { "content-type": "application/json; charset=utf-8", ...CORS } }); }
       catch (e) { return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 502, headers: { "content-type": "application/json; charset=utf-8", ...CORS } }); }
     }
-    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 5.3: mesai, bakım, arıza notu, yedek, telegram, kesinti, borsa)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
+    if (req.method === "GET") return new Response("Bizimevler 1 bildirim postacısı çalışıyor ✓ (sürüm 5.4: mesai, bakım, arıza notu, yedek, telegram, kesinti, borsa, halı saha)", { headers: { "content-type": "text/plain; charset=utf-8", ...CORS } });
     if (req.method !== "POST") return new Response("", { status: 405, headers: CORS });
     let g; try { g = JSON.parse(await req.text()); } catch (e) { return new Response("{}", { status: 400, headers: CORS }); }
     const tur = String(g.tur || ""), id = String(g.id || "");
@@ -647,6 +741,12 @@ export default {
         await yedekDurumYaz(sa2, { son: simdi, sonAd: ad, sonBoyut: boyut, hata: "" });
         return new Response(JSON.stringify({ ok: true, boyut }), { headers: { "content-type": "application/json", ...CORS } });
       } catch (e) { await yedekDurumYaz(sa2, { hata: String(e.message || e).slice(0, 200), hataTs: simdi }); return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 500, headers: { "content-type": "application/json", ...CORS } }); }
+    }
+    if (tur === "halisaha" || tur === "cihazAnahtar") {
+      let sa4; try { sa4 = JSON.parse(env.SERVICE_ACCOUNT); } catch (e) { return new Response(JSON.stringify({ hata: "SERVICE_ACCOUNT" }), { status: 500, headers: { "content-type": "application/json", ...CORS } }); }
+      const ip = req.headers.get("cf-connecting-ip") || "?";
+      try { const s = tur === "halisaha" ? await halisaha(env, sa4, g, ip) : await cihazAnahtar(env, sa4, g, ip); return new Response(JSON.stringify(s), { status: s.kod || 200, headers: { "content-type": "application/json; charset=utf-8", ...CORS } }); }
+      catch (e) { return new Response(JSON.stringify({ hata: String(e.message || e) }), { status: 500, headers: { "content-type": "application/json", ...CORS } }); }
     }
     if (tur === "tg" || tur === "tgFoto") {
       let sa3; try { sa3 = JSON.parse(env.SERVICE_ACCOUNT); } catch (e) { return new Response(JSON.stringify({ hata: "SERVICE_ACCOUNT" }), { status: 500, headers: { "content-type": "application/json", ...CORS } }); }

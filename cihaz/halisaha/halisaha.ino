@@ -8,8 +8,11 @@
    - Durumunu ve geçmişi sisteme yazar; güncellemeler internetten gelir
 
    İlk kurulumda seri porttan bir kez ayar gönderilir (kurulum sayfası yapar):
-     AYAR {"email":"...","sifre":"...","db":"xxx.firebasedatabase.app","cihaz":"halisaha","dusuk":1}
-   Şifre karta kaydedilir, GitHub'da / sitede durmaz.
+     AYAR {"anahtar":"...","cihaz":"halisaha","dusuk":1}
+   Anahtar yalnızca karta ve Cloudflare'e (CIHAZ_HALISAHA) kaydedilir; GitHub'da / sitede durmaz.
+   Kart anahtarla postacıdan 1 saatlik erişim alır; bu erişim yalnızca Realtime Database'e yeter,
+   kişisel verilerin olduğu Firestore'a erişemez.
+   Telefondan gelen komutların "kim yaptı" kaydını postacı yazar; kart yalnızca otomatik değişimleri yazar.
    ===================================================================== */
 #include <ETH.h>
 #include <NetworkClientSecure.h>
@@ -23,17 +26,17 @@
 #define SURUM "1.0.0"
 #define ROLE_PIN 4
 #define LED_PIN 2            // kart üstünde yoksa sorun değil
-static const char *API_KEY = "AIzaSyAAtGK76Oanri1T9nCK4bm6dDJCLVzWp5c";   // sitedeki açık anahtar (gizli değil)
+static const char *SUNUCU_VARSAYILAN = "https://bizimevler1bildirim.teknisyenzeynel91.workers.dev";
 static const char *GUNCELLEME_KOK = "https://bizimevlerteknikservis.github.io/";
 
 /* ---------- ayarlar ---------- */
 Preferences P;
-String aEmail, aSifre, aDb, aCihaz;
+String aAnahtar, aSunucu, aDb, aCihaz;
 bool roleDusuk = true;       // çoğu röle modülü: IN=LOW → çeker
 
 /* ---------- durum ---------- */
 volatile bool agVar = false;
-String token; uint32_t tokenMs = 0;
+String token; uint32_t tokenMs = 0, tokenOmur = 50UL * 60 * 1000;
 bool roleAcik = false;
 String kaynak = "baslangic";
 
@@ -100,8 +103,8 @@ static void istekSonuHesapla() {
 /* ---------- ayar kaydet / yükle ---------- */
 static void ayarYukle() {
   P.begin("ayar", true);
-  aEmail = P.getString("email", ""); aSifre = P.getString("sifre", "");
-  aDb = P.getString("db", ""); aCihaz = P.getString("cihaz", "halisaha");
+  aAnahtar = P.getString("anahtar", ""); aSunucu = P.getString("sunucu", SUNUCU_VARSAYILAN);
+  aCihaz = P.getString("cihaz", "halisaha");
   roleDusuk = P.getBool("dusuk", true);
   P.end();
   P.begin("prg", true);   // internet yokken de çalışsın diye son program
@@ -127,9 +130,8 @@ static void seriOku() {
         if (deserializeJson(d, s.substring(5))) { Serial.println("AYAR HATA json"); }
         else {
           P.begin("ayar", false);
-          if (d["email"].is<const char *>()) P.putString("email", d["email"].as<const char *>());
-          if (d["sifre"].is<const char *>()) P.putString("sifre", d["sifre"].as<const char *>());
-          if (d["db"].is<const char *>()) P.putString("db", d["db"].as<const char *>());
+          if (d["anahtar"].is<const char *>()) P.putString("anahtar", d["anahtar"].as<const char *>());
+          if (d["sunucu"].is<const char *>()) P.putString("sunucu", d["sunucu"].as<const char *>());
           if (d["cihaz"].is<const char *>()) P.putString("cihaz", d["cihaz"].as<const char *>());
           if (!d["dusuk"].isNull()) P.putBool("dusuk", d["dusuk"].as<int>() != 0);
           P.end();
@@ -152,22 +154,23 @@ static void seriOku() {
 
 /* ---------- Firebase ---------- */
 static bool girisYap() {
-  if (!aEmail.length() || !aSifre.length()) return false;
+  if (!aAnahtar.length()) return false;
   NetworkClientSecure c; c.setCACert(KOK_SERTIFIKA);
-  HTTPClient h;
-  if (!h.begin(c, String("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=") + API_KEY)) return false;
+  HTTPClient h; h.setTimeout(10000);
+  if (!h.begin(c, aSunucu)) return false;
   h.addHeader("content-type", "application/json");
-  JsonDocument b; b["email"] = aEmail; b["password"] = aSifre; b["returnSecureToken"] = true;
+  JsonDocument b; b["tur"] = "cihazAnahtar"; b["cihaz"] = aCihaz; b["anahtar"] = aAnahtar;
   String g; serializeJson(b, g);
   int kod = h.POST(g); String y = h.getString(); h.end();
   if (kod != 200) { Serial.printf("giris hata %d %s\n", kod, y.substring(0, 160).c_str()); return false; }
   JsonDocument d; if (deserializeJson(d, y)) return false;
-  token = d["idToken"].as<String>(); tokenMs = millis();
+  token = d["token"].as<String>(); aDb = d["db"].as<String>(); tokenMs = millis();
+  int sure = d["sure"] | 3600; tokenOmur = (uint32_t)max(300, sure - 300) * 1000UL;
   Serial.println("giris tamam");
-  return token.length() > 0;
+  return token.length() > 0 && aDb.length() > 0;
 }
 
-static String yol(const char *alt) { return "https://" + aDb + "/cihaz/" + aCihaz + alt + ".json?auth=" + token; }
+static String yol(const char *alt) { return "https://" + aDb + "/cihaz/" + aCihaz + alt + ".json?access_token=" + token; }
 
 static int istekAt(const char *yontem, const char *alt, const String &govde, String *yanit = nullptr) {
   NetworkClientSecure c; c.setCACert(KOK_SERTIFIKA);
@@ -189,9 +192,8 @@ static void durumYaz(bool kayitEkle) {
   if (istekSonu > 0 && saatTamam() && simdiMs() < istekSonu) d["elleBitis"] = istekSonu; else d["elleBitis"] = 0;
   String g; serializeJson(d, g);
   istekAt("PUT", "/durum", g);
-  if (kayitEkle) {
-    JsonDocument l; l["acik"] = roleAcik; l["kaynak"] = kaynak; l["ts"][".sv"] = "timestamp";
-    if (kaynak == "telefon" && ist.kim.length()) l["kim"] = ist.kim;
+  if (kayitEkle && kaynak != "telefon") {   // telefon komutlarını (kim yaptı) postacı kaydeder
+    JsonDocument l; l["tur"] = "kart"; l["acik"] = roleAcik; l["kaynak"] = kaynak; l["ts"][".sv"] = "timestamp";
     String lg; serializeJson(l, lg);
     istekAt("POST", "/log", lg);
   }
@@ -235,7 +237,7 @@ static void akisBaslat() {
   akisIstemci.stop(); akisAcik = false;
   akisIstemci.setCACert(KOK_SERTIFIKA);
   if (!akisIstemci.connect(aDb.c_str(), 443)) { Serial.println("akis baglanamadi"); return; }
-  akisIstemci.printf("GET /cihaz/%s/komut.json?auth=%s HTTP/1.1\r\nHost: %s\r\nAccept: text/event-stream\r\nConnection: keep-alive\r\n\r\n",
+  akisIstemci.printf("GET /cihaz/%s/komut.json?access_token=%s HTTP/1.1\r\nHost: %s\r\nAccept: text/event-stream\r\nConnection: keep-alive\r\n\r\n",
                      aCihaz.c_str(), token.c_str(), aDb.c_str());
   String ilk = akisIstemci.readStringUntil('\n');
   if (ilk.indexOf(" 200") < 0) {
@@ -315,7 +317,7 @@ void setup() {
   pinMode(LED_PIN, OUTPUT); digitalWrite(LED_PIN, LOW);
   Serial.begin(115200); delay(200);
   Serial.printf("\nBizimevler hali saha karti %s · cihaz %s\n", SURUM, aCihaz.c_str());
-  if (!aEmail.length() || !aDb.length()) Serial.println("AYAR YOK: kurulum sayfasindan ayar gonderin");
+  if (!aAnahtar.length()) Serial.println("AYAR YOK: kurulum sayfasindan ayar gonderin");
   configTzTime("<+03>-3", "time.google.com", "pool.ntp.org");
   Network.onEvent(agOlayi);
   ETH.begin(ETH_PHY_LAN8720, 1, 23, 18, 16, ETH_CLOCK_GPIO0_IN);
@@ -326,9 +328,9 @@ void loop() {
   static uint32_t sonKarar = 0;
   if (millis() - sonKarar > 1000) { sonKarar = millis(); karar(); }
 
-  if (!agVar || !aEmail.length() || !aDb.length()) { delay(20); return; }
+  if (!agVar || !aAnahtar.length()) { delay(20); return; }
 
-  if (!token.length() || millis() - tokenMs > 50UL * 60 * 1000) {
+  if (!token.length() || millis() - tokenMs > tokenOmur) {
     static uint32_t sonGiris = 0;
     if (millis() - sonGiris > 15000 || !sonGiris) { sonGiris = millis(); akisIstemci.stop(); akisAcik = false; if (girisYap()) { komutOkunmali = true; durumYaz(false); } }
     delay(20); return;

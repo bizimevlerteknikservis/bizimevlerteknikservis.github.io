@@ -737,7 +737,34 @@ nav.tabs a[aria-current="page"]{color:#fff;background:rgba(59,140,255,.16)}nav.t
 .izin-s.bugun{background:#fff3e0;border-color:#e8952b}.izin-s.gecmis{opacity:.55}.izin-s small{color:var(--muted);font-weight:500}
 .gel-btn{display:block;width:100%;margin:0 0 14px;border:2px dashed #e5484d!important;color:#c0392b!important;font-weight:800}
 .gel-k{border:2px solid #e5484d}
-.guv-sekme{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:6px;margin:0 0 14px;border-radius:18px;background:var(--card,#fff);box-shadow:0 6px 20px rgba(16,40,80,.08)}
+/* Halı saha ışıkları */
+.hsi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+.hsi h2{font:700 15px var(--display);margin:0 0 12px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hsi-ust{display:flex;align-items:center;gap:12px}
+.hsi-ikon{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;font-size:28px;background:var(--sunk);border:1px solid var(--line);flex:none;transition:.4s}
+.hsi.on .hsi-ikon{background:#fef3c7;border-color:#facc15;box-shadow:0 0 26px rgba(250,204,21,.55)}
+.hsi-dur{font:800 24px/1.05 var(--display)}
+.hsi.on .hsi-dur{color:#ca8a04}
+.hsi-alt{font-size:13px;color:var(--muted);margin-top:4px}
+.hsi-n{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:0}
+.hsi-proj{display:flex;gap:10px;justify-content:center;margin:16px 0 12px}
+.hsi-proj i{width:46px;height:26px;border-radius:8px 8px 4px 4px;background:var(--sunk);border:1px solid var(--line);transition:.4s}
+.hsi.on .hsi-proj i{background:#fde68a;border-color:#facc15;box-shadow:0 8px 26px rgba(250,204,21,.65)}
+.hsi-btn{border:0;border-radius:14px;padding:17px;width:100%;font:800 17px var(--body);background:#16a34a;color:#fff;box-shadow:0 8px 20px -8px #16a34a}
+.hsi.on .hsi-btn{background:#dc2626;box-shadow:0 8px 20px -8px #dc2626}
+.hsi-btn[disabled]{opacity:.55}
+.hsi-cips{display:flex;gap:8px;margin-top:10px}
+.hsi-cips button{flex:1;border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:11px;padding:11px 4px;font:700 13.5px var(--body)}
+.hsi-cips button[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.hsi-bilgi{margin-top:12px;font-size:13.5px;font-weight:700;text-align:center;color:var(--muted)}
+.hsi-bilgi.uyari{color:#b45309}
+.hsi-log{display:grid;gap:8px}
+.hsi-l{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--sunk);border:1px solid var(--line)}
+.hsi-l b{display:block;font-size:14px}.hsi-l small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.hsi-l time{margin-left:auto;font:600 12px var(--mono);color:var(--muted);white-space:nowrap}
+.hsi-prg{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:8px;align-items:center;font-size:13.5px}
+.hsi-prg input{width:100%;padding:9px;border-radius:10px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);font:700 14px var(--mono)}
+.guv-sekme{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:6px;margin:0 0 14px;border-radius:18px;background:var(--card,#fff);box-shadow:0 6px 20px rgba(16,40,80,.08)}
 .guv-sekme a{display:block;text-align:center;padding:12px 2px;border-radius:13px;text-decoration:none;font:800 13.5px var(--body,system-ui);color:var(--ink)}
 .guv-sekme a[aria-current="true"]{background:linear-gradient(140deg,var(--accent,#2b7cd3),var(--accent-2,#3b9be0));color:#fff}
 .ses-k{border:2px solid #2b7cd3;background:linear-gradient(160deg,rgba(43,124,211,.07),transparent)}
@@ -3178,13 +3205,13 @@ const bldIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator
 const bldAnaEkran = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 const bldDestek = () => "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
 function bldKim(){
-  if (["personel.html","devriye.html"].includes(appDosya()) && ["personel","devriye","gtasinma"].includes(S.view)){ const b = mesaiBen(); if (b) return {rol:"personel", ad:b.ad, grup:b.grup, kod:b.kod}; }
+  if (["personel.html","devriye.html"].includes(appDosya()) && ["personel","devriye","gtasinma","halisaha"].includes(S.view)){ const b = mesaiBen(); if (b) return {rol:"personel", ad:b.ad, grup:b.grup, kod:b.kod}; }
   const r = store.rolAd && store.rolAd();
   if (r) return {rol:r, ad: r==="teknisyen" ? "Zeynel (Teknisyen)" : (store.kim ? store.kim() : ""), grup:"", kod:""};
   const b = mesaiBen(); if (b) return {rol:"personel", ad:b.ad, grup:b.grup, kod:b.kod};
   return null;
 }
-function bldPersonelMenu(){ return !!(pDashKim() && ["personel","devriye","gtasinma"].includes(S.view)); }
+function bldPersonelMenu(){ return !!(pDashKim() && ["personel","devriye","gtasinma","halisaha"].includes(S.view)); }
 function bildirimAcikMi(){ const k = bldOku(); return !!(k && k.token && "Notification" in window && Notification.permission === "granted"); }
 function bildirimKart(zorla){
   if (!zorla && bldPersonelMenu()) return "";   // personel ekranında alttaki menüde "Bildirim" sekmesinde
@@ -3398,6 +3425,7 @@ function ikIceride(){
 const IC = {
   shield:'<path d="M12 3l7 3v6c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
   alert:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  lamba:'<path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/>',
   wrench:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
   check:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
   users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c2.8.2 5 2.6 5 5.8"/>',
@@ -3661,7 +3689,7 @@ function havaYukle(zorla){
   if (HV.yuk || (taze && !zorla)) return;
   if (!HV.v){ try { const c = JSON.parse(localStorage.getItem("bz1-hava2") || "null"); if (c && c.v && c.v.hourly){ HV.v = c.v; HV.ts = c.ts; HV.m = c.m || null; HV.mts = c.mts || 0; if (Date.now() - c.ts < 15*6e4 && !zorla) return; } } catch(e){} }
   HV.yuk = true;
-  const ciz = () => { try { localStorage.setItem("bz1-hava2", JSON.stringify({v:HV.v, ts:HV.ts, m:HV.m, mts:HV.mts})); } catch(e){} if (["panel","personel","devriye","gtasinma"].includes(S.view)) render(); sakinHavaCiz(); havaPanelCiz(); };
+  const ciz = () => { try { localStorage.setItem("bz1-hava2", JSON.stringify({v:HV.v, ts:HV.ts, m:HV.m, mts:HV.mts})); } catch(e){} if (["panel","personel","devriye","gtasinma","halisaha"].includes(S.view)) render(); sakinHavaCiz(); havaPanelCiz(); };
   const om = fetch(HV_URL).then(r => r.json()).then(j => { if (j && j.hourly){ HV.v = j; HV.ts = Date.now(); } }).catch(() => {});
   const mt = AYAR.bildirimSunucu ? fetch(AYAR.bildirimSunucu + "?hava=1").then(r => r.ok ? r.json() : null).then(m => { if (m && m.temp != null){ HV.m = m; HV.mts = Date.now(); } }).catch(() => {}) : Promise.resolve();
   Promise.all([om, mt]).then(ciz).finally(() => { HV.yuk = false; });
@@ -3832,7 +3860,7 @@ function malzemeKart(){
 }
 function pDash(icerik){
   const ben = pDashKim(); if (!ben) return icerik;
-  if (!IK.unP && store.listenPersonelSon) IK.unP = store.listenPersonelSon(L => { IK.pers = L; if (["personel","devriye","gtasinma"].includes(S.view)) setTimeout(render,0); });
+  if (!IK.unP && store.listenPersonelSon) IK.unP = store.listenPersonelSon(L => { IK.pers = L; if (["personel","devriye","gtasinma","halisaha"].includes(S.view)) setTimeout(render,0); });
   mesaiBaslat();
   const son = MS.liste[0], ice = mesaiIcerde();
   const benG = {ad:ben.ad, rol: ben.grup==="guvenlik" ? "Güvenlik" : ben.grup==="bahce" ? BAHCIVAN : "Temizlik"};
@@ -3841,8 +3869,8 @@ function pDash(icerik){
   const acikA = (IK.pers||[]).filter(a => acik(a) && !["p_tasinma","p_gelemiyorum"].includes(a.cat)).length;
   const h = new Date().getHours(), selam = h < 6 ? "İyi geceler" : h < 12 ? "Günaydın" : h < 18 ? "İyi günler" : "İyi akşamlar";
   const guv = ben.grup === "guvenlik";
-  const baslik = S.view==="devriye" ? "Devriye" : S.view==="gtasinma" ? "Taşınma & Tadilat" : guv ? "Arıza Bildir" : "Personel";
-  const alt = S.view==="devriye" ? "Noktaya geldiğinde QR'ı okut, turun kaydedilsin." : S.view==="gtasinma" ? "Bugün ve önümüzdeki günlerde kayıtlı taşınma ve tadilatlar." : "Sahada gördüğün arızayı ya da ihtiyacın olan malzemeyi 15 saniyede bildir.";
+  const baslik = S.view==="devriye" ? "Devriye" : S.view==="gtasinma" ? "Taşınma & Tadilat" : S.view==="halisaha" ? "Halı Saha Işıkları" : guv ? "Arıza Bildir" : "Personel";
+  const alt = S.view==="devriye" ? "Noktaya geldiğinde QR'ı okut, turun kaydedilsin." : S.view==="gtasinma" ? "Bugün ve önümüzdeki günlerde kayıtlı taşınma ve tadilatlar." : S.view==="halisaha" ? "Sahada kimse yoksa ışıkları kapat. Kim açıp kapattıysa kayda yazılır." : "Sahada gördüğün arızayı ya da ihtiyacın olan malzemeyi 15 saniyede bildir.";
   const bildirAdres = guv ? "devriye.html#personel" : "#personel";
   return `<section class="d-hero"><div class="d-ic">
     ${dUst(gor + tal, "pGorevGit")}
@@ -3862,6 +3890,7 @@ function pDash(icerik){
     ${guv ? `<a href="#devriye"${S.view==="devriye" ? ` aria-current="page"` : ""}>${ic("shield")}<span>Devriye</span></a>` : ""}
     <a href="${S.view==="personel" ? "#" : bildirAdres}" ${S.view==="personel" ? `data-act="pBildirGit"${S.bldPanel ? "" : ` aria-current="page"`}` : ""}>${ic("alert")}<span>${guv ? "Arıza" : "Arıza Bildir"}</span></a>
     ${guv ? `<a href="#gtasinma"${S.view==="gtasinma" ? ` aria-current="page"` : ""}>${ic("building")}<span>Taşınma</span></a>` : ""}
+    ${guv ? `<a href="#halisaha"${S.view==="halisaha" ? ` aria-current="page"` : ""}>${ic("lamba")}<span>Halı saha</span></a>` : ""}
     <a href="kontrol.html">${ic("radar")}<span>Canlı</span></a>
     ${guv ? "" : `<a href="#" data-act="pGorevGit">${ic("clip")}<span>Görevler</span>${gor + tal ? `<em>${gor + tal}</em>` : ""}</a>`}
     <a href="#" data-act="bldPanel"${S.bldPanel ? ` aria-current="page"` : ""}>${ic("bell")}<span>Bildirim</span>${bildirimAcikMi() ? "" : `<em>!</em>`}</a>
@@ -3884,6 +3913,7 @@ function vDash(isler, ayar){
     T("#devriye", "shield", "mavi", "Devriye", "QR okut"),
     T("#personel", "alert", "kirmizi", "Arıza Bildir"),
     (tech || tesis) && `<a class="d-tile turuncu" href="#tesis" data-act="tSekmeGit" data-v="ozet"><i>${ic("wrench")}</i><b>Tesis & Bakım</b><small>Asansör · takvim · stok</small></a>`,
+    T("#halisaha", "lamba", "altin", "Halı Saha", "Işık aç · kapat"),
     T("#ik", "users", "mor", "Personel", "İzin · Puantaj"),
     T("#gorev", "clip", "camgobegi", "Görev Ver"),
     T("#tutanak", "tutanak", "kirmizi", "Olay Tutanağı", "Yaz · yazdır · PDF"),
@@ -4450,7 +4480,104 @@ function duyuruKontrol(){
     <p class="hint">Vardiyadaki herkesin devriye ekranında uyarı çıkar, Kontrol Merkezi'nde de görünür. İstediğiniz an yeniden başlatabilirsiniz.</p></details>`;
 }
 /* Güvenlik uygulamasında iki bölüm: Devriye | Arıza bildir (aynı uygulama, aynı kod) */
-const guvSekme = akt => `<nav class="guv-sekme"><a href="#devriye" aria-current="${akt==="devriye"}">🛡️ Devriye</a><a href="#personel" aria-current="${akt==="ariza"}">📝 Arıza</a><a href="#gtasinma" aria-current="${akt==="tasinma"}">🚚 Taşınma</a><a href="kontrol.html">🗺️ Canlı</a></nav>`;
+const guvSekme = akt => `<nav class="guv-sekme"><a href="#devriye" aria-current="${akt==="devriye"}">🛡️ Devriye</a><a href="#personel" aria-current="${akt==="ariza"}">📝 Arıza</a><a href="#gtasinma" aria-current="${akt==="tasinma"}">🚚 Taşınma</a><a href="#halisaha" aria-current="${akt==="halisaha"}">⚽ Saha</a><a href="kontrol.html">🗺️ Canlı</a></nav>`;
+
+/* ===== Halı saha ışıkları: güvenlik (kodla), teknisyen, müdür, yönetim açar/kapatır; kim yaptıysa kayda yazılır =====
+   Komutlar postacıya gider; postacı yetkiyi kontrol eder (güvenlik kodu / yönetim listesi) ve karta iletir. */
+const HSI = { veri:null, hata:"", bekle:0, sure:0, prgAc:false, zam:null, demo:null };
+const HSI_ROL = {teknisyen:"Teknisyen", mudur:"Müdür", yonetim:"Yönetim", guvenlik:"Güvenlik"};
+const HSI_KAYNAK = {program:"Otomatik program", bekleme:"Program kapalı", "saat-yok":"Saat bekleniyor", guncelleme:"Güncelleniyor", baslangic:"Kart açılıyor"};
+const hsiCanli = () => !!(AYAR.firebase && AYAR.bildirimSunucu && store.idToken);
+function hsiDemo(){
+  if (HSI.demo) return HSI.demo; const t = Date.now();
+  return HSI.demo = { durum:{acik:false, kaynak:"program", son:t}, program:{aktif:true, hi:"18:00-23:00", hs:"17:30-23:30"}, simdi:t, kim:{rol:pDashKim() ? "guvenlik" : "teknisyen", program:!pDashKim()},
+    log:[{tur:"kart", acik:false, kaynak:"program", ts:t-15*36e5}, {tur:"komut", acik:true, kim:"Örnek Görevli", rol:"guvenlik", bitis:t-17*36e5, ts:t-19*36e5}, {tur:"kart", acik:true, kaynak:"program", ts:t-20*36e5}] };
+}
+async function hsiIstek(islem, ek){
+  if (!hsiCanli()){
+    const d = hsiDemo(), t = Date.now(), ben = pDashKim();
+    const kim = ben ? ben.ad : dashAd(), rol = ben ? "guvenlik" : store.isTech() ? "teknisyen" : "yonetim";
+    if (islem === "ac" || islem === "kapat"){ const acik = islem === "ac", bitis = acik && ek.sure ? t + ek.sure*36e5 : 0;
+      await new Promise(r => setTimeout(r, 700)); d.durum = {acik, kaynak:"telefon", son:t, elleBitis:bitis}; d.log.unshift({tur:"komut", acik, bitis, kim, rol, ts:t}); }
+    if (islem === "program"){ d.program = {...ek.program}; d.log.unshift({tur:"program", ...ek.program, kim, rol, ts:t}); }
+    d.durum.son = d.simdi = Date.now(); return JSON.parse(JSON.stringify(d));
+  }
+  const ben = pDashKim(), idToken = await store.idToken().catch(() => null);
+  if (!idToken) throw new Error("Oturum bulunamadı, uygulamayı yeniden açın");
+  const r = await fetch(AYAR.bildirimSunucu, {method:"POST", body: JSON.stringify({tur:"halisaha", islem, idToken, kod: ben && ben.kod || "", ad: ben ? ben.ad : dashAd(), ...(ek||{})})});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.hata || ("Sunucu hatası " + r.status));
+  return j;
+}
+async function hsiOku(){
+  try { HSI.veri = await hsiIstek("durum"); HSI.hata = ""; }
+  catch(e){ HSI.hata = e.message; }
+  if (S.view === "halisaha") render();
+}
+function hsiBaslat(){ if (HSI.zam) return; hsiOku(); HSI.zam = setInterval(() => { if (document.visibilityState === "visible") hsiOku(); }, 10000); }
+function hsiDur(){ if (HSI.zam){ clearInterval(HSI.zam); HSI.zam = null; } }
+const hsiZaman = ms => { const d = new Date(ms), b = new Date(); b.setHours(0,0,0,0); return (d >= b ? "Bugün " : d >= b - 864e5 ? "Dün " : d.toLocaleDateString("tr-TR",{day:"numeric",month:"short"}) + " ") + saatYaz(ms); };
+function hsiLogSatir(l){
+  const kim = l.kim ? `${esc(l.kim)}${l.rol ? ` · ${HSI_ROL[l.rol] || esc(l.rol)}` : ""}` : "";
+  if (l.tur === "program") return `<div class="hsi-l"><span>🗓</span><div><b>Program değişti</b><small>${l.aktif === false ? "Otomatik program kapatıldı" : `Hafta içi ${esc(l.hi)} · hafta sonu ${esc(l.hs)}`}${kim ? "<br>👤 " + kim : ""}</small></div><time>${hsiZaman(l.ts)}</time></div>`;
+  if (l.tur === "komut") return `<div class="hsi-l"><span>${l.acik ? "💡" : "🌑"}</span><div><b>${l.acik ? "Açtı" : "Kapattı"}${l.acik && l.bitis ? ` · ${saatYaz(l.bitis)}'e kadar` : ""}</b><small>👤 ${kim || "Bilinmiyor"} · telefondan</small></div><time>${hsiZaman(l.ts)}</time></div>`;
+  return `<div class="hsi-l"><span>${l.acik ? "💡" : "🌑"}</span><div><b>${l.acik ? "Açıldı" : "Kapandı"}</b><small>⚙️ ${HSI_KAYNAK[l.kaynak] || "Kart"}</small></div><time>${hsiZaman(l.ts)}</time></div>`;
+}
+function vHaliSaha(){
+  const geri = pDashKim() ? (appDosya()==="devriye.html" && S.d && S.d.kim && !store.isYetkili() ? guvSekme("halisaha") : "") : `<a class="pill-btn geri-eski" href="#panel" style="margin-bottom:12px;display:inline-block">← Menü</a>`;
+  if (!hsiCanli() && !HSI.veri) HSI.veri = hsiDemo();
+  const V = HSI.veri;
+  if (!V) return geri + `<section class="hsi"><h2>⚽ Halı saha ışıkları</h2><p class="hint">${HSI.hata ? "⚠️ " + esc(HSI.hata) : "Karta bağlanılıyor…"}</p></section>`;
+  const d = V.durum || {}, p = V.program || {}, simdi = V.simdi || Date.now();
+  const cevrim = d.son && simdi - d.son < 3*6e4, acik = !!d.acik;
+  const bekliyor = HSI.bekle && Date.now() - HSI.bekle < 15e3;
+  const elle = d.kaynak === "telefon" && d.elleBitis > simdi;
+  const sonGor = d.son ? (simdi - d.son < 36e5 ? Math.max(1, Math.round((simdi - d.son)/6e4)) + " dk önce" : hsiZaman(d.son)) : "hiç bağlanmadı";
+  const sonKomut = (V.log || []).find(l => l.tur === "komut");
+  const [hb,he] = String(p.hi||"18:00-23:00").split("-"), [sb,se] = String(p.hs||"17:30-23:30").split("-");
+  const prgYetki = V.kim && V.kim.program;
+  return geri + `${hsiCanli() ? "" : `<div class="t-uyari mavi" style="margin-bottom:12px">Örnek ekran · kart takılınca gerçek ışıklar buradan yönetilecek.</div>`}
+  <section class="hsi${acik ? " on" : ""}">
+    <h2><span>⚽ Halı saha ışıkları</span>${HSI.hata ? `<small style="color:#b45309;font:600 12px var(--body)">⚠️ bağlantı</small>` : ""}</h2>
+    <div class="hsi-ust"><div class="hsi-ikon">${acik ? "💡" : "🌑"}</div>
+      <div><div class="hsi-dur">${bekliyor ? "Gönderiliyor…" : acik ? "AÇIK" : "KAPALI"}</div>
+      <div class="hsi-alt"><span class="hsi-n" style="background:${cevrim ? "#16a34a" : "#d97706"}"></span>${cevrim ? "Kart çevrimiçi" : "Kart çevrimdışı · " + sonGor}</div></div></div>
+    <div class="hsi-proj"><i></i><i></i><i></i><i></i></div>
+    <button class="hsi-btn" data-act="hsiTus"${bekliyor || !cevrim ? " disabled" : ""}>${acik ? "Işıkları kapat" : "Işıkları aç"}</button>
+    ${acik ? "" : `<div class="hsi-cips">${[[1,"1 saat"],[2,"2 saat"],[0,"Programa kadar"]].map(([x,t]) => `<button data-act="hsiSure" data-v="${x}" aria-pressed="${HSI.sure===x}">${t}</button>`).join("")}</div>`}
+    <div class="hsi-bilgi${!cevrim ? " uyari" : ""}">${!cevrim ? "Kart yanıt vermiyor. Gerekirse panodaki yedek sigortayla elle açılır, teknisyene haber verin." : elle ? `⏱ ${saatYaz(d.elleBitis)}'de otomatik programa döner` : d.kaynak === "telefon" && sonKomut ? `Son işlem: ${esc(sonKomut.kim || "")} · ${saatYaz(sonKomut.ts)}` : p.aktif !== false ? `Program: hafta içi ${esc(p.hi||"—")} · hafta sonu ${esc(p.hs||"—")}` : "Otomatik program kapalı"}</div>
+  </section>
+  ${prgYetki ? `<section class="hsi"><h2><span>🗓 Otomatik program</span><button class="pill-btn" data-act="hsiPrg">${HSI.prgAc ? "Vazgeç" : "Düzenle"}</button></h2>
+    ${HSI.prgAc ? `<div class="hsi-prg"><b>Hafta içi</b><input type="time" id="hsiHb" value="${esc(hb)}"><span>–</span><input type="time" id="hsiHe" value="${esc(he)}">
+      <b>Hafta sonu</b><input type="time" id="hsiSb" value="${esc(sb)}"><span>–</span><input type="time" id="hsiSe" value="${esc(se)}"></div>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-size:14px"><input type="checkbox" id="hsiAktif"${p.aktif !== false ? " checked" : ""}> Otomatik program açık</label>
+      <button class="cta" data-act="hsiPrgKaydet" style="margin-top:12px">Programı kaydet</button>`
+    : `<p class="hint" style="margin:0">Hafta içi <b>${esc(p.hi||"—")}</b> · hafta sonu <b>${esc(p.hs||"—")}</b>${p.aktif === false ? " · <b>kapalı</b>" : ""}. Telefondan açıp kapatınca program o süre için beklemeye alınır.</p>`}</section>` : ""}
+  <section class="hsi"><h2><span>📜 Kim açtı, kim kapattı</span></h2>
+    ${(V.log||[]).length ? `<div class="hsi-log">${V.log.slice(0,8).map(hsiLogSatir).join("")}</div>` : `<p class="hint" style="margin:0">Henüz kayıt yok.</p>`}</section>`;
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-act^='hsi']"); if (!b) return;
+  const act = b.dataset.act;
+  if (act === "hsiSure"){ HSI.sure = +b.dataset.v; render(); return; }
+  if (act === "hsiPrg"){ HSI.prgAc = !HSI.prgAc; render(); return; }
+  if (act === "hsiTus"){
+    const ac = !((HSI.veri||{}).durum||{}).acik;
+    HSI.bekle = Date.now(); render();
+    try { HSI.veri = await hsiIstek(ac ? "ac" : "kapat", {sure: ac ? HSI.sure : 0}); HSI.hata = ""; toast(ac ? "💡 Aç komutu gönderildi" : "🌑 Kapat komutu gönderildi"); }
+    catch(err){ toast("⚠️ " + err.message, 4000); }
+    HSI.bekle = 0; render();
+    if (hsiCanli()) [1500, 4000].forEach(ms => setTimeout(hsiOku, ms));   // kartın yanıtını hemen göster
+    return;
+  }
+  if (act === "hsiPrgKaydet"){
+    const v = id => (document.getElementById(id)||{}).value || "", ok = x => /^\d\d:\d\d$/.test(x);
+    if (![v("hsiHb"),v("hsiHe"),v("hsiSb"),v("hsiSe")].every(ok)){ toast("Saatleri eksiksiz girin"); return; }
+    try { HSI.veri = await hsiIstek("program", {program:{aktif: document.getElementById("hsiAktif").checked, hi: v("hsiHb")+"-"+v("hsiHe"), hs: v("hsiSb")+"-"+v("hsiSe")}}); HSI.prgAc = false; toast("🗓 Program kaydedildi"); }
+    catch(err){ toast("⚠️ " + err.message, 4000); }
+    render();
+  }
+});
 /* güvenlik kapıda gördüğü taşınma / tadilatı bildirir (kayıtlı olsun olmasın) → teknisyen + yönetim */
 function gtForm(){
   const f = S.gt;
@@ -6095,13 +6222,13 @@ function kodBaslat(){
 function render(){
   syncForm();
   const keep = document.activeElement && document.activeElement.id;
-  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="calisma" ? vCalisma() : S.view==="izinler" ? vIzinler() : S.view==="tutanak" ? vTutanak() : S.view==="sayac" ? vSayac() : S.view==="mesaj" ? vMesaj() : S.view==="ik" ? vIK() : S.view==="gorev" ? vGorev() : S.view==="gtasinma" ? vGuvTasinma() : S.view==="personel" ? pDash(vPersonel()) : S.view==="devriye" ? pDash(vDevriye()) : vRandevu();
-  const dash = (S.view==="panel" && (store.isTech() || (store.isYetkili && store.isYetkili())) && !S.panelEski) || (["personel","devriye","gtasinma"].includes(S.view) && !!pDashKim());
+  $("#view").innerHTML = S.view==="randevularim" ? vRandevularim() : S.view==="panel" ? vPanel() : S.view==="tesis" ? vTesis() : S.view==="tasinma" ? vTasinma() : S.view==="calisma" ? vCalisma() : S.view==="izinler" ? vIzinler() : S.view==="tutanak" ? vTutanak() : S.view==="sayac" ? vSayac() : S.view==="mesaj" ? vMesaj() : S.view==="ik" ? vIK() : S.view==="gorev" ? vGorev() : S.view==="gtasinma" ? vGuvTasinma() : S.view==="halisaha" ? (pDashKim() ? pDash(vHaliSaha()) : vHaliSaha()) : S.view==="personel" ? pDash(vPersonel()) : S.view==="devriye" ? pDash(vDevriye()) : vRandevu();
+  const dash = (S.view==="panel" && (store.isTech() || (store.isYetkili && store.isYetkili())) && !S.panelEski) || (["personel","devriye","gtasinma","halisaha"].includes(S.view) && !!pDashKim());
   document.body.classList.toggle("dash", dash);
-  document.querySelector("nav.tabs").hidden = dash || ((store.isTech() || (store.isYetkili && store.isYetkili())) && !["randevu","randevularim"].includes(S.view)) || S.view==="personel" || S.view==="devriye" || S.view==="gtasinma" || (appDosya()==="teknik.html" && !store.isTech());
-  $("#ustYazi").textContent = S.view==="personel" && appDosya()==="devriye.html" ? "Bizimevler 1 · Güvenlik" : S.view==="personel" ? "Bizimevler 1 · Personel" : S.view==="devriye" || S.view==="gtasinma" ? "Bizimevler 1 · Güvenlik" : (AYAR.ustYazi || "Teknik Servis");
+  document.querySelector("nav.tabs").hidden = dash || ((store.isTech() || (store.isYetkili && store.isYetkili())) && !["randevu","randevularim"].includes(S.view)) || S.view==="personel" || S.view==="devriye" || S.view==="gtasinma" || S.view==="halisaha" || (appDosya()==="teknik.html" && !store.isTech());
+  $("#ustYazi").textContent = S.view==="personel" && appDosya()==="devriye.html" ? "Bizimevler 1 · Güvenlik" : S.view==="personel" ? "Bizimevler 1 · Personel" : S.view==="devriye" || S.view==="gtasinma" || (S.view==="halisaha" && pDashKim()) ? "Bizimevler 1 · Güvenlik" : S.view==="halisaha" ? "Bizimevler 1 · Halı Saha" : (AYAR.ustYazi || "Teknik Servis");
   const personelMi = store.isTech() || (store.isYetkili && store.isYetkili());
-  const icsayfa = !dash && personelMi && ["tesis","tasinma","gorev","izinler","tutanak","sayac","mesaj","calisma","ik","panel","personel","devriye"].includes(S.view);
+  const icsayfa = !dash && personelMi && ["tesis","tasinma","gorev","izinler","tutanak","sayac","mesaj","calisma","ik","panel","personel","devriye","halisaha"].includes(S.view);
   document.body.classList.toggle("icsayfa", icsayfa);
   const masa = MASA.matches && personelMi && ((dash && S.view==="panel") || icsayfa || (S.view==="personel" && !dash) || S.view==="gorev" || S.view==="tasinma");
   document.body.classList.toggle("yon-masa", masa);
@@ -6112,7 +6239,7 @@ function render(){
   if (masa){ yanMenuCiz(); masaSaat(); try { localStorage.setItem("bz1-masa-rol", JSON.stringify({rol: store.isTech() ? "tech" : (store.isTesis && store.isTesis()) ? "tesis" : "yon", ad: dashAd()})); } catch(e){} } else { const ym = document.getElementById("yanMenu"); if (ym) ym.innerHTML = ""; }
   sakinHavaCiz();
   const BASLIK = {randevu:"Arıza bildir", randevularim:"Bildirimlerim", panel: personelMi ? "Arıza listesi" : "Teknisyen girişi", tesis: store.isTesis && store.isTesis() ? "Tesis & Bakım" : "Asansör arızaları",
-    tasinma:"Taşınma & Tadilat", gtasinma:"Taşınma & Tadilat", gorev:"Görev ver", izinler:"İzinler", calisma:"Çalışma listesi", ik:"Personel işleri", personel:"Arıza bildir", devriye:"Devriye"};
+    tasinma:"Taşınma & Tadilat", gtasinma:"Taşınma & Tadilat", gorev:"Görev ver", izinler:"İzinler", calisma:"Çalışma listesi", ik:"Personel işleri", personel:"Arıza bildir", devriye:"Devriye", halisaha:"Halı saha ışıkları"};
   $("#siteName").textContent = BASLIK[S.view] || (AYAR.baslik || AYAR.siteAdi);
   $("#geriBtn").hidden = !icsayfa || (S.view==="panel" && !S.panelEski);
   $("#ustYazi").textContent = "AVCILAR";
@@ -6129,6 +6256,7 @@ function render(){
     : S.view==="randevu" ? "Arızanı bildir, uygun saati seç. Teknisyen kapına gelsin."
     : S.view==="tasinma" ? "Taşınma ve tadilat kayıtları · Pzt–Cmt 10:00–17:00, pazar yasak."
     : S.view==="gtasinma" ? "Bugün ve önümüzdeki günlerde kayıtlı taşınma ve tadilatlar."
+    : S.view==="halisaha" ? "Işıkları telefondan aç, kapat. Kim yaptıysa kayda yazılır."
     : S.view==="gorev" ? "Personele görev ver, gördü mü yaptı mı anında takip et."
     : S.view==="ik" ? "İzinler, puantaj, görevler ve kimin işte olduğu tek yerde."
     : S.view==="personel" && appDosya()==="devriye.html" ? "Devriyede gördüğün arızayı fotoğrafıyla bildir, teknisyene anında gitsin."
@@ -6158,6 +6286,7 @@ function syncForm(){
   if (S.view === "calisma") clSync();
   if (S.view === "izinler") yiSync();
   if (S.view === "gtasinma") gtSync();
+  if (S.view === "halisaha") hsiBaslat(); else hsiDur();
   if (S.view === "gorev") gvSync();
   const gn = document.getElementById("gel_not"); if (gn && S.gel) S.gel.not = gn.value;
   const kg = document.getElementById("kodGir"); if (kg) S.kodTaslak = kg.value;
@@ -6550,7 +6679,7 @@ function route(){
     if (n) noktaOkut(n); else toast("QR kodu tanınmadı");
     return;
   }
-  S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma","calisma","izinler","tutanak","sayac","mesaj","gtasinma","gorev","ik"].includes(h) ? h : "randevu";
+  S.view = ["randevu","randevularim","panel","personel","devriye","tesis","tasinma","calisma","izinler","tutanak","sayac","mesaj","gtasinma","gorev","ik","halisaha"].includes(h) ? h : "randevu";
   // B1 Teknik uygulamasında sakin arıza formu yok (amirler görmesin); teknisyen #randevu ile yine açabilir
   if (appDosya()==="teknik.html" && (S.view==="randevu"||S.view==="randevularim") && !store.isTech()){ S.view = "panel"; history.replaceState(null, "", location.pathname + "#panel"); }
   if (S.view !== "tesis"){ T.f = null; T.detay = null; }
